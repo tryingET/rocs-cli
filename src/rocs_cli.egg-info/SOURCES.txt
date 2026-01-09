@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/rocs_cli/__init__.py
+src/rocs_cli/__main__.py
+src/rocs_cli.egg-info/PKG-INFO
+src/rocs_cli.egg-info/SOURCES.txt
+src/rocs_cli.egg-info/dependency_links.txt
+src/rocs_cli.egg-info/entry_points.txt
+src/rocs_cli.egg-info/requires.txt
+src/rocs_cli.egg-info/top_level.txt

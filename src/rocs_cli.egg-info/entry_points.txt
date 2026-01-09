@@ -1,0 +1,2 @@
+[console_scripts]
+rocs = rocs_cli.__main__:main
