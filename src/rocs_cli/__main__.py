@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 from rich.console import Console
+
+from rocs_cli import __version__
 
 
 console = Console()
@@ -38,10 +38,6 @@ class OntDoc:
         return str(self.ont.get("type") or "")
 
 
-def _read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
 def _split_frontmatter(text: str) -> tuple[dict | None, str]:
     m = FRONT_RE.match(text)
     if not m:
@@ -51,7 +47,7 @@ def _split_frontmatter(text: str) -> tuple[dict | None, str]:
 
 
 def _load_doc(path: Path) -> OntDoc:
-    text = _read_text(path)
+    text = path.read_text("utf-8")
     fm, body = _split_frontmatter(text)
     if fm is None:
         raise ValueError(f"missing front matter: {path}")
@@ -93,20 +89,17 @@ def _iter_reference_md(repo_root: Path) -> list[Path]:
     return out
 
 
-def _iter_repo_md(repo_root: Path) -> list[Path]:
-    # repo overlays use ontology/src/..., but kernel/company use ontology/src/reference
+def _iter_ontology_md(repo_root: Path) -> list[Path]:
     src = _ontology_root(repo_root) / "src"
     out: list[Path] = []
     if not src.exists():
         return out
     for p in sorted(src.rglob("*.md")):
-        # include README.md too (often has placeholders); caller decides strictness
         out.append(p)
     return out
 
 
 def _id_ok(ont_id: str) -> bool:
-    # Examples: core.Secret, core.rel.is_a, co.software.Service
     return bool(re.fullmatch(r"[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)+", ont_id))
 
 
@@ -143,7 +136,6 @@ def _validate_reference_schema(repo_root: Path, strict_placeholders: bool) -> li
         for lbl in labels:
             rel_label_to_ids.setdefault(str(lbl), set()).add(rid)
 
-    # concepts: relations must be list
     for cid, cdoc in concepts.items():
         if not _id_ok(cid):
             errs.append(f"{cdoc.path}: invalid ont.id: {cid!r}")
@@ -177,7 +169,6 @@ def _validate_reference_schema(repo_root: Path, strict_placeholders: bool) -> li
                 if rb and rb not in concepts:
                     errs.append(f"{cdoc.path}: deprecated replaced_by missing: {rb!r}")
 
-    # relations: optional inverse must point to an existing label (or self)
     for rid, rdoc in relations.items():
         if not _id_ok(rid):
             errs.append(f"{rdoc.path}: invalid ont.id: {rid!r}")
@@ -190,14 +181,13 @@ def _validate_reference_schema(repo_root: Path, strict_placeholders: bool) -> li
             if inv not in rel_label_to_ids:
                 errs.append(f"{rdoc.path}: inverse label not defined in kernel: {inv!r}")
 
-    # placeholders (repo-wide)
     if strict_placeholders:
-        for p in _iter_repo_md(repo_root):
-            text = _read_text(p)
+        for p in _iter_ontology_md(repo_root):
+            text = p.read_text("utf-8")
             if PLACEHOLDER_RE.search(text):
                 errs.append(f"{p}: placeholder token found (e.g. <...>)")
         mp = _manifest_path(repo_root)
-        if mp.exists() and PLACEHOLDER_RE.search(_read_text(mp)):
+        if mp.exists() and PLACEHOLDER_RE.search(mp.read_text("utf-8")):
             errs.append(f"{mp}: placeholder token found (e.g. <...>)")
 
     # taxonomy cycles on is_a
@@ -274,7 +264,7 @@ def cmd_pack(args: argparse.Namespace) -> int:
         console.print(f"[red]unknown ont_id[/red]: {cid}")
         return 2
     console.print(str(doc.path))
-    console.print(_read_text(doc.path))
+    console.print(doc.path.read_text("utf-8"))
     return 0
 
 
@@ -296,6 +286,7 @@ def cmd_build(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rocs")
+    parser.add_argument("--version", action="version", version=f"rocs-cli {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("summary")
@@ -317,8 +308,7 @@ def main(argv: list[str] | None = None) -> None:
     p.set_defaults(fn=cmd_build)
 
     args = parser.parse_args(argv)
-    rc = int(args.fn(args))
-    raise SystemExit(rc)
+    raise SystemExit(int(args.fn(args)))
 
 
 if __name__ == "__main__":
