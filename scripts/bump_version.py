@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import re
 import shutil
 from dataclasses import dataclass
@@ -131,16 +132,11 @@ def sha256_file(path: Path) -> str:
 
 
 def verify_vendor_hashes(src_repo: Path, vendor_dir: Path) -> tuple[bool, list[str]]:
-    checks = [
-        Path("pyproject.toml"),
-        Path("README.md"),
-        Path("src/rocs_cli/__init__.py"),
-        Path("src/rocs_cli/__main__.py"),
-        Path("src/rocs_cli/cli.py"),
-        Path("src/rocs_cli/validate.py"),
-        Path("src/rocs_cli/graph.py"),
-        Path("src/rocs_cli/cli_signature.py"),
-    ]
+    checks: list[Path] = [Path("pyproject.toml"), Path("README.md")]
+    for p in sorted((src_repo / "src" / "rocs_cli").rglob("*.py")):
+        if "__pycache__" in p.parts:
+            continue
+        checks.append(p.relative_to(src_repo))
     ok = True
     lines: list[str] = []
     for rel in checks:
@@ -162,6 +158,24 @@ def verify_vendor_hashes(src_repo: Path, vendor_dir: Path) -> tuple[bool, list[s
         else:
             lines.append(f"ok: {rel} {ha}")
     return ok, lines
+
+
+def write_vendored_hashes(vendor_dir: Path, *, upstream_project: str, upstream_version: str) -> None:
+    files: dict[str, str] = {}
+    checks: list[Path] = [Path("pyproject.toml"), Path("README.md")]
+    for p in sorted((vendor_dir / "src" / "rocs_cli").rglob("*.py")):
+        if "__pycache__" in p.parts:
+            continue
+        checks.append(p.relative_to(vendor_dir))
+    for rel in checks:
+        files[str(rel)] = sha256_file(vendor_dir / rel)
+    payload = {
+        "schema_version": 1,
+        "upstream_project": upstream_project,
+        "upstream_version": upstream_version,
+        "files": files,
+    }
+    (vendor_dir / "VENDORED_HASHES.json").write_text(json.dumps(payload, indent=2) + "\n", "utf-8")
 
 
 def main() -> int:
@@ -204,6 +218,7 @@ def main() -> int:
             if vdir.is_dir():
                 sync_vendored(repo, vdir)
                 print(f"synced: {vdir}")
+                write_vendored_hashes(vdir, upstream_project="ai-society/core/rocs-cli", upstream_version=new_version)
                 ok, lines = verify_vendor_hashes(repo, vdir)
                 for ln in lines:
                     print(f"hash: {vdir.name}: {ln}")
