@@ -4,3 +4,4 @@ __pycache__/
 uv.lock
 /build/
 /dist/
+artifacts/vhs/
