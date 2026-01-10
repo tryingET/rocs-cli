@@ -26,6 +26,7 @@ from rocs_cli.validate import (
     validate_reference_schema,
     validate_repo_structure,
 )
+from rocs_cli.vendored import verify_vendored_hashes
 
 
 console = Console()
@@ -374,6 +375,20 @@ def cmd_cache(args: argparse.Namespace) -> int:
     raise SystemExit(f"unknown cache subcmd: {args.subcmd}")
 
 
+def cmd_vendored_check(args: argparse.Namespace) -> int:
+    vendored_dir = Path(args.vendored_dir).resolve()
+    ok, lines = verify_vendored_hashes(vendored_dir)
+    if ok:
+        console.print("[green]vendored-check: OK[/green]")
+        return 0
+    console.print("[red]vendored-check: FAIL[/red]")
+    for ln in lines[:200]:
+        console.print(f"- {ln}")
+    if len(lines) > 200:
+        console.print(f"... ({len(lines) - 200} more)")
+    return 1
+
+
 def cmd_normalize(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
@@ -595,6 +610,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-bytes", type=int, help="max UTF-8 bytes in pack (default: profile pack.max_bytes)")
     p.add_argument("--format", choices=["text", "json"], default="text")
     p.set_defaults(fn=cmd_pack)
+
+    p = sub.add_parser("vendored-check")
+    p.add_argument("--vendored-dir", required=True, help="path to vendored rocs-cli dir (contains VENDORED_HASHES.json)")
+    p.set_defaults(fn=cmd_vendored_check)
 
     p = sub.add_parser("cache")
     sub2 = p.add_subparsers(dest="subcmd", required=True)

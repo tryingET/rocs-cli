@@ -1,12 +1,14 @@
 import tempfile
 import unittest
 import io
+import json
 from pathlib import Path
 
 from rich.console import Console
 
 from rocs_cli import __main__ as cli
 import rocs_cli.cli as cli_mod
+from rocs_cli.vendored import compute_expected_hashes
 
 
 def _write(path: Path, text: str) -> None:
@@ -254,6 +256,24 @@ class TestRocsCli(unittest.TestCase):
             self.assertIn('"schema_version": 1', text)
             self.assertIn('"id": "core.Agent"', text)
             self.assertIn('"id": "core.rel.is_a"', text)
+
+    def test_vendored_check_ok_then_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            vdir = Path(td) / "vendored"
+            _write(vdir / "pyproject.toml", '[project]\nname="rocs-cli"\nversion="0.0.0"\n')
+            _write(vdir / "README.md", "vendored\n")
+            _write(vdir / "src" / "rocs_cli" / "__init__.py", '__version__ = "0.0.0"\n')
+
+            files = compute_expected_hashes(vdir)
+            _write(vdir / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": files}, indent=2) + "\n")
+
+            code_ok, _out_ok = _run_capture(["vendored-check", "--vendored-dir", str(vdir)])
+            self.assertEqual(code_ok, 0)
+
+            # mutate a file -> should fail
+            _write(vdir / "README.md", "changed\n")
+            code_bad, _out_bad = _run_capture(["vendored-check", "--vendored-dir", str(vdir)])
+            self.assertNotEqual(code_bad, 0)
 
 
 if __name__ == "__main__":
