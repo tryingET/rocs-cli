@@ -11,6 +11,7 @@ from rich.console import Console
 from rocs_cli import __version__
 from rocs_cli.cache import cache_dir, clear_cache, list_cache_entries, prune_cache
 from rocs_cli.graph import build_edges, collapse_nodes, compute_layout, write_graph
+from rocs_cli.id_index import build_id_index
 from rocs_cli.inverses import check_inverses
 from rocs_cli.layers import dist_dir, parse_gitlab_ref, repo_root as _repo_root, resolve_layers
 from rocs_cli.lint import lint_docs
@@ -215,7 +216,9 @@ def cmd_build(args: argparse.Namespace) -> int:
         "relation_ids": sorted(relations.keys()),
     }
     (dist / "summary.json").write_text(json.dumps(payload, indent=2) + "\n", "utf-8")
+    (dist / "id_index.json").write_text(json.dumps(build_id_index(concepts=concepts, relations=relations), indent=2) + "\n", "utf-8")
     console.print(f"[green]wrote[/green] {dist/'summary.json'}")
+    console.print(f"[green]wrote[/green] {dist/'id_index.json'}")
     return 0
 
 

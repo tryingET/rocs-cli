@@ -244,6 +244,17 @@ class TestRocsCli(unittest.TestCase):
             self.assertIn("core.Actor.md", out)
             self.assertIn("is_a.md", out)
 
+    def test_build_writes_id_index(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+            idx = repo / "ontology" / "dist" / "id_index.json"
+            self.assertTrue(idx.exists())
+            text = idx.read_text("utf-8")
+            self.assertIn('"schema_version": 1', text)
+            self.assertIn('"id": "core.Agent"', text)
+            self.assertIn('"id": "core.rel.is_a"', text)
+
 
 if __name__ == "__main__":
     unittest.main()
