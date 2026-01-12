@@ -21,3 +21,16 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = [
+  "artifacts",
+  "build",
+  "src/rocs_cli.egg-info",
+]
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]
