@@ -36,6 +36,9 @@ Graph export:
 Tests:
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q`
 
+Type checking:
+- Prefer `ty` (Astral). See `docs/ty.md`.
+
 VHS recordings (documentation by recorded behavior):
 - Install `vhs` (and its deps: `ttyd`, `ffmpeg`), then run: `core/rocs-cli/scripts/vhs-run.sh`
 - Outputs land in `core/rocs-cli/artifacts/vhs/` (gitignored); share the `.gif` when reporting behavior regressions.
