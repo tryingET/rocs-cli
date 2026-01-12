@@ -63,7 +63,14 @@ def _src_root_for_ref(locator: str, *, resolve_refs: bool) -> tuple[Path, str]:
     return (repo / "ontology" / "src"), locator
 
 
-def resolve_layers(repo_root: Path, *, profile: str | None, resolve_refs: bool) -> tuple[list[LayerSpec], dict]:
+def resolve_layers(
+    repo_root: Path,
+    *,
+    profile: str | None,
+    resolve_refs: bool,
+    only: str | None = None,
+    layer: str | None = None,
+) -> tuple[list[LayerSpec], dict]:
     manifest = load_manifest(repo_root)
     rocs = manifest.get("rocs") or {}
     profiles = rocs.get("profiles") or {}
@@ -106,15 +113,21 @@ def resolve_layers(repo_root: Path, *, profile: str | None, resolve_refs: bool) 
         name = str(cfg.get("name") or "")
         if not name:
             raise SystemExit(f"layer missing name: {cfg!r}")
+        if layer and name != layer:
+            continue
         if include is not None and name not in include:
             continue
         if name in exclude:
             continue
 
         if "path" in cfg:
+            if only == "ref":
+                continue
             src_root = (repo_root / str(cfg["path"])).resolve()
             layers.append(LayerSpec(name=name, src_root=src_root, origin=str(cfg["path"]), kind="path"))
         elif "ref" in cfg:
+            if only == "path":
+                continue
             src_root, origin = _src_root_for_ref(str(cfg["ref"]), resolve_refs=resolve_refs)
             layers.append(LayerSpec(name=name, src_root=src_root, origin=origin, kind="ref"))
         else:
@@ -122,4 +135,3 @@ def resolve_layers(repo_root: Path, *, profile: str | None, resolve_refs: bool) 
 
     meta = {"manifest": manifest, "profile": profile, "profile_def": profile_def}
     return layers, meta
-
