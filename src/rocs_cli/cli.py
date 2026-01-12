@@ -32,6 +32,8 @@ from rocs_cli.vendored import verify_vendored_hashes
 
 console = Console()
 
+_DEFAULT_ENV_REL = Path("holdingco/governance-kernel/.env")
+
 
 def _filter_layers(layers, *, only: str | None, layer: str | None):
     out = layers
@@ -44,14 +46,32 @@ def _filter_layers(layers, *, only: str | None, layer: str | None):
     return out
 
 
-def _maybe_load_env_file(env_file: str | None) -> None:
-    if not env_file:
-        env_file = os.environ.get("ROCS_ENV_FILE") or ""
-    if not env_file:
+def _discover_default_env_file(*, repo_root: Path | None) -> Path | None:
+    env_from_var = os.environ.get("ROCS_ENV_FILE") or ""
+    if env_from_var.strip():
+        return Path(env_from_var).expanduser()
+    if repo_root is None:
+        return None
+
+    repo_env = repo_root / ".env"
+    if repo_env.exists():
+        return repo_env
+
+    for p in [repo_root, *repo_root.parents]:
+        cand = p / _DEFAULT_ENV_REL
+        if cand.exists():
+            return cand
+
+    return None
+
+
+def _maybe_load_env_file(env_file: str | None, *, repo_root: Path | None) -> None:
+    p = Path(env_file).expanduser() if env_file else _discover_default_env_file(repo_root=repo_root)
+    if not p:
         return
     from rocs_cli.gitlab import load_env_file
 
-    load_env_file(Path(env_file))
+    load_env_file(p)
 
 
 def _findings_to_json(findings: list[Finding]) -> list[dict]:
@@ -103,8 +123,8 @@ def cmd_version(_args: argparse.Namespace) -> int:
 
 
 def cmd_resolve(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     payload = {
@@ -125,8 +145,8 @@ def cmd_resolve(args: argparse.Namespace) -> int:
 
 
 def cmd_summary(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
@@ -148,8 +168,8 @@ def cmd_summary(args: argparse.Namespace) -> int:
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     findings: list[Finding] = []
     findings.extend(validate_repo_structure(repo))
     findings.extend(validate_manifest_placeholders(repo, strict_placeholders=args.strict_placeholders))
@@ -201,8 +221,8 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def cmd_build(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     dist = dist_dir(repo)
     if args.clean and dist.exists():
         shutil.rmtree(dist)
@@ -227,8 +247,8 @@ def cmd_build(args: argparse.Namespace) -> int:
 
 
 def cmd_pack(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
@@ -278,8 +298,8 @@ def cmd_pack(args: argparse.Namespace) -> int:
 
 
 def cmd_lint(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
@@ -306,8 +326,8 @@ def cmd_lint(args: argparse.Namespace) -> int:
 
 
 def cmd_check_inverses(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     _concepts, relations = collect_docs(layers)
@@ -326,8 +346,8 @@ def cmd_check_inverses(args: argparse.Namespace) -> int:
 
 
 def cmd_graph(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, _relations = collect_docs(layers)
@@ -393,8 +413,8 @@ def cmd_vendored_check(args: argparse.Namespace) -> int:
 
 
 def cmd_normalize(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only="path", layer=args.layer)
     # normalize never touches ref layers
     layers = _filter_layers(layers, only="path", layer=args.layer)
@@ -426,8 +446,8 @@ def _diff_sets(a: set[str], b: set[str]) -> tuple[list[str], list[str]]:
 
 
 def cmd_diff(args: argparse.Namespace) -> int:
-    _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
+    _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     baseline = args.baseline.strip()
     parsed = parse_gitlab_ref(baseline)
     if parsed is None:

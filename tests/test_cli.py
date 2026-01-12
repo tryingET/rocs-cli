@@ -172,6 +172,46 @@ class TestRocsCli(unittest.TestCase):
                 else:
                     os.environ["ROCS_GITLAB_BASE_URL"] = prev_base_url
 
+    def test_workspace_default_env_is_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td) / "ai-society"
+            env_file = ws / "holdingco" / "governance-kernel" / ".env"
+            env_file.parent.mkdir(parents=True, exist_ok=True)
+            env_file.write_text("ROCS_GITLAB_BASE_URL=http://workspace.invalid\n", "utf-8")
+
+            repo_root = ws / "holdingco" / "projects" / "xrepo"
+            _write(
+                repo_root / "ontology" / "manifest.yaml",
+                "\n".join(
+                    [
+                        "rocs:",
+                        "  layer: core",
+                        '  id: \"test.core\"',
+                        '  version: \"0.0.0\"',
+                        '  created: \"2026-01-10\"',
+                        "",
+                    ]
+                ),
+            )
+            _write(repo_root / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
+
+            prev_env_file = os.environ.get("ROCS_ENV_FILE")
+            prev_base_url = os.environ.get("ROCS_GITLAB_BASE_URL")
+            try:
+                os.environ.pop("ROCS_ENV_FILE", None)
+                os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                self.assertEqual(_run(["validate", "--repo", str(repo_root)]), 0)
+                self.assertEqual(os.environ.get("ROCS_GITLAB_BASE_URL"), "http://workspace.invalid")
+            finally:
+                if prev_env_file is None:
+                    os.environ.pop("ROCS_ENV_FILE", None)
+                else:
+                    os.environ["ROCS_ENV_FILE"] = prev_env_file
+                if prev_base_url is None:
+                    os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                else:
+                    os.environ["ROCS_GITLAB_BASE_URL"] = prev_base_url
+
     def test_strict_placeholders_allows_gitlab_locator_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td), manifest_extra='  note: "<gitlab:ai-society/core/ontology-kernel@v0.1.0>"')
