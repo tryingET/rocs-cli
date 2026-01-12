@@ -24,7 +24,12 @@ Scope (MVP):
 
 Layer refs (optional):
 - `--resolve-refs` enables fetching `<gitlab:<project_path>@<ref>>` layers into a local cache.
-- If your env vars live in a dotenv file, pass `--env-file <path>` (no need to export).
+- Dotenv loading (so you don’t need to `export` tokens):
+  - Highest priority: pass `--env-file <path>`.
+  - Otherwise `rocs` auto-loads the first existing file from:
+    - `ROCS_ENV_FILE`
+    - `<repo>/.env` (where `<repo>` is `--repo`)
+    - `holdingco/governance-kernel/.env` (when running inside the ai-society workspace)
 - Cache location: `ROCS_CACHE_DIR` or `$XDG_CACHE_HOME/rocs` or `~/.cache/rocs`.
 - GitLab config: `ROCS_GITLAB_BASE_URL` (or `GITLAB_BASE_URL`) and `ROCS_GITLAB_TOKEN` (or `PAT_GITLAB`).
 - In GitLab CI: base url falls back to `CI_SERVER_URL`; auth can use `CI_JOB_TOKEN`.

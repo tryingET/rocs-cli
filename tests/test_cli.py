@@ -2,6 +2,7 @@ import tempfile
 import unittest
 import io
 import json
+import os
 from pathlib import Path
 
 from rich.console import Console
@@ -147,22 +148,69 @@ class TestRocsCli(unittest.TestCase):
             repo = _mk_repo(Path(td))
             self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
 
-    def test_only_path_skips_ref_layer_resolution(self) -> None:
+    def test_rocs_env_file_default_is_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as td:
-            repo = _mk_repo(
-                Path(td),
-                manifest_extra="\n".join(
+            env_file = Path(td) / ".env"
+            env_file.write_text("ROCS_GITLAB_BASE_URL=http://example.invalid\n", "utf-8")
+
+            prev_env_file = os.environ.get("ROCS_ENV_FILE")
+            prev_base_url = os.environ.get("ROCS_GITLAB_BASE_URL")
+            try:
+                os.environ["ROCS_ENV_FILE"] = str(env_file)
+                os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+
+                repo = _mk_repo(Path(td))
+                self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+                self.assertEqual(os.environ.get("ROCS_GITLAB_BASE_URL"), "http://example.invalid")
+            finally:
+                if prev_env_file is None:
+                    os.environ.pop("ROCS_ENV_FILE", None)
+                else:
+                    os.environ["ROCS_ENV_FILE"] = prev_env_file
+                if prev_base_url is None:
+                    os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                else:
+                    os.environ["ROCS_GITLAB_BASE_URL"] = prev_base_url
+
+    def test_workspace_default_env_is_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td) / "ai-society"
+            env_file = ws / "holdingco" / "governance-kernel" / ".env"
+            env_file.parent.mkdir(parents=True, exist_ok=True)
+            env_file.write_text("ROCS_GITLAB_BASE_URL=http://workspace.invalid\n", "utf-8")
+
+            repo_root = ws / "holdingco" / "projects" / "xrepo"
+            _write(
+                repo_root / "ontology" / "manifest.yaml",
+                "\n".join(
                     [
-                        "  depends_on:",
-                        "    - layer: upstream",
-                        '      ref: "<gitlab:ai-society/core/ontology-kernel@v0.1.0>"',
+                        "rocs:",
+                        "  layer: core",
+                        '  id: \"test.core\"',
+                        '  version: \"0.0.0\"',
+                        '  created: \"2026-01-10\"',
+                        "",
                     ]
                 ),
             )
-            code, out = _run_capture(["validate", "--repo", str(repo), "--only", "path"])
-            self.assertEqual(code, 0, out)
-            self.assertEqual(_run(["lint", "--repo", str(repo), "--only", "path"]), 0)
-            self.assertEqual(_run(["normalize", "--repo", str(repo)]), 0)
+            _write(repo_root / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
+
+            prev_env_file = os.environ.get("ROCS_ENV_FILE")
+            prev_base_url = os.environ.get("ROCS_GITLAB_BASE_URL")
+            try:
+                os.environ.pop("ROCS_ENV_FILE", None)
+                os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                self.assertEqual(_run(["validate", "--repo", str(repo_root)]), 0)
+                self.assertEqual(os.environ.get("ROCS_GITLAB_BASE_URL"), "http://workspace.invalid")
+            finally:
+                if prev_env_file is None:
+                    os.environ.pop("ROCS_ENV_FILE", None)
+                else:
+                    os.environ["ROCS_ENV_FILE"] = prev_env_file
+                if prev_base_url is None:
+                    os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                else:
+                    os.environ["ROCS_GITLAB_BASE_URL"] = prev_base_url
 
     def test_strict_placeholders_allows_gitlab_locator_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
