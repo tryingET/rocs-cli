@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import time
 from pathlib import Path
@@ -44,6 +45,8 @@ def _filter_layers(layers, *, only: str | None, layer: str | None):
 
 
 def _maybe_load_env_file(env_file: str | None) -> None:
+    if not env_file:
+        env_file = os.environ.get("ROCS_ENV_FILE") or ""
     if not env_file:
         return
     from rocs_cli.gitlab import load_env_file

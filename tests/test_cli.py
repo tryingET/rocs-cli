@@ -2,6 +2,7 @@ import tempfile
 import unittest
 import io
 import json
+import os
 from pathlib import Path
 
 from rich.console import Console
@@ -146,6 +147,30 @@ class TestRocsCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
             self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+
+    def test_rocs_env_file_default_is_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            env_file = Path(td) / ".env"
+            env_file.write_text("ROCS_GITLAB_BASE_URL=http://example.invalid\n", "utf-8")
+
+            prev_env_file = os.environ.get("ROCS_ENV_FILE")
+            prev_base_url = os.environ.get("ROCS_GITLAB_BASE_URL")
+            try:
+                os.environ["ROCS_ENV_FILE"] = str(env_file)
+                os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+
+                repo = _mk_repo(Path(td))
+                self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+                self.assertEqual(os.environ.get("ROCS_GITLAB_BASE_URL"), "http://example.invalid")
+            finally:
+                if prev_env_file is None:
+                    os.environ.pop("ROCS_ENV_FILE", None)
+                else:
+                    os.environ["ROCS_ENV_FILE"] = prev_env_file
+                if prev_base_url is None:
+                    os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                else:
+                    os.environ["ROCS_GITLAB_BASE_URL"] = prev_base_url
 
     def test_strict_placeholders_allows_gitlab_locator_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
