@@ -1,24 +1,38 @@
 stages:
+  - lint
   - test
   - release
 
-default:
+lint:
+  stage: lint
   image: python:3.11
-  before_script:
+  script:
     - python -V
     - python -m pip install --upgrade pip
+    - python -m pip install ruff==0.14.11
+    - ruff --version
+    - ruff check .
 
 test:
   stage: test
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.11", "3.12", "3.13"]
+  image: python:$PYTHON_VERSION
   script:
+    - python -V
+    - python -m pip install --upgrade pip
     - python -m pip install -e .
     - python -m unittest discover -s tests -p 'test_*.py' -q
 
 release:
   stage: release
+  image: python:3.11
   rules:
     - if: $CI_COMMIT_TAG
   script:
+    - python -V
+    - python -m pip install --upgrade pip
     - python -m pip install -e .
     - python -m pip install build
     - python -m build
@@ -30,4 +44,3 @@ release:
     tag_name: $CI_COMMIT_TAG
     name: $CI_COMMIT_TAG
     description: "rocs-cli release for $CI_COMMIT_TAG"
-

@@ -139,6 +139,10 @@ def _run_capture(argv: list[str]) -> tuple[int, str]:
     return code, buf.getvalue()
 
 
+def _parse_json(out: str) -> dict:
+    return json.loads(out.strip())
+
+
 class TestRocsCli(unittest.TestCase):
     def test_version_subcommand(self) -> None:
         self.assertEqual(_run(["version"]), 0)
@@ -147,6 +151,43 @@ class TestRocsCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
             self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+
+    def test_validate_json_ok_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["validate", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), True)
+            self.assertEqual(payload.get("findings"), [])
+            self.assertIn("budget", payload)
+
+    def test_validate_json_failure_has_exit_code_1(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "relations" / "also_is_a.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.rel.is_a_2"',
+                        "  type: relation",
+                        '  labels: ["is_a"]',
+                        '  description: "duplicate label"',
+                        "  group: taxonomy",
+                        "---",
+                        "",
+                        "# also_is_a",
+                        "",
+                    ]
+                ),
+            )
+            code, out = _run_capture(["validate", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIsInstance(payload.get("findings"), list)
 
     def test_rocs_env_file_default_is_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as td:

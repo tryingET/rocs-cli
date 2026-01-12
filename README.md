@@ -41,6 +41,15 @@ Graph export:
 Tests:
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q`
 
+Exit codes (baseline; subject to hardening in M11 Slice D):
+- `0`: success / no findings (or non-failing warnings)
+- `1`: validation/schema errors
+- `2`: action required (e.g., `rocs normalize` changes needed; `rocs diff` breaking removals detected)
+
+Lint (ruff):
+- `uvx -n --from ruff ruff check .`
+- CI runs `ruff check .` (no formatting enforced yet).
+
 Type checking:
 - Prefer `ty` (Astral). See `docs/ty.md`.
 

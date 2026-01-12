@@ -40,9 +40,9 @@ def _filter_layers(layers, *, only: str | None, layer: str | None):
     if only:
         if only not in ("path", "ref"):
             raise SystemExit("--only must be path|ref")
-        out = [l for l in out if l.kind == only]
+        out = [layer_spec for layer_spec in out if layer_spec.kind == only]
     if layer:
-        out = [l for l in out if l.name == layer]
+        out = [layer_spec for layer_spec in out if layer_spec.name == layer]
     return out
 
 
@@ -91,17 +91,17 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
     dist = dist_dir(repo)
     dist.mkdir(parents=True, exist_ok=True)
     entries = []
-    for l in layers:
+    for layer_spec in layers:
         cache_repo_root = None
-        if l.kind == "ref":
+        if layer_spec.kind == "ref":
             # <cache>/gitlab/<proj>/<ref>/ontology/src
-            cache_repo_root = str(l.src_root.parent.parent)
+            cache_repo_root = str(layer_spec.src_root.parent.parent)
         entries.append(
             {
-                "name": l.name,
-                "kind": l.kind,
-                "origin": l.origin,
-                "src_root": str(l.src_root),
+                "name": layer_spec.name,
+                "kind": layer_spec.kind,
+                "origin": layer_spec.origin,
+                "src_root": str(layer_spec.src_root),
                 "cache_repo_root": cache_repo_root,
             }
         )
@@ -130,7 +130,15 @@ def cmd_resolve(args: argparse.Namespace) -> int:
     payload = {
         "repo": str(repo),
         "profile": meta.get("profile"),
-        "layers": [{"name": l.name, "origin": l.origin, "src_root": str(l.src_root), "kind": l.kind} for l in layers],
+        "layers": [
+            {
+                "name": layer_spec.name,
+                "origin": layer_spec.origin,
+                "src_root": str(layer_spec.src_root),
+                "kind": layer_spec.kind,
+            }
+            for layer_spec in layers
+        ],
     }
     if args.write_dist:
         _write_resolve_artifact(repo, layers=layers, profile=payload["profile"])
@@ -139,8 +147,8 @@ def cmd_resolve(args: argparse.Namespace) -> int:
     else:
         console.print(f"repo: {payload['repo']}")
         console.print(f"profile: {payload['profile']}")
-        for l in payload["layers"]:
-            console.print(f"- layer {l['name']}: {l['origin']}")
+        for layer_entry in payload["layers"]:
+            console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
     return 0
 
 
@@ -153,15 +161,23 @@ def cmd_summary(args: argparse.Namespace) -> int:
     payload = {
         "repo": str(repo),
         "profile": meta.get("profile"),
-        "layers": [{"name": l.name, "origin": l.origin, "src_root": str(l.src_root), "kind": l.kind} for l in layers],
+        "layers": [
+            {
+                "name": layer_spec.name,
+                "origin": layer_spec.origin,
+                "src_root": str(layer_spec.src_root),
+                "kind": layer_spec.kind,
+            }
+            for layer_spec in layers
+        ],
         "counts": {"concepts": len(concepts), "relations": len(relations)},
     }
     if args.format == "text":
         console.print(f"repo: {payload['repo']}")
         console.print(f"profile: {payload['profile']}")
         console.print(f"counts: concepts={payload['counts']['concepts']} relations={payload['counts']['relations']}")
-        for l in payload["layers"]:
-            console.print(f"- layer {l['name']}: {l['origin']}")
+        for layer_entry in payload["layers"]:
+            console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
     else:
         console.print_json(json.dumps(payload))
     return 0
@@ -234,7 +250,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     payload = {
         "repo": str(repo),
         "profile": meta.get("profile"),
-        "layers": [{"name": l.name, "origin": l.origin} for l in layers],
+        "layers": [{"name": layer_spec.name, "origin": layer_spec.origin} for layer_spec in layers],
         "counts": {"concepts": len(concepts), "relations": len(relations)},
         "concept_ids": sorted(concepts.keys()),
         "relation_ids": sorted(relations.keys()),
@@ -419,8 +435,8 @@ def cmd_normalize(args: argparse.Namespace) -> int:
     # normalize never touches ref layers
     layers = _filter_layers(layers, only="path", layer=args.layer)
     changed_paths: list[str] = []
-    for l in layers:
-        for c in normalize_tree(l.src_root, apply=args.apply):
+    for layer_spec in layers:
+        for c in normalize_tree(layer_spec.src_root, apply=args.apply):
             if c.changed:
                 changed_paths.append(str(c.path))
 
