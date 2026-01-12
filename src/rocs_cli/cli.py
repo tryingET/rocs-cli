@@ -102,7 +102,7 @@ def cmd_version(_args: argparse.Namespace) -> int:
 def cmd_resolve(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     payload = {
         "repo": str(repo),
@@ -124,7 +124,7 @@ def cmd_resolve(args: argparse.Namespace) -> int:
 def cmd_summary(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     payload = {
@@ -150,7 +150,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     findings: list[Finding] = []
     findings.extend(validate_repo_structure(repo))
     findings.extend(validate_manifest_placeholders(repo, strict_placeholders=args.strict_placeholders))
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     findings.extend(validate_layers_exist(layers))
     schema_findings, _meta2 = validate_reference_schema(
@@ -204,7 +204,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     if args.clean and dist.exists():
         shutil.rmtree(dist)
     dist.mkdir(parents=True, exist_ok=True)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     _write_resolve_artifact(repo, layers=layers, profile=meta.get("profile"))
@@ -226,7 +226,7 @@ def cmd_build(args: argparse.Namespace) -> int:
 def cmd_pack(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     cid = args.ont_id
@@ -277,7 +277,7 @@ def cmd_pack(args: argparse.Namespace) -> int:
 def cmd_lint(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     findings = lint_docs(concepts, relations, strict_placeholders=args.strict_placeholders)
@@ -305,7 +305,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
 def cmd_check_inverses(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     _concepts, relations = collect_docs(layers)
     findings = check_inverses(relations, fix=args.fix)
@@ -325,7 +325,7 @@ def cmd_check_inverses(args: argparse.Namespace) -> int:
 def cmd_graph(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, _relations = collect_docs(layers)
     rel_filter: set[str] | None = None
@@ -392,7 +392,7 @@ def cmd_vendored_check(args: argparse.Namespace) -> int:
 def cmd_normalize(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None))
     repo = _repo_root(args.repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only="path", layer=args.layer)
     # normalize never touches ref layers
     layers = _filter_layers(layers, only="path", layer=args.layer)
     changed_paths: list[str] = []
@@ -435,8 +435,8 @@ def cmd_diff(args: argparse.Namespace) -> int:
     project_path, ref = parsed
     base_repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
 
-    cur_layers, cur_meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs)
-    base_layers, base_meta = resolve_layers(base_repo, profile=args.profile, resolve_refs=args.resolve_refs)
+    cur_layers, cur_meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    base_layers, base_meta = resolve_layers(base_repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
     cur_layers = _filter_layers(cur_layers, only=args.only, layer=args.layer)
     base_layers = _filter_layers(base_layers, only=args.only, layer=args.layer)
 

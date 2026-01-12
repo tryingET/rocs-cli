@@ -147,6 +147,23 @@ class TestRocsCli(unittest.TestCase):
             repo = _mk_repo(Path(td))
             self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
 
+    def test_only_path_skips_ref_layer_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(
+                Path(td),
+                manifest_extra="\n".join(
+                    [
+                        "  depends_on:",
+                        "    - layer: upstream",
+                        '      ref: "<gitlab:ai-society/core/ontology-kernel@v0.1.0>"',
+                    ]
+                ),
+            )
+            code, out = _run_capture(["validate", "--repo", str(repo), "--only", "path"])
+            self.assertEqual(code, 0, out)
+            self.assertEqual(_run(["lint", "--repo", str(repo), "--only", "path"]), 0)
+            self.assertEqual(_run(["normalize", "--repo", str(repo)]), 0)
+
     def test_strict_placeholders_allows_gitlab_locator_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td), manifest_extra='  note: "<gitlab:ai-society/core/ontology-kernel@v0.1.0>"')
