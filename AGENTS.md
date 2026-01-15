@@ -5,6 +5,11 @@ Keep CLI small + boring:
 - deterministic output
 - no secrets
 
+GitLab / issues:
+- Self-hosted GitLab (nas): use `gl-nas` wrapper (python-gitlab CLI) to view/update issues/MRs, e.g.
+  - `gl-nas -- project get --id ai-society/core/rocs-cli`
+  - `gl-nas -- project-issue get --project-id 15 --iid 1`
+
 Local dev:
 - `uv run --with pyyaml --with rich python -m rocs_cli --help`
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q` (includes README↔CLI wiring check)

@@ -465,6 +465,8 @@ def cmd_diff(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     baseline = args.baseline.strip()
+    if not args.resolve_refs:
+        raise SystemExit("rocs diff requires --resolve-refs to fetch a <gitlab:...@...> baseline (offline-first default)")
     parsed = parse_gitlab_ref(baseline)
     if parsed is None:
         raise SystemExit("--baseline must be a <gitlab:...@...> locator for now")
@@ -532,6 +534,7 @@ def cmd_diff(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rocs")
     parser.add_argument("--version", action="version", version=f"rocs-cli {__version__}")
+    parser.add_argument("--debug", action="store_true", help="show full tracebacks on error")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("version")
@@ -681,4 +684,20 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
-    raise SystemExit(int(args.fn(args)))
+    debug = bool(getattr(args, "debug", False))
+    try:
+        code = int(args.fn(args))
+    except SystemExit as e:
+        if debug:
+            raise
+        # Normalize our "raise SystemExit('message')" cases into clean CLI output.
+        if isinstance(e.code, str) and e.code.strip():
+            console.print(f"[red]error[/red]: {e.code}")
+            raise SystemExit(1) from None
+        raise
+    except Exception as e:  # noqa: BLE001
+        if debug:
+            raise
+        console.print(f"[red]error[/red]: {e}")
+        raise SystemExit(1) from None
+    raise SystemExit(code)

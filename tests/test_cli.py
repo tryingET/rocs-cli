@@ -258,6 +258,53 @@ class TestRocsCli(unittest.TestCase):
             repo = _mk_repo(Path(td), manifest_extra='  note: "<gitlab:ai-society/core/ontology-kernel@v0.1.0>"')
             self.assertEqual(_run(["validate", "--repo", str(repo), "--strict-placeholders"]), 0)
 
+    def test_only_path_does_not_fetch_ref_layers_without_resolve_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(
+                Path(td),
+                manifest_extra="\n".join(
+                    [
+                        "  depends_on:",
+                        "    - layer: dep",
+                        '      ref: "<gitlab:x/y@main>"',
+                    ]
+                ),
+            )
+
+            import rocs_cli.gitlab as gitlab_mod
+
+            prev = gitlab_mod.fetch_repo_archive
+            gitlab_mod.fetch_repo_archive = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not fetch"))
+            try:
+                self.assertEqual(_run(["validate", "--repo", str(repo), "--only", "path"]), 0)
+            finally:
+                gitlab_mod.fetch_repo_archive = prev
+
+    def test_diff_requires_resolve_refs_offline_first(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            repo.mkdir(parents=True, exist_ok=True)
+
+            import rocs_cli.gitlab as gitlab_mod
+
+            prev = gitlab_mod.fetch_repo_archive
+            gitlab_mod.fetch_repo_archive = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not fetch"))
+            try:
+                code, out = _run_capture(["diff", "--repo", str(repo), "--baseline", "<gitlab:x/y@main>"])
+                self.assertEqual(code, 1)
+                self.assertIn("requires --resolve-refs", out)
+            finally:
+                gitlab_mod.fetch_repo_archive = prev
+
+    def test_invalid_manifest_does_not_print_traceback_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            (repo / "ontology" / "manifest.yaml").write_text("rocs: [\n", "utf-8")
+            code, out = _run_capture(["validate", "--repo", str(repo)])
+            self.assertEqual(code, 1)
+            self.assertNotIn("Traceback", out)
+            self.assertIn("error:", out)
+
     def test_strict_placeholders_rejects_other_placeholders_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td), manifest_extra='  note: "<placeholder>"')
