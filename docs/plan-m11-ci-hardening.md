@@ -135,11 +135,10 @@ Work is tracked as slices in GitLab: `#2`–`#6`. This plan orders them for lowe
 - Run template CI (`gitlab/ci/rocs.yml`) against at least one multilayer repo using `<gitlab:...@...>` refs.
 
 ## Definition of done (for M11 #1)
-- All slices `#2`–`#6` moved out of `status::triage` and merged (or explicitly dropped with rationale).
+- All slices `#2`–`#6` moved out of `state::triage` and merged (or explicitly dropped with rationale).
 - CI green across Python 3.11–3.13 + ruff.
 - Documented:
   - determinism definition and scope
   - ref policy
   - archive safety constraints + limits
   - exit-code taxonomy + JSON error envelope
-

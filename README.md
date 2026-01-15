@@ -9,7 +9,7 @@ Commands:
 - `rocs validate --repo . [--profile <name>] [--resolve-refs] [--strict-placeholders]`
 - `rocs validate --repo . [--validate-deps]` (optional: enforce strict schema on ref layers too)
 - `rocs validate --repo . --only path|ref --layer <name>`
-- `rocs diff --repo . --baseline <gitlab:...@ref> [--profile <name>]`
+- `rocs diff --repo . --baseline <gitlab:...@ref> --resolve-refs [--profile <name>]`
 - `rocs lint --repo . [--fail-on-warn]`
 - `rocs check-inverses --repo . [--fix]`
 - `rocs graph --repo . [--relation is_a] [--format excalidraw|json|dot] [--out <path>]`
@@ -31,6 +31,7 @@ Layer refs (optional):
     - `<repo>/.env` (where `<repo>` is `--repo`)
     - `holdingco/governance-kernel/.env` (when running inside the ai-society workspace)
 - Cache location: `ROCS_CACHE_DIR` or `$XDG_CACHE_HOME/rocs` or `~/.cache/rocs`.
+- Cache integrity: each fetched ref writes a completion marker `.rocs_cache_ok.json`; entries missing the marker are treated as incomplete and re-fetched. A per-ref lock file prevents concurrent writers.
 - GitLab config: `ROCS_GITLAB_BASE_URL` (or `GITLAB_BASE_URL`) and `ROCS_GITLAB_TOKEN` (or `PAT_GITLAB`).
 - In GitLab CI: base url falls back to `CI_SERVER_URL`; auth can use `CI_JOB_TOKEN`.
 
