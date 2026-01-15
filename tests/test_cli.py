@@ -305,6 +305,29 @@ class TestRocsCli(unittest.TestCase):
             self.assertNotIn("Traceback", out)
             self.assertIn("error:", out)
 
+    def test_validate_json_invalid_manifest_returns_error_envelope(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            (repo / "ontology" / "manifest.yaml").write_text("rocs: [\n", "utf-8")
+            code, out = _run_capture(["validate", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIn("error", payload)
+            self.assertIn("kind", payload["error"])
+            self.assertIn("message", payload["error"])
+
+    def test_resolve_format_json_missing_manifest_returns_error_envelope(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            repo.mkdir(parents=True, exist_ok=True)
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--format", "json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIn("error", payload)
+            self.assertEqual(payload["error"].get("kind"), "config")
+
     def test_strict_placeholders_rejects_other_placeholders_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td), manifest_extra='  note: "<placeholder>"')

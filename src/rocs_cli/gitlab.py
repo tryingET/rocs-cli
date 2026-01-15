@@ -14,6 +14,7 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from rocs_cli.cache import cache_dir
+from rocs_cli.errors import RocsCliError
 
 
 _CACHE_MARKER = ".rocs_cache_ok.json"
@@ -31,7 +32,7 @@ def load_env_file(path: Path, *, override: bool = False) -> None:
     is sourced without exporting variables.
     """
     if not path.exists():
-        raise SystemExit(f"env file not found: {path}")
+        raise RocsCliError(kind="config", message=f"env file not found: {path}", details={"path": str(path)})
     for raw in path.read_text("utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -139,12 +140,12 @@ def _write_cache_marker(dest: Path, project_path: str, ref: str) -> None:
 
 def _validate_tar_member_name(name: str) -> PurePosixPath:
     if not name:
-        raise SystemExit("unsafe GitLab archive member path: empty name")
+        raise RocsCliError(kind="security", message="unsafe GitLab archive member path: empty name")
     if "\x00" in name or "\\" in name:
-        raise SystemExit(f"unsafe GitLab archive member path: {name!r}")
+        raise RocsCliError(kind="security", message=f"unsafe GitLab archive member path: {name!r}")
     p = PurePosixPath(name)
     if p.is_absolute() or any(part == ".." for part in p.parts):
-        raise SystemExit(f"unsafe GitLab archive member path: {name!r}")
+        raise RocsCliError(kind="security", message=f"unsafe GitLab archive member path: {name!r}")
     return p
 
 
@@ -162,19 +163,22 @@ def _safe_extract_tar_gz(tar_path: Path, extract_root: Path) -> list[tarfile.Tar
             p = _validate_tar_member_name(m.name or "")
 
             if m.issym() or m.islnk():
-                raise SystemExit(f"unsafe GitLab archive member (link): {m.name!r}")
+                raise RocsCliError(kind="security", message=f"unsafe GitLab archive member (link): {m.name!r}")
             if not (m.isdir() or m.isfile()):
-                raise SystemExit(f"unsafe GitLab archive member (type): {m.name!r}")
+                raise RocsCliError(kind="security", message=f"unsafe GitLab archive member (type): {m.name!r}")
             if m.isfile():
                 if m.size < 0 or m.size > max_file_bytes:
-                    raise SystemExit(f"unsafe GitLab archive member (too large): {m.name!r} ({m.size} bytes)")
+                    raise RocsCliError(
+                        kind="security",
+                        message=f"unsafe GitLab archive member (too large): {m.name!r} ({m.size} bytes)",
+                    )
                 extracted_total += m.size
                 if extracted_total > max_extract_bytes:
-                    raise SystemExit("GitLab archive extraction exceeds size limit")
+                    raise RocsCliError(kind="security", message="GitLab archive extraction exceeds size limit")
 
             out_path = (extract_root / Path(*p.parts)).resolve()
             if not out_path.is_relative_to(extract_root_resolved):
-                raise SystemExit(f"unsafe GitLab archive member path: {m.name!r}")
+                raise RocsCliError(kind="security", message=f"unsafe GitLab archive member path: {m.name!r}")
 
         # Second pass: extract after full validation so member order can't matter.
         for m in members:
@@ -187,11 +191,11 @@ def _safe_extract_tar_gz(tar_path: Path, extract_root: Path) -> list[tarfile.Tar
 
             out_path.parent.mkdir(parents=True, exist_ok=True)
             if out_path.exists():
-                raise SystemExit(f"GitLab archive contains duplicate member: {m.name!r}")
+                raise RocsCliError(kind="security", message=f"GitLab archive contains duplicate member: {m.name!r}")
 
             src = tf.extractfile(m)
             if src is None:
-                raise SystemExit(f"failed to read GitLab archive member: {m.name!r}")
+                raise RocsCliError(kind="security", message=f"failed to read GitLab archive member: {m.name!r}")
             with src, out_path.open("wb") as dst:
                 shutil.copyfileobj(src, dst)
 
@@ -216,7 +220,7 @@ def _download_to_path(req: Request, dest: Path) -> None:
                     except ValueError:
                         n = 0
                     if n > max_bytes:
-                        raise SystemExit("GitLab archive exceeds download size limit")
+                        raise RocsCliError(kind="network", message="GitLab archive exceeds download size limit")
 
                 total = 0
                 with dest.open("wb") as f:
@@ -226,19 +230,23 @@ def _download_to_path(req: Request, dest: Path) -> None:
                             break
                         total += len(buf)
                         if total > max_bytes:
-                            raise SystemExit("GitLab archive exceeds download size limit")
+                            raise RocsCliError(kind="network", message="GitLab archive exceeds download size limit")
                         f.write(buf)
             return
         except HTTPError as e:
             last_http = int(getattr(e, "code", 0) or 0)
             if last_http in (401, 403):
-                raise SystemExit(
-                    f"GitLab auth failed (HTTP {last_http}); set ROCS_GITLAB_TOKEN/PAT_GITLAB or CI_JOB_TOKEN"
+                raise RocsCliError(
+                    kind="auth",
+                    message=f"GitLab auth failed (HTTP {last_http}); set ROCS_GITLAB_TOKEN/PAT_GITLAB or CI_JOB_TOKEN",
                 ) from None
             if last_http == 404:
-                raise SystemExit("GitLab archive not found (HTTP 404); check project path/ref and permissions") from None
+                raise RocsCliError(
+                    kind="not_found",
+                    message="GitLab archive not found (HTTP 404); check project path/ref and permissions",
+                ) from None
             if 400 <= last_http < 500:
-                raise SystemExit(f"GitLab request failed (HTTP {last_http})") from None
+                raise RocsCliError(kind="network", message=f"GitLab request failed (HTTP {last_http})") from None
         except (URLError, TimeoutError, socket.timeout):
             pass
 
@@ -246,13 +254,13 @@ def _download_to_path(req: Request, dest: Path) -> None:
             time.sleep(backoff_s * (2 ** (attempt - 1)))
 
     if last_http is not None:
-        raise SystemExit(f"GitLab request failed (HTTP {last_http})") from None
-    raise SystemExit(f"GitLab request failed (timeout after {timeout_s}s)") from None
+        raise RocsCliError(kind="network", message=f"GitLab request failed (HTTP {last_http})") from None
+    raise RocsCliError(kind="network", message=f"GitLab request failed (timeout after {timeout_s}s)") from None
 
 
 def fetch_repo_archive(project_path: str, ref: str, *, base_url: str, headers: dict[str, str]) -> Path:
     if not base_url:
-        raise SystemExit("missing GitLab base url (set ROCS_GITLAB_BASE_URL or GITLAB_BASE_URL)")
+        raise RocsCliError(kind="config", message="missing GitLab base url (set ROCS_GITLAB_BASE_URL or GITLAB_BASE_URL)")
 
     safe_project = project_path.replace("/", "__")
     safe_ref = ref.replace("/", "__")
@@ -279,10 +287,13 @@ def fetch_repo_archive(project_path: str, ref: str, *, base_url: str, headers: d
 
             top_dirs = {Path(m.name).parts[0] for m in members if m.name and not m.name.startswith(".")}
             if len(top_dirs) != 1:
-                raise SystemExit(f"unexpected GitLab archive layout for {project_path}@{ref}: {sorted(top_dirs)}")
+                raise RocsCliError(
+                    kind="network",
+                    message=f"unexpected GitLab archive layout for {project_path}@{ref}: {sorted(top_dirs)}",
+                )
             repo_root = extract_root / next(iter(top_dirs))
             if not repo_root.exists():
-                raise SystemExit(f"failed to extract GitLab archive for {project_path}@{ref}")
+                raise RocsCliError(kind="network", message=f"failed to extract GitLab archive for {project_path}@{ref}")
 
             tmp_dest = dest.with_name(dest.name + ".tmp")
             if tmp_dest.exists():

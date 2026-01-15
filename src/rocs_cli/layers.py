@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+from rocs_cli.errors import RocsCliError
 from rocs_cli.gitlab import fetch_repo_archive, gitlab_base_url, gitlab_headers
 
 
@@ -39,8 +40,11 @@ def dist_dir(repo_root: Path) -> Path:
 def load_manifest(repo_root: Path) -> dict:
     p = manifest_path(repo_root)
     if not p.exists():
-        raise SystemExit(f"missing ontology manifest: {p}")
-    return yaml.safe_load(p.read_text("utf-8")) or {}
+        raise RocsCliError(kind="config", message=f"missing ontology manifest: {p}", details={"path": str(p)})
+    try:
+        return yaml.safe_load(p.read_text("utf-8")) or {}
+    except yaml.YAMLError as e:
+        raise RocsCliError(kind="config", message=f"invalid ontology manifest YAML: {e}", details={"path": str(p)}) from e
 
 
 def parse_gitlab_ref(locator: str) -> tuple[str, str] | None:
@@ -53,11 +57,15 @@ def parse_gitlab_ref(locator: str) -> tuple[str, str] | None:
 def _src_root_for_ref(locator: str, *, resolve_refs: bool) -> tuple[Path, str]:
     parsed = parse_gitlab_ref(locator)
     if not parsed:
-        raise SystemExit(f"invalid GitLab ref locator (expected <gitlab:...@...>): {locator!r}")
+        raise RocsCliError(
+            kind="usage",
+            message=f"invalid GitLab ref locator (expected <gitlab:...@...>): {locator!r}",
+        )
     project_path, ref = parsed
     if not resolve_refs:
-        raise SystemExit(
-            f"ref layer requires network resolution: {locator} (rerun with --resolve-refs; offline-first default)"
+        raise RocsCliError(
+            kind="offline-first",
+            message=f"ref layer requires network resolution: {locator} (rerun with --resolve-refs; offline-first default)",
         )
     repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
     return (repo / "ontology" / "src"), locator
