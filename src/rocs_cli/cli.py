@@ -20,6 +20,7 @@ from rocs_cli.model import collect_docs
 from rocs_cli.normalize import normalize_tree
 from rocs_cli.pack import build_pack, pack_config_from_profile
 from rocs_cli.rules import Finding, RULES
+from rocs_cli.errors import RocsCliError
 from rocs_cli.validate import (
     enforce_budget,
     validate_layers_exist,
@@ -685,19 +686,39 @@ def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
     debug = bool(getattr(args, "debug", False))
+
+    def _wants_json() -> bool:
+        if bool(getattr(args, "json", False)):
+            return True
+        return getattr(args, "format", None) == "json"
+
+    def _emit_error(kind: str, message: str, *, details: dict | None = None) -> None:
+        if _wants_json():
+            payload: dict = {"ok": False, "error": {"kind": kind, "message": message}}
+            if details:
+                payload["error"]["details"] = details
+            console.print_json(json.dumps(payload))
+        else:
+            console.print(f"[red]error[/red]: {message}")
+
     try:
         code = int(args.fn(args))
+    except RocsCliError as e:
+        if debug:
+            raise
+        _emit_error(e.kind, e.message, details=e.details)
+        raise SystemExit(int(e.exit_code)) from None
     except SystemExit as e:
         if debug:
             raise
         # Normalize our "raise SystemExit('message')" cases into clean CLI output.
         if isinstance(e.code, str) and e.code.strip():
-            console.print(f"[red]error[/red]: {e.code}")
+            _emit_error("error", e.code)
             raise SystemExit(1) from None
         raise
     except Exception as e:  # noqa: BLE001
         if debug:
             raise
-        console.print(f"[red]error[/red]: {e}")
+        _emit_error("internal", str(e))
         raise SystemExit(1) from None
     raise SystemExit(code)

@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from urllib.error import HTTPError
 
+from rocs_cli.errors import RocsCliError
 from rocs_cli.gitlab import fetch_repo_archive
 
 
@@ -88,7 +89,7 @@ class TestGitlabArchiveHardening(unittest.TestCase):
             prev = gitlab_mod.urlopen
             gitlab_mod.urlopen = _urlopen
             try:
-                with self.assertRaises(SystemExit) as ctx:
+                with self.assertRaises(RocsCliError) as ctx:
                     fetch_repo_archive("x/y", "main", base_url="http://example.invalid", headers={})
                 self.assertIn("unsafe GitLab archive member path", str(ctx.exception))
             finally:
@@ -115,7 +116,7 @@ class TestGitlabArchiveHardening(unittest.TestCase):
             prev = gitlab_mod.urlopen
             gitlab_mod.urlopen = _urlopen
             try:
-                with self.assertRaises(SystemExit) as ctx:
+                with self.assertRaises(RocsCliError) as ctx:
                     fetch_repo_archive("x/y", "main", base_url="http://example.invalid", headers={})
                 self.assertIn("unsafe GitLab archive member (link)", str(ctx.exception))
             finally:
@@ -142,7 +143,7 @@ class TestGitlabArchiveHardening(unittest.TestCase):
             prev = gitlab_mod.urlopen
             gitlab_mod.urlopen = _urlopen
             try:
-                with self.assertRaises(SystemExit) as ctx:
+                with self.assertRaises(RocsCliError) as ctx:
                     fetch_repo_archive("x/y", "main", base_url="http://example.invalid", headers={})
                 self.assertIn("unsafe GitLab archive member (link)", str(ctx.exception))
             finally:
@@ -160,7 +161,7 @@ class TestGitlabArchiveHardening(unittest.TestCase):
             prev = gitlab_mod.urlopen
             gitlab_mod.urlopen = _urlopen
             try:
-                with self.assertRaises(SystemExit) as ctx:
+                with self.assertRaises(RocsCliError) as ctx:
                     fetch_repo_archive("x/y", "main", base_url="http://example.invalid", headers={})
                 self.assertIn("download size limit", str(ctx.exception))
             finally:
@@ -225,7 +226,7 @@ class TestGitlabArchiveHardening(unittest.TestCase):
             prev = gitlab_mod.urlopen
             gitlab_mod.urlopen = _urlopen
             try:
-                with self.assertRaises(SystemExit) as ctx:
+                with self.assertRaises(RocsCliError) as ctx:
                     fetch_repo_archive("x/y", "nope", base_url="http://example.invalid", headers={})
                 self.assertIn("HTTP 404", str(ctx.exception))
             finally:
