@@ -64,11 +64,14 @@ def _git(repo: Path, args: list[str]) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def _init_workspace_repo(repo: Path, *, tag: str, make_mismatch: bool) -> None:
+def _init_workspace_repo(repo: Path, *, project_path: str, tag: str, make_mismatch: bool, origin_project_path: str | None = None) -> None:
     repo.mkdir(parents=True, exist_ok=True)
     _git(repo, ["init"])
     _git(repo, ["config", "user.email", "test@example.invalid"])
     _git(repo, ["config", "user.name", "test"])
+
+    origin_pp = origin_project_path or project_path
+    _git(repo, ["remote", "add", "origin", f"http://example.invalid/{origin_pp}.git"])
 
     _write(repo / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
     _git(repo, ["add", "."])
@@ -127,12 +130,13 @@ def _good_repo_tar() -> bytes:
 
 class TestWorkspaceResolution(unittest.TestCase):
     def test_workspace_wins_over_cache_and_gitlab(self) -> None:
-        locator = "<gitlab:ai-society/core/dep@v1>"
+        project_path = "ai-society/core/dep"
+        locator = f"<gitlab:{project_path}@v1>"
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
             ws = td_path / "ws"
             cache = td_path / "cache"
-            _init_workspace_repo(ws / "core" / "dep", tag="v1", make_mismatch=False)
+            _init_workspace_repo(ws / "core" / "dep", project_path=project_path, tag="v1", make_mismatch=False)
             repo = _mk_rocs_repo(td_path, locator=locator)
 
             with _Env(ROCS_CACHE_DIR=str(cache)):
@@ -156,20 +160,21 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertEqual(dep["source"], "workspace")
 
     def test_cache_used_when_workspace_strict_mismatch(self) -> None:
-        locator = "<gitlab:ai-society/core/dep@v1>"
+        project_path = "ai-society/core/dep"
+        locator = f"<gitlab:{project_path}@v1>"
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
             ws = td_path / "ws"
             cache = td_path / "cache"
-            _init_workspace_repo(ws / "core" / "dep", tag="v1", make_mismatch=True)
+            _init_workspace_repo(ws / "core" / "dep", project_path=project_path, tag="v1", make_mismatch=True)
             repo = _mk_rocs_repo(td_path, locator=locator)
 
             with _Env(ROCS_CACHE_DIR=str(cache)):
-                dest = gitlab_cache_dest("ai-society/core/dep", "v1")
+                dest = gitlab_cache_dest(project_path, "v1")
                 _write(dest / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
                 _write(
                     dest / ".rocs_cache_ok.json",
-                    json.dumps({"project_path": "ai-society/core/dep", "ref": "v1", "schema": 1}, sort_keys=True) + "\n",
+                    json.dumps({"project_path": project_path, "ref": "v1", "schema": 1}, sort_keys=True) + "\n",
                 )
 
                 code, out = _run_capture(
@@ -192,12 +197,13 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertEqual(dep["source"], "cache")
 
     def test_strict_mismatch_fails_cleanly_without_cache_or_gitlab(self) -> None:
-        locator = "<gitlab:ai-society/core/dep@v1>"
+        project_path = "ai-society/core/dep"
+        locator = f"<gitlab:{project_path}@v1>"
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
             ws = td_path / "ws"
             cache = td_path / "cache"
-            _init_workspace_repo(ws / "core" / "dep", tag="v1", make_mismatch=True)
+            _init_workspace_repo(ws / "core" / "dep", project_path=project_path, tag="v1", make_mismatch=True)
             repo = _mk_rocs_repo(td_path, locator=locator)
 
             with _Env(ROCS_CACHE_DIR=str(cache)):
@@ -270,3 +276,46 @@ class TestWorkspaceResolution(unittest.TestCase):
                 self.assertEqual(dep["source"], "gitlab")
             finally:
                 gitlab_mod.urlopen = prev
+
+    def test_workspace_origin_mismatch_is_ignored(self) -> None:
+        project_path = "ai-society/core/dep"
+        locator = f"<gitlab:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            _init_workspace_repo(
+                ws / "core" / "dep",
+                project_path=project_path,
+                origin_project_path="ai-society/core/other",
+                tag="v1",
+                make_mismatch=False,
+            )
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            with _Env(ROCS_CACHE_DIR=str(cache)):
+                dest = gitlab_cache_dest(project_path, "v1")
+                _write(dest / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
+                _write(
+                    dest / ".rocs_cache_ok.json",
+                    json.dumps({"project_path": project_path, "ref": "v1", "schema": 1}, sort_keys=True) + "\n",
+                )
+
+                code, out = _run_capture(
+                    [
+                        "resolve",
+                        "--repo",
+                        str(repo),
+                        "--resolve-refs",
+                        "--workspace-root",
+                        str(ws),
+                        "--workspace-ref-mode",
+                        "loose",
+                        "--format",
+                        "json",
+                    ]
+                )
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            dep = [x for x in payload["layers"] if x["name"] == "dep"][0]
+            self.assertEqual(dep["source"], "cache")

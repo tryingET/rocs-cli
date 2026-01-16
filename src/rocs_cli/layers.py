@@ -11,6 +11,7 @@ from rocs_cli.gitlab import fetch_repo_archive, gitlab_base_url, gitlab_headers,
 from rocs_cli.workspace import (
     git_head_sha,
     git_rev_sha,
+    workspace_repo_exists,
     pick_workspace_repo_root,
     workspace_ref_mode_from_env,
     workspace_root_from_env,
@@ -84,6 +85,13 @@ def _src_root_for_ref(
 
     mismatch_details: dict | None = None
     if workspace_root is not None:
+        if workspace_repo_exists(workspace_root, project_path):
+            mismatch_details = {
+                "workspace_root": str(workspace_root),
+                "workspace_ref_mode": workspace_ref_mode,
+                "project_path": project_path,
+                "requested_ref": ref,
+            }
         ws_repo_root = pick_workspace_repo_root(workspace_root, project_path)
         if ws_repo_root is not None:
             if workspace_ref_mode == "loose":
@@ -91,13 +99,14 @@ def _src_root_for_ref(
 
             head = git_head_sha(ws_repo_root)
             want = git_rev_sha(ws_repo_root, ref)
-            mismatch_details = {
-                "workspace_repo_root": str(ws_repo_root),
-                "workspace_ref_mode": workspace_ref_mode,
-                "requested_ref": ref,
-                "head_sha": head,
-                "requested_sha": want,
-            }
+            mismatch_details = dict(mismatch_details or {})
+            mismatch_details.update(
+                {
+                    "workspace_repo_root": str(ws_repo_root),
+                    "head_sha": head,
+                    "requested_sha": want,
+                }
+            )
             if head is not None and want is not None and head == want:
                 return (ws_repo_root / "ontology" / "src"), locator, "workspace"
 

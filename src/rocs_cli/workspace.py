@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
+from urllib.parse import urlparse
 
 from rocs_cli.errors import RocsCliError
 
@@ -43,24 +45,88 @@ def workspace_repo_candidates(workspace_root: Path, project_path: str) -> list[P
     return out
 
 
+_SCP_LIKE_RE = re.compile(r"^(?P<user>[^@]+)@(?P<host>[^:]+):(?P<path>.+)$")
+
+
+def _project_path_from_remote_url(remote_url: str) -> str | None:
+    """
+    Extract a GitLab-style `<group>/<subgroup>/<repo>` from common Git remote URL forms:
+    - https://host/group/subgroup/repo(.git)
+    - http://host/group/subgroup/repo(.git)
+    - ssh://git@host/group/subgroup/repo(.git)
+    - git@host:group/subgroup/repo(.git)
+    """
+    raw = (remote_url or "").strip()
+    if not raw:
+        return None
+
+    m = _SCP_LIKE_RE.match(raw)
+    if m:
+        path = m.group("path").lstrip("/")
+        if path.endswith(".git"):
+            path = path[: -len(".git")]
+        return path or None
+
+    try:
+        u = urlparse(raw)
+    except Exception:
+        return None
+
+    if u.scheme in ("http", "https", "ssh"):
+        path = (u.path or "").lstrip("/")
+        if path.endswith(".git"):
+            path = path[: -len(".git")]
+        return path or None
+
+    return None
+
+
+def _origin_project_path(repo_root: Path) -> str | None:
+    url = _git(repo_root, ["config", "--get", "remote.origin.url"])
+    return _project_path_from_remote_url(url or "")
+
+
 def pick_workspace_repo_root(workspace_root: Path, project_path: str) -> Path | None:
     existing = [p for p in workspace_repo_candidates(workspace_root, project_path) if p.exists() and p.is_dir()]
     if not existing:
         return None
-    if len(existing) == 1:
-        repo = existing[0]
+
+    git_repos: list[Path] = []
+    for repo in existing:
         if not (repo / ".git").exists():
-            raise RocsCliError(
-                kind="config",
-                message=f"workspace repo path exists but is not a git repo: {repo}",
-                details={"workspace_repo_root": str(repo), "project_path": project_path},
-            )
-        return repo
+            continue
+        git_repos.append(repo)
+
+    if not git_repos:
+        return None
+
+    matching: list[Path] = []
+    for repo in git_repos:
+        origin_pp = _origin_project_path(repo)
+        if origin_pp == project_path:
+            matching.append(repo)
+
+    if not matching:
+        return None
+    if len(matching) == 1:
+        return matching[0]
+
     raise RocsCliError(
         kind="config",
         message=f"workspace mapping is ambiguous for {project_path!r} under {workspace_root}",
-        details={"workspace_root": str(workspace_root), "project_path": project_path, "candidates": [str(p) for p in existing]},
+        details={"workspace_root": str(workspace_root), "project_path": project_path, "candidates": [str(p) for p in matching]},
     )
+
+
+def origin_matches_project_path(repo_root: Path, project_path: str) -> bool:
+    """Test helper: true if `remote.origin.url` parses to `project_path`."""
+    return _origin_project_path(repo_root) == project_path
+
+
+def workspace_repo_exists(workspace_root: Path, project_path: str) -> bool:
+    """Test helper: true if a workspace repo directory exists (git or not)."""
+    return any(p.exists() and p.is_dir() for p in workspace_repo_candidates(workspace_root, project_path))
+
 
 
 def _git(repo_root: Path, args: list[str]) -> str | None:

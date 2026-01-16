@@ -33,6 +33,7 @@ Layer refs (optional):
   - `--workspace-ref-mode strict|loose` (or `ROCS_WORKSPACE_REF_MODE`):
     - `strict` (default): use workspace only if `HEAD` matches the requested ref
     - `loose`: use workspace checkout even if it doesn’t match the requested ref
+  - Identity hardening: workspace repos are only used if `remote.origin.url` parses to the same GitLab project path as the locator (prevents accidentally binding to the wrong repo when layouts collide).
 - Diagnostics:
   - `--show-resolve-sources` adds `(source=workspace|cache|gitlab|path)` to `rocs resolve` / `rocs summary` text output.
 - Dotenv loading (so you don’t need to `export` tokens):
@@ -49,6 +50,9 @@ Layer refs (optional):
 Examples:
 - `rocs resolve --repo . --resolve-refs --workspace-root ~/ai-society --workspace-ref-mode strict --show-resolve-sources`
 - `rocs summary --repo . --resolve-refs --workspace-root ~/ai-society --format json`
+
+AI Society convention (recommended):
+- Keep all SoftwareCo projects under `~/ai-society/softwareco/projects/…` and set `ROCS_WORKSPACE_ROOT=~/ai-society`.
 
 Graph export:
 - `rocs graph` writes an `.excalidraw.json` file by default (open it in Excalidraw).
