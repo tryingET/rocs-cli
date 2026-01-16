@@ -777,6 +777,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rocs")
     parser.add_argument("--version", action="version", version=f"rocs-cli {__version__}")
     parser.add_argument("--debug", action="store_true", help="show full tracebacks on error")
+    parser.add_argument("--no-index-cache", action="store_true", help="disable incremental doc/index cache (debugging)")
+    parser.add_argument("--index-cache-debug", action="store_true", help="emit index-cache hit/miss stats to stderr")
 
     p_resolve_common = argparse.ArgumentParser(add_help=False)
     p_resolve_common.add_argument(
@@ -962,6 +964,10 @@ def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
     debug = bool(getattr(args, "debug", False))
+    if bool(getattr(args, "no_index_cache", False)):
+        os.environ["ROCS_INDEX_CACHE"] = "0"
+    if bool(getattr(args, "index_cache_debug", False)):
+        os.environ["ROCS_INDEX_CACHE_DEBUG"] = "1"
 
     def _wants_json() -> bool:
         return bool(getattr(args, "json", False))

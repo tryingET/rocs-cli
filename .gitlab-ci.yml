@@ -2,6 +2,7 @@ stages:
   - lint
   - typecheck
   - test
+  - bench
   - release
 
 .uv_setup:
@@ -42,6 +43,19 @@ test:
   script:
     - uv sync --frozen
     - uv run python -m unittest discover -s tests -p 'test_*.py' -q
+
+bench:
+  stage: bench
+  image: python:3.11
+  extends: .uv_setup
+  allow_failure: true
+  script:
+    - uv sync --frozen
+    - uv run python scripts/bench.py --cmd build --n-concepts 600 --runs 7 --out artifacts/perf/bench.json
+  artifacts:
+    when: always
+    paths:
+      - artifacts/perf/bench.json
 
 release:
   stage: release

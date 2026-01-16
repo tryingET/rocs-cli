@@ -46,6 +46,7 @@ Layer refs (optional):
     - `<repo>/.env` (where `<repo>` is `--repo`)
     - `holdingco/governance-kernel/.env` (when running inside the ai-society workspace)
 - Cache location: `ROCS_CACHE_DIR` or `$XDG_CACHE_HOME/rocs` or `~/.cache/rocs`.
+- Incremental doc/index cache (local-only): enabled by default; disable with `rocs --no-index-cache ...` or `ROCS_INDEX_CACHE=0`. Debug with `rocs --index-cache-debug ...` or `ROCS_INDEX_CACHE_DEBUG=1`.
 - Cache integrity: each fetched ref writes a completion marker `.rocs_cache_ok.json`; entries missing the marker are treated as incomplete and re-fetched. A per-ref lock file prevents concurrent writers.
 - GitLab config: `ROCS_GITLAB_BASE_URL` (or `GITLAB_BASE_URL`) and `ROCS_GITLAB_TOKEN` (or `PAT_GITLAB`).
 - In GitLab CI: base url falls back to `CI_SERVER_URL`; auth can use `CI_JOB_TOKEN`.
@@ -63,6 +64,10 @@ Graph export:
 
 Tests:
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q`
+
+Perf harness (synthetic, offline):
+- `uv run python scripts/bench.py --cmd build --n-concepts 600 --runs 7 --out artifacts/perf/bench.json`
+  - CI runs this as a non-gating job (artifact for trend visibility; allow_failure).
 
 Exit codes:
 - `0`: success

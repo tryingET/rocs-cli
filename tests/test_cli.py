@@ -558,6 +558,55 @@ class TestRocsCli(unittest.TestCase):
             second = {p.name: p.read_bytes() for p in paths}
             self.assertEqual(first, second)
 
+    def test_build_artifacts_are_deterministic_with_index_cache_disabled(self) -> None:
+        prev = os.environ.get("ROCS_INDEX_CACHE")
+        os.environ["ROCS_INDEX_CACHE"] = "0"
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                repo = _mk_repo(Path(td))
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                dist = repo / "ontology" / "dist"
+                paths = [dist / "resolve.json", dist / "summary.json", dist / "id_index.json"]
+                first = {p.name: p.read_bytes() for p in paths}
+
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                second = {p.name: p.read_bytes() for p in paths}
+                self.assertEqual(first, second)
+        finally:
+            if prev is None:
+                os.environ.pop("ROCS_INDEX_CACHE", None)
+            else:
+                os.environ["ROCS_INDEX_CACHE"] = prev
+
+    def test_index_cache_does_not_hide_content_changes_with_same_mtime(self) -> None:
+        prev = os.environ.get("ROCS_INDEX_CACHE")
+        os.environ["ROCS_INDEX_CACHE"] = "1"
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                repo = _mk_repo(Path(td))
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                dist = repo / "ontology" / "dist"
+                first_idx = (dist / "id_index.json").read_bytes()
+
+                p = repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md"
+                st = p.stat()
+                mtime = st.st_mtime
+                atime = st.st_atime
+                text = p.read_text("utf-8")
+                self.assertIn('labels: ["Agent"]', text)
+                # same-length edit (Agent -> Ag3nt) and restore mtime to simulate timestamp-preserving edits.
+                p.write_text(text.replace('labels: ["Agent"]', 'labels: ["Ag3nt"]'), "utf-8")
+                os.utime(p, (atime, mtime))
+
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                second_idx = (dist / "id_index.json").read_bytes()
+                self.assertNotEqual(first_idx, second_idx)
+        finally:
+            if prev is None:
+                os.environ.pop("ROCS_INDEX_CACHE", None)
+            else:
+                os.environ["ROCS_INDEX_CACHE"] = prev
+
     def test_vendored_check_ok_then_fail(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             vdir = Path(td) / "vendored"

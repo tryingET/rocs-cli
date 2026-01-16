@@ -4,3 +4,4 @@ __pycache__/
 /build/
 /dist/
 artifacts/vhs/
+artifacts/perf/
