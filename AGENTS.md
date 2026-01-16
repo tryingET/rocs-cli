@@ -9,6 +9,8 @@ GitLab / issues:
 - Self-hosted GitLab (nas): use `gl-nas` wrapper (python-gitlab CLI) to view/update issues/MRs, e.g.
   - `gl-nas -- project get --id ai-society/core/rocs-cli`
   - `gl-nas -- project-issue get --project-id 15 --iid 1`
+- Git over HTTP (clone/fetch/push): use `gl-nas-git -- <git args...>` (non-interactive; avoids username/token prompts).
+- Reference: `holdingco/governance-kernel/docs/dev/gitlab-access.md`.
 
 Local dev:
 - `uv run --with pyyaml --with rich python -m rocs_cli --help`
