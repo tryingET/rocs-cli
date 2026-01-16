@@ -138,6 +138,17 @@ def _write_cache_marker(dest: Path, project_path: str, ref: str) -> None:
     )
 
 
+def gitlab_cache_dest(project_path: str, ref: str) -> Path:
+    safe_project = project_path.replace("/", "__")
+    safe_ref = ref.replace("/", "__")
+    return cache_dir() / "gitlab" / safe_project / safe_ref
+
+
+def gitlab_cache_is_complete(project_path: str, ref: str) -> bool:
+    dest = gitlab_cache_dest(project_path, ref)
+    return dest.exists() and _cache_is_complete(dest, project_path, ref)
+
+
 def _validate_tar_member_name(name: str) -> PurePosixPath:
     if not name:
         raise RocsCliError(kind="security", message="unsafe GitLab archive member path: empty name")
@@ -262,9 +273,7 @@ def fetch_repo_archive(project_path: str, ref: str, *, base_url: str, headers: d
     if not base_url:
         raise RocsCliError(kind="config", message="missing GitLab base url (set ROCS_GITLAB_BASE_URL or GITLAB_BASE_URL)")
 
-    safe_project = project_path.replace("/", "__")
-    safe_ref = ref.replace("/", "__")
-    dest = cache_dir() / "gitlab" / safe_project / safe_ref
+    dest = gitlab_cache_dest(project_path, ref)
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     lock_path = _cache_lock_path(dest)

@@ -102,6 +102,7 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
                 "name": layer_spec.name,
                 "kind": layer_spec.kind,
                 "origin": layer_spec.origin,
+                "source": layer_spec.source,
                 "src_root": str(layer_spec.src_root),
                 "cache_repo_root": cache_repo_root,
             }
@@ -126,8 +127,17 @@ def cmd_version(_args: argparse.Namespace) -> int:
 def cmd_resolve(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
+    resolution_notes = meta.get("resolution_notes") if isinstance(meta, dict) else None
     payload = {
         "repo": str(repo),
         "profile": meta.get("profile"),
@@ -137,10 +147,15 @@ def cmd_resolve(args: argparse.Namespace) -> int:
                 "origin": layer_spec.origin,
                 "src_root": str(layer_spec.src_root),
                 "kind": layer_spec.kind,
+                "source": layer_spec.source,
+                "details": (resolution_notes or {}).get(layer_spec.name) if args.show_resolve_details else None,
             }
             for layer_spec in layers
         ],
     }
+    for layer_entry in payload["layers"]:
+        if layer_entry.get("details") is None:
+            layer_entry.pop("details", None)
     if args.write_dist:
         _write_resolve_artifact(repo, layers=layers, profile=payload["profile"])
     if args.format == "json":
@@ -149,16 +164,33 @@ def cmd_resolve(args: argparse.Namespace) -> int:
         console.print(f"repo: {payload['repo']}")
         console.print(f"profile: {payload['profile']}")
         for layer_entry in payload["layers"]:
-            console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
+            if args.show_resolve_sources or args.show_resolve_details:
+                extra = f"source={layer_entry['source']}"
+                if args.show_resolve_details and layer_entry.get("details", {}).get("workspace", {}).get("present"):
+                    w = layer_entry["details"]["workspace"]
+                    if not w.get("used") and w.get("reason"):
+                        extra += f"; workspace={w['reason']}"
+                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']} ({extra})")
+            else:
+                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
     return 0
 
 
 def cmd_summary(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
+    resolution_notes = meta.get("resolution_notes") if isinstance(meta, dict) else None
     payload = {
         "repo": str(repo),
         "profile": meta.get("profile"),
@@ -168,17 +200,30 @@ def cmd_summary(args: argparse.Namespace) -> int:
                 "origin": layer_spec.origin,
                 "src_root": str(layer_spec.src_root),
                 "kind": layer_spec.kind,
+                "source": layer_spec.source,
+                "details": (resolution_notes or {}).get(layer_spec.name) if args.show_resolve_details else None,
             }
             for layer_spec in layers
         ],
         "counts": {"concepts": len(concepts), "relations": len(relations)},
     }
+    for layer_entry in payload["layers"]:
+        if layer_entry.get("details") is None:
+            layer_entry.pop("details", None)
     if args.format == "text":
         console.print(f"repo: {payload['repo']}")
         console.print(f"profile: {payload['profile']}")
         console.print(f"counts: concepts={payload['counts']['concepts']} relations={payload['counts']['relations']}")
         for layer_entry in payload["layers"]:
-            console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
+            if args.show_resolve_sources or args.show_resolve_details:
+                extra = f"source={layer_entry['source']}"
+                if args.show_resolve_details and layer_entry.get("details", {}).get("workspace", {}).get("present"):
+                    w = layer_entry["details"]["workspace"]
+                    if not w.get("used") and w.get("reason"):
+                        extra += f"; workspace={w['reason']}"
+                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']} ({extra})")
+            else:
+                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
     else:
         console.print_json(json.dumps(payload))
     return 0
@@ -190,7 +235,15 @@ def cmd_validate(args: argparse.Namespace) -> int:
     findings: list[Finding] = []
     findings.extend(validate_repo_structure(repo))
     findings.extend(validate_manifest_placeholders(repo, strict_placeholders=args.strict_placeholders))
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     findings.extend(validate_layers_exist(layers))
     schema_findings, _meta2 = validate_reference_schema(
@@ -244,7 +297,15 @@ def cmd_build(args: argparse.Namespace) -> int:
     if args.clean and dist.exists():
         shutil.rmtree(dist)
     dist.mkdir(parents=True, exist_ok=True)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     _write_resolve_artifact(repo, layers=layers, profile=meta.get("profile"))
@@ -266,7 +327,15 @@ def cmd_build(args: argparse.Namespace) -> int:
 def cmd_pack(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
-    layers, meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     cid = args.ont_id
@@ -317,7 +386,15 @@ def cmd_pack(args: argparse.Namespace) -> int:
 def cmd_lint(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, _meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     findings = lint_docs(concepts, relations, strict_placeholders=args.strict_placeholders)
@@ -345,7 +422,15 @@ def cmd_lint(args: argparse.Namespace) -> int:
 def cmd_check_inverses(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, _meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     _concepts, relations = collect_docs(layers)
     findings = check_inverses(relations, fix=args.fix)
@@ -365,7 +450,15 @@ def cmd_check_inverses(args: argparse.Namespace) -> int:
 def cmd_graph(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    layers, _meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, _relations = collect_docs(layers)
     rel_filter: set[str] | None = None
@@ -432,7 +525,15 @@ def cmd_vendored_check(args: argparse.Namespace) -> int:
 def cmd_normalize(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
-    layers, _meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only="path", layer=args.layer)
+    layers, _meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only="path",
+        layer=args.layer,
+    )
     # normalize never touches ref layers
     layers = _filter_layers(layers, only="path", layer=args.layer)
     changed_paths: list[str] = []
@@ -477,8 +578,24 @@ def cmd_diff(args: argparse.Namespace) -> int:
     project_path, ref = parsed
     base_repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
 
-    cur_layers, cur_meta = resolve_layers(repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
-    base_layers, base_meta = resolve_layers(base_repo, profile=args.profile, resolve_refs=args.resolve_refs, only=args.only, layer=args.layer)
+    cur_layers, cur_meta = resolve_layers(
+        repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
+    base_layers, base_meta = resolve_layers(
+        base_repo,
+        profile=args.profile,
+        resolve_refs=args.resolve_refs,
+        workspace_root=args.workspace_root,
+        workspace_ref_mode=args.workspace_ref_mode,
+        only=args.only,
+        layer=args.layer,
+    )
     cur_layers = _filter_layers(cur_layers, only=args.only, layer=args.layer)
     base_layers = _filter_layers(base_layers, only=args.only, layer=args.layer)
 
@@ -536,12 +653,34 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="rocs")
     parser.add_argument("--version", action="version", version=f"rocs-cli {__version__}")
     parser.add_argument("--debug", action="store_true", help="show full tracebacks on error")
+
+    p_resolve_common = argparse.ArgumentParser(add_help=False)
+    p_resolve_common.add_argument(
+        "--workspace-root",
+        help="workspace root used to satisfy <gitlab:...@ref> from local clones (or ROCS_WORKSPACE_ROOT)",
+    )
+    p_resolve_common.add_argument(
+        "--workspace-ref-mode",
+        choices=["strict", "loose"],
+        help="workspace ref mode for local clones: strict requires HEAD matches requested ref (or ROCS_WORKSPACE_REF_MODE)",
+    )
+    p_resolve_common.add_argument(
+        "--show-resolve-sources",
+        action="store_true",
+        help="show workspace/cache/gitlab source per layer in text output",
+    )
+    p_resolve_common.add_argument(
+        "--show-resolve-details",
+        action="store_true",
+        help="show workspace skip reasons (and include per-layer details in JSON output)",
+    )
+
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p = sub.add_parser("version")
     p.set_defaults(fn=cmd_version)
 
-    p = sub.add_parser("resolve")
+    p = sub.add_parser("resolve", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument("--resolve-refs", action="store_true", help="allow fetching <gitlab:...> layers into cache")
@@ -552,7 +691,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--write-dist", action="store_true", help="write ontology/dist/resolve.json")
     p.set_defaults(fn=cmd_resolve)
 
-    p = sub.add_parser("summary")
+    p = sub.add_parser("summary", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument("--resolve-refs", action="store_true", help="allow fetching <gitlab:...> layers into cache")
@@ -562,7 +701,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--format", choices=["json", "text"], default="json")
     p.set_defaults(fn=cmd_summary)
 
-    p = sub.add_parser("validate")
+    p = sub.add_parser("validate", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--strict-placeholders", action="store_true", help="fail if any <...> placeholders exist")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
@@ -578,7 +717,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="emit JSON result")
     p.set_defaults(fn=cmd_validate)
 
-    p = sub.add_parser("diff")
+    p = sub.add_parser("diff", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--baseline", required=True, help="baseline <gitlab:...@ref> to diff against")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
@@ -589,7 +728,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="emit JSON diff")
     p.set_defaults(fn=cmd_diff)
 
-    p = sub.add_parser("lint")
+    p = sub.add_parser("lint", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument("--resolve-refs", action="store_true", help="allow fetching <gitlab:...> layers into cache")
@@ -602,7 +741,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--fail-on-warn", action="store_true", help="exit non-zero if warnings exist")
     p.set_defaults(fn=cmd_lint)
 
-    p = sub.add_parser("check-inverses")
+    p = sub.add_parser("check-inverses", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument("--resolve-refs", action="store_true", help="allow fetching <gitlab:...> layers into cache")
@@ -613,7 +752,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true", help="emit JSON result")
     p.set_defaults(fn=cmd_check_inverses)
 
-    p = sub.add_parser("graph")
+    p = sub.add_parser("graph", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument("--resolve-refs", action="store_true", help="allow fetching <gitlab:...> layers into cache")
@@ -628,7 +767,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", help="output path (default: ontology/dist/graph.<fmt>.*)")
     p.set_defaults(fn=cmd_graph)
 
-    p = sub.add_parser("build")
+    p = sub.add_parser("build", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument("--resolve-refs", action="store_true", help="allow fetching <gitlab:...> layers into cache")
@@ -638,7 +777,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--clean", action="store_true", help="remove ontology/dist before building")
     p.set_defaults(fn=cmd_build)
 
-    p = sub.add_parser("pack")
+    p = sub.add_parser("pack", parents=[p_resolve_common])
     p.add_argument("ont_id")
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
@@ -670,7 +809,7 @@ def build_parser() -> argparse.ArgumentParser:
     p2.add_argument("--max-age-days", default="30")
     p2.set_defaults(fn=cmd_cache)
 
-    p = sub.add_parser("normalize")
+    p = sub.add_parser("normalize", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument("--resolve-refs", action="store_true", help="allow fetching <gitlab:...> layers into cache")
