@@ -164,8 +164,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                         str(ws),
                         "--workspace-ref-mode",
                         "strict",
-                        "--format",
-                        "json",
+                        "--json",
                     ]
                 )
             self.assertEqual(code, 0)
@@ -202,8 +201,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                         "--workspace-ref-mode",
                         "strict",
                         "--show-resolve-details",
-                        "--format",
-                        "json",
+                        "--json",
                     ]
                 )
             self.assertEqual(code, 0)
@@ -235,8 +233,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                         str(ws),
                         "--workspace-ref-mode",
                         "strict",
-                        "--format",
-                        "json",
+                        "--json",
                     ]
                 )
             self.assertEqual(code, 1)
@@ -284,8 +281,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                             "--resolve-refs",
                             "--workspace-root",
                             str(ws),
-                            "--format",
-                            "json",
+                            "--json",
                         ]
                     )
                 self.assertEqual(code, 0)
@@ -330,8 +326,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                         "--workspace-ref-mode",
                         "loose",
                         "--show-resolve-details",
-                        "--format",
-                        "json",
+                        "--json",
                     ]
                 )
             self.assertEqual(code, 0)

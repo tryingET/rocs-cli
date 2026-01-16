@@ -4,19 +4,21 @@ Minimal ROCS CLI for ai-society.
 
 Commands:
 - `rocs version`
-- `rocs resolve --repo . [--profile <name>] [--resolve-refs]`
-- `rocs summary --repo .`
-- `rocs validate --repo . [--profile <name>] [--resolve-refs] [--strict-placeholders]`
+- `rocs rules [--json]`
+- `rocs explain <rule_id> [--json]`
+- `rocs resolve --repo . [--profile <name>] [--resolve-refs] [--json]`
+- `rocs summary --repo . [--json]`
+- `rocs validate --repo . [--profile <name>] [--resolve-refs] [--strict-placeholders] [--ruleset dev|strict]`
 - `rocs validate --repo . [--validate-deps]` (optional: enforce strict schema on ref layers too)
 - `rocs validate --repo . --only path|ref --layer <name>`
 - `rocs diff --repo . --baseline <gitlab:...@ref> --resolve-refs [--profile <name>]`
-- `rocs lint --repo . [--fail-on-warn]`
+- `rocs lint --repo . [--fail-on-warn] [--ruleset dev|strict]`
 - `rocs check-inverses --repo . [--fix]`
-- `rocs graph --repo . [--relation is_a] [--format excalidraw|json|dot] [--out <path>]`
+- `rocs graph --repo . [--relation is_a] [--format excalidraw|excalidraw-cli-json|dot] [--json] [--out <path>]`
 - `rocs cache dir|ls|prune|clear`
 - `rocs normalize --repo . [--apply]`
-- `rocs pack <ont_id> --repo . [--profile <name>] [--resolve-refs]`
-- `rocs build --repo . [--profile <name>] [--resolve-refs] [--clean]`
+- `rocs pack <ont_id> --repo . [--profile <name>] [--resolve-refs] [--json]`
+- `rocs build --repo . [--profile <name>] [--resolve-refs] [--clean] [--json]`
 
 Scope (MVP):
 - Validate ROCS repo structure + ontology front matter schema.
@@ -50,7 +52,7 @@ Layer refs (optional):
 
 Examples:
 - `rocs resolve --repo . --resolve-refs --workspace-root ~/ai-society --workspace-ref-mode strict --show-resolve-sources`
-- `rocs summary --repo . --resolve-refs --workspace-root ~/ai-society --format json`
+- `rocs summary --repo . --resolve-refs --workspace-root ~/ai-society --json`
 
 AI Society convention (recommended):
 - Keep all SoftwareCo projects under `~/ai-society/softwareco/projects/…` and set `ROCS_WORKSPACE_ROOT=~/ai-society`.
@@ -62,14 +64,18 @@ Graph export:
 Tests:
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q`
 
-Exit codes (baseline; subject to hardening in M11 Slice D):
-- `0`: success / no findings (or non-failing warnings)
-- `1`: validation/schema errors
-- `2`: action required (e.g., `rocs normalize` changes needed; `rocs diff` breaking removals detected)
+Exit codes:
+- `0`: success
+- `1`: error (invalid config/usage; schema/validation errors; internal errors)
+- `2`: action required / partial success (e.g. `rocs normalize` changes needed; `rocs diff` breaking removals detected; `rocs pack` unknown ont_id)
+
+JSON output:
+- Prefer `--json` for machine output.
+- When JSON output is selected, errors are emitted as `{"ok": false, "error": {...}}` and the process exits non-zero.
 
 Lint (ruff):
-- `uvx -n --from ruff ruff check .`
-- CI runs `ruff check .` (no formatting enforced yet).
+- Tool pins: `scripts/tool_versions.json`
+- Run: `uvx ruff==$(python -c 'import json; print(json.load(open(\"scripts/tool_versions.json\"))[\"ruff\"])') check .`
 
 Type checking:
 - Prefer `ty` (Astral). See `docs/ty.md`.

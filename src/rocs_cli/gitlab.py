@@ -8,6 +8,7 @@ import socket
 import tarfile
 import tempfile
 import time
+from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
@@ -95,7 +96,7 @@ def _cache_lock_path(dest: Path) -> Path:
 
 
 @contextlib.contextmanager
-def _exclusive_lock(lock_path: Path) -> object:
+def _exclusive_lock(lock_path: Path) -> Iterator[None]:
     """
     Best-effort per-cache-key lock.
 
