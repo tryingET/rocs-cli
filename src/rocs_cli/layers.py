@@ -7,7 +7,14 @@ from pathlib import Path
 import yaml
 
 from rocs_cli.errors import RocsCliError
-from rocs_cli.gitlab import fetch_repo_archive, gitlab_base_url, gitlab_headers
+from rocs_cli.gitlab import fetch_repo_archive, gitlab_base_url, gitlab_headers, gitlab_cache_dest, gitlab_cache_is_complete
+from rocs_cli.workspace import (
+    git_head_sha,
+    git_rev_sha,
+    pick_workspace_repo_root,
+    workspace_ref_mode_from_env,
+    workspace_root_from_env,
+)
 
 
 GITLAB_REF_RE = re.compile(r"^<gitlab:([^@>]+)@([^>]+)>$")
@@ -19,6 +26,7 @@ class LayerSpec:
     src_root: Path
     origin: str  # path or ref locator
     kind: str  # path|ref
+    source: str  # path|workspace|cache|gitlab
 
 
 def repo_root(repo: str) -> Path:
@@ -54,7 +62,13 @@ def parse_gitlab_ref(locator: str) -> tuple[str, str] | None:
     return m.group(1), m.group(2)
 
 
-def _src_root_for_ref(locator: str, *, resolve_refs: bool) -> tuple[Path, str]:
+def _src_root_for_ref(
+    locator: str,
+    *,
+    resolve_refs: bool,
+    workspace_root: Path | None,
+    workspace_ref_mode: str,
+) -> tuple[Path, str, str]:
     parsed = parse_gitlab_ref(locator)
     if not parsed:
         raise RocsCliError(
@@ -67,8 +81,44 @@ def _src_root_for_ref(locator: str, *, resolve_refs: bool) -> tuple[Path, str]:
             kind="offline-first",
             message=f"ref layer requires network resolution: {locator} (rerun with --resolve-refs; offline-first default)",
         )
-    repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
-    return (repo / "ontology" / "src"), locator
+
+    mismatch_details: dict | None = None
+    if workspace_root is not None:
+        ws_repo_root = pick_workspace_repo_root(workspace_root, project_path)
+        if ws_repo_root is not None:
+            if workspace_ref_mode == "loose":
+                return (ws_repo_root / "ontology" / "src"), locator, "workspace"
+
+            head = git_head_sha(ws_repo_root)
+            want = git_rev_sha(ws_repo_root, ref)
+            mismatch_details = {
+                "workspace_repo_root": str(ws_repo_root),
+                "workspace_ref_mode": workspace_ref_mode,
+                "requested_ref": ref,
+                "head_sha": head,
+                "requested_sha": want,
+            }
+            if head is not None and want is not None and head == want:
+                return (ws_repo_root / "ontology" / "src"), locator, "workspace"
+
+    if gitlab_cache_is_complete(project_path, ref):
+        repo = gitlab_cache_dest(project_path, ref)
+        return (repo / "ontology" / "src"), locator, "cache"
+
+    try:
+        repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
+        return (repo / "ontology" / "src"), locator, "gitlab"
+    except RocsCliError as e:
+        if mismatch_details and workspace_ref_mode == "strict":
+            details = dict(e.details or {})
+            details["workspace_ref_mismatch"] = mismatch_details
+            raise RocsCliError(
+                kind=e.kind,
+                message=f"{e.message} (workspace ref mismatch in strict mode; checkout {ref!r} or use --workspace-ref-mode loose)",
+                exit_code=e.exit_code,
+                details=details,
+            ) from None
+        raise
 
 
 def resolve_layers(
@@ -76,6 +126,8 @@ def resolve_layers(
     *,
     profile: str | None,
     resolve_refs: bool,
+    workspace_root: str | None = None,
+    workspace_ref_mode: str | None = None,
     only: str | None = None,
     layer: str | None = None,
 ) -> tuple[list[LayerSpec], dict]:
@@ -117,6 +169,10 @@ def resolve_layers(
             exclude = {str(x) for x in exc}
 
     layers: list[LayerSpec] = []
+    ws_root = Path(workspace_root).expanduser().resolve() if workspace_root else workspace_root_from_env()
+    ws_mode = (workspace_ref_mode or workspace_ref_mode_from_env() or "strict").strip().lower()
+    if ws_mode not in ("strict", "loose"):
+        raise RocsCliError(kind="usage", message="--workspace-ref-mode must be strict|loose")
     for cfg in layer_cfgs:
         name = str(cfg.get("name") or "")
         if not name:
@@ -132,12 +188,17 @@ def resolve_layers(
             if only == "ref":
                 continue
             src_root = (repo_root / str(cfg["path"])).resolve()
-            layers.append(LayerSpec(name=name, src_root=src_root, origin=str(cfg["path"]), kind="path"))
+            layers.append(LayerSpec(name=name, src_root=src_root, origin=str(cfg["path"]), kind="path", source="path"))
         elif "ref" in cfg:
             if only == "path":
                 continue
-            src_root, origin = _src_root_for_ref(str(cfg["ref"]), resolve_refs=resolve_refs)
-            layers.append(LayerSpec(name=name, src_root=src_root, origin=origin, kind="ref"))
+            src_root, origin, source = _src_root_for_ref(
+                str(cfg["ref"]),
+                resolve_refs=resolve_refs,
+                workspace_root=ws_root,
+                workspace_ref_mode=ws_mode,
+            )
+            layers.append(LayerSpec(name=name, src_root=src_root, origin=origin, kind="ref", source=source))
         else:
             raise SystemExit(f"layer must have path or ref: {cfg!r}")
 

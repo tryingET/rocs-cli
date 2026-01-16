@@ -23,7 +23,18 @@ Scope (MVP):
 - Build local artifacts into `ontology/dist/` (offline-first; remote layers only when `--resolve-refs` is set).
 
 Layer refs (optional):
-- `--resolve-refs` enables fetching `<gitlab:<project_path>@<ref>>` layers into a local cache.
+- `--resolve-refs` enables resolving `<gitlab:<project_path>@<ref>>` layers.
+- Resolution precedence (when `--resolve-refs` is set):
+  1) workspace clone (offline)
+  2) cache (offline)
+  3) GitLab fetch (network)
+- Workspace config:
+  - `--workspace-root <path>` (or `ROCS_WORKSPACE_ROOT`): root directory that contains local clones (e.g. `~/ai-society`).
+  - `--workspace-ref-mode strict|loose` (or `ROCS_WORKSPACE_REF_MODE`):
+    - `strict` (default): use workspace only if `HEAD` matches the requested ref
+    - `loose`: use workspace checkout even if it doesn’t match the requested ref
+- Diagnostics:
+  - `--show-resolve-sources` adds `(source=workspace|cache|gitlab|path)` to `rocs resolve` / `rocs summary` text output.
 - Dotenv loading (so you don’t need to `export` tokens):
   - Highest priority: pass `--env-file <path>`.
   - Otherwise `rocs` auto-loads the first existing file from:
@@ -34,6 +45,10 @@ Layer refs (optional):
 - Cache integrity: each fetched ref writes a completion marker `.rocs_cache_ok.json`; entries missing the marker are treated as incomplete and re-fetched. A per-ref lock file prevents concurrent writers.
 - GitLab config: `ROCS_GITLAB_BASE_URL` (or `GITLAB_BASE_URL`) and `ROCS_GITLAB_TOKEN` (or `PAT_GITLAB`).
 - In GitLab CI: base url falls back to `CI_SERVER_URL`; auth can use `CI_JOB_TOKEN`.
+
+Examples:
+- `rocs resolve --repo . --resolve-refs --workspace-root ~/ai-society --workspace-ref-mode strict --show-resolve-sources`
+- `rocs summary --repo . --resolve-refs --workspace-root ~/ai-society --format json`
 
 Graph export:
 - `rocs graph` writes an `.excalidraw.json` file by default (open it in Excalidraw).
