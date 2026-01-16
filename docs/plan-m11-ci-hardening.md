@@ -47,7 +47,7 @@ Source issue: `ai-society/core/rocs-cli#1` (“M11 Proposal: ROCS CI hardening (
    - Today exit code `2` is used for “action needed but not a crash” in multiple commands (normalize/diff/pack).
    - Decide a stable mapping that doesn’t break existing automation.
 5) **JSON schema for failures**
-   - Define minimal `error` envelope for `--json` / `--format json` commands (and how to represent network/config/internal errors).
+  - Define minimal `error` envelope for `--json` commands (and how to represent network/config/internal errors).
 
 ## Expert consult checklist (roles + questions)
 
@@ -61,7 +61,7 @@ Source issue: `ai-society/core/rocs-cli#1` (“M11 Proposal: ROCS CI hardening (
 - Confirm whether server supports `Range` or reliable `Content-Length` for `.tar.gz` downloads.
 
 **CLI UX / automation**
-- Decide: `--json` vs `--format json` standardization; backward-compat plan.
+- Standardize on `--json` (single machine-output knob).
 - Decide error contract: stable exit codes + stable error “kind” for machine consumers.
 
 **CI maintainer**

@@ -121,10 +121,15 @@ def _mk_repo(tmp: Path, *, manifest_extra: str = "") -> Path:
 
 
 def _run(argv: list[str]) -> int:
+    buf = io.StringIO()
+    prev_console = cli_mod.console
+    cli_mod.console = Console(file=buf, force_terminal=False, color_system=None, width=200)
     try:
         cli.main(argv)
     except SystemExit as e:
         return int(e.code or 0)
+    finally:
+        cli_mod.console = prev_console
     return 0
 
 
@@ -133,7 +138,12 @@ def _run_capture(argv: list[str]) -> tuple[int, str]:
     prev_console = cli_mod.console
     cli_mod.console = Console(file=buf, force_terminal=False, color_system=None, width=200)
     try:
-        code = _run(argv)
+        try:
+            cli.main(argv)
+        except SystemExit as e:
+            code = int(e.code or 0)
+        else:
+            code = 0
     finally:
         cli_mod.console = prev_console
     return code, buf.getvalue()
@@ -146,6 +156,20 @@ def _parse_json(out: str) -> dict:
 class TestRocsCli(unittest.TestCase):
     def test_version_subcommand(self) -> None:
         self.assertEqual(_run(["version"]), 0)
+
+    def test_rules_json_schema(self) -> None:
+        code, out = _run_capture(["rules", "--json"])
+        self.assertEqual(code, 0)
+        payload = _parse_json(out)
+        self.assertIsInstance(payload.get("rules"), list)
+        self.assertIn("STRUCT001", {r.get("rule_id") for r in payload["rules"]})
+
+    def test_explain_unknown_rule_json_error_envelope(self) -> None:
+        code, out = _run_capture(["explain", "NOPE999", "--json"])
+        self.assertEqual(code, 1)
+        payload = _parse_json(out)
+        self.assertEqual(payload.get("ok"), False)
+        self.assertIn("unknown rule id", payload.get("error", {}).get("message", ""))
 
     def test_validate_ok(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -188,6 +212,77 @@ class TestRocsCli(unittest.TestCase):
             payload = _parse_json(out)
             self.assertEqual(payload.get("ok"), False)
             self.assertIsInstance(payload.get("findings"), list)
+
+    def test_validate_ruleset_strict_implies_strict_placeholders(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            p = repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md"
+            p.write_text(p.read_text("utf-8") + "\n\n<todo>\n", "utf-8")
+
+            self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+            code, out = _run_capture(["validate", "--repo", str(repo), "--ruleset", "strict", "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIn("PLACE010", {f.get("rule_id") for f in payload.get("findings") or []})
+
+    def test_validate_lint_ignore_suppresses_schema_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Agent"',
+                        "  type: concept",
+                        '  labels: ["Agent"]',
+                        '  description: ""',
+                        '  lint_ignore: ["ONT004"]',
+                        "  relations:",
+                        "    - type: is_a",
+                        '      target: "core.Actor"',
+                        "---",
+                        "",
+                        "# Agent",
+                        "",
+                        "## Definition",
+                        "an agent",
+                        "",
+                    ]
+                ),
+            )
+            self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+
+    def test_lint_ruleset_strict_fails_on_warn(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Agent"',
+                        "  type: concept",
+                        '  labels: ["Agent"]',
+                        '  description: "an agent"',
+                        "  relations:",
+                        "    - type: is_a",
+                        '      target: "core.Actor"',
+                        "---",
+                        "",
+                        "# Agent",
+                        "",
+                        "## Definition",
+                        "an agent",
+                        "",
+                    ]
+                ),
+            )
+            self.assertEqual(_run(["lint", "--repo", str(repo), "--ruleset", "dev"]), 0)
+            self.assertEqual(_run(["lint", "--repo", str(repo), "--ruleset", "strict"]), 1)
 
     def test_rocs_env_file_default_is_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -317,11 +412,11 @@ class TestRocsCli(unittest.TestCase):
             self.assertIn("kind", payload["error"])
             self.assertIn("message", payload["error"])
 
-    def test_resolve_format_json_missing_manifest_returns_error_envelope(self) -> None:
+    def test_resolve_json_missing_manifest_returns_error_envelope(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td) / "repo"
             repo.mkdir(parents=True, exist_ok=True)
-            code, out = _run_capture(["resolve", "--repo", str(repo), "--format", "json"])
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--json"])
             self.assertEqual(code, 1)
             payload = _parse_json(out)
             self.assertEqual(payload.get("ok"), False)
@@ -400,6 +495,15 @@ class TestRocsCli(unittest.TestCase):
             self.assertIn("core.Agent.md", out)
             self.assertNotIn("core.Actor.md", out)
 
+    def test_pack_unknown_id_json_error_has_exit_code_2(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["pack", "NOPE", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 2)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "not_found")
+
     def test_pack_profile_depth_expands(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(
@@ -432,6 +536,27 @@ class TestRocsCli(unittest.TestCase):
             self.assertIn('"schema_version": 1', text)
             self.assertIn('"id": "core.Agent"', text)
             self.assertIn('"id": "core.rel.is_a"', text)
+
+    def test_build_json_output_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["build", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            self.assertIn("dist", payload)
+            self.assertIn("files", payload.get("dist") or {})
+
+    def test_build_artifacts_are_deterministic(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+            dist = repo / "ontology" / "dist"
+            paths = [dist / "resolve.json", dist / "summary.json", dist / "id_index.json"]
+            first = {p.name: p.read_bytes() for p in paths}
+
+            self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+            second = {p.name: p.read_bytes() for p in paths}
+            self.assertEqual(first, second)
 
     def test_vendored_check_ok_then_fail(self) -> None:
         with tempfile.TemporaryDirectory() as td:
