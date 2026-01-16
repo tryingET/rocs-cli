@@ -12,6 +12,7 @@ from rich.console import Console
 from rocs_cli import __main__ as cli
 import rocs_cli.cli as cli_mod
 from rocs_cli.gitlab import gitlab_cache_dest
+from rocs_cli.workspace import git_rev_sha
 
 
 def _write(path: Path, text: str) -> None:
@@ -129,6 +130,19 @@ def _good_repo_tar() -> bytes:
 
 
 class TestWorkspaceResolution(unittest.TestCase):
+    def test_workspace_git_rev_sha_rejects_dash_ref(self) -> None:
+        project_path = "ai-society/core/dep"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            repo = td_path / "dep"
+            _init_workspace_repo(repo, project_path=project_path, tag="v1", make_mismatch=False)
+
+            good = git_rev_sha(repo, "v1")
+            self.assertIsNotNone(good)
+
+            # Must not treat `--help` as a flag; should resolve as "not a rev".
+            self.assertIsNone(git_rev_sha(repo, "--help"))
+
     def test_workspace_wins_over_cache_and_gitlab(self) -> None:
         project_path = "ai-society/core/dep"
         locator = f"<gitlab:{project_path}@v1>"

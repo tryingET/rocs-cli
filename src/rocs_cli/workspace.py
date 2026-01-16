@@ -146,11 +146,14 @@ def _git(repo_root: Path, args: list[str]) -> str | None:
 
 
 def git_head_sha(repo_root: Path) -> str | None:
-    return _git(repo_root, ["rev-parse", "HEAD"])
+    return _git(repo_root, ["rev-parse", "--verify", "HEAD^{commit}"])
 
 
 def git_rev_sha(repo_root: Path, ref: str) -> str | None:
     ref = ref.strip()
     if not ref:
         return None
-    return _git(repo_root, ["rev-parse", f"{ref}^{{commit}}"])
+    # Harden: never treat dash-prefixed strings as revisions.
+    if ref.startswith("-"):
+        return None
+    return _git(repo_root, ["rev-parse", "--verify", f"{ref}^{{commit}}"])
