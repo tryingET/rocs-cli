@@ -201,6 +201,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                         str(ws),
                         "--workspace-ref-mode",
                         "strict",
+                        "--show-resolve-details",
                         "--format",
                         "json",
                     ]
@@ -209,6 +210,9 @@ class TestWorkspaceResolution(unittest.TestCase):
             payload = _parse_json(out)
             dep = [x for x in payload["layers"] if x["name"] == "dep"][0]
             self.assertEqual(dep["source"], "cache")
+            self.assertEqual(dep.get("details", {}).get("workspace", {}).get("present"), True)
+            self.assertEqual(dep.get("details", {}).get("workspace", {}).get("used"), False)
+            self.assertEqual(dep.get("details", {}).get("workspace", {}).get("reason"), "ref_mismatch")
 
     def test_strict_mismatch_fails_cleanly_without_cache_or_gitlab(self) -> None:
         project_path = "ai-society/core/dep"
@@ -325,6 +329,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                         str(ws),
                         "--workspace-ref-mode",
                         "loose",
+                        "--show-resolve-details",
                         "--format",
                         "json",
                     ]
@@ -333,3 +338,6 @@ class TestWorkspaceResolution(unittest.TestCase):
             payload = _parse_json(out)
             dep = [x for x in payload["layers"] if x["name"] == "dep"][0]
             self.assertEqual(dep["source"], "cache")
+            self.assertEqual(dep.get("details", {}).get("workspace", {}).get("present"), True)
+            self.assertEqual(dep.get("details", {}).get("workspace", {}).get("used"), False)
+            self.assertEqual(dep.get("details", {}).get("workspace", {}).get("reason"), "origin_mismatch")

@@ -137,6 +137,7 @@ def cmd_resolve(args: argparse.Namespace) -> int:
         layer=args.layer,
     )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
+    resolution_notes = meta.get("resolution_notes") if isinstance(meta, dict) else None
     payload = {
         "repo": str(repo),
         "profile": meta.get("profile"),
@@ -147,10 +148,14 @@ def cmd_resolve(args: argparse.Namespace) -> int:
                 "src_root": str(layer_spec.src_root),
                 "kind": layer_spec.kind,
                 "source": layer_spec.source,
+                "details": (resolution_notes or {}).get(layer_spec.name) if args.show_resolve_details else None,
             }
             for layer_spec in layers
         ],
     }
+    for layer_entry in payload["layers"]:
+        if layer_entry.get("details") is None:
+            layer_entry.pop("details", None)
     if args.write_dist:
         _write_resolve_artifact(repo, layers=layers, profile=payload["profile"])
     if args.format == "json":
@@ -159,8 +164,13 @@ def cmd_resolve(args: argparse.Namespace) -> int:
         console.print(f"repo: {payload['repo']}")
         console.print(f"profile: {payload['profile']}")
         for layer_entry in payload["layers"]:
-            if args.show_resolve_sources:
-                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']} (source={layer_entry['source']})")
+            if args.show_resolve_sources or args.show_resolve_details:
+                extra = f"source={layer_entry['source']}"
+                if args.show_resolve_details and layer_entry.get("details", {}).get("workspace", {}).get("present"):
+                    w = layer_entry["details"]["workspace"]
+                    if not w.get("used") and w.get("reason"):
+                        extra += f"; workspace={w['reason']}"
+                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']} ({extra})")
             else:
                 console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
     return 0
@@ -180,6 +190,7 @@ def cmd_summary(args: argparse.Namespace) -> int:
     )
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
+    resolution_notes = meta.get("resolution_notes") if isinstance(meta, dict) else None
     payload = {
         "repo": str(repo),
         "profile": meta.get("profile"),
@@ -190,18 +201,27 @@ def cmd_summary(args: argparse.Namespace) -> int:
                 "src_root": str(layer_spec.src_root),
                 "kind": layer_spec.kind,
                 "source": layer_spec.source,
+                "details": (resolution_notes or {}).get(layer_spec.name) if args.show_resolve_details else None,
             }
             for layer_spec in layers
         ],
         "counts": {"concepts": len(concepts), "relations": len(relations)},
     }
+    for layer_entry in payload["layers"]:
+        if layer_entry.get("details") is None:
+            layer_entry.pop("details", None)
     if args.format == "text":
         console.print(f"repo: {payload['repo']}")
         console.print(f"profile: {payload['profile']}")
         console.print(f"counts: concepts={payload['counts']['concepts']} relations={payload['counts']['relations']}")
         for layer_entry in payload["layers"]:
-            if args.show_resolve_sources:
-                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']} (source={layer_entry['source']})")
+            if args.show_resolve_sources or args.show_resolve_details:
+                extra = f"source={layer_entry['source']}"
+                if args.show_resolve_details and layer_entry.get("details", {}).get("workspace", {}).get("present"):
+                    w = layer_entry["details"]["workspace"]
+                    if not w.get("used") and w.get("reason"):
+                        extra += f"; workspace={w['reason']}"
+                console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']} ({extra})")
             else:
                 console.print(f"- layer {layer_entry['name']}: {layer_entry['origin']}")
     else:
@@ -648,6 +668,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--show-resolve-sources",
         action="store_true",
         help="show workspace/cache/gitlab source per layer in text output",
+    )
+    p_resolve_common.add_argument(
+        "--show-resolve-details",
+        action="store_true",
+        help="show workspace skip reasons (and include per-layer details in JSON output)",
     )
 
     sub = parser.add_subparsers(dest="cmd", required=True)

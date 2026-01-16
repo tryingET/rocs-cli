@@ -69,7 +69,7 @@ def _src_root_for_ref(
     resolve_refs: bool,
     workspace_root: Path | None,
     workspace_ref_mode: str,
-) -> tuple[Path, str, str]:
+) -> tuple[Path, str, str, dict]:
     parsed = parse_gitlab_ref(locator)
     if not parsed:
         raise RocsCliError(
@@ -83,9 +83,11 @@ def _src_root_for_ref(
             message=f"ref layer requires network resolution: {locator} (rerun with --resolve-refs; offline-first default)",
         )
 
+    notes: dict = {"workspace": {"present": False, "used": False, "reason": None}}
     mismatch_details: dict | None = None
     if workspace_root is not None:
         if workspace_repo_exists(workspace_root, project_path):
+            notes["workspace"]["present"] = True
             mismatch_details = {
                 "workspace_root": str(workspace_root),
                 "workspace_ref_mode": workspace_ref_mode,
@@ -95,7 +97,8 @@ def _src_root_for_ref(
         ws_repo_root = pick_workspace_repo_root(workspace_root, project_path)
         if ws_repo_root is not None:
             if workspace_ref_mode == "loose":
-                return (ws_repo_root / "ontology" / "src"), locator, "workspace"
+                notes["workspace"]["used"] = True
+                return (ws_repo_root / "ontology" / "src"), locator, "workspace", notes
 
             head = git_head_sha(ws_repo_root)
             want = git_rev_sha(ws_repo_root, ref)
@@ -108,15 +111,25 @@ def _src_root_for_ref(
                 }
             )
             if head is not None and want is not None and head == want:
-                return (ws_repo_root / "ontology" / "src"), locator, "workspace"
+                notes["workspace"]["used"] = True
+                return (ws_repo_root / "ontology" / "src"), locator, "workspace", notes
+            if workspace_ref_mode == "strict":
+                notes["workspace"]["reason"] = "ref_mismatch"
+        elif notes["workspace"]["present"]:
+            # Repo directory exists, but identity checks did not match this project path.
+            notes["workspace"]["reason"] = "origin_mismatch"
 
     if gitlab_cache_is_complete(project_path, ref):
         repo = gitlab_cache_dest(project_path, ref)
-        return (repo / "ontology" / "src"), locator, "cache"
+        if notes["workspace"]["present"] and notes["workspace"]["reason"] is None:
+            notes["workspace"]["reason"] = "not_used"
+        return (repo / "ontology" / "src"), locator, "cache", notes
 
     try:
         repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
-        return (repo / "ontology" / "src"), locator, "gitlab"
+        if notes["workspace"]["present"] and notes["workspace"]["reason"] is None:
+            notes["workspace"]["reason"] = "not_used"
+        return (repo / "ontology" / "src"), locator, "gitlab", notes
     except RocsCliError as e:
         if mismatch_details and workspace_ref_mode == "strict":
             details = dict(e.details or {})
@@ -178,6 +191,7 @@ def resolve_layers(
             exclude = {str(x) for x in exc}
 
     layers: list[LayerSpec] = []
+    resolution_notes: dict[str, dict] = {}
     ws_root = Path(workspace_root).expanduser().resolve() if workspace_root else workspace_root_from_env()
     ws_mode = (workspace_ref_mode or workspace_ref_mode_from_env() or "strict").strip().lower()
     if ws_mode not in ("strict", "loose"):
@@ -201,15 +215,16 @@ def resolve_layers(
         elif "ref" in cfg:
             if only == "path":
                 continue
-            src_root, origin, source = _src_root_for_ref(
+            src_root, origin, source, notes = _src_root_for_ref(
                 str(cfg["ref"]),
                 resolve_refs=resolve_refs,
                 workspace_root=ws_root,
                 workspace_ref_mode=ws_mode,
             )
             layers.append(LayerSpec(name=name, src_root=src_root, origin=origin, kind="ref", source=source))
+            resolution_notes[name] = notes
         else:
             raise SystemExit(f"layer must have path or ref: {cfg!r}")
 
-    meta = {"manifest": manifest, "profile": profile, "profile_def": profile_def}
+    meta = {"manifest": manifest, "profile": profile, "profile_def": profile_def, "resolution_notes": resolution_notes}
     return layers, meta

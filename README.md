@@ -36,6 +36,7 @@ Layer refs (optional):
   - Identity hardening: workspace repos are only used if `remote.origin.url` parses to the same GitLab project path as the locator (prevents accidentally binding to the wrong repo when layouts collide).
 - Diagnostics:
   - `--show-resolve-sources` adds `(source=workspace|cache|gitlab|path)` to `rocs resolve` / `rocs summary` text output.
+  - `--show-resolve-details` adds workspace skip reasons in text output and includes per-layer `details` in JSON output.
 - Dotenv loading (so you don’t need to `export` tokens):
   - Highest priority: pass `--env-file <path>`.
   - Otherwise `rocs` auto-loads the first existing file from:
