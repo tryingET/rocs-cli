@@ -34,3 +34,8 @@ extend-exclude = [
 [tool.ruff.lint]
 select = ["E", "F"]
 ignore = ["E501"]
+
+[tool.ty]
+
+[tool.ty.environment]
+python-version = "3.11"

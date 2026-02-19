@@ -3,7 +3,7 @@ summary: "Local + CI type checking with Astral `ty`."
 read_when:
   - "When adding static typing to rocs-cli or wiring type checks into CI"
   - "When adding/editing ty configuration"
-as_of: "2026-01-12"
+as_of: "2026-01-16"
 ---
 
 # `ty` manual (rocs-cli)
@@ -15,33 +15,25 @@ This repo’s policy:
 - Prefer `ty` for type checking.
 
 ## Versions
-- `ty` is currently `0.0.11` (pinned in examples).
+- `ty` is pinned in `scripts/tool_versions.json` (used by CI).
 
-## Install (recommended)
-Pin the tool so CI/local are consistent:
-
-```bash
-uv tool install ty==0.0.11
-ty --version
-```
-
-Alternative (ephemeral, slower): run without installing globally:
+## Run (recommended)
+Run pinned `ty` ephemerally via `uvx`:
 
 ```bash
-uvx ty --version
-uvx ty check
+uvx ty==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ty"])') --version
+uvx ty==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ty"])') check src/rocs_cli
 ```
 
 ## Run locally
 From `core/rocs-cli/`:
 
 ```bash
-ty check
+uvx ty==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ty"])') check src/rocs_cli
 ```
 
 Useful patterns:
-- Check only the package: `ty check src/rocs_cli`
-- Print help: `ty --help`
+- Print help: `uvx ty==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ty"])') --help`
 
 ## Configure
 `ty` reads config from `pyproject.toml` under `[tool.ty]`.
@@ -59,9 +51,9 @@ Notes:
 - Keep config minimal; add strictness only when it pays.
 - Don’t bake secrets or absolute paths into config.
 
-## CI wiring (intent)
-Add a CI job that runs:
+## CI wiring
+GitLab CI runs:
 
 ```bash
-ty check
+uvx ty==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ty"])') check src/rocs_cli
 ```
