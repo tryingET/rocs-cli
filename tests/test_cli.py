@@ -286,6 +286,46 @@ class TestRocsCli(unittest.TestCase):
             )
             self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
 
+    def test_validate_unknown_layer_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["validate", "--repo", str(repo), "--layer", "nope", "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "usage")
+            self.assertIn("unknown layer", payload.get("error", {}).get("message", ""))
+
+    def test_summary_unknown_layer_returns_error_envelope(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["summary", "--repo", str(repo), "--layer", "nope", "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "usage")
+
+    def test_summary_only_ref_fails_when_selection_is_empty(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["summary", "--repo", str(repo), "--only", "ref", "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "not_found")
+            self.assertIn("matched no layers", payload.get("error", {}).get("message", ""))
+
+    def test_validate_json_missing_front_matter_returns_content_error(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md", "# missing front matter\n")
+            code, out = _run_capture(["validate", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "content")
+            self.assertIn("missing front matter", payload.get("error", {}).get("message", ""))
+
     def test_lint_ruleset_strict_fails_on_warn(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
@@ -448,6 +488,47 @@ class TestRocsCli(unittest.TestCase):
             self.assertIn("kind", payload["error"])
             self.assertIn("message", payload["error"])
 
+    def test_resolve_json_invalid_manifest_shape_returns_config_error(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            (repo / "ontology" / "manifest.yaml").write_text("rocs: 1\n", "utf-8")
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "config")
+            self.assertIn("manifest.rocs must be a mapping", payload.get("error", {}).get("message", ""))
+
+    def test_resolve_json_invalid_profiles_shape_returns_config_error(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td), manifest_extra="  profiles: 1")
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "config")
+            self.assertIn("manifest.rocs.profiles must be a mapping", payload.get("error", {}).get("message", ""))
+
+    def test_resolve_json_profile_with_empty_selection_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(
+                Path(td),
+                manifest_extra="\n".join(
+                    [
+                        "  profiles:",
+                        "    default: ref-only",
+                        "    ref-only:",
+                        "      include_layers: [dep]",
+                    ]
+                ),
+            )
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "not_found")
+            self.assertIn("matched no layers", payload.get("error", {}).get("message", ""))
+
     def test_resolve_json_missing_manifest_returns_error_envelope(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td) / "repo"
@@ -493,6 +574,16 @@ class TestRocsCli(unittest.TestCase):
             out = Path(td) / "g.excalidraw.json"
             self.assertEqual(_run(["graph", "--repo", str(repo), "--relation", "is_a", "--out", str(out)]), 0)
             self.assertTrue(out.exists())
+
+    def test_lint_flags_empty_markdown_heading(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            p = repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md"
+            p.write_text(p.read_text("utf-8") + "#\n", "utf-8")
+            code, out = _run_capture(["lint", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            self.assertIn("LINT011", {f.get("rule_id") for f in payload.get("findings") or []})
 
     def test_normalize_check_then_apply(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -562,6 +653,79 @@ class TestRocsCli(unittest.TestCase):
             self.assertIn("core.Actor.md", out)
             self.assertIn("is_a.md", out)
 
+    def test_pack_relation_root_returns_relation_doc(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["pack", "core.rel.is_a", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("pack", {}).get("counts", {}).get("docs"), 1)
+            self.assertEqual(payload.get("docs", [{}])[0].get("ont_id"), "core.rel.is_a")
+            self.assertEqual(payload.get("docs", [{}])[0].get("kind"), "relation")
+
+    def test_pack_max_docs_is_global_cap(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(
+                Path(td),
+                manifest_extra="\n".join(
+                    [
+                        "  profiles:",
+                        "    default: repo-dev",
+                        "    repo-dev:",
+                        "      pack:",
+                        "        max_depth: 1",
+                        "        include_relation_defs: true",
+                        "        rel_types: [is_a]",
+                    ]
+                ),
+            )
+            code, out = _run_capture(["pack", "core.Agent", "--repo", str(repo), "--max-docs", "1", "--json"])
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("pack", {}).get("counts", {}).get("docs"), 1)
+            self.assertEqual(payload.get("docs", [{}])[0].get("ont_id"), "core.Agent")
+
+    def test_pack_rejects_non_positive_max_docs(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["pack", "core.Agent", "--repo", str(repo), "--max-docs", "0", "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "usage")
+            self.assertIn("--max-docs", payload.get("error", {}).get("message", ""))
+
+    def test_pack_rejects_negative_depth(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["pack", "core.Agent", "--repo", str(repo), "--depth", "-1", "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "usage")
+            self.assertIn("--depth", payload.get("error", {}).get("message", ""))
+
+    def test_pack_rejects_invalid_profile_pack_limits(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(
+                Path(td),
+                manifest_extra="\n".join(
+                    [
+                        "  profiles:",
+                        "    default: repo-dev",
+                        "    repo-dev:",
+                        "      pack:",
+                        "        max_docs: 0",
+                    ]
+                ),
+            )
+            code, out = _run_capture(["pack", "core.Agent", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "config")
+            self.assertIn("pack.max_docs", payload.get("error", {}).get("message", ""))
+
     def test_build_writes_id_index(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
@@ -596,6 +760,41 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(receipt.get("authority_mode"), "local_only")
             self.assertEqual(receipt.get("locator_kinds_present"), ["path"])
             self.assertEqual(receipt.get("legacy_gitlab_fallback_used"), False)
+
+    def test_build_fails_closed_on_invalid_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Agent"',
+                        "  type: concept",
+                        '  labels: ["Agent"]',
+                        "  relations: []",
+                        "  examples:",
+                        '    - "an example"',
+                        "---",
+                        "",
+                        "# Agent",
+                        "",
+                        "## Definition",
+                        "an agent",
+                        "",
+                    ]
+                ),
+            )
+            code, out = _run_capture(["build", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIn("ONT004", {f.get("rule_id") for f in payload.get("findings") or []})
+            self.assertFalse((repo / "ontology" / "dist" / "summary.json").exists())
+            receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.build.json").read_text("utf-8"))
+            self.assertEqual(receipt.get("ok"), False)
+            self.assertGreaterEqual(receipt.get("result", {}).get("finding_count", 0), 1)
 
     def test_build_resolve_refs_with_no_ref_layers_is_not_authoritative(self) -> None:
         with tempfile.TemporaryDirectory() as td:

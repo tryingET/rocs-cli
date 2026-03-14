@@ -114,9 +114,12 @@ def validate_reference_schema(
     *,
     strict_placeholders: bool,
     validate_deps: bool,
+    concepts: dict | None = None,
+    relations: dict | None = None,
 ) -> tuple[list[Finding], dict]:
     findings: list[Finding] = []
-    concepts, relations = collect_docs(layers)
+    if concepts is None or relations is None:
+        concepts, relations = collect_docs(layers)
 
     def add_doc_finding(ignore: set[str], finding: Finding) -> None:
         if finding.rule_id in ignore:

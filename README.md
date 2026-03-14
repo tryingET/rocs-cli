@@ -24,8 +24,8 @@ Commands:
 - `rocs graph --repo . [--relation is_a] [--format excalidraw|excalidraw-cli-json|dot] [--json] [--out <path>]`
 - `rocs cache dir|ls|prune|clear`
 - `rocs normalize --repo . [--apply]`
-- `rocs pack <ont_id> --repo . [--profile <name>] [--resolve-refs] [--json]`
-- `rocs build --repo . [--profile <name>] [--resolve-refs] [--clean] [--json]`
+- `rocs pack <ont_id> --repo . [--profile <name>] [--resolve-refs] [--json]` (`<ont_id>` may be a concept or relation id)
+- `rocs build --repo . [--profile <name>] [--resolve-refs] [--clean] [--json]` (fail-closed: refuses invalid ontology content)
 
 Scope (MVP):
 - Validate ROCS repo structure + ontology front matter schema.
@@ -53,6 +53,8 @@ Layer refs (optional):
 - Diagnostics:
   - `--show-resolve-sources` adds `(source=workspace|cache|gitlab|path)` to `rocs resolve` / `rocs summary` text output.
   - `--show-resolve-details` adds workspace skip reasons in text output and includes per-layer `details` in JSON output.
+- Selector contract:
+  - Explicit selectors fail closed. If `--layer` names no declared layer, or `--only`/`--layer` together match nothing, commands return a non-zero error instead of silently operating on zero layers.
 - Dotenv loading (so you don’t need to `export` vars):
   - Highest priority: pass `--env-file <path>`.
   - Otherwise `rocs` auto-loads the first existing file from:
@@ -124,7 +126,7 @@ Perf harness (synthetic, offline):
 
 Exit codes:
 - `0`: success
-- `1`: error (invalid config/usage; schema/validation errors; internal errors)
+- `1`: error (invalid config/usage; schema/validation errors; malformed ontology content; internal errors)
 - `2`: action required / partial success (e.g. `rocs normalize` changes needed; `rocs diff` breaking removals detected; `rocs pack` unknown ont_id)
 
 JSON output:
