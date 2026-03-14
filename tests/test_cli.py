@@ -529,6 +529,26 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(payload.get("error", {}).get("kind"), "not_found")
             self.assertIn("matched no layers", payload.get("error", {}).get("message", ""))
 
+    def test_resolve_rejects_layer_with_both_path_and_ref(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(
+                Path(td),
+                manifest_extra="\n".join(
+                    [
+                        "  layers:",
+                        "    - name: mixed",
+                        "      path: ontology/src",
+                        "      ref: \"<repo:core/dep@main>\"",
+                    ]
+                ),
+            )
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "config")
+            self.assertIn("exactly one of path or ref", payload.get("error", {}).get("message", ""))
+
     def test_resolve_json_missing_manifest_returns_error_envelope(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td) / "repo"

@@ -46,20 +46,19 @@ def _receipt_lock(lock_path: Path):
         try:
             yield
         finally:
-            if not locked:
-                return
-            try:
-                f.seek(0)
-                if os.name == "nt":
-                    import msvcrt  # noqa: PLC0415
+            if locked:
+                try:
+                    f.seek(0)
+                    if os.name == "nt":
+                        import msvcrt  # noqa: PLC0415
 
-                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
-                else:
-                    import fcntl  # noqa: PLC0415
+                        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                    else:
+                        import fcntl  # noqa: PLC0415
 
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-            except Exception:
-                pass
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                except Exception:
+                    pass
 
 
 def effective_workspace_ref_mode(explicit_mode: str | None) -> str:

@@ -7,7 +7,13 @@ from pathlib import Path
 import yaml
 
 from rocs_cli.errors import RocsCliError
-from rocs_cli.gitlab import fetch_repo_archive, gitlab_base_url, gitlab_headers, gitlab_cache_dest, gitlab_cache_is_complete
+from rocs_cli.gitlab import (
+    fetch_repo_archive,
+    gitlab_base_url,
+    gitlab_headers,
+    gitlab_cache_complete_dest,
+    gitlab_cache_is_complete,
+)
 from rocs_cli.workspace import (
     git_head_sha,
     git_rev_sha,
@@ -58,6 +64,19 @@ def _require_optional_list(value: object, *, where: str) -> list:
     if not isinstance(value, list):
         raise RocsCliError(kind="config", message=f"{where} must be a list")
     return value
+
+
+def _require_layer_locator(cfg: dict, *, layer_name: str) -> tuple[str, str]:
+    has_path = "path" in cfg
+    has_ref = "ref" in cfg
+    if has_path == has_ref:
+        raise RocsCliError(
+            kind="config",
+            message=f"layer {layer_name!r} must declare exactly one of path or ref",
+            details={"layer": layer_name, "layer_keys": sorted(str(k) for k in cfg.keys())},
+        )
+    key = "path" if has_path else "ref"
+    return key, str(cfg[key])
 
 
 def load_manifest(repo_root: Path) -> dict:
@@ -150,7 +169,9 @@ def _repo_root_for_ref(
             notes["workspace"]["reason"] = "origin_mismatch" if require_origin_match else "not_git_repo"
 
     if gitlab_cache_is_complete(project_path, ref):
-        repo = gitlab_cache_dest(project_path, ref)
+        repo = gitlab_cache_complete_dest(project_path, ref)
+        if repo is None:
+            raise RocsCliError(kind="internal", message=f"cache lookup drifted for {project_path!r}@{ref!r}")
         if notes["workspace"]["present"] and notes["workspace"]["reason"] is None:
             notes["workspace"]["reason"] = "not_used"
         return repo, locator, "cache", notes
@@ -306,6 +327,7 @@ def resolve_layers(
         name = str(cfg.get("name") or "")
         if not name:
             raise RocsCliError(kind="config", message=f"layer missing name: {cfg!r}")
+        locator_kind, locator_value = _require_layer_locator(cfg, layer_name=name)
         if layer and name != layer:
             continue
         if include is not None and name not in include:
@@ -313,24 +335,22 @@ def resolve_layers(
         if name in exclude:
             continue
 
-        if "path" in cfg:
+        if locator_kind == "path":
             if only == "ref":
                 continue
-            src_root = (repo_root / str(cfg["path"])).resolve()
-            layers.append(LayerSpec(name=name, src_root=src_root, origin=str(cfg["path"]), kind="path", source="path"))
-        elif "ref" in cfg:
+            src_root = (repo_root / locator_value).resolve()
+            layers.append(LayerSpec(name=name, src_root=src_root, origin=locator_value, kind="path", source="path"))
+        else:
             if only == "path":
                 continue
             src_root, origin, source, notes = _src_root_for_ref(
-                str(cfg["ref"]),
+                locator_value,
                 resolve_refs=resolve_refs,
                 workspace_root=ws_root,
                 workspace_ref_mode=ws_mode,
             )
             layers.append(LayerSpec(name=name, src_root=src_root, origin=origin, kind="ref", source=source))
             resolution_notes[name] = notes
-        else:
-            raise RocsCliError(kind="config", message=f"layer must have path or ref: {cfg!r}")
 
     if layer and layer not in declared_layer_names:
         raise RocsCliError(

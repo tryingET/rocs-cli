@@ -246,6 +246,79 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(evidence["wrapper_call_present"], False)
             self.assertEqual(evidence["profile_contract_present"], False)
 
+    def test_comment_only_ci_markers_do_not_count_as_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = workspace / "softwareco" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            _write(repo / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
+            _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
+            _write(repo / "gitlab" / "ci" / "rocs.yml", "# ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n")
+            _write(repo / ".gitlab-ci.yml", "# include:\n#   - local: 'gitlab/ci/rocs.yml'\n")
+            _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(evidence["include_present"], False)
+            self.assertEqual(evidence["wrapper_call_present"], False)
+            self.assertEqual(evidence["profile_contract_present"], False)
+
+    def test_profile_export_in_separate_job_does_not_satisfy_wrapper_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = workspace / "softwareco" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            _write(repo / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
+            _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
+            _write(
+                repo / "gitlab" / "ci" / "rocs.yml",
+                "\n".join(
+                    [
+                        "stages:",
+                        "  - validate",
+                        "set-profile:",
+                        "  script:",
+                        "    - export ROCS_CI_PROFILE=branch-ci",
+                        "run-wrapper:",
+                        "  script:",
+                        "    - bash scripts/ci/full.sh",
+                        "",
+                    ]
+                ),
+            )
+            _write(repo / ".gitlab-ci.yml", "include:\n  - local: 'gitlab/ci/rocs.yml'\n")
+            _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(evidence["include_present"], True)
+            self.assertEqual(evidence["wrapper_call_present"], True)
+            self.assertEqual(evidence["profile_contract_present"], False)
+
     def test_output_is_deterministic_across_repeated_runs(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"

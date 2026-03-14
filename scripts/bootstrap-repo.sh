@@ -69,12 +69,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import subprocess
 import sys
 import textwrap
 from pathlib import Path
 from typing import Dict
+
+import yaml
 
 
 def norm(text: str) -> str:
@@ -381,40 +382,48 @@ def ensure_trailing_newline(text: str) -> str:
     return text if text.endswith("\n") else text + "\n"
 
 
+def _normalize_ci_include(value: object) -> list[object]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return list(value)
+    if isinstance(value, (dict, str)):
+        return [value]
+    raise SystemExit("invalid .gitlab-ci.yml: top-level include must be a string, mapping, or list")
+
+
+def _ci_include_has_rocs(entries: list[object]) -> bool:
+    for entry in entries:
+        if isinstance(entry, dict) and str(entry.get("local") or "") == "gitlab/ci/rocs.yml":
+            return True
+        if isinstance(entry, str) and entry.strip() == "gitlab/ci/rocs.yml":
+            return True
+    return False
+
+
 def add_rocs_include(text: str) -> str:
-    if "gitlab/ci/rocs.yml" in text:
-        return text
-
-    lines = text.splitlines()
-    include_idx = None
-    for i, line in enumerate(lines):
-        if re.match(r"^include:\s*$", line):
-            include_idx = i
-            break
-
-    include_entry = "  - local: 'gitlab/ci/rocs.yml'"
-
-    if include_idx is None:
-        if text.strip():
-            return ensure_trailing_newline(CI_INCLUDE_ROOT + "\n" + text)
+    if not text.strip():
         return CI_INCLUDE_ROOT
 
-    end = include_idx + 1
-    while end < len(lines):
-        line = lines[end]
-        if not line.strip():
-            end += 1
-            continue
-        indent = len(line) - len(line.lstrip(" "))
-        if indent == 0:
-            break
-        end += 1
+    try:
+        loaded = yaml.safe_load(text) or {}
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"invalid .gitlab-ci.yml: {exc}") from exc
+    if not isinstance(loaded, dict):
+        raise SystemExit("invalid .gitlab-ci.yml: root must be a mapping")
 
-    lines.insert(end, include_entry)
-    out = "\n".join(lines)
-    if text.endswith("\n"):
-        out += "\n"
-    return out
+    include_entries = _normalize_ci_include(loaded.get("include"))
+    if _ci_include_has_rocs(include_entries):
+        return ensure_trailing_newline(text)
+
+    include_entries.append({"local": "gitlab/ci/rocs.yml"})
+    if "include" in loaded:
+        loaded["include"] = include_entries
+        updated = loaded
+    else:
+        updated = {"include": include_entries, **loaded}
+
+    return ensure_trailing_newline(yaml.safe_dump(updated, sort_keys=False, allow_unicode=True))
 
 
 repo_root = Path(sys.argv[1]).resolve()

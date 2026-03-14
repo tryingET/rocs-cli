@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -176,20 +177,93 @@ def _find_existing(base: Path, candidates: tuple[str, ...]) -> list[str]:
     return found
 
 
-def _ci_include_present(base: Path) -> tuple[bool, list[str]]:
+_WRAPPER_CALL_RE = re.compile(r"(?:^|\s)(?:(?:bash|sh)\s+)?(?:\./)?scripts/ci/full\.sh(?:\s|$)")
+_PROFILE_ASSIGN_RE = re.compile(r"(?:^|\s)ROCS_CI_PROFILE=[^\s]+")
+_PROFILE_EXPORT_RE = re.compile(r"^\s*export\s+ROCS_CI_PROFILE=[^\s]+")
+
+
+def _load_yaml_mapping(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        text = path.read_text("utf-8")
+    except UnicodeDecodeError:
+        return None, "not utf-8"
+    try:
+        loaded = yaml.safe_load(text) or {}
+    except yaml.YAMLError as exc:
+        return None, str(exc)
+    if not isinstance(loaded, dict):
+        return None, "root must be a mapping"
+    return loaded, None
+
+
+def _normalize_ci_include(value: object) -> list[object]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return list(value)
+    if isinstance(value, (dict, str)):
+        return [value]
+    return []
+
+
+def _ci_include_has_rocs(value: object) -> bool:
+    for entry in _normalize_ci_include(value):
+        if isinstance(entry, dict) and str(entry.get("local") or "") == "gitlab/ci/rocs.yml":
+            return True
+        if isinstance(entry, str) and entry.strip() == "gitlab/ci/rocs.yml":
+            return True
+    return False
+
+
+def _normalize_script_lines(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [line.strip() for line in value.splitlines() if line.strip()]
+    if isinstance(value, list):
+        out: list[str] = []
+        for item in value:
+            if isinstance(item, str):
+                out.extend(line.strip() for line in item.splitlines() if line.strip())
+        return out
+    return []
+
+
+def _direct_ci_script_lines(node: dict[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for key in ("before_script", "script", "after_script"):
+        lines.extend(_normalize_script_lines(node.get(key)))
+    return lines
+
+
+def _iter_ci_script_contexts(node: object, *, path: str = "root") -> list[dict[str, Any]]:
+    contexts: list[dict[str, Any]] = []
+    if isinstance(node, dict):
+        direct = _direct_ci_script_lines(node)
+        if direct:
+            contexts.append({"path": path, "lines": direct})
+        for key, value in node.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            contexts.extend(_iter_ci_script_contexts(value, path=child_path))
+    elif isinstance(node, list):
+        for idx, item in enumerate(node):
+            contexts.extend(_iter_ci_script_contexts(item, path=f"{path}[{idx}]"))
+    return contexts
+
+
+def _ci_include_present(base: Path) -> tuple[bool, list[str], dict[str, str]]:
     checked: list[str] = []
+    parse_errors: dict[str, str] = {}
     for rel in ROOT_CI_CANDIDATES:
         p = base / rel
         if not p.is_file():
             continue
         checked.append(rel)
-        try:
-            text = p.read_text("utf-8")
-        except UnicodeDecodeError:
+        loaded, err = _load_yaml_mapping(p)
+        if err is not None:
+            parse_errors[rel] = err
             continue
-        if "gitlab/ci/rocs.yml" in text:
-            return True, checked
-    return False, checked
+        if loaded is not None and _ci_include_has_rocs(loaded.get("include")):
+            return True, checked, parse_errors
+    return False, checked, parse_errors
 
 
 def _ci_contract_status(base: Path, snippet_hits: list[str]) -> tuple[bool, dict[str, Any]]:
@@ -197,20 +271,28 @@ def _ci_contract_status(base: Path, snippet_hits: list[str]) -> tuple[bool, dict
     wrapper_call_present = False
     profile_contract_present = False
     snippet_contract_checked: list[str] = []
+    snippet_parse_errors: dict[str, str] = {}
+    script_contexts_checked: list[dict[str, Any]] = []
 
     for rel in snippet_hits:
         p = base / rel
         if not p.is_file():
             continue
         snippet_contract_checked.append(rel)
-        try:
-            text = p.read_text("utf-8")
-        except UnicodeDecodeError:
+        loaded, err = _load_yaml_mapping(p)
+        if err is not None:
+            snippet_parse_errors[rel] = err
             continue
-        if "bash scripts/ci/full.sh" in text:
-            wrapper_call_present = True
-        if "ROCS_CI_PROFILE=" in text:
-            profile_contract_present = True
+        for context in _iter_ci_script_contexts(loaded, path=rel):
+            lines = [str(line) for line in context.get("lines") or []]
+            script_contexts_checked.append({"path": context.get("path"), "lines": lines})
+            has_wrapper = any(_WRAPPER_CALL_RE.search(line) for line in lines)
+            has_inline_profile = any(_WRAPPER_CALL_RE.search(line) and _PROFILE_ASSIGN_RE.search(line) for line in lines)
+            has_export_profile = any(_PROFILE_EXPORT_RE.search(line) for line in lines)
+            if has_wrapper:
+                wrapper_call_present = True
+            if has_inline_profile or (has_wrapper and has_export_profile):
+                profile_contract_present = True
 
     ok = bool(wrapper_hits) and wrapper_call_present and profile_contract_present
     evidence = {
@@ -218,7 +300,10 @@ def _ci_contract_status(base: Path, snippet_hits: list[str]) -> tuple[bool, dict
         "snippet_contract_checked": snippet_contract_checked,
         "wrapper_call_present": wrapper_call_present,
         "profile_contract_present": profile_contract_present,
+        "script_contexts_checked": script_contexts_checked,
     }
+    if snippet_parse_errors:
+        evidence["snippet_parse_errors"] = snippet_parse_errors
     return ok, evidence
 
 
@@ -251,7 +336,7 @@ def _detect_capabilities(resolved_path: Path) -> tuple[dict[str, bool], dict[str
 
     manifest_hits = _find_existing(resolved_path, MANIFEST_CANDIDATES)
     ci_snippet_hits = _find_existing(resolved_path, ROCS_CI_SNIPPET_CANDIDATES)
-    ci_include_present, ci_roots_checked = _ci_include_present(resolved_path)
+    ci_include_present, ci_roots_checked, ci_root_parse_errors = _ci_include_present(resolved_path)
     ci_contract_ok, ci_contract_evidence = _ci_contract_status(resolved_path, ci_snippet_hits)
 
     observed = {
@@ -272,6 +357,7 @@ def _detect_capabilities(resolved_path: Path) -> tuple[dict[str, bool], dict[str
             "snippet_hits": ci_snippet_hits,
             "ci_roots_checked": ci_roots_checked,
             "include_present": ci_include_present,
+            **({"ci_root_parse_errors": ci_root_parse_errors} if ci_root_parse_errors else {}),
             **ci_contract_evidence,
         },
     }

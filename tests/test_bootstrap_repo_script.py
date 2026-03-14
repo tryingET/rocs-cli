@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "bootstrap-repo.sh"
@@ -112,12 +114,33 @@ class TestBootstrapRepoScript(unittest.TestCase):
 
             ci_root = (target / ".gitlab-ci.yml").read_text("utf-8")
             self.assertIn("unit:test", ci_root)
-            self.assertIn("local: 'gitlab/ci/rocs.yml'", ci_root)
+            loaded = yaml.safe_load(ci_root)
+            self.assertIn({"local": "gitlab/ci/rocs.yml"}, loaded.get("include", []))
 
             second = _run_bootstrap(str(target), "--class", "required")
             self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
             ci_root_second = (target / ".gitlab-ci.yml").read_text("utf-8")
             self.assertEqual(ci_root_second.count("gitlab/ci/rocs.yml"), 1)
+
+    def test_existing_repo_with_include_mapping_is_merged_structurally(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            target.mkdir(parents=True)
+            (target / ".gitlab-ci.yml").write_text(
+                "include:\n  local: 'gitlab/ci/existing.yml'\nstages:\n  - test\n",
+                "utf-8",
+            )
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            loaded = yaml.safe_load((target / ".gitlab-ci.yml").read_text("utf-8"))
+            self.assertIsInstance(loaded, dict)
+            self.assertEqual(
+                loaded.get("include"),
+                [{"local": "gitlab/ci/existing.yml"}, {"local": "gitlab/ci/rocs.yml"}],
+            )
+            self.assertEqual(loaded.get("stages"), ["test"])
 
     def test_existing_generated_ci_contract_is_converged(self) -> None:
         with tempfile.TemporaryDirectory() as td:

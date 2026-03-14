@@ -5,8 +5,10 @@ import tempfile
 import unittest
 from urllib.error import HTTPError
 
+from pathlib import Path
+
 from rocs_cli.errors import RocsCliError
-from rocs_cli.gitlab import fetch_repo_archive
+from rocs_cli.gitlab import fetch_repo_archive, gitlab_cache_dest
 
 
 class _FakeResponse:
@@ -67,6 +69,40 @@ def _good_repo_tar() -> bytes:
 
 
 class TestGitlabArchiveHardening(unittest.TestCase):
+    def test_gitlab_cache_dest_does_not_collapse_distinct_project_or_ref_names(self) -> None:
+        project_a = gitlab_cache_dest("group/a__b", "main")
+        project_b = gitlab_cache_dest("group/a/b", "main")
+        ref_a = gitlab_cache_dest("group/proj", "release__2026")
+        ref_b = gitlab_cache_dest("group/proj", "release/2026")
+
+        self.assertNotEqual(project_a, project_b)
+        self.assertNotEqual(ref_a, ref_b)
+
+    def test_fetch_reuses_legacy_complete_cache_location(self) -> None:
+        project_path = "x/y"
+        ref = "main"
+        with tempfile.TemporaryDirectory() as td, _Env(ROCS_CACHE_DIR=td):
+            legacy = Path(td) / "gitlab" / project_path.replace("/", "__") / ref.replace("/", "__")
+            legacy.mkdir(parents=True, exist_ok=True)
+            (legacy / "README.md").write_text("ok\n", "utf-8")
+            (legacy / ".rocs_cache_ok.json").write_text(
+                '{"project_path": "x/y", "ref": "main", "schema": 1}\n',
+                "utf-8",
+            )
+
+            import rocs_cli.gitlab as gitlab_mod
+
+            def _urlopen(_req, timeout):  # noqa: ANN001
+                raise AssertionError("should not fetch when legacy cache is complete")
+
+            prev = gitlab_mod.urlopen
+            gitlab_mod.urlopen = _urlopen
+            try:
+                resolved = fetch_repo_archive(project_path, ref, base_url="http://example.invalid", headers={})
+                self.assertEqual(resolved, legacy)
+            finally:
+                gitlab_mod.urlopen = prev
+
     def test_extract_rejects_path_traversal(self) -> None:
         top = "repo-abc123"
         ti_dir = tarfile.TarInfo(f"{top}/")

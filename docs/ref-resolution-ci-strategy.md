@@ -94,10 +94,16 @@ Both branch CI and protected/main CI should be fail-closed on ref resolution. Th
    - `rocs build --resolve-refs`
    - `rocs validate --resolve-refs`
    - `scripts/bootstrap-repo.sh` is the first in-repo emitter aligned to this contract and now converges generated CI wrapper surfaces on rerun; remaining external templates should follow the same pattern.
-2. Use:
+2. Treat generated CI wiring as structured config, not string splicing:
+   - merge `.gitlab-ci.yml` includes structurally
+   - fail closed on invalid CI YAML rather than guessing
+3. Audit wrapper/profile adoption semantically:
+   - parse CI YAML/script nodes instead of counting comments or raw substrings as evidence
+   - require `ROCS_CI_PROFILE` to be bound in the same script context that invokes `scripts/ci/full.sh`
+4. Use:
    - `branch-ci` for ordinary CI pipelines
    - `main-strict` for protected/mainline gates
-3. Keep `local-dev` as the default operator-facing mode.
+5. Keep `local-dev` as the default operator-facing mode.
 
 ### Phase 3 — finish locator migration
 1. Audit manifests still using legacy `<gitlab:...@ref>` locators.

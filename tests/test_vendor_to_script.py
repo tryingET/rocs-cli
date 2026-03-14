@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from rocs_cli.vendored import compute_expected_hashes
+from rocs_cli.vendored import compute_expected_hashes, validate_vendor_target
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -119,6 +119,12 @@ class TestVendorToScript(unittest.TestCase):
             proc = _run_vendor_to(str(target), "--dry-run")
             self.assertNotEqual(proc.returncode, 0)
             self.assertIn("target exists and is not a directory", proc.stdout + proc.stderr)
+
+    def test_validate_vendor_target_rejects_descendant_of_source_package(self) -> None:
+        target = REPO_ROOT / "src" / "rocs_cli" / "nested-vendor"
+        with self.assertRaises(ValueError) as ctx:
+            validate_vendor_target(repo_root=REPO_ROOT, target=target)
+        self.assertIn("source package tree", str(ctx.exception))
 
 
 if __name__ == "__main__":
