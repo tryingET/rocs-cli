@@ -10,6 +10,12 @@ from typing import cast
 from rich.console import Console
 
 from rocs_cli import __version__
+from rocs_cli.authority import (
+    authority_receipt_payload,
+    can_write_authority_receipt,
+    effective_workspace_ref_mode,
+    write_authority_receipt,
+)
 from rocs_cli.cache import cache_dir, clear_cache, list_cache_entries, prune_cache
 from rocs_cli.graph import build_edges, collapse_nodes, compute_layout, write_graph
 from rocs_cli.id_index import build_id_index
@@ -125,6 +131,42 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
     out = dist / "resolve.json"
     out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
     return out
+
+
+def _write_authority_receipt_if_possible(
+    repo: Path,
+    *,
+    command: str,
+    ok: bool,
+    profile: str | None,
+    resolve_refs_requested: bool,
+    workspace_ref_mode: str,
+    layers,
+    result: dict | None = None,
+    error: RocsCliError | None = None,
+) -> dict[str, Path] | None:
+    if not can_write_authority_receipt(repo):
+        return None
+    payload = authority_receipt_payload(
+        repo,
+        command=command,
+        ok=ok,
+        profile=profile,
+        resolve_refs_requested=resolve_refs_requested,
+        workspace_ref_mode=workspace_ref_mode,
+        layers=list(layers),
+        result=result,
+        error=error,
+    )
+    return write_authority_receipt(repo, payload)
+
+
+def _finding_summary(findings: list[Finding]) -> dict[str, int]:
+    return {
+        "finding_count": len(findings),
+        "error_count": sum(1 for f in findings if f.severity == "error"),
+        "warning_count": sum(1 for f in findings if f.severity == "warn"),
+    }
 
 
 def cmd_version(_args: argparse.Namespace) -> int:
@@ -303,24 +345,49 @@ def cmd_summary(args: argparse.Namespace) -> int:
 def cmd_validate(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
+    ws_mode = effective_workspace_ref_mode(getattr(args, "workspace_ref_mode", None))
     findings: list[Finding] = []
     findings.extend(validate_repo_structure(repo))
     if findings:
+        _write_authority_receipt_if_possible(
+            repo,
+            command="validate",
+            ok=False,
+            profile=getattr(args, "profile", None),
+            resolve_refs_requested=bool(args.resolve_refs),
+            workspace_ref_mode=ws_mode,
+            layers=[],
+            result=_finding_summary(findings),
+        )
         if args.json:
             console.print_json(json.dumps({"ok": False, "findings": _findings_to_json(findings), "budget": {"budget": None, "units": None}}))
         else:
             console.print("[red]rocs validate: FAIL[/red]")
             _print_findings(findings)
         return 1
-    layers, meta = resolve_layers(
-        repo,
-        profile=args.profile,
-        resolve_refs=args.resolve_refs,
-        workspace_root=args.workspace_root,
-        workspace_ref_mode=args.workspace_ref_mode,
-        only=args.only,
-        layer=args.layer,
-    )
+    try:
+        layers, meta = resolve_layers(
+            repo,
+            profile=args.profile,
+            resolve_refs=args.resolve_refs,
+            workspace_root=args.workspace_root,
+            workspace_ref_mode=args.workspace_ref_mode,
+            only=args.only,
+            layer=args.layer,
+        )
+    except RocsCliError as e:
+        _write_authority_receipt_if_possible(
+            repo,
+            command="validate",
+            ok=False,
+            profile=getattr(args, "profile", None),
+            resolve_refs_requested=bool(args.resolve_refs),
+            workspace_ref_mode=ws_mode,
+            layers=[],
+            error=e,
+        )
+        raise
+    profile_name = meta.get("profile") if isinstance(meta, dict) and isinstance(meta.get("profile"), str) else None
     profile_def = meta.get("profile_def") if isinstance(meta, dict) else None
     ruleset_name = effective_ruleset(cli_ruleset=getattr(args, "ruleset", None), profile_def=profile_def)
     ruleset_behavior = behavior_for_ruleset(ruleset_name)
@@ -368,6 +435,17 @@ def cmd_validate(args: argparse.Namespace) -> int:
             )
         )
 
+    ok = not findings
+    _write_authority_receipt_if_possible(
+        repo,
+        command="validate",
+        ok=ok,
+        profile=profile_name,
+        resolve_refs_requested=bool(args.resolve_refs),
+        workspace_ref_mode=ws_mode,
+        layers=layers,
+        result=_finding_summary(findings),
+    )
     if findings:
         if args.json:
             console.print_json(json.dumps({"ok": False, "findings": _findings_to_json(findings), "budget": budget_payload}))
@@ -386,19 +464,33 @@ def cmd_validate(args: argparse.Namespace) -> int:
 def cmd_build(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
+    ws_mode = effective_workspace_ref_mode(getattr(args, "workspace_ref_mode", None))
     dist = dist_dir(repo)
     if args.clean and dist.exists():
         shutil.rmtree(dist)
     dist.mkdir(parents=True, exist_ok=True)
-    layers, meta = resolve_layers(
-        repo,
-        profile=args.profile,
-        resolve_refs=args.resolve_refs,
-        workspace_root=args.workspace_root,
-        workspace_ref_mode=args.workspace_ref_mode,
-        only=args.only,
-        layer=args.layer,
-    )
+    try:
+        layers, meta = resolve_layers(
+            repo,
+            profile=args.profile,
+            resolve_refs=args.resolve_refs,
+            workspace_root=args.workspace_root,
+            workspace_ref_mode=args.workspace_ref_mode,
+            only=args.only,
+            layer=args.layer,
+        )
+    except RocsCliError as e:
+        _write_authority_receipt_if_possible(
+            repo,
+            command="build",
+            ok=False,
+            profile=getattr(args, "profile", None),
+            resolve_refs_requested=bool(args.resolve_refs),
+            workspace_ref_mode=ws_mode,
+            layers=[],
+            error=e,
+        )
+        raise
     layers = _filter_layers(layers, only=args.only, layer=args.layer)
     concepts, relations = collect_docs(layers)
     profile_name = meta.get("profile") if isinstance(meta, dict) and isinstance(meta.get("profile"), str) else None
@@ -419,7 +511,24 @@ def cmd_build(args: argparse.Namespace) -> int:
     id_index_out.write_text(
         json.dumps(build_id_index(concepts=concepts, relations=relations), indent=2, sort_keys=True) + "\n", "utf-8"
     )
+    authority_receipt_out = _write_authority_receipt_if_possible(
+        repo,
+        command="build",
+        ok=True,
+        profile=profile_name,
+        resolve_refs_requested=bool(args.resolve_refs),
+        workspace_ref_mode=ws_mode,
+        layers=layers,
+    )
     if args.json:
+        files = {
+            "resolve": str(resolve_out),
+            "summary": str(summary_out),
+            "id_index": str(id_index_out),
+        }
+        if authority_receipt_out is not None:
+            files["authority_receipt"] = str(authority_receipt_out["aggregate"])
+            files["authority_receipt_command"] = str(authority_receipt_out["command"])
         console.print_json(
             json.dumps(
                 {
@@ -427,11 +536,7 @@ def cmd_build(args: argparse.Namespace) -> int:
                     "profile": profile_name,
                     "dist": {
                         "dir": str(dist),
-                        "files": {
-                            "resolve": str(resolve_out),
-                            "summary": str(summary_out),
-                            "id_index": str(id_index_out),
-                        },
+                        "files": files,
                     },
                     "counts": payload.get("counts"),
                 }
@@ -440,6 +545,9 @@ def cmd_build(args: argparse.Namespace) -> int:
     else:
         console.print(f"[green]wrote[/green] {summary_out}")
         console.print(f"[green]wrote[/green] {id_index_out}")
+        if authority_receipt_out is not None:
+            console.print(f"[green]wrote[/green] {authority_receipt_out['aggregate']}")
+            console.print(f"[green]wrote[/green] {authority_receipt_out['command']}")
     return 0
 
 

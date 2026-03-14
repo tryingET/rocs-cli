@@ -291,8 +291,7 @@ CI_SNIPPET_ADVISORY = norm(
         - uv --version
         - uvx --version
         - uvx -n --from ./tools/rocs-cli rocs version
-        - uvx -n --from ./tools/rocs-cli rocs build --repo . --resolve-refs
-        - uvx -n --from ./tools/rocs-cli rocs validate --repo . --resolve-refs
+        - ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh
       artifacts:
         when: always
         paths:
@@ -323,8 +322,7 @@ CI_SNIPPET_STRICT = norm(
         - uv --version
         - uvx --version
         - uvx -n --from ./tools/rocs-cli rocs version
-        - uvx -n --from ./tools/rocs-cli rocs build --repo . --resolve-refs
-        - uvx -n --from ./tools/rocs-cli rocs validate --repo . --resolve-refs
+        - ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=main-strict bash scripts/ci/full.sh
       artifacts:
         when: always
         paths:
@@ -436,6 +434,7 @@ if target.exists() and not target.is_dir():
     raise SystemExit(f"target exists and is not a directory: {target}")
 
 policy = CLASS_POLICY[repo_class]
+CI_WRAPPER = ensure_trailing_newline((repo_root / "scripts" / "ci" / "full.sh").read_text("utf-8"))
 
 planned_writes: dict[str, str] = {}
 planned_actions: list[dict[str, str]] = []
@@ -479,7 +478,8 @@ else:
 
 if policy["rocs_ci_gate"]:
     ci_snippet = CI_SNIPPET_STRICT if policy["gate_mode"] == "strict" else CI_SNIPPET_ADVISORY
-    plan_file("gitlab/ci/rocs.yml", ci_snippet)
+    plan_file("gitlab/ci/rocs.yml", ci_snippet, allow_modify=True)
+    plan_file("scripts/ci/full.sh", CI_WRAPPER, allow_modify=True)
 
     ci_root = target / ".gitlab-ci.yml"
     if ci_root.exists() and ci_root.is_dir():
@@ -497,6 +497,7 @@ if policy["rocs_ci_gate"]:
         planned_actions.append({"path": ".gitlab-ci.yml", "action": "create"})
 else:
     planned_actions.append({"path": "gitlab/ci/rocs.yml", "action": "skip", "reason": "class policy: not required"})
+    planned_actions.append({"path": "scripts/ci/full.sh", "action": "skip", "reason": "class policy: not required"})
     planned_actions.append({"path": ".gitlab-ci.yml", "action": "skip", "reason": "class policy: not required"})
 
 before_snapshot = snapshot_tree(target)

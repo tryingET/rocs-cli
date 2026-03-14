@@ -407,3 +407,142 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertEqual(payload.get("ok"), False)
             self.assertIn("local ref not available", payload.get("error", {}).get("message", ""))
             self.assertNotIn("GitLab base url", payload.get("error", {}).get("message", ""))
+
+    def test_build_authority_receipt_captures_workspace_repo_resolution(self) -> None:
+        project_path = "core/dep"
+        locator = f"<repo:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            _init_workspace_repo(ws / "core" / "dep", project_path=project_path, tag="v1", make_mismatch=False)
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            with _Env(ROCS_CACHE_DIR=str(cache), ROCS_CI_PROFILE="branch-ci"):
+                code, _out = _run_capture(
+                    [
+                        "build",
+                        "--repo",
+                        str(repo),
+                        "--resolve-refs",
+                        "--workspace-root",
+                        str(ws),
+                    ]
+                )
+            self.assertEqual(code, 0)
+            aggregate = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
+            receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.build.json").read_text("utf-8"))
+            self.assertEqual(aggregate.get("last_command"), "build")
+            self.assertIn("build", aggregate.get("commands", {}))
+            self.assertEqual(receipt.get("command"), "build")
+            self.assertEqual(receipt.get("ok"), True)
+            self.assertEqual(receipt.get("ci_profile"), "branch-ci")
+            self.assertEqual(receipt.get("authority_mode"), "strict_ref_resolution")
+            self.assertEqual(receipt.get("authoritative"), True)
+            self.assertEqual(receipt.get("resolve_refs_requested"), True)
+            self.assertEqual(sorted(receipt.get("locator_kinds_present") or []), ["path", "repo"])
+            dep = [x for x in receipt.get("layer_sources") or [] if x.get("name") == "dep"][0]
+            self.assertEqual(dep.get("source"), "workspace")
+            self.assertEqual(dep.get("locator_kind"), "repo")
+            self.assertEqual(receipt.get("legacy_gitlab_fallback_used"), False)
+
+    def test_loose_workspace_ref_resolution_is_marked_best_effort(self) -> None:
+        project_path = "core/dep"
+        locator = f"<repo:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            _init_workspace_repo(ws / "core" / "dep", project_path=project_path, tag="v1", make_mismatch=True)
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            with _Env(ROCS_CACHE_DIR=str(cache)):
+                code, _out = _run_capture(
+                    [
+                        "build",
+                        "--repo",
+                        str(repo),
+                        "--resolve-refs",
+                        "--workspace-root",
+                        str(ws),
+                        "--workspace-ref-mode",
+                        "loose",
+                    ]
+                )
+            self.assertEqual(code, 0)
+            receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.build.json").read_text("utf-8"))
+            self.assertEqual(receipt.get("authority_mode"), "best_effort_workspace_loose")
+            self.assertEqual(receipt.get("authoritative"), False)
+            self.assertEqual(receipt.get("loose_workspace_ref_layers_used"), 1)
+
+    def test_ci_wrapper_preserves_validate_and_build_receipts_in_aggregate(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
+            ws = td_path / "ws"
+            _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=False)
+
+            with _Env(ROCS_CI_PROFILE="branch-ci", ROCS_REPO=str(repo), ROCS_WORKSPACE_ROOT=str(ws), ROCS_CMD="uv run python -m rocs_cli"):
+                proc = subprocess.run(
+                    ["bash", "scripts/ci/full.sh"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            aggregate = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
+            self.assertEqual(aggregate.get("last_command"), "build")
+            self.assertEqual(sorted(aggregate.get("commands", {}).keys()), ["build", "validate"])
+            self.assertEqual(aggregate.get("command_files", {}).get("validate"), "authority-receipt.validate.json")
+            self.assertEqual(aggregate.get("command_files", {}).get("build"), "authority-receipt.build.json")
+
+    def test_build_authority_receipt_marks_legacy_gitlab_fallback(self) -> None:
+        locator = "<gitlab:ai-society/core/dep@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            body = _good_repo_tar()
+            import rocs_cli.gitlab as gitlab_mod
+
+            def _urlopen(_req, timeout):  # noqa: ANN001
+                class _Resp:
+                    def __init__(self, b: bytes) -> None:
+                        self._buf = io.BytesIO(b)
+                        self.headers = {}
+
+                    def __enter__(self):  # noqa: ANN001
+                        return self
+
+                    def __exit__(self, exc_type, exc, tb):  # noqa: ANN001
+                        return None
+
+                    def read(self, n: int) -> bytes:
+                        return self._buf.read(n)
+
+                return _Resp(body)
+
+            prev = gitlab_mod.urlopen
+            gitlab_mod.urlopen = _urlopen
+            try:
+                with _Env(ROCS_CACHE_DIR=str(cache), ROCS_GITLAB_BASE_URL="http://example.invalid"):
+                    code, _out = _run_capture(
+                        [
+                            "build",
+                            "--repo",
+                            str(repo),
+                            "--resolve-refs",
+                            "--workspace-root",
+                            str(ws),
+                        ]
+                    )
+                self.assertEqual(code, 0)
+                receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.build.json").read_text("utf-8"))
+                dep = [x for x in receipt.get("layer_sources") or [] if x.get("name") == "dep"][0]
+                self.assertEqual(dep.get("source"), "gitlab")
+                self.assertEqual(dep.get("locator_kind"), "gitlab")
+                self.assertEqual(receipt.get("legacy_gitlab_fallback_used"), True)
+            finally:
+                gitlab_mod.urlopen = prev

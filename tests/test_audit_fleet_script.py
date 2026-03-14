@@ -36,6 +36,7 @@ def _mk_repo(
     vendored: bool,
     manifest: bool,
     ci_gate: bool,
+    ci_contract: str = "current",
 ) -> Path:
     repo = workspace_root / rel
     repo.mkdir(parents=True, exist_ok=True)
@@ -50,7 +51,25 @@ def _mk_repo(
         _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
 
     if ci_gate:
-        _write(repo / "gitlab" / "ci" / "rocs.yml", "stages:\n  - validate\n")
+        if ci_contract == "current":
+            _write(
+                repo / "gitlab" / "ci" / "rocs.yml",
+                "\n".join(
+                    [
+                        "stages:",
+                        "  - validate",
+                        "",
+                        "rocs:validate:",
+                        "  stage: validate",
+                        "  script:",
+                        "    - ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh",
+                        "",
+                    ]
+                ),
+            )
+            _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
+        else:
+            _write(repo / "gitlab" / "ci" / "rocs.yml", "stages:\n  - validate\n")
         _write(repo / ".gitlab-ci.yml", "include:\n  - local: 'gitlab/ci/rocs.yml'\n")
 
     return repo
@@ -195,6 +214,37 @@ class TestAuditFleetScript(unittest.TestCase):
             md = md_out.read_text("utf-8")
             self.assertIn("# FCOS Fleet Audit Scorecard", md)
             self.assertIn("## Repo Results", md)
+
+    def test_stale_legacy_ci_gate_does_not_count_as_current_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+                ci_contract="legacy",
+            )
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            self.assertEqual(payload["summary"]["requirement_violations"], 1)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(evidence["wrapper_hits"], [])
+            self.assertEqual(evidence["wrapper_call_present"], False)
+            self.assertEqual(evidence["profile_contract_present"], False)
 
     def test_output_is_deterministic_across_repeated_runs(self) -> None:
         with tempfile.TemporaryDirectory() as td:

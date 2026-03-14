@@ -11,6 +11,7 @@ ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"
 ROCS_REPO="${ROCS_REPO:-.}"
 ROCS_PROFILE="${ROCS_PROFILE:-}"
 ROCS_CMD="${ROCS_CMD:-uv run python -m rocs_cli}"
+export ROCS_AUTHORITY_AGGREGATE=1
 
 common_args=(--repo "$ROCS_REPO")
 if [[ -n "$ROCS_PROFILE" ]]; then
@@ -22,20 +23,26 @@ run_rocs() {
   $ROCS_CMD "$@"
 }
 
+clean_dist() {
+  rm -rf "$ROCS_REPO/ontology/dist"
+}
+
 strict_gate() {
+  clean_dist
   run_rocs validate "${common_args[@]}" --resolve-refs
-  run_rocs build "${common_args[@]}" --resolve-refs --clean
+  run_rocs build "${common_args[@]}" --resolve-refs
 }
 
 case "$ROCS_CI_PROFILE" in
   local-dev)
     # Keep local loops fast/offline unless explicitly requested.
+    clean_dist
     if [[ "${ROCS_LOCAL_RESOLVE_REFS:-0}" == "1" ]]; then
       run_rocs validate "${common_args[@]}" --resolve-refs
-      run_rocs build "${common_args[@]}" --resolve-refs --clean
+      run_rocs build "${common_args[@]}" --resolve-refs
     else
       run_rocs validate "${common_args[@]}"
-      run_rocs build "${common_args[@]}" --clean
+      run_rocs build "${common_args[@]}"
     fi
     ;;
 

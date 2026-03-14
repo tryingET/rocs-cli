@@ -1,3 +1,10 @@
+---
+summary: "Minimal ROCS CLI for ai-society, including commands, ref resolution, and CI profile behavior."
+read_when:
+  - "When using or vendoring rocs-cli"
+  - "When checking supported commands or CI wrapper behavior"
+---
+
 # rocs-cli
 
 Minimal ROCS CLI for ai-society.
@@ -23,6 +30,7 @@ Commands:
 Scope (MVP):
 - Validate ROCS repo structure + ontology front matter schema.
 - Build local artifacts into `ontology/dist/`.
+- Emit `ontology/dist/authority-receipt.json` plus per-command `authority-receipt.<command>.json` artifacts for `build`/`validate` runs so CI/local consumers can see authority mode and per-layer resolution sources without losing multi-step evidence.
 - Resolve layered ontology refs from a local workspace first; legacy GitLab fetch remains compatibility-only.
 
 Layer refs (optional):
@@ -80,6 +88,10 @@ CI profile wrapper (template-side policy contract):
   - `local-dev`: offline-first default; set `ROCS_LOCAL_RESOLVE_REFS=1` to force strict ref checks locally
   - `branch-ci`: requires `--resolve-refs` (fail-closed)
   - `main-strict`: requires `--resolve-refs` (authoritative fail-closed gate)
+- Timeout contract in the wrapper:
+  - `branch-ci`: `ROCS_GITLAB_TIMEOUT_S=30`, `ROCS_GITLAB_RETRIES=3`
+  - `main-strict`: `ROCS_GITLAB_TIMEOUT_S=60`, `ROCS_GITLAB_RETRIES=3`
+- See `docs/ref-resolution-ci-strategy.md` for the architecture/policy rationale and migration guidance.
 - Optional overrides:
   - `ROCS_CMD` (default: `uv run python -m rocs_cli`)
   - `ROCS_REPO` (default: `.`)
@@ -92,10 +104,12 @@ FCOS convergence scripts:
   - `--dry-run` uses the same preflight validation as apply mode
 - `scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--dry-run]`
   - class-based FCOS bootstrap (vendored `rocs-cli`, ontology scaffold, CI gate wiring)
+  - installs `scripts/ci/full.sh` and generates CI snippets that call it via explicit `ROCS_CI_PROFILE`
   - emits a deterministic JSON report with `rollback_paths`
   - `--dry-run` validates and reports without writing files
 - `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
   - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)
+  - `rocs_ci_gate` now checks the wrapper/profile contract (`gitlab/ci/rocs.yml` + include + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call), not just file presence
   - emits deterministic JSON/Markdown scorecards (stdout when PATH omitted)
   - stable exit codes: `0` pass, `2` required capability violations, `1` policy/usage error
 

@@ -59,12 +59,19 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertTrue((target / "ontology" / "manifest.yaml").is_file())
             self.assertTrue((target / "ontology" / "src" / "system4d.yaml").is_file())
             self.assertTrue((target / "gitlab" / "ci" / "rocs.yml").is_file())
+            self.assertTrue((target / "scripts" / "ci" / "full.sh").is_file())
             self.assertTrue((target / ".gitlab-ci.yml").is_file())
 
             manifest = (target / "ontology" / "manifest.yaml").read_text("utf-8")
             self.assertIn('<repo:core/ontology-kernel@main>', manifest)
             self.assertIn('<repo:softwareco/ontology@main>', manifest)
             self.assertNotIn('<gitlab:org/', manifest)
+
+            ci_snippet = (target / "gitlab" / "ci" / "rocs.yml").read_text("utf-8")
+            self.assertIn("ROCS_CI_PROFILE=branch-ci", ci_snippet)
+            self.assertIn("bash scripts/ci/full.sh", ci_snippet)
+            self.assertNotIn("rocs build --repo . --resolve-refs", ci_snippet)
+            self.assertNotIn("rocs validate --repo . --resolve-refs", ci_snippet)
 
             snap_a = _snapshot_tree(target)
 
@@ -112,6 +119,30 @@ class TestBootstrapRepoScript(unittest.TestCase):
             ci_root_second = (target / ".gitlab-ci.yml").read_text("utf-8")
             self.assertEqual(ci_root_second.count("gitlab/ci/rocs.yml"), 1)
 
+    def test_existing_generated_ci_contract_is_converged(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            (target / "gitlab" / "ci").mkdir(parents=True)
+            (target / "scripts" / "ci").mkdir(parents=True)
+            (target / "gitlab" / "ci" / "rocs.yml").write_text(
+                "stages:\n  - validate\nrocs:validate:\n  stage: validate\n  script:\n    - uvx -n --from ./tools/rocs-cli rocs build --repo . --resolve-refs\n",
+                "utf-8",
+            )
+            (target / "scripts" / "ci" / "full.sh").write_text("echo stale\n", "utf-8")
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            report = _json_report(proc)
+            self.assertIn("gitlab/ci/rocs.yml", report.get("modified_files", []))
+            self.assertIn("scripts/ci/full.sh", report.get("modified_files", []))
+
+            ci_snippet = (target / "gitlab" / "ci" / "rocs.yml").read_text("utf-8")
+            wrapper = (target / "scripts" / "ci" / "full.sh").read_text("utf-8")
+            self.assertIn("ROCS_CI_PROFILE=branch-ci", ci_snippet)
+            self.assertIn("bash scripts/ci/full.sh", ci_snippet)
+            self.assertIn("ROCS_CI_PROFILE", wrapper)
+            self.assertNotIn("echo stale", wrapper)
+
     def test_optional_class_is_inventory_only(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "repo"
@@ -127,6 +158,7 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertEqual(snap_before, snap_after)
             self.assertEqual(report.get("created_files"), [])
             self.assertEqual(report.get("modified_files"), [])
+            self.assertFalse((target / "scripts" / "ci" / "full.sh").exists())
 
     def test_ontology_repo_class_uses_strict_overlay_scaffold(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -141,7 +173,9 @@ class TestBootstrapRepoScript(unittest.TestCase):
 
             ci_snippet = (target / "gitlab" / "ci" / "rocs.yml").read_text("utf-8")
             self.assertNotIn("allow_failure: true", ci_snippet)
-            self.assertIn("rocs validate", ci_snippet)
+            self.assertIn("ROCS_CI_PROFILE=main-strict", ci_snippet)
+            self.assertIn("bash scripts/ci/full.sh", ci_snippet)
+            self.assertTrue((target / "scripts" / "ci" / "full.sh").is_file())
 
 
 if __name__ == "__main__":

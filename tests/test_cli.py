@@ -186,6 +186,32 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(payload.get("findings"), [])
             self.assertIn("budget", payload)
 
+    def test_validate_writes_authority_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+            aggregate = repo / "ontology" / "dist" / "authority-receipt.json"
+            command_receipt = repo / "ontology" / "dist" / "authority-receipt.validate.json"
+            self.assertTrue(aggregate.exists())
+            self.assertTrue(command_receipt.exists())
+            payload = json.loads(command_receipt.read_text("utf-8"))
+            self.assertEqual(payload.get("schema_version"), 2)
+            self.assertEqual(payload.get("command"), "validate")
+            self.assertEqual(payload.get("ok"), True)
+            self.assertEqual(payload.get("authority_mode"), "local_only")
+            self.assertEqual(payload.get("authoritative"), False)
+            self.assertEqual(payload.get("resolve_refs_requested"), False)
+            self.assertEqual(payload.get("ref_layers_present"), False)
+            self.assertEqual(payload.get("locator_kinds_present"), ["path"])
+            self.assertEqual(payload.get("layer_sources", [{}])[0].get("source"), "path")
+            self.assertEqual(payload.get("result", {}).get("finding_count"), 0)
+
+            aggregate_payload = json.loads(aggregate.read_text("utf-8"))
+            self.assertEqual(aggregate_payload.get("schema_version"), 2)
+            self.assertEqual(aggregate_payload.get("last_command"), "validate")
+            self.assertIn("validate", aggregate_payload.get("commands", {}))
+            self.assertEqual(aggregate_payload.get("command_files", {}).get("validate"), "authority-receipt.validate.json")
+
     def test_validate_json_failure_has_exit_code_1(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
@@ -212,6 +238,11 @@ class TestRocsCli(unittest.TestCase):
             payload = _parse_json(out)
             self.assertEqual(payload.get("ok"), False)
             self.assertIsInstance(payload.get("findings"), list)
+            receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.validate.json").read_text("utf-8"))
+            self.assertEqual(receipt.get("command"), "validate")
+            self.assertEqual(receipt.get("ok"), False)
+            self.assertEqual(receipt.get("authority_mode"), "local_only")
+            self.assertGreaterEqual(receipt.get("result", {}).get("finding_count", 0), 1)
 
     def test_validate_ruleset_strict_implies_strict_placeholders(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -550,13 +581,55 @@ class TestRocsCli(unittest.TestCase):
             payload = _parse_json(out)
             self.assertIn("dist", payload)
             self.assertIn("files", payload.get("dist") or {})
+            self.assertIn("authority_receipt", payload.get("dist", {}).get("files", {}))
+            self.assertIn("authority_receipt_command", payload.get("dist", {}).get("files", {}))
+
+    def test_build_writes_authority_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+            aggregate = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
+            receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.build.json").read_text("utf-8"))
+            self.assertEqual(aggregate.get("last_command"), "build")
+            self.assertEqual(receipt.get("command"), "build")
+            self.assertEqual(receipt.get("ok"), True)
+            self.assertEqual(receipt.get("authority_mode"), "local_only")
+            self.assertEqual(receipt.get("locator_kinds_present"), ["path"])
+            self.assertEqual(receipt.get("legacy_gitlab_fallback_used"), False)
+
+    def test_build_resolve_refs_with_no_ref_layers_is_not_authoritative(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            self.assertEqual(_run(["build", "--repo", str(repo), "--resolve-refs"]), 0)
+            receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.build.json").read_text("utf-8"))
+            self.assertEqual(receipt.get("resolve_refs_requested"), True)
+            self.assertEqual(receipt.get("ref_layers_present"), False)
+            self.assertEqual(receipt.get("authority_mode"), "no_ref_layers")
+            self.assertEqual(receipt.get("authoritative"), False)
+
+    def test_standalone_build_rewrites_aggregate_to_current_command_only(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+            self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+            aggregate = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
+            self.assertEqual(aggregate.get("last_command"), "build")
+            self.assertEqual(sorted(aggregate.get("commands", {}).keys()), ["build"])
+            self.assertFalse((repo / "ontology" / "dist" / "authority-receipt.validate.json").exists())
+            self.assertTrue((repo / "ontology" / "dist" / "authority-receipt.build.json").exists())
 
     def test_build_artifacts_are_deterministic(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
             self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
             dist = repo / "ontology" / "dist"
-            paths = [dist / "resolve.json", dist / "summary.json", dist / "id_index.json"]
+            paths = [
+                dist / "resolve.json",
+                dist / "summary.json",
+                dist / "id_index.json",
+                dist / "authority-receipt.json",
+                dist / "authority-receipt.build.json",
+            ]
             first = {p.name: p.read_bytes() for p in paths}
 
             self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
@@ -571,7 +644,13 @@ class TestRocsCli(unittest.TestCase):
                 repo = _mk_repo(Path(td))
                 self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
                 dist = repo / "ontology" / "dist"
-                paths = [dist / "resolve.json", dist / "summary.json", dist / "id_index.json"]
+                paths = [
+                    dist / "resolve.json",
+                    dist / "summary.json",
+                    dist / "id_index.json",
+                    dist / "authority-receipt.json",
+                    dist / "authority-receipt.build.json",
+                ]
                 first = {p.name: p.read_bytes() for p in paths}
 
                 self.assertEqual(_run(["build", "--repo", str(repo)]), 0)

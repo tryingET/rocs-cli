@@ -35,6 +35,12 @@ ROCS_CI_SNIPPET_CANDIDATES: tuple[str, ...] = (
     "gitlab/ci/rocs.yml.jinja",
 )
 
+ROCS_CI_WRAPPER_CANDIDATES: tuple[str, ...] = (
+    "scripts/ci/full.sh",
+    "scripts/ci/full.sh.j2",
+    "scripts/ci/full.sh.jinja",
+)
+
 ROOT_CI_CANDIDATES: tuple[str, ...] = (
     ".gitlab-ci.yml",
     ".gitlab-ci.yml.j2",
@@ -186,6 +192,36 @@ def _ci_include_present(base: Path) -> tuple[bool, list[str]]:
     return False, checked
 
 
+def _ci_contract_status(base: Path, snippet_hits: list[str]) -> tuple[bool, dict[str, Any]]:
+    wrapper_hits = _find_existing(base, ROCS_CI_WRAPPER_CANDIDATES)
+    wrapper_call_present = False
+    profile_contract_present = False
+    snippet_contract_checked: list[str] = []
+
+    for rel in snippet_hits:
+        p = base / rel
+        if not p.is_file():
+            continue
+        snippet_contract_checked.append(rel)
+        try:
+            text = p.read_text("utf-8")
+        except UnicodeDecodeError:
+            continue
+        if "bash scripts/ci/full.sh" in text:
+            wrapper_call_present = True
+        if "ROCS_CI_PROFILE=" in text:
+            profile_contract_present = True
+
+    ok = bool(wrapper_hits) and wrapper_call_present and profile_contract_present
+    evidence = {
+        "wrapper_hits": wrapper_hits,
+        "snippet_contract_checked": snippet_contract_checked,
+        "wrapper_call_present": wrapper_call_present,
+        "profile_contract_present": profile_contract_present,
+    }
+    return ok, evidence
+
+
 def _safe_bool(value: Any) -> bool | None:
     if isinstance(value, bool):
         return value
@@ -216,11 +252,12 @@ def _detect_capabilities(resolved_path: Path) -> tuple[dict[str, bool], dict[str
     manifest_hits = _find_existing(resolved_path, MANIFEST_CANDIDATES)
     ci_snippet_hits = _find_existing(resolved_path, ROCS_CI_SNIPPET_CANDIDATES)
     ci_include_present, ci_roots_checked = _ci_include_present(resolved_path)
+    ci_contract_ok, ci_contract_evidence = _ci_contract_status(resolved_path, ci_snippet_hits)
 
     observed = {
         "rocs_cli_vendored": rocs_cli_vendored,
         "ontology_manifest": bool(manifest_hits),
-        "rocs_ci_gate": bool(ci_snippet_hits) and ci_include_present,
+        "rocs_ci_gate": bool(ci_snippet_hits) and ci_include_present and ci_contract_ok,
     }
 
     evidence = {
@@ -235,6 +272,7 @@ def _detect_capabilities(resolved_path: Path) -> tuple[dict[str, bool], dict[str
             "snippet_hits": ci_snippet_hits,
             "ci_roots_checked": ci_roots_checked,
             "include_present": ci_include_present,
+            **ci_contract_evidence,
         },
     }
     return observed, evidence
