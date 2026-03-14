@@ -127,7 +127,11 @@ for egg in src_dir.glob("*.egg-info"):
     remove_path(egg)
 
 remove_path(src_dir / "rocs_cli")
-shutil.copytree(src_pkg, src_dir / "rocs_cli")
+shutil.copytree(
+    src_pkg,
+    src_dir / "rocs_cli",
+    ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+)
 shutil.copyfile(pyproject, target / "pyproject.toml")
 shutil.copyfile(readme, target / "README.md")
 

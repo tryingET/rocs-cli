@@ -92,6 +92,25 @@ class TestVendorToScript(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
             self.assertFalse(target.exists())
 
+    def test_vendor_to_ignores_python_cache_artifacts(self) -> None:
+        cache_dir = REPO_ROOT / "src" / "rocs_cli" / "__pycache__"
+        probe = cache_dir / "vendor_to_test.cpython-999.pyc"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        probe.write_bytes(b"pyc")
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                target = Path(td) / "tools" / "rocs-cli"
+                proc = _run_vendor_to(str(target))
+                self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+                copied = list((target / "src" / "rocs_cli").rglob("*.pyc"))
+                cache_dirs = [p for p in (target / "src" / "rocs_cli").rglob("__pycache__")]
+                self.assertEqual(copied, [])
+                self.assertEqual(cache_dirs, [])
+        finally:
+            probe.unlink(missing_ok=True)
+            if cache_dir.exists() and not any(cache_dir.iterdir()):
+                cache_dir.rmdir()
+
     def test_vendor_to_dry_run_validates_target_shape(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "not-a-directory"

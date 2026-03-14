@@ -118,7 +118,11 @@ def sync_vendored(src_repo: Path, vendor_dir: Path) -> None:
 
     (vendor_dir / "src").mkdir(parents=True, exist_ok=True)
     shutil.rmtree(vendor_dir / "src" / "rocs_cli", ignore_errors=True)
-    shutil.copytree(src_repo / "src" / "rocs_cli", vendor_dir / "src" / "rocs_cli")
+    shutil.copytree(
+        src_repo / "src" / "rocs_cli",
+        vendor_dir / "src" / "rocs_cli",
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+    )
     shutil.copyfile(src_repo / "pyproject.toml", vendor_dir / "pyproject.toml")
     shutil.copyfile(src_repo / "README.md", vendor_dir / "README.md")
 
