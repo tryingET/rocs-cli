@@ -11,7 +11,7 @@ import re
 
 
 PLACEHOLDER_RE = re.compile(r"<[^>]+>")
-GITLAB_REF_RE = re.compile(r"^<gitlab:([^@>]+)@([^>]+)>$")
+REF_LOCATOR_RE = re.compile(r"^<(repo|gitlab):([^@>]+)@([^>]+)>$")
 
 _ALLOWED_CONCEPT_KEYS = {
     "id",
@@ -96,7 +96,7 @@ def validate_manifest_placeholders(repo_root: Path, strict_placeholders: bool) -
     findings: list[Finding] = []
     for m in PLACEHOLDER_RE.finditer(text):
         token = m.group(0)
-        if GITLAB_REF_RE.match(token):
+        if REF_LOCATOR_RE.match(token):
             continue
         findings.append(
             Finding(

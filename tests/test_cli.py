@@ -353,6 +353,11 @@ class TestRocsCli(unittest.TestCase):
             repo = _mk_repo(Path(td), manifest_extra='  note: "<gitlab:ai-society/core/ontology-kernel@v0.1.0>"')
             self.assertEqual(_run(["validate", "--repo", str(repo), "--strict-placeholders"]), 0)
 
+    def test_strict_placeholders_allows_repo_locator_in_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td), manifest_extra='  note: "<repo:core/ontology-kernel@main>"')
+            self.assertEqual(_run(["validate", "--repo", str(repo), "--strict-placeholders"]), 0)
+
     def test_only_path_does_not_fetch_ref_layers_without_resolve_refs(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(
@@ -385,7 +390,7 @@ class TestRocsCli(unittest.TestCase):
             prev = gitlab_mod.fetch_repo_archive
             gitlab_mod.fetch_repo_archive = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not fetch"))
             try:
-                code, out = _run_capture(["diff", "--repo", str(repo), "--baseline", "<gitlab:x/y@main>"])
+                code, out = _run_capture(["diff", "--repo", str(repo), "--baseline", "<repo:x/y@main>"])
                 self.assertEqual(code, 1)
                 self.assertIn("requires --resolve-refs", out)
             finally:

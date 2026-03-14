@@ -18,7 +18,7 @@ from rocs_cli.workspace import (
 )
 
 
-GITLAB_REF_RE = re.compile(r"^<gitlab:([^@>]+)@([^>]+)>$")
+REF_LOCATOR_RE = re.compile(r"^<(repo|gitlab):([^@>]+)@([^>]+)>$")
 
 
 @dataclass(frozen=True)
@@ -56,35 +56,44 @@ def load_manifest(repo_root: Path) -> dict:
         raise RocsCliError(kind="config", message=f"invalid ontology manifest YAML: {e}", details={"path": str(p)}) from e
 
 
-def parse_gitlab_ref(locator: str) -> tuple[str, str] | None:
-    m = GITLAB_REF_RE.match(locator.strip())
+def parse_ref_locator(locator: str) -> tuple[str, str, str] | None:
+    m = REF_LOCATOR_RE.match(locator.strip())
     if not m:
         return None
-    return m.group(1), m.group(2)
+    return m.group(1), m.group(2), m.group(3)
 
 
-def _src_root_for_ref(
+def parse_gitlab_ref(locator: str) -> tuple[str, str] | None:
+    parsed = parse_ref_locator(locator)
+    if not parsed or parsed[0] != "gitlab":
+        return None
+    return parsed[1], parsed[2]
+
+
+def _repo_root_for_ref(
     locator: str,
     *,
     resolve_refs: bool,
     workspace_root: Path | None,
     workspace_ref_mode: str,
 ) -> tuple[Path, str, str, dict]:
-    parsed = parse_gitlab_ref(locator)
+    parsed = parse_ref_locator(locator)
     if not parsed:
         raise RocsCliError(
             kind="usage",
-            message=f"invalid GitLab ref locator (expected <gitlab:...@...>): {locator!r}",
+            message=f"invalid ref locator (expected <repo:...@...> or legacy <gitlab:...@...>): {locator!r}",
         )
-    project_path, ref = parsed
+    scheme, project_path, ref = parsed
     if not resolve_refs:
         raise RocsCliError(
             kind="offline-first",
-            message=f"ref layer requires network resolution: {locator} (rerun with --resolve-refs; offline-first default)",
+            message=f"ref layer requires resolution: {locator} (rerun with --resolve-refs; local-first default keeps ref resolution explicit)",
         )
 
-    notes: dict = {"workspace": {"present": False, "used": False, "reason": None}}
+    notes: dict = {"scheme": scheme, "workspace": {"present": False, "used": False, "reason": None}}
     mismatch_details: dict | None = None
+    require_origin_match = scheme == "gitlab"
+
     if workspace_root is not None:
         if workspace_repo_exists(workspace_root, project_path):
             notes["workspace"]["present"] = True
@@ -93,12 +102,17 @@ def _src_root_for_ref(
                 "workspace_ref_mode": workspace_ref_mode,
                 "project_path": project_path,
                 "requested_ref": ref,
+                "require_origin_match": require_origin_match,
             }
-        ws_repo_root = pick_workspace_repo_root(workspace_root, project_path)
+        ws_repo_root = pick_workspace_repo_root(
+            workspace_root,
+            project_path,
+            require_origin_match=require_origin_match,
+        )
         if ws_repo_root is not None:
             if workspace_ref_mode == "loose":
                 notes["workspace"]["used"] = True
-                return (ws_repo_root / "ontology" / "src"), locator, "workspace", notes
+                return ws_repo_root, locator, "workspace", notes
 
             head = git_head_sha(ws_repo_root)
             want = git_rev_sha(ws_repo_root, ref)
@@ -112,24 +126,42 @@ def _src_root_for_ref(
             )
             if head is not None and want is not None and head == want:
                 notes["workspace"]["used"] = True
-                return (ws_repo_root / "ontology" / "src"), locator, "workspace", notes
+                return ws_repo_root, locator, "workspace", notes
             if workspace_ref_mode == "strict":
                 notes["workspace"]["reason"] = "ref_mismatch"
         elif notes["workspace"]["present"]:
-            # Repo directory exists, but identity checks did not match this project path.
-            notes["workspace"]["reason"] = "origin_mismatch"
+            notes["workspace"]["reason"] = "origin_mismatch" if require_origin_match else "not_git_repo"
 
     if gitlab_cache_is_complete(project_path, ref):
         repo = gitlab_cache_dest(project_path, ref)
         if notes["workspace"]["present"] and notes["workspace"]["reason"] is None:
             notes["workspace"]["reason"] = "not_used"
-        return (repo / "ontology" / "src"), locator, "cache", notes
+        return repo, locator, "cache", notes
+
+    if scheme == "repo":
+        details: dict = {
+            "project_path": project_path,
+            "requested_ref": ref,
+        }
+        if workspace_root is not None:
+            details["workspace_root"] = str(workspace_root)
+        message = (
+            f"local ref not available in workspace/cache: {locator} "
+            "(set --workspace-root / ROCS_WORKSPACE_ROOT and checkout the dependency repo locally)"
+        )
+        if mismatch_details and workspace_ref_mode == "strict":
+            details["workspace_ref_mismatch"] = mismatch_details
+            message = (
+                f"local ref not available in workspace/cache: {locator} "
+                f"(workspace ref mismatch in strict mode; checkout {ref!r} or use --workspace-ref-mode loose)"
+            )
+        raise RocsCliError(kind="not_found", message=message, details=details)
 
     try:
         repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
         if notes["workspace"]["present"] and notes["workspace"]["reason"] is None:
             notes["workspace"]["reason"] = "not_used"
-        return (repo / "ontology" / "src"), locator, "gitlab", notes
+        return repo, locator, "gitlab", notes
     except RocsCliError as e:
         if mismatch_details and workspace_ref_mode == "strict":
             details = dict(e.details or {})
@@ -141,6 +173,49 @@ def _src_root_for_ref(
                 details=details,
             ) from None
         raise
+
+
+def resolve_ref_repo_root(
+    locator: str,
+    *,
+    resolve_refs: bool,
+    workspace_root: str | Path | None = None,
+    workspace_ref_mode: str | None = None,
+) -> tuple[Path, str, dict]:
+    if isinstance(workspace_root, str):
+        ws_root = Path(workspace_root).expanduser().resolve()
+    elif isinstance(workspace_root, Path):
+        ws_root = workspace_root.expanduser().resolve()
+    else:
+        ws_root = workspace_root_from_env()
+
+    ws_mode = (workspace_ref_mode or workspace_ref_mode_from_env() or "strict").strip().lower()
+    if ws_mode not in ("strict", "loose"):
+        raise RocsCliError(kind="usage", message="--workspace-ref-mode must be strict|loose")
+
+    repo, _origin, source, notes = _repo_root_for_ref(
+        locator,
+        resolve_refs=resolve_refs,
+        workspace_root=ws_root,
+        workspace_ref_mode=ws_mode,
+    )
+    return repo, source, notes
+
+
+def _src_root_for_ref(
+    locator: str,
+    *,
+    resolve_refs: bool,
+    workspace_root: Path | None,
+    workspace_ref_mode: str,
+) -> tuple[Path, str, str, dict]:
+    repo, origin, source, notes = _repo_root_for_ref(
+        locator,
+        resolve_refs=resolve_refs,
+        workspace_root=workspace_root,
+        workspace_ref_mode=workspace_ref_mode,
+    )
+    return (repo / "ontology" / "src"), origin, source, notes
 
 
 def resolve_layers(

@@ -60,13 +60,6 @@ def _project_path_from_remote_url(remote_url: str) -> str | None:
     if not raw:
         return None
 
-    m = _SCP_LIKE_RE.match(raw)
-    if m:
-        path = m.group("path").lstrip("/")
-        if path.endswith(".git"):
-            path = path[: -len(".git")]
-        return path or None
-
     try:
         u = urlparse(raw)
     except Exception:
@@ -78,6 +71,16 @@ def _project_path_from_remote_url(remote_url: str) -> str | None:
             path = path[: -len(".git")]
         return path or None
 
+    # SCP-like form, e.g. git@host:group/subgroup/repo.git
+    # Only attempt this when no URL scheme is present.
+    if "://" not in raw:
+        m = _SCP_LIKE_RE.match(raw)
+        if m:
+            path = m.group("path").lstrip("/")
+            if path.endswith(".git"):
+                path = path[: -len(".git")]
+            return path or None
+
     return None
 
 
@@ -86,7 +89,12 @@ def _origin_project_path(repo_root: Path) -> str | None:
     return _project_path_from_remote_url(url or "")
 
 
-def pick_workspace_repo_root(workspace_root: Path, project_path: str) -> Path | None:
+def pick_workspace_repo_root(
+    workspace_root: Path,
+    project_path: str,
+    *,
+    require_origin_match: bool = True,
+) -> Path | None:
     existing = [p for p in workspace_repo_candidates(workspace_root, project_path) if p.exists() and p.is_dir()]
     if not existing:
         return None
@@ -98,6 +106,12 @@ def pick_workspace_repo_root(workspace_root: Path, project_path: str) -> Path | 
         git_repos.append(repo)
 
     if not git_repos:
+        return None
+
+    if not require_origin_match:
+        for candidate in workspace_repo_candidates(workspace_root, project_path):
+            if candidate in git_repos:
+                return candidate
         return None
 
     matching: list[Path] = []

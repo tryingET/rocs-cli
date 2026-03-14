@@ -12,7 +12,7 @@ from rich.console import Console
 from rocs_cli import __main__ as cli
 import rocs_cli.cli as cli_mod
 from rocs_cli.gitlab import gitlab_cache_dest
-from rocs_cli.workspace import git_rev_sha
+from rocs_cli.workspace import _project_path_from_remote_url, git_rev_sha
 
 
 def _write(path: Path, text: str) -> None:
@@ -143,6 +143,16 @@ class TestWorkspaceResolution(unittest.TestCase):
             # Must not treat `--help` as a flag; should resolve as "not a rev".
             self.assertIsNone(git_rev_sha(repo, "--help"))
 
+    def test_remote_url_parser_handles_urls_with_port(self) -> None:
+        cases = {
+            "ssh://git@192.168.161.10:2224/ai-society/core/ontology-kernel.git": "ai-society/core/ontology-kernel",
+            "https://token@192.168.161.10:8929/ai-society/softwareco/ontology.git": "ai-society/softwareco/ontology",
+            "git@192.168.161.10:ai-society/core/rocs-cli.git": "ai-society/core/rocs-cli",
+        }
+        for remote_url, want in cases.items():
+            with self.subTest(remote_url=remote_url):
+                self.assertEqual(_project_path_from_remote_url(remote_url), want)
+
     def test_workspace_wins_over_cache_and_gitlab(self) -> None:
         project_path = "ai-society/core/dep"
         locator = f"<gitlab:{project_path}@v1>"
@@ -151,6 +161,41 @@ class TestWorkspaceResolution(unittest.TestCase):
             ws = td_path / "ws"
             cache = td_path / "cache"
             _init_workspace_repo(ws / "core" / "dep", project_path=project_path, tag="v1", make_mismatch=False)
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            with _Env(ROCS_CACHE_DIR=str(cache)):
+                code, out = _run_capture(
+                    [
+                        "resolve",
+                        "--repo",
+                        str(repo),
+                        "--resolve-refs",
+                        "--workspace-root",
+                        str(ws),
+                        "--workspace-ref-mode",
+                        "strict",
+                        "--json",
+                    ]
+                )
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            dep = [x for x in payload["layers"] if x["name"] == "dep"][0]
+            self.assertEqual(dep["source"], "workspace")
+
+    def test_repo_locator_uses_workspace_layout_without_origin_match(self) -> None:
+        project_path = "core/dep"
+        locator = f"<repo:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            _init_workspace_repo(
+                ws / "core" / "dep",
+                project_path=project_path,
+                origin_project_path="github/example/dep",
+                tag="v1",
+                make_mismatch=False,
+            )
             repo = _mk_rocs_repo(td_path, locator=locator)
 
             with _Env(ROCS_CACHE_DIR=str(cache)):
@@ -336,3 +381,29 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertEqual(dep.get("details", {}).get("workspace", {}).get("present"), True)
             self.assertEqual(dep.get("details", {}).get("workspace", {}).get("used"), False)
             self.assertEqual(dep.get("details", {}).get("workspace", {}).get("reason"), "origin_mismatch")
+
+    def test_repo_locator_missing_workspace_never_mentions_gitlab_config(self) -> None:
+        locator = "<repo:core/dep@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            with _Env(ROCS_CACHE_DIR=str(cache)):
+                code, out = _run_capture(
+                    [
+                        "resolve",
+                        "--repo",
+                        str(repo),
+                        "--resolve-refs",
+                        "--workspace-root",
+                        str(ws),
+                        "--json",
+                    ]
+                )
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIn("local ref not available", payload.get("error", {}).get("message", ""))
+            self.assertNotIn("GitLab base url", payload.get("error", {}).get("message", ""))
