@@ -13,6 +13,7 @@ GitLab / issues:
 - Reference: `holdingco/governance-kernel/docs/dev/gitlab-access.md`.
 
 Local dev:
-- `uv run --with pyyaml --with rich python -m rocs_cli --help`
+- `uv run python -m rocs_cli --help`
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q` (includes README↔CLI wiring check)
+- Optional YAML CLI tooling (`yq`): `uv sync --extra tooling && uv run --extra tooling yq --version`
 - Bump version (SemVer): `uv run python scripts/bump_version.py --bump patch|minor|major [--preid rc] [--sync-vendored]`

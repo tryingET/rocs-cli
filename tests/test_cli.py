@@ -630,6 +630,20 @@ class TestRocsCli(unittest.TestCase):
             code_bad, _out_bad = _run_capture(["vendored-check", "--vendored-dir", str(vdir)])
             self.assertNotEqual(code_bad, 0)
 
+    def test_vendored_check_fails_on_unexpected_files(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            vdir = Path(td) / "vendored"
+            _write(vdir / "pyproject.toml", '[project]\nname="rocs-cli"\nversion="0.0.0"\n')
+            _write(vdir / "README.md", "vendored\n")
+            _write(vdir / "src" / "rocs_cli" / "__init__.py", '__version__ = "0.0.0"\n')
+
+            files = compute_expected_hashes(vdir)
+            _write(vdir / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": files}, indent=2) + "\n")
+
+            _write(vdir / "src" / "rocs_cli" / "extra-data.txt", "extra\n")
+            code_extra, _out_extra = _run_capture(["vendored-check", "--vendored-dir", str(vdir)])
+            self.assertNotEqual(code_extra, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

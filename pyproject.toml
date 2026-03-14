@@ -9,6 +9,11 @@ dependencies = [
   "rich>=13.0.0",
 ]
 
+[project.optional-dependencies]
+tooling = [
+  "yq>=3.4.3",
+]
+
 [project.scripts]
 rocs = "rocs_cli.__main__:main"
 
