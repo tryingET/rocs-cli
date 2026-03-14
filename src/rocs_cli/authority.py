@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,49 @@ if TYPE_CHECKING:
 
 _AUTHORITY_RECEIPT = "authority-receipt.json"
 _COMMAND_RECEIPT_FMT = "authority-receipt.{command}.json"
+
+
+@contextlib.contextmanager
+def _receipt_lock(lock_path: Path):
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+", encoding="utf-8") as f:
+        f.seek(0)
+        if f.read(1) == "":
+            f.seek(0)
+            f.write("\0")
+            f.flush()
+        f.seek(0)
+        locked = False
+        try:
+            if os.name == "nt":
+                import msvcrt  # noqa: PLC0415
+
+                msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+                locked = True
+            else:
+                import fcntl  # noqa: PLC0415
+
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                locked = True
+        except Exception:
+            locked = False
+        try:
+            yield
+        finally:
+            if not locked:
+                return
+            try:
+                f.seek(0)
+                if os.name == "nt":
+                    import msvcrt  # noqa: PLC0415
+
+                    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl  # noqa: PLC0415
+
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
 
 
 def effective_workspace_ref_mode(explicit_mode: str | None) -> str:
@@ -167,40 +211,43 @@ def write_authority_receipt(repo_root: Path, payload: dict) -> dict[str, Path]:
     dist.mkdir(parents=True, exist_ok=True)
 
     command_out = command_authority_receipt_path(repo_root, command)
-    command_out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
-
     aggregate_out = authority_receipt_path(repo_root)
-    aggregate_across_commands = (os.environ.get("ROCS_AUTHORITY_AGGREGATE") or "").strip() == "1"
-    existing_commands: dict[str, object] = {}
-    existing_files: dict[str, str] = {}
-    if aggregate_across_commands and aggregate_out.exists():
-        try:
-            existing = json.loads(aggregate_out.read_text("utf-8"))
-        except Exception:
-            existing = None
-        if isinstance(existing, dict) and existing.get("schema_version") == 2:
-            cmds = existing.get("commands")
-            if isinstance(cmds, dict):
-                existing_commands = {str(k): v for k, v in cmds.items()}
-            files = existing.get("command_files")
-            if isinstance(files, dict):
-                existing_files = {str(k): str(v) for k, v in files.items()}
-    else:
-        for stale in dist.glob("authority-receipt.*.json"):
-            if stale.name == command_out.name:
-                continue
-            stale.unlink(missing_ok=True)
+    lock_path = dist / ".authority-receipt.lock"
 
-    existing_commands[command] = payload
-    existing_files[command] = command_out.name
+    with _receipt_lock(lock_path):
+        command_out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
 
-    aggregate_payload = {
-        "schema_version": 2,
-        "version": __version__,
-        "repo": str(repo_root),
-        "last_command": command,
-        "command_files": {k: existing_files[k] for k in sorted(existing_files)},
-        "commands": {k: existing_commands[k] for k in sorted(existing_commands)},
-    }
-    aggregate_out.write_text(json.dumps(aggregate_payload, indent=2, sort_keys=True) + "\n", "utf-8")
+        aggregate_across_commands = (os.environ.get("ROCS_AUTHORITY_AGGREGATE") or "").strip() == "1"
+        existing_commands: dict[str, object] = {}
+        existing_files: dict[str, str] = {}
+        if aggregate_across_commands and aggregate_out.exists():
+            try:
+                existing = json.loads(aggregate_out.read_text("utf-8"))
+            except Exception:
+                existing = None
+            if isinstance(existing, dict) and existing.get("schema_version") == 2:
+                cmds = existing.get("commands")
+                if isinstance(cmds, dict):
+                    existing_commands = {str(k): v for k, v in cmds.items()}
+                files = existing.get("command_files")
+                if isinstance(files, dict):
+                    existing_files = {str(k): str(v) for k, v in files.items()}
+        else:
+            for stale in dist.glob("authority-receipt.*.json"):
+                if stale.name == command_out.name:
+                    continue
+                stale.unlink(missing_ok=True)
+
+        existing_commands[command] = payload
+        existing_files[command] = command_out.name
+
+        aggregate_payload = {
+            "schema_version": 2,
+            "version": __version__,
+            "repo": str(repo_root),
+            "last_command": command,
+            "command_files": {k: existing_files[k] for k in sorted(existing_files)},
+            "commands": {k: existing_commands[k] for k in sorted(existing_commands)},
+        }
+        aggregate_out.write_text(json.dumps(aggregate_payload, indent=2, sort_keys=True) + "\n", "utf-8")
     return {"aggregate": aggregate_out, "command": command_out}
