@@ -51,6 +51,11 @@ def _parse_args() -> argparse.Namespace:
         default=str(repo_root / "scripts" / "bootstrap-repo.sh"),
         help="Path to bootstrap-repo.sh",
     )
+    parser.add_argument(
+        "--workspace-root",
+        default=None,
+        help="Authoritative workspace root. Defaults to scorecard.workspace_root.",
+    )
     return parser.parse_args()
 
 
@@ -75,21 +80,61 @@ def _stable_batch_id(raw_bytes: bytes) -> str:
     return f"fcos-remediate-{digest}"
 
 
-def _manual_reason(row: dict[str, Any]) -> str:
-    if not row.get("exists"):
+def _normalize_policy_repo_path(workspace_root: Path, policy_path: str) -> Path:
+    p = Path(policy_path)
+    if p.is_absolute():
+        return p.resolve()
+
+    direct = (workspace_root / p).resolve()
+    if direct.exists():
+        return direct
+
+    parts = p.parts
+    if parts and parts[0] == workspace_root.name:
+        return workspace_root.joinpath(*parts[1:]).resolve()
+
+    return direct
+
+
+def _is_within_workspace(workspace_root: Path, candidate: Path) -> bool:
+    try:
+        candidate.relative_to(workspace_root)
+        return True
+    except ValueError:
+        return False
+
+
+def _workspace_root_from(scorecard: dict[str, Any], explicit: str | None) -> Path:
+    source = explicit or scorecard.get("workspace_root")
+    if not isinstance(source, str) or not source.strip():
+        raise RemediationError("workspace root missing (pass --workspace-root or include scorecard.workspace_root)")
+    root = Path(source).expanduser().resolve()
+    if not root.is_dir():
+        raise RemediationError(f"workspace root not found: {root}")
+    return root
+
+
+def _manual_reason(*, exists: bool, repo_class: str, drifts: list[str], in_workspace: bool, safe_target: bool) -> str:
+    if not safe_target:
+        return "repo path is empty or resolves to workspace root"
+    if not in_workspace:
+        return "resolved path escapes workspace root"
+    if not exists:
         return "repo path missing; bootstrap batch cannot create missing repo roots"
-    if row.get("requirement_violations") and row.get("class") not in ACTIONABLE_CLASSES:
+    if repo_class not in ACTIONABLE_CLASSES:
         return "repo class is not bootstrap-managed by this batch generator"
-    if row.get("declaration_drifts"):
+    if drifts:
         return "policy declaration drift requires governance-kernel model update"
     return "no supported automatic remediation for this row"
 
 
-def _command_for(row: dict[str, Any], bootstrap_script: Path) -> list[str]:
-    return [str(bootstrap_script), str(row["resolved_path"]), "--class", str(row["class"])]
+def _command_for(resolved_path: Path, row: dict[str, Any], bootstrap_script: Path) -> list[str]:
+    return [str(bootstrap_script), str(resolved_path), "--class", str(row["class"])]
 
 
-def _build_batch(scorecard: dict[str, Any], *, raw_bytes: bytes, batch_id: str | None, bootstrap_script: Path) -> dict[str, Any]:
+def _build_batch(
+    scorecard: dict[str, Any], *, raw_bytes: bytes, batch_id: str | None, bootstrap_script: Path, workspace_root: Path
+) -> dict[str, Any]:
     repos = scorecard["repos"]
     actions: list[dict[str, Any]] = []
 
@@ -102,29 +147,45 @@ def _build_batch(scorecard: dict[str, Any], *, raw_bytes: bytes, batch_id: str |
         if not missing and not drifts:
             continue
 
+        policy_path = str(row.get("path") or "")
+        normalized_resolved_path = _normalize_policy_repo_path(workspace_root, policy_path)
+        in_workspace = _is_within_workspace(workspace_root, normalized_resolved_path)
+        safe_target = bool(policy_path.strip()) and normalized_resolved_path != workspace_root
+        exists = normalized_resolved_path.is_dir()
+        scorecard_resolved_path = str(row.get("resolved_path") or "")
+
         base_action: dict[str, Any] = {
-            "path": row.get("path"),
-            "resolved_path": row.get("resolved_path"),
+            "path": policy_path,
+            "resolved_path": str(normalized_resolved_path),
+            "scorecard_resolved_path": scorecard_resolved_path,
+            "resolved_path_mismatch": bool(scorecard_resolved_path) and scorecard_resolved_path != str(normalized_resolved_path),
             "repo_class": row.get("class"),
-            "exists": bool(row.get("exists")),
+            "exists": exists,
+            "workspace_root": str(workspace_root),
             "requirement_violations": missing,
             "declaration_drifts": drifts,
         }
 
-        if missing and row.get("exists") and row.get("class") in ACTIONABLE_CLASSES:
+        if missing and exists and safe_target and in_workspace and row.get("class") in ACTIONABLE_CLASSES:
             action = {
                 **base_action,
                 "kind": "bootstrap_repo",
                 "status": "planned",
                 "reason": f"missing required capabilities: {', '.join(missing)}",
-                "command": _command_for(row, bootstrap_script),
+                "command": _command_for(normalized_resolved_path, row, bootstrap_script),
             }
         else:
             action = {
                 **base_action,
                 "kind": "manual_followup",
                 "status": "blocked",
-                "reason": _manual_reason(row),
+                "reason": _manual_reason(
+                    exists=exists,
+                    repo_class=str(row.get("class") or ""),
+                    drifts=drifts,
+                    in_workspace=in_workspace,
+                    safe_target=safe_target,
+                ),
             }
         actions.append(action)
 
@@ -137,6 +198,7 @@ def _build_batch(scorecard: dict[str, Any], *, raw_bytes: bytes, batch_id: str |
         "schema_version": 1,
         "batch_id": effective_batch_id,
         "mode": "patch",
+        "workspace_root": str(workspace_root),
         "source_audit": {
             "policy": scorecard.get("policy"),
             "workspace_root": scorecard.get("workspace_root"),
@@ -182,6 +244,7 @@ def _apply_batch(batch: dict[str, Any]) -> tuple[dict[str, Any], int]:
         proc = subprocess.run(command, check=False, capture_output=True, text=True)
         result: dict[str, Any] = {
             "path": action.get("path"),
+            "resolved_path": action.get("resolved_path"),
             "status": "applied" if proc.returncode == 0 else "apply_failed",
             "exit_code": proc.returncode,
         }
@@ -217,11 +280,13 @@ def main() -> int:
 
     try:
         scorecard, raw_bytes = _load_scorecard(input_path)
+        workspace_root = _workspace_root_from(scorecard, args.workspace_root)
         batch = _build_batch(
             scorecard,
             raw_bytes=raw_bytes,
             batch_id=args.batch_id,
             bootstrap_script=bootstrap_script,
+            workspace_root=workspace_root,
         )
     except RemediationError as exc:
         print(f"error: {exc}", file=sys.stderr)

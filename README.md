@@ -117,14 +117,18 @@ FCOS convergence scripts:
   - `rocs_ci_gate` checks parsed CI YAML/script nodes (`gitlab/ci/rocs.yml` + include + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); comments do not count as evidence
   - emits deterministic JSON/Markdown scorecards (stdout when PATH omitted)
   - stable exit codes: `0` pass, `2` required capability violations, `1` policy/usage error
-- `scripts/open-remediation-batch.sh --input <audit.json> --mode patch|apply [--output [PATH]]`
+- `scripts/open-remediation-batch.sh --input <audit.json> --mode patch|apply [--output [PATH]] [--workspace-root <path>]`
   - turns fleet-audit scorecards into deterministic remediation batches
+  - recomputes repo targets from the authoritative workspace root instead of trusting scorecard `resolved_path`
   - `patch` mode emits planned bootstrap/manual follow-up actions without mutating repos
   - `apply` mode runs `scripts/bootstrap-repo.sh` for bootstrap-managed required drift and records per-repo apply results
   - stable exit codes: `0` batch generated/applied successfully, `2` apply failures, `1` input/usage error
+- `scripts/run-fleet-audit-nightly.py`
+  - authoritative nightly control loop: runs the fleet audit, writes JSON/Markdown scorecards under `${XDG_STATE_HOME:-$HOME/.local/state}/fcos/nightly/<timestamp>/`, and emits a JSON `run-summary.json`
+  - returns `0` only for `status=pass`; any detected drift or remediation outcome returns `2`; runtime/config failures return `1`
+  - configure via `FCOS_WORKSPACE_ROOT`, `FCOS_POLICY_PATH`, `FCOS_AUDIT_ARTIFACT_ROOT`, `FCOS_REMEDIATION_MODE=audit-only|patch|apply`, optional `FCOS_BOOTSTRAP_SCRIPT`
 - `scripts/run-fleet-audit-nightly.sh`
-  - runs the fleet audit, writes JSON/Markdown scorecards under `${XDG_STATE_HOME:-$HOME/.local/state}/fcos/nightly/<timestamp>/`, and generates remediation batches when drift is detected
-  - configure via `FCOS_WORKSPACE_ROOT`, `FCOS_POLICY_PATH`, `FCOS_AUDIT_ARTIFACT_ROOT`, `FCOS_REMEDIATION_MODE=audit-only|patch|apply`
+  - thin compatibility wrapper that executes `uv run python scripts/run-fleet-audit-nightly.py`
   - scheduling assets: `scripts/systemd/fcos-fleet-audit-nightly.{service,timer}` and `scripts/cron/fcos-fleet-audit-nightly.cron`
 
 YAML tooling (optional, for shell-level policy inspection):
