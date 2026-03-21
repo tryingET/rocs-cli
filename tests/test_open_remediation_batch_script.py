@@ -23,14 +23,29 @@ def _run_script(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _audit_payload(repo: Path, *, exists: bool = True, missing: list[str] | None = None, drifts: list[str] | None = None) -> dict:
+    missing = list(missing or [])
+    drifts = list(drifts or [])
+    declared = {
+        "rocs_cli_vendored": True,
+        "ontology_manifest": True,
+        "rocs_ci_gate": True,
+    }
+    observed = dict(declared)
+    for key in missing:
+        observed[key] = False
+    for key in drifts:
+        if key not in missing:
+            declared[key] = False
+            observed[key] = True
+
     return {
         "schema_version": 1,
         "workspace_root": str(repo.parents[3]),
         "policy": "/tmp/fleet-state.yaml",
         "summary": {
             "status": "fail" if missing or drifts else "pass",
-            "requirement_violations": len(missing or []),
-            "declaration_drifts": len(drifts or []),
+            "requirement_violations": len(missing),
+            "declaration_drifts": len(drifts),
         },
         "exit_code": 2 if missing or drifts else 0,
         "repos": [
@@ -39,8 +54,10 @@ def _audit_payload(repo: Path, *, exists: bool = True, missing: list[str] | None
                 "resolved_path": str(repo),
                 "class": "required",
                 "exists": exists,
-                "requirement_violations": list(missing or []),
-                "declaration_drifts": list(drifts or []),
+                "requirement_violations": missing,
+                "declaration_drifts": drifts,
+                "declared_capabilities": declared,
+                "observed_capabilities": observed,
             }
         ],
     }
@@ -79,8 +96,22 @@ class TestOpenRemediationBatchScript(unittest.TestCase):
                 ) + "\n",
                 "utf-8",
             )
+            bootstrap = Path(td) / "bootstrap.sh"
+            bootstrap.write_text(
+                """#!/usr/bin/env bash
+set -euo pipefail
+target=\"$1\"
+mkdir -p \"$target/tools/rocs-cli\" \"$target/ontology\" \"$target/scripts/ci\"
+printf '{\"schema_version\":1}\n'
+printf '{\"schema_version\":1,\"files\":{}}\n' > \"$target/tools/rocs-cli/VENDORED_HASHES.json\"
+printf 'rocs:\n  layer: repo\n' > \"$target/ontology/manifest.yaml\"
+printf '#!/usr/bin/env bash\nset -euo pipefail\n' > \"$target/scripts/ci/full.sh\"
+""",
+                "utf-8",
+            )
+            bootstrap.chmod(0o755)
 
-            proc = _run_script("--input", str(audit_path), "--mode", "apply")
+            proc = _run_script("--input", str(audit_path), "--mode", "apply", "--bootstrap-script", str(bootstrap))
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
             payload = json.loads(proc.stdout)
             self.assertEqual(payload["summary"]["applied_actions"], 1)
@@ -131,8 +162,19 @@ class TestOpenRemediationBatchScript(unittest.TestCase):
             audit["repos"][0]["resolved_path"] = str(outside)
             audit_path = Path(td) / "audit.json"
             audit_path.write_text(json.dumps(audit, indent=2) + "\n", "utf-8")
+            bootstrap = Path(td) / "bootstrap.sh"
+            bootstrap.write_text(
+                """#!/usr/bin/env bash
+set -euo pipefail
+target=\"$1\"
+mkdir -p \"$target/scripts/ci\"
+printf '#!/usr/bin/env bash\nset -euo pipefail\n' > \"$target/scripts/ci/full.sh\"
+""",
+                "utf-8",
+            )
+            bootstrap.chmod(0o755)
 
-            proc = _run_script("--input", str(audit_path), "--mode", "apply")
+            proc = _run_script("--input", str(audit_path), "--mode", "apply", "--bootstrap-script", str(bootstrap))
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
             payload = json.loads(proc.stdout)
             action = payload["actions"][0]
@@ -140,6 +182,21 @@ class TestOpenRemediationBatchScript(unittest.TestCase):
             self.assertEqual(action["resolved_path"], str(repo))
             self.assertFalse(outside.exists())
             self.assertTrue((repo / "scripts" / "ci" / "full.sh").is_file())
+
+    def test_mixed_required_and_declaration_drift_emits_bootstrap_plus_manual_followup(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "ai-society" / "softwareco" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            audit = _audit_payload(repo, missing=["rocs_ci_gate"], drifts=["rocs_cli_vendored"])
+            audit_path = Path(td) / "audit.json"
+            audit_path.write_text(json.dumps(audit, indent=2) + "\n", "utf-8")
+
+            proc = _run_script("--input", str(audit_path), "--mode", "patch")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            self.assertEqual(payload["summary"]["planned_bootstrap_actions"], 1)
+            self.assertEqual(payload["summary"]["blocked_actions"], 1)
+            self.assertEqual([action["kind"] for action in payload["actions"]], ["bootstrap_repo", "manual_followup"])
 
     def test_blank_policy_path_is_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as td:

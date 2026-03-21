@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -22,6 +23,8 @@ STATUS_BATCH_APPLIED = "batch_applied"
 STATUS_APPLY_FAILED = "apply_failed"
 STATUS_AUDIT_ERROR = "audit_error"
 STATUS_BATCH_ERROR = "batch_error"
+
+TIMESTAMP_RE = re.compile(r"^\d{8}T\d{6}Z$")
 
 
 class NightlyError(ValueError):
@@ -96,6 +99,12 @@ def _run_json_command(command: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, check=False, capture_output=True, text=True)
 
 
+def _validate_timestamp(value: str) -> str:
+    if not TIMESTAMP_RE.fullmatch(value):
+        raise NightlyError(f"invalid timestamp {value!r}; expected YYYYMMDDTHHMMSSZ")
+    return value
+
+
 def _load_json(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text("utf-8"))
@@ -139,7 +148,6 @@ def _derive_status(
     summary = batch.get("summary", {})
     blocked_actions = int(summary.get("blocked_actions", 0) or 0)
     apply_failures = int(summary.get("apply_failures", 0) or 0)
-    applied_actions = int(summary.get("applied_actions", 0) or 0)
 
     if remediation_mode == "patch":
         if blocked_actions:
@@ -150,7 +158,7 @@ def _derive_status(
         return STATUS_BATCH_ERROR, EXIT_ERROR
     if apply_failures:
         return STATUS_APPLY_FAILED, EXIT_ACTION_REQUIRED
-    if blocked_actions and applied_actions == 0:
+    if blocked_actions:
         return STATUS_BLOCKED, EXIT_ACTION_REQUIRED
     return STATUS_BATCH_APPLIED, EXIT_ACTION_REQUIRED
 
@@ -163,7 +171,27 @@ def main() -> int:
     audit_script = Path(args.audit_script).expanduser().resolve()
     remediation_script = Path(args.remediation_script).expanduser().resolve()
     bootstrap_script = Path(args.bootstrap_script).expanduser().resolve() if args.bootstrap_script else None
-    timestamp = args.timestamp or _timestamp_now()
+    requested_timestamp = args.timestamp or _timestamp_now()
+
+    try:
+        timestamp = _validate_timestamp(requested_timestamp)
+    except NightlyError as exc:
+        summary_path = artifact_root / "_invalid" / "run-summary.json"
+        _write_json(
+            summary_path,
+            {
+                "schema_version": 1,
+                "timestamp": requested_timestamp,
+                "workspace_root": str(workspace_root),
+                "policy_path": str(policy_path),
+                "artifact_root": str(artifact_root),
+                "remediation_mode": args.remediation_mode,
+                "status": STATUS_AUDIT_ERROR,
+                "exit_code": EXIT_ERROR,
+                "error": str(exc),
+            },
+        )
+        return EXIT_ERROR
 
     run_dir = artifact_root / timestamp
     scorecard_json = run_dir / "scorecard.json"
@@ -171,6 +199,8 @@ def main() -> int:
     remediation_batch = run_dir / "remediation-batch.json"
     summary_path = run_dir / "run-summary.json"
     run_dir.mkdir(parents=True, exist_ok=True)
+    if remediation_batch.exists():
+        remediation_batch.unlink()
 
     summary: dict[str, Any] = {
         "schema_version": 1,
@@ -187,7 +217,7 @@ def main() -> int:
         summary.update({"status": STATUS_AUDIT_ERROR, "exit_code": EXIT_ERROR, "error": f"audit script not found: {audit_script}"})
         _write_json(summary_path, summary)
         return EXIT_ERROR
-    if not remediation_script.is_file():
+    if args.remediation_mode != "audit-only" and not remediation_script.is_file():
         summary.update({"status": STATUS_BATCH_ERROR, "exit_code": EXIT_ERROR, "error": f"remediation script not found: {remediation_script}"})
         _write_json(summary_path, summary)
         return EXIT_ERROR

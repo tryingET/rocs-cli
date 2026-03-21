@@ -224,6 +224,134 @@ class TestRunFleetAuditNightlyScript(unittest.TestCase):
             summary = json.loads((artifact_root / "20260321T000300Z" / "run-summary.json").read_text("utf-8"))
             self.assertEqual(summary["status"], "pass")
 
+    def test_mixed_apply_result_stays_blocked_when_manual_followup_remains(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = _mk_repo(workspace, "softwareco/owned/app-a", ci_gate=False)
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(
+                yaml.safe_dump(
+                    _policy_for("ai-society/softwareco/owned/app-a", declared_vendored=False),
+                    sort_keys=False,
+                ),
+                "utf-8",
+            )
+            artifact_root = Path(td) / "artifacts"
+            bootstrap = Path(td) / "bootstrap.sh"
+            bootstrap.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                "target=\"$1\"\n"
+                "mkdir -p \"$target/scripts/ci\"\n"
+                "printf '#!/usr/bin/env bash\\nset -euo pipefail\\n' > \"$target/scripts/ci/full.sh\"\n",
+                "utf-8",
+            )
+            bootstrap.chmod(0o755)
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "FCOS_WORKSPACE_ROOT": str(workspace),
+                    "FCOS_POLICY_PATH": str(policy_path),
+                    "FCOS_AUDIT_ARTIFACT_ROOT": str(artifact_root),
+                    "FCOS_REMEDIATION_MODE": "apply",
+                    "FCOS_BOOTSTRAP_SCRIPT": str(bootstrap),
+                    "FCOS_AUDIT_TIMESTAMP": "20260321T000350Z",
+                }
+            )
+
+            proc = _run_nightly(env=env)
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            summary = json.loads((artifact_root / "20260321T000350Z" / "run-summary.json").read_text("utf-8"))
+            self.assertEqual(summary["status"], "blocked")
+            batch = json.loads((artifact_root / "20260321T000350Z" / "remediation-batch.json").read_text("utf-8"))
+            self.assertEqual(batch["summary"]["applied_actions"], 1)
+            self.assertEqual(batch["summary"]["blocked_actions"], 1)
+            self.assertTrue((repo / "scripts" / "ci" / "full.sh").is_file())
+
+    def test_audit_only_does_not_require_remediation_script(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(workspace, "softwareco/owned/app-a", ci_gate=True)
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(
+                yaml.safe_dump(_policy_for("ai-society/softwareco/owned/app-a"), sort_keys=False),
+                "utf-8",
+            )
+            artifact_root = Path(td) / "artifacts"
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "FCOS_WORKSPACE_ROOT": str(workspace),
+                    "FCOS_POLICY_PATH": str(policy_path),
+                    "FCOS_AUDIT_ARTIFACT_ROOT": str(artifact_root),
+                    "FCOS_REMEDIATION_MODE": "audit-only",
+                    "FCOS_REMEDIATION_SCRIPT": str(Path(td) / "missing-remediation.py"),
+                    "FCOS_AUDIT_TIMESTAMP": "20260321T000400Z",
+                }
+            )
+
+            proc = _run_nightly(env=env)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            summary = json.loads((artifact_root / "20260321T000400Z" / "run-summary.json").read_text("utf-8"))
+            self.assertEqual(summary["status"], "pass")
+
+    def test_stale_batch_file_is_cleared_before_clean_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(workspace, "softwareco/owned/app-a", ci_gate=True)
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(
+                yaml.safe_dump(_policy_for("ai-society/softwareco/owned/app-a"), sort_keys=False),
+                "utf-8",
+            )
+            artifact_root = Path(td) / "artifacts"
+            run_dir = artifact_root / "20260321T000450Z"
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "remediation-batch.json").write_text('{"stale": true}\n', "utf-8")
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "FCOS_WORKSPACE_ROOT": str(workspace),
+                    "FCOS_POLICY_PATH": str(policy_path),
+                    "FCOS_AUDIT_ARTIFACT_ROOT": str(artifact_root),
+                    "FCOS_REMEDIATION_MODE": "audit-only",
+                    "FCOS_AUDIT_TIMESTAMP": "20260321T000450Z",
+                }
+            )
+
+            proc = _run_nightly(env=env)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertFalse((run_dir / "remediation-batch.json").exists())
+            summary = json.loads((run_dir / "run-summary.json").read_text("utf-8"))
+            self.assertEqual(summary["remediation_generated"], False)
+            self.assertNotIn("remediation_batch", summary)
+
+    def test_invalid_timestamp_is_rejected_into_invalid_artifact_bucket(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            workspace.mkdir(parents=True, exist_ok=True)
+            artifact_root = Path(td) / "artifacts"
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "FCOS_WORKSPACE_ROOT": str(workspace),
+                    "FCOS_POLICY_PATH": str(Path(td) / "missing-policy.yaml"),
+                    "FCOS_AUDIT_ARTIFACT_ROOT": str(artifact_root),
+                    "FCOS_REMEDIATION_MODE": "audit-only",
+                    "FCOS_AUDIT_TIMESTAMP": "../escape",
+                }
+            )
+
+            proc = _run_nightly(env=env)
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            summary = json.loads((artifact_root / "_invalid" / "run-summary.json").read_text("utf-8"))
+            self.assertEqual(summary["status"], "audit_error")
+            self.assertIn("invalid timestamp", summary["error"])
+
     def test_shell_wrapper_uses_repo_managed_runtime(self) -> None:
         proc = subprocess.run(
             ["bash", str(SHELL_WRAPPER), "--help"],

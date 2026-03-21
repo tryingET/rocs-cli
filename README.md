@@ -120,12 +120,14 @@ FCOS convergence scripts:
 - `scripts/open-remediation-batch.sh --input <audit.json> --mode patch|apply [--output [PATH]] [--workspace-root <path>]`
   - turns fleet-audit scorecards into deterministic remediation batches
   - recomputes repo targets from the authoritative workspace root instead of trusting scorecard `resolved_path`
+  - may emit both a bootstrap action and a blocked manual follow-up for the same repo when file drift and declaration drift coexist
   - `patch` mode emits planned bootstrap/manual follow-up actions without mutating repos
   - `apply` mode runs `scripts/bootstrap-repo.sh` for bootstrap-managed required drift and records per-repo apply results
   - stable exit codes: `0` batch generated/applied successfully, `2` apply failures, `1` input/usage error
 - `scripts/run-fleet-audit-nightly.py`
   - authoritative nightly control loop: runs the fleet audit, writes JSON/Markdown scorecards under `${XDG_STATE_HOME:-$HOME/.local/state}/fcos/nightly/<timestamp>/`, and emits a JSON `run-summary.json`
   - returns `0` only for `status=pass`; any detected drift or remediation outcome returns `2`; runtime/config failures return `1`
+  - validates timestamps as `YYYYMMDDTHHMMSSZ`, clears stale remediation artifacts for reused run directories, and keeps `audit-only` decoupled from remediation-script availability
   - configure via `FCOS_WORKSPACE_ROOT`, `FCOS_POLICY_PATH`, `FCOS_AUDIT_ARTIFACT_ROOT`, `FCOS_REMEDIATION_MODE=audit-only|patch|apply`, optional `FCOS_BOOTSTRAP_SCRIPT`
 - `scripts/run-fleet-audit-nightly.sh`
   - thin compatibility wrapper that executes `uv run python scripts/run-fleet-audit-nightly.py`

@@ -147,6 +147,13 @@ def _build_batch(
         if not missing and not drifts:
             continue
 
+        declared_caps = row.get("declared_capabilities") if isinstance(row.get("declared_capabilities"), dict) else {}
+        observed_caps = row.get("observed_capabilities") if isinstance(row.get("observed_capabilities"), dict) else {}
+        governance_drift_keys = [
+            key for key in drifts
+            if declared_caps.get(key) is False and observed_caps.get(key) is True
+        ]
+
         policy_path = str(row.get("path") or "")
         normalized_resolved_path = _normalize_policy_repo_path(workspace_root, policy_path)
         in_workspace = _is_within_workspace(workspace_root, normalized_resolved_path)
@@ -162,32 +169,56 @@ def _build_batch(
             "repo_class": row.get("class"),
             "exists": exists,
             "workspace_root": str(workspace_root),
-            "requirement_violations": missing,
-            "declaration_drifts": drifts,
         }
 
+        planned_bootstrap = False
         if missing and exists and safe_target and in_workspace and row.get("class") in ACTIONABLE_CLASSES:
-            action = {
-                **base_action,
-                "kind": "bootstrap_repo",
-                "status": "planned",
-                "reason": f"missing required capabilities: {', '.join(missing)}",
-                "command": _command_for(normalized_resolved_path, row, bootstrap_script),
-            }
-        else:
-            action = {
-                **base_action,
-                "kind": "manual_followup",
-                "status": "blocked",
-                "reason": _manual_reason(
-                    exists=exists,
-                    repo_class=str(row.get("class") or ""),
-                    drifts=drifts,
-                    in_workspace=in_workspace,
-                    safe_target=safe_target,
-                ),
-            }
-        actions.append(action)
+            actions.append(
+                {
+                    **base_action,
+                    "kind": "bootstrap_repo",
+                    "status": "planned",
+                    "reason": f"missing required capabilities: {', '.join(missing)}",
+                    "requirement_violations": missing,
+                    "declaration_drifts": [],
+                    "command": _command_for(normalized_resolved_path, row, bootstrap_script),
+                }
+            )
+            planned_bootstrap = True
+
+        if governance_drift_keys:
+            drift_reason = "policy declaration drift requires governance-kernel model update"
+            if missing and not planned_bootstrap:
+                drift_reason += f"; unresolved required capabilities: {', '.join(missing)}"
+            actions.append(
+                {
+                    **base_action,
+                    "kind": "manual_followup",
+                    "status": "blocked",
+                    "reason": drift_reason,
+                    "requirement_violations": [] if planned_bootstrap else missing,
+                    "declaration_drifts": governance_drift_keys,
+                }
+            )
+            continue
+
+        if not planned_bootstrap:
+            actions.append(
+                {
+                    **base_action,
+                    "kind": "manual_followup",
+                    "status": "blocked",
+                    "reason": _manual_reason(
+                        exists=exists,
+                        repo_class=str(row.get("class") or ""),
+                        drifts=drifts,
+                        in_workspace=in_workspace,
+                        safe_target=safe_target,
+                    ),
+                    "requirement_violations": missing,
+                    "declaration_drifts": drifts,
+                }
+            )
 
     effective_batch_id = batch_id or _stable_batch_id(raw_bytes)
     planned = sum(1 for action in actions if action["kind"] == "bootstrap_repo")
