@@ -75,6 +75,10 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertNotIn("rocs build --repo . --resolve-refs", ci_snippet)
             self.assertNotIn("rocs validate --repo . --resolve-refs", ci_snippet)
 
+            ci_wrapper = (target / "scripts" / "ci" / "full.sh").read_text("utf-8")
+            self.assertIn("ROCS_WORKSPACE_ROOT", ci_wrapper)
+            self.assertIn("ROCS_WORKSPACE_REF_MODE", ci_wrapper)
+
             snap_a = _snapshot_tree(target)
 
             second = _run_bootstrap(str(target), "--class", "required")
@@ -164,7 +168,36 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertIn("ROCS_CI_PROFILE=branch-ci", ci_snippet)
             self.assertIn("bash scripts/ci/full.sh", ci_snippet)
             self.assertIn("ROCS_CI_PROFILE", wrapper)
+            self.assertIn("ROCS_WORKSPACE_ROOT", wrapper)
+            self.assertIn("ROCS_WORKSPACE_REF_MODE", wrapper)
             self.assertNotIn("echo stale", wrapper)
+
+    def test_existing_legacy_manifest_is_canonicalized_to_repo_locators(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "ai-society" / "softwareco" / "owned" / "app-a"
+            (target / "ontology").mkdir(parents=True)
+            (target / "ontology" / "manifest.yaml").write_text(
+                "\n".join(
+                    [
+                        "rocs:",
+                        "  layers:",
+                        "    - name: core",
+                        "      ref: '<gitlab:ai-society/core/ontology-kernel@v0.1.0>'",
+                        "    - name: company",
+                        "      ref: '<gitlab:org/ontology@v0.1.0>'",
+                        "",
+                    ]
+                ),
+                "utf-8",
+            )
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            manifest = (target / "ontology" / "manifest.yaml").read_text("utf-8")
+            self.assertIn("<repo:core/ontology-kernel@main>", manifest)
+            self.assertIn("<repo:softwareco/ontology@main>", manifest)
+            self.assertNotIn("<gitlab:", manifest)
 
     def test_optional_class_is_inventory_only(self) -> None:
         with tempfile.TemporaryDirectory() as td:

@@ -11,7 +11,11 @@ ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"
 ROCS_REPO="${ROCS_REPO:-.}"
 ROCS_PROFILE="${ROCS_PROFILE:-}"
 ROCS_CMD="${ROCS_CMD:-uv run python -m rocs_cli}"
+workspace_root="${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}"
+workspace_ref_mode="${ROCS_WORKSPACE_REF_MODE:-loose}"
 export ROCS_AUTHORITY_AGGREGATE=1
+export ROCS_WORKSPACE_ROOT="$workspace_root"
+export ROCS_WORKSPACE_REF_MODE="$workspace_ref_mode"
 
 common_args=(--repo "$ROCS_REPO")
 if [[ -n "$ROCS_PROFILE" ]]; then
@@ -20,7 +24,7 @@ fi
 
 run_rocs() {
   # shellcheck disable=SC2086
-  $ROCS_CMD "$@"
+  ROCS_WORKSPACE_ROOT="$workspace_root" ROCS_WORKSPACE_REF_MODE="$workspace_ref_mode" $ROCS_CMD "$@"
 }
 
 clean_dist() {

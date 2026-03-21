@@ -496,6 +496,25 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertEqual(aggregate.get("command_files", {}).get("validate"), "authority-receipt.validate.json")
             self.assertEqual(aggregate.get("command_files", {}).get("build"), "authority-receipt.build.json")
 
+    def test_ci_wrapper_defaults_workspace_root_from_home_ai_society(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            home = td_path / "home"
+            ws = home / "ai-society"
+            repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
+            _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=False)
+
+            with _Env(HOME=str(home), ROCS_CI_PROFILE="branch-ci", ROCS_REPO=str(repo), ROCS_CMD="uv run python -m rocs_cli"):
+                proc = subprocess.run(
+                    ["bash", "scripts/ci/full.sh"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            aggregate = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
+            self.assertEqual(sorted(aggregate.get("commands", {}).keys()), ["build", "validate"])
+
     def test_build_authority_receipt_marks_legacy_gitlab_fallback(self) -> None:
         locator = "<gitlab:ai-society/core/dep@v1>"
         with tempfile.TemporaryDirectory() as td:

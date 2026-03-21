@@ -69,6 +69,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import textwrap
@@ -470,17 +471,52 @@ def plan_file(relpath: str, content: str, *, allow_modify: bool = False) -> None
     planned_actions.append({"path": relpath, "action": "create"})
 
 
+def infer_company_from_target(path: Path) -> str | None:
+    for company in ("holdingco", "softwareco", "healthco"):
+        if company in path.parts:
+            return company
+    return None
+
+
+LEGACY_CORE_LOCATOR_RE = re.compile(r"<gitlab:(?:ai-society/)?(?:core/ontology-kernel|org/ontology-kernel)@[^>]+>")
+LEGACY_COMPANY_LOCATOR_RE = re.compile(r"<gitlab:(?:ai-society/)?(?:org/ontology|holdingco/ontology|softwareco/ontology|healthco/ontology)@[^>]+>")
+
+
+def canonicalize_legacy_manifest(content: str) -> str:
+    updated = LEGACY_CORE_LOCATOR_RE.sub("<repo:core/ontology-kernel@main>", content)
+    company = infer_company_from_target(target)
+    if company is not None and repo_class != "ontology_repo":
+        updated = LEGACY_COMPANY_LOCATOR_RE.sub(f"<repo:{company}/ontology@main>", updated)
+    return updated
+
+
+def plan_manifest_file(relpath: str, default_content: str) -> None:
+    p = target / relpath
+    if p.exists() and p.is_file():
+        current = p.read_text("utf-8")
+        canonicalized = canonicalize_legacy_manifest(current)
+        if canonicalized != current:
+            planned_writes[relpath] = canonicalized
+            planned_actions.append({
+                "path": relpath,
+                "action": "modify",
+                "reason": "canonicalize legacy ontology locators",
+            })
+            return
+    plan_file(relpath, default_content)
+
+
 if policy["ontology_manifest"]:
     scaffold = policy["ontology_scaffold"]
     if scaffold == "repo":
-        plan_file("ontology/manifest.yaml", REPO_MANIFEST)
+        plan_manifest_file("ontology/manifest.yaml", REPO_MANIFEST)
         plan_file("ontology/index.md", ONTOLOGY_INDEX)
         plan_file("ontology/src/system4d.yaml", REPO_SYSTEM4D)
         plan_file("ontology/src/bridge/mapping.yaml", BRIDGE_MAPPING)
         plan_file("ontology/src/bridge/README.md", BRIDGE_README)
         plan_file("ontology/src/reference/concepts/README.md", CONCEPTS_README)
     elif scaffold == "ontology_repo":
-        plan_file("ontology/manifest.yaml", ONTOLOGY_REPO_MANIFEST)
+        plan_manifest_file("ontology/manifest.yaml", ONTOLOGY_REPO_MANIFEST)
         plan_file("ontology/src/system4d.yaml", ONTOLOGY_REPO_SYSTEM4D)
 else:
     planned_actions.append({"path": "ontology/*", "action": "skip", "reason": "class policy: not required"})

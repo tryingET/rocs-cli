@@ -37,6 +37,8 @@ def _mk_repo(
     manifest: bool,
     ci_gate: bool,
     ci_contract: str = "current",
+    manifest_text: str | None = None,
+    workspace_contract: bool = True,
 ) -> Path:
     repo = workspace_root / rel
     repo.mkdir(parents=True, exist_ok=True)
@@ -48,7 +50,7 @@ def _mk_repo(
         )
 
     if manifest:
-        _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
+        _write(repo / "ontology" / "manifest.yaml", manifest_text or "rocs:\n  layer: repo\n")
 
     if ci_gate:
         if ci_contract == "current":
@@ -67,7 +69,10 @@ def _mk_repo(
                     ]
                 ),
             )
-            _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
+            wrapper = "#!/usr/bin/env bash\nset -euo pipefail\n"
+            if workspace_contract:
+                wrapper += "export ROCS_WORKSPACE_ROOT=\"${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}\"\nexport ROCS_WORKSPACE_REF_MODE=\"${ROCS_WORKSPACE_REF_MODE:-loose}\"\n"
+            _write(repo / "scripts" / "ci" / "full.sh", wrapper)
         else:
             _write(repo / "gitlab" / "ci" / "rocs.yml", "stages:\n  - validate\n")
         _write(repo / ".gitlab-ci.yml", "include:\n  - local: 'gitlab/ci/rocs.yml'\n")
@@ -318,6 +323,88 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(evidence["include_present"], True)
             self.assertEqual(evidence["wrapper_call_present"], True)
             self.assertEqual(evidence["profile_contract_present"], False)
+
+    def test_repo_locators_require_workspace_aware_wrapper_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+                manifest_text="\n".join(
+                    [
+                        "rocs:",
+                        "  layers:",
+                        "    - name: core",
+                        "      ref: '<repo:core/ontology-kernel@main>'",
+                        "    - name: company",
+                        "      ref: '<repo:softwareco/ontology@main>'",
+                        "",
+                    ]
+                ) + "\n",
+                workspace_contract=False,
+            )
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["rocs_ci_gate"])
+            self.assertEqual(evidence["workspace_contract_required"], True)
+            self.assertEqual(evidence["workspace_root_present"], False)
+            self.assertEqual(evidence["workspace_ref_mode_present"], False)
+
+    def test_legacy_gitlab_locators_fail_manifest_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+                manifest_text="\n".join(
+                    [
+                        "rocs:",
+                        "  layers:",
+                        "    - name: core",
+                        "      ref: '<gitlab:ai-society/core/ontology-kernel@v0.1.0>'",
+                        "    - name: company",
+                        "      ref: '<gitlab:ai-society/softwareco/ontology@v0.1.0>'",
+                        "",
+                    ]
+                ) + "\n",
+            )
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["ontology_manifest"]
+            self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["ontology_manifest"])
+            self.assertEqual(evidence["locator_kind"], "gitlab")
+            self.assertEqual(evidence["contract_reason"], "legacy_gitlab_locators")
 
     def test_output_is_deterministic_across_repeated_runs(self) -> None:
         with tempfile.TemporaryDirectory() as td:

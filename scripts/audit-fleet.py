@@ -48,6 +48,10 @@ ROOT_CI_CANDIDATES: tuple[str, ...] = (
     ".gitlab-ci.yml.jinja",
 )
 
+LOCATOR_RE = re.compile(r"<(?P<kind>repo|gitlab):[^>]+>")
+WORKSPACE_ROOT_TOKEN_RE = re.compile(r"ROCS_WORKSPACE_ROOT|--workspace-root")
+WORKSPACE_REF_MODE_TOKEN_RE = re.compile(r"ROCS_WORKSPACE_REF_MODE|--workspace-ref-mode")
+
 
 class PolicyError(ValueError):
     pass
@@ -177,6 +181,78 @@ def _find_existing(base: Path, candidates: tuple[str, ...]) -> list[str]:
     return found
 
 
+def _manifest_contract_status(base: Path, manifest_hits: list[str]) -> tuple[bool, dict[str, Any], bool]:
+    if not manifest_hits:
+        return False, {"primary_hit": None, "locator_kind": "missing", "locators": []}, False
+
+    primary_hit = manifest_hits[0]
+    manifest_path = base / primary_hit
+    try:
+        text = manifest_path.read_text("utf-8")
+    except UnicodeDecodeError:
+        return False, {"primary_hit": primary_hit, "locator_kind": "invalid", "parse_error": "not utf-8", "locators": []}, False
+
+    locators = [
+        {"kind": match.group("kind"), "value": match.group(0)}
+        for match in LOCATOR_RE.finditer(text)
+    ]
+    repo_locators = [entry["value"] for entry in locators if entry["kind"] == "repo"]
+    gitlab_locators = [entry["value"] for entry in locators if entry["kind"] == "gitlab"]
+
+    if gitlab_locators and repo_locators:
+        locator_kind = "mixed"
+    elif gitlab_locators:
+        locator_kind = "gitlab"
+    elif repo_locators:
+        locator_kind = "repo"
+    else:
+        locator_kind = "none"
+
+    contract_ok = not gitlab_locators
+    evidence = {
+        "primary_hit": primary_hit,
+        "locator_kind": locator_kind,
+        "locators": locators,
+        "requires_workspace_contract": bool(repo_locators),
+    }
+    if gitlab_locators:
+        evidence["contract_reason"] = "legacy_gitlab_locators"
+
+    return contract_ok, evidence, bool(repo_locators)
+
+
+def _wrapper_workspace_contract(base: Path, wrapper_hits: list[str]) -> tuple[bool, dict[str, Any]]:
+    checked: list[str] = []
+    parse_errors: dict[str, str] = {}
+    workspace_root_present = False
+    workspace_ref_mode_present = False
+
+    for rel in wrapper_hits:
+        p = base / rel
+        if not p.is_file():
+            continue
+        checked.append(rel)
+        try:
+            text = p.read_text("utf-8")
+        except UnicodeDecodeError:
+            parse_errors[rel] = "not utf-8"
+            continue
+        if WORKSPACE_ROOT_TOKEN_RE.search(text):
+            workspace_root_present = True
+        if WORKSPACE_REF_MODE_TOKEN_RE.search(text):
+            workspace_ref_mode_present = True
+
+    ok = workspace_root_present and workspace_ref_mode_present
+    evidence: dict[str, Any] = {
+        "wrapper_workspace_checked": checked,
+        "workspace_root_present": workspace_root_present,
+        "workspace_ref_mode_present": workspace_ref_mode_present,
+    }
+    if parse_errors:
+        evidence["wrapper_workspace_parse_errors"] = parse_errors
+    return ok, evidence
+
+
 _WRAPPER_CALL_RE = re.compile(r"(?:^|\s)(?:(?:bash|sh)\s+)?(?:\./)?scripts/ci/full\.sh(?:\s|$)")
 _PROFILE_ASSIGN_RE = re.compile(r"(?:^|\s)ROCS_CI_PROFILE=[^\s]+")
 _PROFILE_EXPORT_RE = re.compile(r"^\s*export\s+ROCS_CI_PROFILE=[^\s]+")
@@ -266,7 +342,7 @@ def _ci_include_present(base: Path) -> tuple[bool, list[str], dict[str, str]]:
     return False, checked, parse_errors
 
 
-def _ci_contract_status(base: Path, snippet_hits: list[str]) -> tuple[bool, dict[str, Any]]:
+def _ci_contract_status(base: Path, snippet_hits: list[str], *, requires_workspace_contract: bool) -> tuple[bool, dict[str, Any]]:
     wrapper_hits = _find_existing(base, ROCS_CI_WRAPPER_CANDIDATES)
     wrapper_call_present = False
     profile_contract_present = False
@@ -294,12 +370,19 @@ def _ci_contract_status(base: Path, snippet_hits: list[str]) -> tuple[bool, dict
             if has_inline_profile or (has_wrapper and has_export_profile):
                 profile_contract_present = True
 
+    workspace_contract_ok, workspace_contract_evidence = _wrapper_workspace_contract(base, wrapper_hits)
+
     ok = bool(wrapper_hits) and wrapper_call_present and profile_contract_present
+    if requires_workspace_contract:
+        ok = ok and workspace_contract_ok
+
     evidence = {
         "wrapper_hits": wrapper_hits,
         "snippet_contract_checked": snippet_contract_checked,
         "wrapper_call_present": wrapper_call_present,
         "profile_contract_present": profile_contract_present,
+        "workspace_contract_required": requires_workspace_contract,
+        **workspace_contract_evidence,
         "script_contexts_checked": script_contexts_checked,
     }
     if snippet_parse_errors:
@@ -335,13 +418,21 @@ def _detect_capabilities(resolved_path: Path) -> tuple[dict[str, bool], dict[str
             vendored_reason = "invalid_json"
 
     manifest_hits = _find_existing(resolved_path, MANIFEST_CANDIDATES)
+    manifest_contract_ok, manifest_contract_evidence, requires_workspace_contract = _manifest_contract_status(
+        resolved_path,
+        manifest_hits,
+    )
     ci_snippet_hits = _find_existing(resolved_path, ROCS_CI_SNIPPET_CANDIDATES)
     ci_include_present, ci_roots_checked, ci_root_parse_errors = _ci_include_present(resolved_path)
-    ci_contract_ok, ci_contract_evidence = _ci_contract_status(resolved_path, ci_snippet_hits)
+    ci_contract_ok, ci_contract_evidence = _ci_contract_status(
+        resolved_path,
+        ci_snippet_hits,
+        requires_workspace_contract=requires_workspace_contract,
+    )
 
     observed = {
         "rocs_cli_vendored": rocs_cli_vendored,
-        "ontology_manifest": bool(manifest_hits),
+        "ontology_manifest": bool(manifest_hits) and manifest_contract_ok,
         "rocs_ci_gate": bool(ci_snippet_hits) and ci_include_present and ci_contract_ok,
     }
 
@@ -352,6 +443,7 @@ def _detect_capabilities(resolved_path: Path) -> tuple[dict[str, bool], dict[str
         },
         "ontology_manifest": {
             "hits": manifest_hits,
+            **manifest_contract_evidence,
         },
         "rocs_ci_gate": {
             "snippet_hits": ci_snippet_hits,

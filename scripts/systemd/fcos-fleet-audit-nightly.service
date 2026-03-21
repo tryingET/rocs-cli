@@ -1,0 +1,16 @@
+[Unit]
+Description=FCOS nightly fleet audit + remediation batch generation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/tryinget/ai-society/core/rocs-cli
+Environment=FCOS_WORKSPACE_ROOT=/home/tryinget/ai-society
+Environment=FCOS_REMEDIATION_MODE=patch
+ExecStart=/usr/bin/env bash -lc 'cd /home/tryinget/ai-society/core/rocs-cli && exec ./scripts/run-fleet-audit-nightly.sh'
+StandardOutput=journal
+StandardError=journal
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

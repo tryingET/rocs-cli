@@ -1,0 +1,12 @@
+[Unit]
+Description=Run FCOS fleet audit every night
+
+[Timer]
+OnBootSec=20m
+OnCalendar=daily
+RandomizedDelaySec=30m
+Persistent=true
+Unit=fcos-fleet-audit-nightly.service
+
+[Install]
+WantedBy=timers.target
