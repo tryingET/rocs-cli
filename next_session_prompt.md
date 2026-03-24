@@ -75,9 +75,9 @@ Should this policy live primarily in:
 - Add/adjust tests for any new CLI semantics before implementation.
 
 ## Checkpoint fields (fill before commit)
-- Decision chosen:
-- Why this option:
-- Files changed:
-- Tests run/results:
-- Consumer migration impact:
-- Rollback plan:
+- Decision chosen: Option C — hybrid caller-profile policy with `rocs-cli` mechanics unchanged.
+- Why this option: It preserves authoritative ref resolution on branch/main CI, keeps local runs usable by default, and avoids inventing a second strictness model inside the CLI.
+- Files changed: `scripts/ci/full.sh`, `README.md`, `docs/ref-resolution-ci-strategy.md`, `tests/test_workspace_resolution.py`, `next_session_prompt.md`.
+- Tests run/results: `uv run python -m unittest tests.test_workspace_resolution -q` ✅; `uv run python -m unittest discover -s tests -p 'test_*.py' -q` ✅ (`Ran 118 tests`).
+- Consumer migration impact: Template consumers should keep calling `scripts/ci/full.sh` via `ROCS_CI_PROFILE`; branch/main now default workspace matching to `strict`, while local-dev stays offline-first unless `ROCS_LOCAL_RESOLVE_REFS=1`.
+- Rollback plan: Revert the wrapper/profile-default change in `scripts/ci/full.sh` and fall back to explicit per-consumer `ROCS_WORKSPACE_REF_MODE` overrides if any downstream repo depends on loose workspace matching in CI.

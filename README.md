@@ -88,12 +88,13 @@ Tests:
 CI profile wrapper (template-side policy contract):
 - Script: `scripts/ci/full.sh`
 - Profiles via `ROCS_CI_PROFILE=local-dev|branch-ci|main-strict`
-  - `local-dev`: offline-first default; set `ROCS_LOCAL_RESOLVE_REFS=1` to force strict ref checks locally
-  - `branch-ci`: requires `--resolve-refs` (fail-closed)
-  - `main-strict`: requires `--resolve-refs` (authoritative fail-closed gate)
+  - `local-dev`: offline-first default; `--resolve-refs` stays off unless `ROCS_LOCAL_RESOLVE_REFS=1`, and that opt-in path defaults workspace matching to `strict`
+  - `branch-ci`: requires `--resolve-refs` and defaults workspace matching to `strict` (fail-closed)
+  - `main-strict`: requires `--resolve-refs` and defaults workspace matching to `strict` (authoritative fail-closed gate)
 - Timeout contract in the wrapper:
   - `branch-ci`: `ROCS_GITLAB_TIMEOUT_S=30`, `ROCS_GITLAB_RETRIES=3`
   - `main-strict`: `ROCS_GITLAB_TIMEOUT_S=60`, `ROCS_GITLAB_RETRIES=3`
+- `ROCS_WORKSPACE_REF_MODE` remains an explicit override when a caller intentionally needs different behavior.
 - See `docs/ref-resolution-ci-strategy.md` for the architecture/policy rationale and migration guidance.
 - Optional overrides:
   - `ROCS_CMD` (default: `uv run python -m rocs_cli`)

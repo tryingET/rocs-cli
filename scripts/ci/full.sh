@@ -3,16 +3,39 @@ set -euo pipefail
 
 # ROCS CI profile wrapper
 # Profiles:
-#   - local-dev   : offline-first by default (refs optional)
-#   - branch-ci   : strict refs required
-#   - main-strict : strict refs required (authoritative gate)
+#   - local-dev   : offline-first by default (refs optional; workspace matching defaults loose)
+#   - branch-ci   : strict refs required (workspace matching defaults strict)
+#   - main-strict : strict refs required (authoritative gate; workspace matching defaults strict)
 
 ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"
 ROCS_REPO="${ROCS_REPO:-.}"
 ROCS_PROFILE="${ROCS_PROFILE:-}"
 ROCS_CMD="${ROCS_CMD:-uv run python -m rocs_cli}"
 workspace_root="${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}"
-workspace_ref_mode="${ROCS_WORKSPACE_REF_MODE:-loose}"
+workspace_ref_mode="${ROCS_WORKSPACE_REF_MODE:-}"
+
+profile_default_workspace_ref_mode() {
+  case "$ROCS_CI_PROFILE" in
+    local-dev)
+      if [[ "${ROCS_LOCAL_RESOLVE_REFS:-0}" == "1" ]]; then
+        echo "strict"
+      else
+        echo "loose"
+      fi
+      ;;
+    branch-ci|main-strict)
+      echo "strict"
+      ;;
+    *)
+      echo "loose"
+      ;;
+  esac
+}
+
+if [[ -z "$workspace_ref_mode" ]]; then
+  workspace_ref_mode="$(profile_default_workspace_ref_mode)"
+fi
+
 export ROCS_AUTHORITY_AGGREGATE=1
 export ROCS_WORKSPACE_ROOT="$workspace_root"
 export ROCS_WORKSPACE_REF_MODE="$workspace_ref_mode"
@@ -40,6 +63,7 @@ strict_gate() {
 case "$ROCS_CI_PROFILE" in
   local-dev)
     # Keep local loops fast/offline unless explicitly requested.
+    # When ROCS_LOCAL_RESOLVE_REFS=1, the default workspace ref mode flips to strict.
     clean_dist
     if [[ "${ROCS_LOCAL_RESOLVE_REFS:-0}" == "1" ]]; then
       run_rocs validate "${common_args[@]}" --resolve-refs

@@ -515,6 +515,57 @@ class TestWorkspaceResolution(unittest.TestCase):
             aggregate = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
             self.assertEqual(sorted(aggregate.get("commands", {}).keys()), ["build", "validate"])
 
+    def test_ci_wrapper_branch_ci_defaults_workspace_matching_to_strict(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=True)
+
+            with _Env(
+                ROCS_CACHE_DIR=str(cache),
+                ROCS_CI_PROFILE="branch-ci",
+                ROCS_REPO=str(repo),
+                ROCS_WORKSPACE_ROOT=str(ws),
+                ROCS_CMD="uv run python -m rocs_cli",
+            ):
+                proc = subprocess.run(
+                    ["bash", "scripts/ci/full.sh"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            self.assertNotEqual(proc.returncode, 0)
+            combined = (proc.stdout + proc.stderr).replace("\n", " ")
+            self.assertIn("ref mismatch in strict mode", combined)
+
+    def test_ci_wrapper_local_dev_opt_in_defaults_workspace_matching_to_strict(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
+            ws = td_path / "ws"
+            cache = td_path / "cache"
+            _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=True)
+
+            with _Env(
+                ROCS_CACHE_DIR=str(cache),
+                ROCS_CI_PROFILE="local-dev",
+                ROCS_LOCAL_RESOLVE_REFS="1",
+                ROCS_REPO=str(repo),
+                ROCS_WORKSPACE_ROOT=str(ws),
+                ROCS_CMD="uv run python -m rocs_cli",
+            ):
+                proc = subprocess.run(
+                    ["bash", "scripts/ci/full.sh"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            self.assertNotEqual(proc.returncode, 0)
+            combined = (proc.stdout + proc.stderr).replace("\n", " ")
+            self.assertIn("ref mismatch in strict mode", combined)
+
     def test_build_authority_receipt_marks_legacy_gitlab_fallback(self) -> None:
         locator = "<gitlab:ai-society/core/dep@v1>"
         with tempfile.TemporaryDirectory() as td:
