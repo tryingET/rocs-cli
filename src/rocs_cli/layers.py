@@ -7,13 +7,6 @@ from pathlib import Path
 import yaml
 
 from rocs_cli.errors import RocsCliError
-from rocs_cli.gitlab import (
-    fetch_repo_archive,
-    gitlab_base_url,
-    gitlab_headers,
-    gitlab_cache_complete_dest,
-    gitlab_cache_is_complete,
-)
 from rocs_cli.workspace import (
     git_head_sha,
     git_rev_sha,
@@ -33,7 +26,7 @@ class LayerSpec:
     src_root: Path
     origin: str  # path or ref locator
     kind: str  # path|ref
-    source: str  # path|workspace|cache|gitlab
+    source: str  # path|workspace
 
 
 def repo_root(repo: str) -> Path:
@@ -99,11 +92,15 @@ def parse_ref_locator(locator: str) -> tuple[str, str, str] | None:
     return m.group(1), m.group(2), m.group(3)
 
 
-def parse_gitlab_ref(locator: str) -> tuple[str, str] | None:
-    parsed = parse_ref_locator(locator)
-    if not parsed or parsed[0] != "gitlab":
-        return None
-    return parsed[1], parsed[2]
+def _unsupported_gitlab_locator(locator: str, *, project_path: str, ref: str) -> RocsCliError:
+    return RocsCliError(
+        kind="config",
+        message=(
+            f"legacy gitlab ref locators are no longer supported: {locator} "
+            f"(migrate to <repo:{project_path}@{ref}> and resolve from a local workspace checkout)"
+        ),
+        details={"locator": locator, "project_path": project_path, "ref": ref, "replacement": f"<repo:{project_path}@{ref}>"},
+    )
 
 
 def _repo_root_for_ref(
@@ -117,9 +114,11 @@ def _repo_root_for_ref(
     if not parsed:
         raise RocsCliError(
             kind="usage",
-            message=f"invalid ref locator (expected <repo:...@...> or legacy <gitlab:...@...>): {locator!r}",
+            message=f"invalid ref locator (expected <repo:...@...>): {locator!r}",
         )
     scheme, project_path, ref = parsed
+    if scheme != "repo":
+        raise _unsupported_gitlab_locator(locator, project_path=project_path, ref=ref)
     if not resolve_refs:
         raise RocsCliError(
             kind="offline-first",
@@ -128,7 +127,6 @@ def _repo_root_for_ref(
 
     notes: dict = {"scheme": scheme, "workspace": {"present": False, "used": False, "reason": None}}
     mismatch_details: dict | None = None
-    require_origin_match = scheme == "gitlab"
 
     if workspace_root is not None:
         if workspace_repo_exists(workspace_root, project_path):
@@ -138,12 +136,12 @@ def _repo_root_for_ref(
                 "workspace_ref_mode": workspace_ref_mode,
                 "project_path": project_path,
                 "requested_ref": ref,
-                "require_origin_match": require_origin_match,
+                "require_origin_match": False,
             }
         ws_repo_root = pick_workspace_repo_root(
             workspace_root,
             project_path,
-            require_origin_match=require_origin_match,
+            require_origin_match=False,
         )
         if ws_repo_root is not None:
             if workspace_ref_mode == "loose":
@@ -166,51 +164,25 @@ def _repo_root_for_ref(
             if workspace_ref_mode == "strict":
                 notes["workspace"]["reason"] = "ref_mismatch"
         elif notes["workspace"]["present"]:
-            notes["workspace"]["reason"] = "origin_mismatch" if require_origin_match else "not_git_repo"
+            notes["workspace"]["reason"] = "not_git_repo"
 
-    if gitlab_cache_is_complete(project_path, ref):
-        repo = gitlab_cache_complete_dest(project_path, ref)
-        if repo is None:
-            raise RocsCliError(kind="internal", message=f"cache lookup drifted for {project_path!r}@{ref!r}")
-        if notes["workspace"]["present"] and notes["workspace"]["reason"] is None:
-            notes["workspace"]["reason"] = "not_used"
-        return repo, locator, "cache", notes
-
-    if scheme == "repo":
-        details: dict = {
-            "project_path": project_path,
-            "requested_ref": ref,
-        }
-        if workspace_root is not None:
-            details["workspace_root"] = str(workspace_root)
+    details: dict = {
+        "project_path": project_path,
+        "requested_ref": ref,
+    }
+    if workspace_root is not None:
+        details["workspace_root"] = str(workspace_root)
+    message = (
+        f"local ref not available in workspace: {locator} "
+        "(set --workspace-root / ROCS_WORKSPACE_ROOT and checkout the dependency repo locally)"
+    )
+    if mismatch_details and workspace_ref_mode == "strict":
+        details["workspace_ref_mismatch"] = mismatch_details
         message = (
-            f"local ref not available in workspace/cache: {locator} "
-            "(set --workspace-root / ROCS_WORKSPACE_ROOT and checkout the dependency repo locally)"
+            f"local ref not available in workspace: {locator} "
+            f"(workspace ref mismatch in strict mode; checkout {ref!r} or use --workspace-ref-mode loose)"
         )
-        if mismatch_details and workspace_ref_mode == "strict":
-            details["workspace_ref_mismatch"] = mismatch_details
-            message = (
-                f"local ref not available in workspace/cache: {locator} "
-                f"(workspace ref mismatch in strict mode; checkout {ref!r} or use --workspace-ref-mode loose)"
-            )
-        raise RocsCliError(kind="not_found", message=message, details=details)
-
-    try:
-        repo = fetch_repo_archive(project_path, ref, base_url=gitlab_base_url(), headers=gitlab_headers())
-        if notes["workspace"]["present"] and notes["workspace"]["reason"] is None:
-            notes["workspace"]["reason"] = "not_used"
-        return repo, locator, "gitlab", notes
-    except RocsCliError as e:
-        if mismatch_details and workspace_ref_mode == "strict":
-            details = dict(e.details or {})
-            details["workspace_ref_mismatch"] = mismatch_details
-            raise RocsCliError(
-                kind=e.kind,
-                message=f"{e.message} (workspace ref mismatch in strict mode; checkout {ref!r} or use --workspace-ref-mode loose)",
-                exit_code=e.exit_code,
-                details=details,
-            ) from None
-        raise
+    raise RocsCliError(kind="not_found", message=message, details=details)
 
 
 def resolve_ref_repo_root(

@@ -22,16 +22,16 @@ Notes:
 
 ## Files
 
-### `resolve.json` (`schema_version: 1`)
+### `resolve.json` (`schema_version: 2`)
 Written by `rocs resolve --write-dist` and `rocs build`.
 
-Top-level keys (v1):
+Top-level keys (v2):
 - `schema_version` (int)
 - `version` (string; rocs-cli version)
 - `repo` (string; repo root path used for this run)
 - `profile` (string|null)
 - `layers` (list):
-  - `name`, `kind`, `origin`, `source`, `src_root`, `cache_repo_root`
+  - `name`, `kind`, `origin`, `source`, `src_root`
 
 ### `summary.json` (`schema_version: 1`)
 Written by `rocs build`.
@@ -53,7 +53,7 @@ Top-level keys (v1):
 - `schema_version` (int)
 - `items` (list of objects; see `src/rocs_cli/id_index.py`)
 
-### `authority-receipt.json` (`schema_version: 2`)
+### `authority-receipt.json` (`schema_version: 3`)
 Aggregate authority/provenance artifact written by `rocs build` and `rocs validate` when the repo has an `ontology/` root.
 
 Notes:
@@ -63,10 +63,9 @@ Notes:
 Purpose:
 - preserve command-by-command authority evidence instead of overwriting the last writer
 - make run authority/provenance explicit for local-dev vs strict ref-resolving workflows
-- expose which source satisfied each layer (`path|workspace|cache|gitlab`)
-- make legacy GitLab fallback visible to CI/archive consumers
+- expose which source satisfied each layer (`path|workspace`)
 
-Top-level keys (v2):
+Top-level keys (v3):
 - `schema_version` (int)
 - `version` (string; rocs-cli version)
 - `repo` (string)
@@ -74,10 +73,10 @@ Top-level keys (v2):
 - `command_files` (object mapping command → `authority-receipt.<command>.json`)
 - `commands` (object mapping command → per-command receipt payload)
 
-### `authority-receipt.<command>.json` (`schema_version: 2`)
+### `authority-receipt.<command>.json` (`schema_version: 3`)
 Per-command authority/provenance artifact for `build` / `validate`.
 
-Top-level keys (v2):
+Top-level keys (v3):
 - `schema_version` (int)
 - `version` (string; rocs-cli version)
 - `command` (`build|validate`)
@@ -94,7 +93,6 @@ Top-level keys (v2):
 - `loose_workspace_ref_layers_used` (int)
 - `layer_sources` (list of `{name, kind, locator_kind, origin, source}`)
 - `locator_kinds_present` (sorted list)
-- `legacy_gitlab_fallback_used` (bool)
 - `result` (object, optional; currently validation finding counts)
 - `error` (object, optional; normalized `kind`/`message`/`details` when artifact was emitted on handled command failure)
 

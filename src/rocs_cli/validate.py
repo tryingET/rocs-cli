@@ -11,7 +11,7 @@ import re
 
 
 PLACEHOLDER_RE = re.compile(r"<[^>]+>")
-REF_LOCATOR_RE = re.compile(r"^<(repo|gitlab):([^@>]+)@([^>]+)>$")
+REF_LOCATOR_RE = re.compile(r"^<repo:([^@>]+)@([^>]+)>$")
 
 _ALLOWED_CONCEPT_KEYS = {
     "id",

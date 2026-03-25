@@ -143,7 +143,6 @@ def authority_receipt_payload(
     locator_kinds: set[str] = set()
     ref_layers_present = False
     ref_layer_count = 0
-    legacy_gitlab_fallback_used = False
     loose_workspace_ref_layers_used = 0
 
     for layer_spec in sorted(layers, key=lambda x: x.name):
@@ -153,8 +152,6 @@ def authority_receipt_payload(
             ref_layer_count += 1
             if layer_spec.source == "workspace" and workspace_ref_mode == "loose":
                 loose_workspace_ref_layers_used += 1
-        if layer_spec.source == "gitlab":
-            legacy_gitlab_fallback_used = True
         locator_kinds.add(locator_kind)
         layer_sources.append(
             {
@@ -175,7 +172,7 @@ def authority_receipt_payload(
     )
 
     payload: dict[str, object] = {
-        "schema_version": 2,
+        "schema_version": 3,
         "version": __version__,
         "command": command,
         "ok": ok,
@@ -191,7 +188,6 @@ def authority_receipt_payload(
         "loose_workspace_ref_layers_used": loose_workspace_ref_layers_used,
         "layer_sources": layer_sources,
         "locator_kinds_present": sorted(locator_kinds),
-        "legacy_gitlab_fallback_used": legacy_gitlab_fallback_used,
     }
     if result:
         payload["result"] = result
@@ -224,7 +220,7 @@ def write_authority_receipt(repo_root: Path, payload: dict) -> dict[str, Path]:
                 existing = json.loads(aggregate_out.read_text("utf-8"))
             except Exception:
                 existing = None
-            if isinstance(existing, dict) and existing.get("schema_version") == 2:
+            if isinstance(existing, dict) and existing.get("schema_version") == 3:
                 cmds = existing.get("commands")
                 if isinstance(cmds, dict):
                     existing_commands = {str(k): v for k, v in cmds.items()}
@@ -241,7 +237,7 @@ def write_authority_receipt(repo_root: Path, payload: dict) -> dict[str, Path]:
         existing_files[command] = command_out.name
 
         aggregate_payload = {
-            "schema_version": 2,
+            "schema_version": 3,
             "version": __version__,
             "repo": str(repo_root),
             "last_command": command,

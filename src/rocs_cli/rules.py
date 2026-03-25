@@ -43,7 +43,7 @@ register_rule("STRUCT001", default_severity="error", summary="missing ontology/m
 register_rule("STRUCT010", default_severity="error", summary="missing layer src_root")
 register_rule("STRUCT011", default_severity="error", summary="missing layer system4d.yaml")
 
-register_rule("PLACE001", default_severity="error", summary="manifest placeholder token (non-gitlab locator)")
+register_rule("PLACE001", default_severity="error", summary="manifest placeholder token (non-ref locator)")
 register_rule("PLACE010", default_severity="error", summary="placeholder token found in ontology content")
 
 register_rule("REL001", default_severity="error", summary="relation label collision")

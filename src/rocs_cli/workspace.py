@@ -50,7 +50,7 @@ _SCP_LIKE_RE = re.compile(r"^(?P<user>[^@]+)@(?P<host>[^:]+):(?P<path>.+)$")
 
 def _project_path_from_remote_url(remote_url: str) -> str | None:
     """
-    Extract a GitLab-style `<group>/<subgroup>/<repo>` from common Git remote URL forms:
+    Extract a workspace-style `<group>/<subgroup>/<repo>` path from common Git remote URL forms:
     - https://host/group/subgroup/repo(.git)
     - http://host/group/subgroup/repo(.git)
     - ssh://git@host/group/subgroup/repo(.git)

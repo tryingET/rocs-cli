@@ -12,12 +12,10 @@ Keep CLI small + boring:
 - deterministic output
 - no secrets
 
-GitLab / issues:
-- Self-hosted GitLab (nas): use `gl-nas` wrapper (python-gitlab CLI) to view/update issues/MRs, e.g.
-  - `gl-nas -- project get --id ai-society/core/rocs-cli`
-  - `gl-nas -- project-issue get --project-id 15 --iid 1`
-- Git over HTTP (clone/fetch/push): use `gl-nas-git -- <git args...>` (non-interactive; avoids username/token prompts).
-- Reference: `holdingco/governance-kernel/docs/dev/gitlab-access.md`.
+Remote workflow:
+- Do not rely on GitLab-specific wrappers or remote archive fetches from this repo.
+- Prefer local commits plus deterministic local gates (`scripts/ci/full.sh`, tests, and hook/Pi wiring in consumers).
+- If remote coordination is needed later, document the replacement workflow explicitly instead of reintroducing GitLab assumptions.
 
 Local dev:
 - `uv run python -m rocs_cli --help`

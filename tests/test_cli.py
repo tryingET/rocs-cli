@@ -195,7 +195,7 @@ class TestRocsCli(unittest.TestCase):
             self.assertTrue(aggregate.exists())
             self.assertTrue(command_receipt.exists())
             payload = json.loads(command_receipt.read_text("utf-8"))
-            self.assertEqual(payload.get("schema_version"), 2)
+            self.assertEqual(payload.get("schema_version"), 3)
             self.assertEqual(payload.get("command"), "validate")
             self.assertEqual(payload.get("ok"), True)
             self.assertEqual(payload.get("authority_mode"), "local_only")
@@ -207,7 +207,7 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(payload.get("result", {}).get("finding_count"), 0)
 
             aggregate_payload = json.loads(aggregate.read_text("utf-8"))
-            self.assertEqual(aggregate_payload.get("schema_version"), 2)
+            self.assertEqual(aggregate_payload.get("schema_version"), 3)
             self.assertEqual(aggregate_payload.get("last_command"), "validate")
             self.assertIn("validate", aggregate_payload.get("commands", {}))
             self.assertEqual(aggregate_payload.get("command_files", {}).get("validate"), "authority-receipt.validate.json")
@@ -358,33 +358,33 @@ class TestRocsCli(unittest.TestCase):
     def test_rocs_env_file_default_is_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             env_file = Path(td) / ".env"
-            env_file.write_text("ROCS_GITLAB_BASE_URL=http://example.invalid\n", "utf-8")
+            env_file.write_text("ROCS_WORKSPACE_ROOT=/tmp/example-workspace\n", "utf-8")
 
             prev_env_file = os.environ.get("ROCS_ENV_FILE")
-            prev_base_url = os.environ.get("ROCS_GITLAB_BASE_URL")
+            prev_workspace_root = os.environ.get("ROCS_WORKSPACE_ROOT")
             try:
                 os.environ["ROCS_ENV_FILE"] = str(env_file)
-                os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                os.environ.pop("ROCS_WORKSPACE_ROOT", None)
 
                 repo = _mk_repo(Path(td))
                 self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
-                self.assertEqual(os.environ.get("ROCS_GITLAB_BASE_URL"), "http://example.invalid")
+                self.assertEqual(os.environ.get("ROCS_WORKSPACE_ROOT"), "/tmp/example-workspace")
             finally:
                 if prev_env_file is None:
                     os.environ.pop("ROCS_ENV_FILE", None)
                 else:
                     os.environ["ROCS_ENV_FILE"] = prev_env_file
-                if prev_base_url is None:
-                    os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                if prev_workspace_root is None:
+                    os.environ.pop("ROCS_WORKSPACE_ROOT", None)
                 else:
-                    os.environ["ROCS_GITLAB_BASE_URL"] = prev_base_url
+                    os.environ["ROCS_WORKSPACE_ROOT"] = prev_workspace_root
 
     def test_workspace_default_env_is_loaded(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             ws = Path(td) / "ai-society"
             env_file = ws / "holdingco" / "governance-kernel" / ".env"
             env_file.parent.mkdir(parents=True, exist_ok=True)
-            env_file.write_text("ROCS_GITLAB_BASE_URL=http://workspace.invalid\n", "utf-8")
+            env_file.write_text("ROCS_WORKSPACE_ROOT=/tmp/workspace-from-default-env\n", "utf-8")
 
             repo_root = ws / "holdingco" / "projects" / "xrepo"
             _write(
@@ -403,33 +403,33 @@ class TestRocsCli(unittest.TestCase):
             _write(repo_root / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
 
             prev_env_file = os.environ.get("ROCS_ENV_FILE")
-            prev_base_url = os.environ.get("ROCS_GITLAB_BASE_URL")
+            prev_workspace_root = os.environ.get("ROCS_WORKSPACE_ROOT")
             try:
                 os.environ.pop("ROCS_ENV_FILE", None)
-                os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                os.environ.pop("ROCS_WORKSPACE_ROOT", None)
                 self.assertEqual(_run(["validate", "--repo", str(repo_root)]), 0)
-                self.assertEqual(os.environ.get("ROCS_GITLAB_BASE_URL"), "http://workspace.invalid")
+                self.assertEqual(os.environ.get("ROCS_WORKSPACE_ROOT"), "/tmp/workspace-from-default-env")
             finally:
                 if prev_env_file is None:
                     os.environ.pop("ROCS_ENV_FILE", None)
                 else:
                     os.environ["ROCS_ENV_FILE"] = prev_env_file
-                if prev_base_url is None:
-                    os.environ.pop("ROCS_GITLAB_BASE_URL", None)
+                if prev_workspace_root is None:
+                    os.environ.pop("ROCS_WORKSPACE_ROOT", None)
                 else:
-                    os.environ["ROCS_GITLAB_BASE_URL"] = prev_base_url
+                    os.environ["ROCS_WORKSPACE_ROOT"] = prev_workspace_root
 
-    def test_strict_placeholders_allows_gitlab_locator_in_manifest(self) -> None:
+    def test_strict_placeholders_rejects_gitlab_locator_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td), manifest_extra='  note: "<gitlab:ai-society/core/ontology-kernel@v0.1.0>"')
-            self.assertEqual(_run(["validate", "--repo", str(repo), "--strict-placeholders"]), 0)
+            self.assertNotEqual(_run(["validate", "--repo", str(repo), "--strict-placeholders"]), 0)
 
     def test_strict_placeholders_allows_repo_locator_in_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td), manifest_extra='  note: "<repo:core/ontology-kernel@main>"')
             self.assertEqual(_run(["validate", "--repo", str(repo), "--strict-placeholders"]), 0)
 
-    def test_only_path_does_not_fetch_ref_layers_without_resolve_refs(self) -> None:
+    def test_only_path_skips_ref_layers_without_resolve_refs(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(
                 Path(td),
@@ -437,35 +437,19 @@ class TestRocsCli(unittest.TestCase):
                     [
                         "  depends_on:",
                         "    - layer: dep",
-                        '      ref: "<gitlab:x/y@main>"',
+                        '      ref: "<repo:core/dep@main>"',
                     ]
                 ),
             )
-
-            import rocs_cli.gitlab as gitlab_mod
-
-            prev = gitlab_mod.fetch_repo_archive
-            gitlab_mod.fetch_repo_archive = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not fetch"))
-            try:
-                self.assertEqual(_run(["validate", "--repo", str(repo), "--only", "path"]), 0)
-            finally:
-                gitlab_mod.fetch_repo_archive = prev
+            self.assertEqual(_run(["validate", "--repo", str(repo), "--only", "path"]), 0)
 
     def test_diff_requires_resolve_refs_offline_first(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td) / "repo"
             repo.mkdir(parents=True, exist_ok=True)
-
-            import rocs_cli.gitlab as gitlab_mod
-
-            prev = gitlab_mod.fetch_repo_archive
-            gitlab_mod.fetch_repo_archive = lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("should not fetch"))
-            try:
-                code, out = _run_capture(["diff", "--repo", str(repo), "--baseline", "<repo:x/y@main>"])
-                self.assertEqual(code, 1)
-                self.assertIn("requires --resolve-refs", out)
-            finally:
-                gitlab_mod.fetch_repo_archive = prev
+            code, out = _run_capture(["diff", "--repo", str(repo), "--baseline", "<repo:x/y@main>"])
+            self.assertEqual(code, 1)
+            self.assertIn("requires --resolve-refs", out)
 
     def test_invalid_manifest_does_not_print_traceback_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -779,7 +763,6 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(receipt.get("ok"), True)
             self.assertEqual(receipt.get("authority_mode"), "local_only")
             self.assertEqual(receipt.get("locator_kinds_present"), ["path"])
-            self.assertEqual(receipt.get("legacy_gitlab_fallback_used"), False)
 
     def test_build_fails_closed_on_invalid_schema(self) -> None:
         with tempfile.TemporaryDirectory() as td:

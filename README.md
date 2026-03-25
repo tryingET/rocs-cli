@@ -30,28 +30,25 @@ Commands:
 Scope (MVP):
 - Validate ROCS repo structure + ontology front matter schema.
 - Build local artifacts into `ontology/dist/`.
-- Emit `ontology/dist/authority-receipt.json` plus per-command `authority-receipt.<command>.json` artifacts for `build`/`validate` runs so CI/local consumers can see authority mode and per-layer resolution sources without losing multi-step evidence.
-- Resolve layered ontology refs from a local workspace first; legacy GitLab fetch remains compatibility-only.
+- Emit `ontology/dist/authority-receipt.json` plus per-command `authority-receipt.<command>.json` artifacts for `build`/`validate` runs so local consumers can see authority mode and per-layer resolution sources without losing multi-step evidence.
+- Resolve layered ontology refs from a local workspace only.
 
 Layer refs (optional):
-- Prefer local-first locators: `<repo:<workspace-relative-project-path>@<ref>>`
+- Supported locator form: `<repo:<workspace-relative-project-path>@<ref>>`
   - example: `<repo:core/ontology-kernel@main>`
   - example: `<repo:softwareco/ontology@main>`
-- Legacy locators are still supported: `<gitlab:<project_path>@<ref>>`
-- `--resolve-refs` enables resolving ref layers.
-- Resolution precedence:
+- Legacy `<gitlab:...>` locators are no longer supported.
+- `--resolve-refs` enables resolving ref layers from the local workspace.
+- Resolution source:
   1) workspace clone (offline)
-  2) cache (offline)
-  3) legacy GitLab fetch (network; legacy `<gitlab:...>` locators only)
 - Workspace config:
   - `--workspace-root <path>` (or `ROCS_WORKSPACE_ROOT`): workspace root containing local clones (recommended: `~/ai-society`).
   - `--workspace-ref-mode strict|loose` (or `ROCS_WORKSPACE_REF_MODE`):
     - `strict` (default): use workspace only if `HEAD` matches the requested ref
     - `loose`: use workspace checkout even if it doesn’t match the requested ref
   - `repo:` locators bind by workspace layout, not remote origin URL.
-  - legacy `gitlab:` locators still require origin-path identity hardening before using a workspace clone.
 - Diagnostics:
-  - `--show-resolve-sources` adds `(source=workspace|cache|gitlab|path)` to `rocs resolve` / `rocs summary` text output.
+  - `--show-resolve-sources` adds `(source=workspace|path)` to `rocs resolve` / `rocs summary` text output.
   - `--show-resolve-details` adds workspace skip reasons in text output and includes per-layer `details` in JSON output.
 - Selector contract:
   - Explicit selectors fail closed. If `--layer` names no declared layer, or `--only`/`--layer` together match nothing, commands return a non-zero error instead of silently operating on zero layers.
@@ -64,9 +61,6 @@ Layer refs (optional):
     - `holdingco/governance-kernel/.env` (when running inside the ai-society workspace)
 - Cache location: `ROCS_CACHE_DIR` or `$XDG_CACHE_HOME/rocs` or `~/.cache/rocs`.
 - Incremental doc/index cache (local-only): enabled by default; disable with `rocs --no-index-cache ...` or `ROCS_INDEX_CACHE=0`. Debug with `rocs --index-cache-debug ...` or `ROCS_INDEX_CACHE_DEBUG=1`.
-- Cache integrity: each fetched ref writes a completion marker `.rocs_cache_ok.json`; entries missing the marker are treated as incomplete and re-fetched. A per-ref lock file prevents concurrent writers.
-- Legacy GitLab config: `ROCS_GITLAB_BASE_URL` (or `GITLAB_BASE_URL`) and `ROCS_GITLAB_TOKEN` (or `PAT_GITLAB`).
-- In legacy GitLab CI, base url falls back to `CI_SERVER_URL`; auth can use `CI_JOB_TOKEN`.
 
 Examples:
 - `rocs resolve --repo . --resolve-refs --workspace-root ~/ai-society --workspace-ref-mode strict --show-resolve-sources`
@@ -75,8 +69,8 @@ Examples:
 
 AI Society convention (recommended):
 - Set `ROCS_WORKSPACE_ROOT=~/ai-society`.
-- Use `<repo:core/ontology-kernel@main>` and `<repo:softwareco/ontology@main>` in manifests for local-first layered repos.
-- Keep legacy `<gitlab:...>` locators only when you explicitly still need remote archive fallback.
+- Use `<repo:core/ontology-kernel@main>` and `<repo:softwareco/ontology@main>` in manifests for layered repos.
+- Wire `scripts/ci/full.sh` into your preferred local gate runner (for example a Pi task or a git hook) instead of relying on remote ref fetches.
 
 Graph export:
 - `rocs graph` writes an `.excalidraw.json` file by default (open it in Excalidraw).
@@ -91,10 +85,8 @@ CI profile wrapper (template-side policy contract):
   - `local-dev`: offline-first default; `--resolve-refs` stays off unless `ROCS_LOCAL_RESOLVE_REFS=1`, and that opt-in path defaults workspace matching to `strict`
   - `branch-ci`: requires `--resolve-refs` and defaults workspace matching to `strict` (fail-closed)
   - `main-strict`: requires `--resolve-refs` and defaults workspace matching to `strict` (authoritative fail-closed gate)
-- Timeout contract in the wrapper:
-  - `branch-ci`: `ROCS_GITLAB_TIMEOUT_S=30`, `ROCS_GITLAB_RETRIES=3`
-  - `main-strict`: `ROCS_GITLAB_TIMEOUT_S=60`, `ROCS_GITLAB_RETRIES=3`
 - `ROCS_WORKSPACE_REF_MODE` remains an explicit override when a caller intentionally needs different behavior.
+- This same wrapper is the recommended local hook/Pi entrypoint for pre-push or pre-merge checks.
 - See `docs/ref-resolution-ci-strategy.md` for the architecture/policy rationale and migration guidance.
 - Optional overrides:
   - `ROCS_CMD` (default: `uv run python -m rocs_cli`)

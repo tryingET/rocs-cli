@@ -72,7 +72,7 @@ def _maybe_load_env_file(env_file: str | None, *, repo_root: Path | None) -> Non
     p = Path(env_file).expanduser() if env_file else _discover_default_env_file(repo_root=repo_root)
     if not p:
         return
-    from rocs_cli.gitlab import load_env_file
+    from rocs_cli.env import load_env_file
 
     load_env_file(p)
 
@@ -164,10 +164,6 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
     dist.mkdir(parents=True, exist_ok=True)
     entries = []
     for layer_spec in layers:
-        cache_repo_root = None
-        if layer_spec.kind == "ref":
-            # <cache>/gitlab/<proj>/<ref>/ontology/src
-            cache_repo_root = str(layer_spec.src_root.parent.parent)
         entries.append(
             {
                 "name": layer_spec.name,
@@ -175,12 +171,11 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
                 "origin": layer_spec.origin,
                 "source": layer_spec.source,
                 "src_root": str(layer_spec.src_root),
-                "cache_repo_root": cache_repo_root,
             }
         )
     entries.sort(key=lambda e: str(e.get("name") or ""))
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "version": __version__,
         "repo": str(repo),
         "profile": profile,
@@ -762,11 +757,11 @@ def cmd_diff(args: argparse.Namespace) -> int:
     baseline = args.baseline.strip()
     if not args.resolve_refs:
         raise SystemExit(
-            "rocs diff requires --resolve-refs to resolve a <repo:...@...> or legacy <gitlab:...@...> baseline"
+            "rocs diff requires --resolve-refs to resolve a <repo:...@...> baseline"
         )
     parsed = parse_ref_locator(baseline)
     if parsed is None:
-        raise SystemExit("--baseline must be a <repo:...@...> or legacy <gitlab:...@...> locator for now")
+        raise SystemExit("--baseline must be a <repo:...@...> locator")
 
     base_repo, _base_source, _base_notes = resolve_ref_repo_root(
         baseline,
@@ -837,7 +832,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_resolve_common = argparse.ArgumentParser(add_help=False)
     p_resolve_common.add_argument(
         "--workspace-root",
-        help="workspace root used to satisfy <repo:...@ref> refs locally (and legacy <gitlab:...@ref> locators) (or ROCS_WORKSPACE_ROOT)",
+        help="workspace root used to satisfy <repo:...@ref> refs locally (or ROCS_WORKSPACE_ROOT)",
     )
     p_resolve_common.add_argument(
         "--workspace-ref-mode",
@@ -847,7 +842,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_resolve_common.add_argument(
         "--show-resolve-sources",
         action="store_true",
-        help="show workspace/cache/gitlab source per layer in text output",
+        help="show path/workspace source per layer in text output",
     )
     p_resolve_common.add_argument(
         "--show-resolve-details",
@@ -875,9 +870,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--json", action="store_true", help="emit JSON output")
@@ -890,9 +885,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--json", action="store_true", help="emit JSON output")
@@ -906,9 +901,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument(
@@ -921,14 +916,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("diff", parents=[p_resolve_common])
     p.add_argument("--repo", default=".", help="repo root path")
-    p.add_argument("--baseline", required=True, help="baseline <repo:...@ref> (or legacy <gitlab:...@ref>) to diff against")
+    p.add_argument("--baseline", required=True, help="baseline <repo:...@ref> to diff against")
     p.add_argument("--profile", help="manifest profile name (defaults to rocs.profiles.default)")
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--json", action="store_true", help="emit JSON diff")
@@ -940,9 +935,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--strict-placeholders", action="store_true", help="treat placeholders in bodies as lint warnings")
@@ -958,9 +953,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--fix", action="store_true", help="apply safe fixes to local/path layer relation docs")
@@ -973,9 +968,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--scope", choices=["all", "taxonomy"], default="all")
@@ -993,9 +988,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--clean", action="store_true", help="remove ontology/dist before building")
@@ -1009,9 +1004,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--depth", type=int, help="relation expansion depth (default: profile pack.max_depth or 0)")
@@ -1044,9 +1039,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--resolve-refs",
         action="store_true",
-        help="resolve <repo:...@...> refs locally and allow legacy <gitlab:...> fetches when needed",
+        help="resolve <repo:...@...> refs from the local workspace",
     )
-    p.add_argument("--env-file", help="dotenv file to load into environment (for local config and legacy GitLab auth)")
+    p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--layer", help="only normalize a specific layer name (path layers only)")
     p.add_argument("--apply", action="store_true", help="apply changes (default: check only)")
     p.set_defaults(fn=cmd_normalize)

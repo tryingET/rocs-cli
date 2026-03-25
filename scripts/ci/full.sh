@@ -75,16 +75,10 @@ case "$ROCS_CI_PROFILE" in
     ;;
 
   branch-ci)
-    : "${ROCS_GITLAB_TIMEOUT_S:=30}"
-    : "${ROCS_GITLAB_RETRIES:=3}"
-    export ROCS_GITLAB_TIMEOUT_S ROCS_GITLAB_RETRIES
     strict_gate
     ;;
 
   main-strict)
-    : "${ROCS_GITLAB_TIMEOUT_S:=60}"
-    : "${ROCS_GITLAB_RETRIES:=3}"
-    export ROCS_GITLAB_TIMEOUT_S ROCS_GITLAB_RETRIES
     strict_gate
     ;;
 
