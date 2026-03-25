@@ -31,10 +31,9 @@ def _mk_repo(workspace_root: Path, rel: str, *, ci_gate: bool) -> Path:
     _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
     if ci_gate:
         _write(
-            repo / "gitlab" / "ci" / "rocs.yml",
-            "stages:\n  - validate\n\nrocs:validate:\n  stage: validate\n  script:\n    - ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n",
+            repo / ".githooks" / "pre-push",
+            "#!/usr/bin/env bash\nset -euo pipefail\nROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n",
         )
-        _write(repo / ".gitlab-ci.yml", "include:\n  - local: 'gitlab/ci/rocs.yml'\n")
         _write(
             repo / "scripts" / "ci" / "full.sh",
             "#!/usr/bin/env bash\nset -euo pipefail\nexport ROCS_WORKSPACE_ROOT=\"${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}\"\nexport ROCS_WORKSPACE_REF_MODE=\"${ROCS_WORKSPACE_REF_MODE:-loose}\"\n",

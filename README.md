@@ -100,14 +100,14 @@ FCOS convergence scripts:
   - refuses targets that overlap the source repo root or the source package tree
   - `--dry-run` uses the same preflight validation as apply mode
 - `scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--dry-run]`
-  - class-based FCOS bootstrap (vendored `rocs-cli`, ontology scaffold, CI gate wiring)
-  - installs `scripts/ci/full.sh` and generates CI snippets that call it via explicit `ROCS_CI_PROFILE`
-  - merges existing `.gitlab-ci.yml` includes structurally (fails closed on invalid YAML instead of text-splicing)
+  - class-based FCOS bootstrap (vendored `rocs-cli`, ontology scaffold, local gate wiring)
+  - installs `scripts/ci/full.sh`, `.githooks/pre-push`, and `.githooks/README.md`
+  - converges away legacy generated `gitlab/ci/rocs.yml` / `.gitlab-ci.yml` ROCS surfaces when present
   - emits a deterministic JSON report with `rollback_paths`
   - `--dry-run` validates and reports without writing files
 - `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
   - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)
-  - `rocs_ci_gate` checks parsed CI YAML/script nodes (`gitlab/ci/rocs.yml` + include + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); comments do not count as evidence
+  - `rocs_ci_gate` checks checked-in hook gate surfaces (`.githooks/pre-push` + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); comments do not count as evidence
   - emits deterministic JSON/Markdown scorecards (stdout when PATH omitted)
   - stable exit codes: `0` pass, `2` required capability violations, `1` policy/usage error
 - `scripts/open-remediation-batch.sh --input <audit.json> --mode patch|apply [--output [PATH]] [--workspace-root <path>]`

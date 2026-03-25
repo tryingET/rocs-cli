@@ -5,8 +5,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import yaml
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "bootstrap-repo.sh"
@@ -60,20 +58,25 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertTrue((target / "tools" / "rocs-cli" / "VENDORED_HASHES.json").is_file())
             self.assertTrue((target / "ontology" / "manifest.yaml").is_file())
             self.assertTrue((target / "ontology" / "src" / "system4d.yaml").is_file())
-            self.assertTrue((target / "gitlab" / "ci" / "rocs.yml").is_file())
+            self.assertTrue((target / ".githooks" / "pre-push").is_file())
+            self.assertTrue((target / ".githooks" / "README.md").is_file())
             self.assertTrue((target / "scripts" / "ci" / "full.sh").is_file())
-            self.assertTrue((target / ".gitlab-ci.yml").is_file())
+            self.assertFalse((target / ".gitlab-ci.yml").exists())
+            self.assertFalse((target / "gitlab" / "ci" / "rocs.yml").exists())
 
             manifest = (target / "ontology" / "manifest.yaml").read_text("utf-8")
             self.assertIn('<repo:core/ontology-kernel@main>', manifest)
             self.assertIn('<repo:softwareco/ontology@main>', manifest)
             self.assertNotIn('<gitlab:org/', manifest)
 
-            ci_snippet = (target / "gitlab" / "ci" / "rocs.yml").read_text("utf-8")
-            self.assertIn("ROCS_CI_PROFILE=branch-ci", ci_snippet)
-            self.assertIn("bash scripts/ci/full.sh", ci_snippet)
-            self.assertNotIn("rocs build --repo . --resolve-refs", ci_snippet)
-            self.assertNotIn("rocs validate --repo . --resolve-refs", ci_snippet)
+            hook = (target / ".githooks" / "pre-push").read_text("utf-8")
+            self.assertIn("ROCS_CI_PROFILE=branch-ci", hook)
+            self.assertIn("bash scripts/ci/full.sh", hook)
+            self.assertNotIn("rocs build --repo . --resolve-refs", hook)
+            self.assertNotIn("rocs validate --repo . --resolve-refs", hook)
+
+            hooks_readme = (target / ".githooks" / "README.md").read_text("utf-8")
+            self.assertIn("git config core.hooksPath .githooks", hooks_readme)
 
             ci_wrapper = (target / "scripts" / "ci" / "full.sh").read_text("utf-8")
             self.assertIn("ROCS_WORKSPACE_ROOT", ci_wrapper)
@@ -100,7 +103,7 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertFalse(target.exists())
             self.assertIn("tools/rocs-cli/**", report.get("rollback_paths", []))
 
-    def test_existing_repo_keeps_existing_ontology_and_wires_ci_include(self) -> None:
+    def test_existing_repo_keeps_existing_ontology_and_non_rocs_gitlab_file(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "repo"
             (target / "ontology").mkdir(parents=True)
@@ -116,35 +119,28 @@ class TestBootstrapRepoScript(unittest.TestCase):
             manifest = (target / "ontology" / "manifest.yaml").read_text("utf-8")
             self.assertEqual(manifest, "rocs:\n  custom: true\n")
 
-            ci_root = (target / ".gitlab-ci.yml").read_text("utf-8")
-            self.assertIn("unit:test", ci_root)
-            loaded = yaml.safe_load(ci_root)
-            self.assertIn({"local": "gitlab/ci/rocs.yml"}, loaded.get("include", []))
+            gitlab_root = (target / ".gitlab-ci.yml").read_text("utf-8")
+            self.assertIn("unit:test", gitlab_root)
+            self.assertTrue((target / ".githooks" / "pre-push").is_file())
 
             second = _run_bootstrap(str(target), "--class", "required")
             self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
-            ci_root_second = (target / ".gitlab-ci.yml").read_text("utf-8")
-            self.assertEqual(ci_root_second.count("gitlab/ci/rocs.yml"), 1)
+            gitlab_root_second = (target / ".gitlab-ci.yml").read_text("utf-8")
+            self.assertEqual(gitlab_root_second, gitlab_root)
 
-    def test_existing_repo_with_include_mapping_is_merged_structurally(self) -> None:
+    def test_existing_repo_with_include_mapping_is_left_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "repo"
             target.mkdir(parents=True)
-            (target / ".gitlab-ci.yml").write_text(
-                "include:\n  local: 'gitlab/ci/existing.yml'\nstages:\n  - test\n",
-                "utf-8",
-            )
+            original = "include:\n  local: 'gitlab/ci/existing.yml'\nstages:\n  - test\n"
+            (target / ".gitlab-ci.yml").write_text(original, "utf-8")
 
             proc = _run_bootstrap(str(target), "--class", "required")
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
-            loaded = yaml.safe_load((target / ".gitlab-ci.yml").read_text("utf-8"))
-            self.assertIsInstance(loaded, dict)
-            self.assertEqual(
-                loaded.get("include"),
-                [{"local": "gitlab/ci/existing.yml"}, {"local": "gitlab/ci/rocs.yml"}],
-            )
-            self.assertEqual(loaded.get("stages"), ["test"])
+            current = (target / ".gitlab-ci.yml").read_text("utf-8")
+            self.assertEqual(current, original)
+            self.assertTrue((target / ".githooks" / "pre-push").is_file())
 
     def test_existing_generated_ci_contract_is_converged(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -155,22 +151,26 @@ class TestBootstrapRepoScript(unittest.TestCase):
                 "stages:\n  - validate\nrocs:validate:\n  stage: validate\n  script:\n    - uvx -n --from ./tools/rocs-cli rocs build --repo . --resolve-refs\n",
                 "utf-8",
             )
+            (target / ".gitlab-ci.yml").write_text("include:\n  - local: 'gitlab/ci/rocs.yml'\n", "utf-8")
             (target / "scripts" / "ci" / "full.sh").write_text("echo stale\n", "utf-8")
 
             proc = _run_bootstrap(str(target), "--class", "required")
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
             report = _json_report(proc)
-            self.assertIn("gitlab/ci/rocs.yml", report.get("modified_files", []))
             self.assertIn("scripts/ci/full.sh", report.get("modified_files", []))
+            self.assertIn("gitlab/ci/rocs.yml", report.get("deleted_files", []))
+            self.assertIn(".gitlab-ci.yml", report.get("deleted_files", []))
+            self.assertIn(".githooks/pre-push", report.get("created_files", []))
 
-            ci_snippet = (target / "gitlab" / "ci" / "rocs.yml").read_text("utf-8")
+            hook = (target / ".githooks" / "pre-push").read_text("utf-8")
             wrapper = (target / "scripts" / "ci" / "full.sh").read_text("utf-8")
-            self.assertIn("ROCS_CI_PROFILE=branch-ci", ci_snippet)
-            self.assertIn("bash scripts/ci/full.sh", ci_snippet)
-            self.assertIn("ROCS_CI_PROFILE", wrapper)
+            self.assertIn("ROCS_CI_PROFILE=branch-ci", hook)
+            self.assertIn("bash scripts/ci/full.sh", hook)
             self.assertIn("ROCS_WORKSPACE_ROOT", wrapper)
             self.assertIn("ROCS_WORKSPACE_REF_MODE", wrapper)
             self.assertNotIn("echo stale", wrapper)
+            self.assertFalse((target / "gitlab" / "ci" / "rocs.yml").exists())
+            self.assertFalse((target / ".gitlab-ci.yml").exists())
 
     def test_existing_legacy_manifest_is_canonicalized_to_repo_locators(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -227,10 +227,9 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertIn("layer: company", manifest)
             self.assertIn('<repo:core/ontology-kernel@main>', manifest)
 
-            ci_snippet = (target / "gitlab" / "ci" / "rocs.yml").read_text("utf-8")
-            self.assertNotIn("allow_failure: true", ci_snippet)
-            self.assertIn("ROCS_CI_PROFILE=main-strict", ci_snippet)
-            self.assertIn("bash scripts/ci/full.sh", ci_snippet)
+            hook = (target / ".githooks" / "pre-push").read_text("utf-8")
+            self.assertIn("ROCS_CI_PROFILE=main-strict", hook)
+            self.assertIn("bash scripts/ci/full.sh", hook)
             self.assertTrue((target / "scripts" / "ci" / "full.sh").is_file())
 
 

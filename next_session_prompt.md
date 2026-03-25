@@ -44,7 +44,7 @@ Keep refs essential on strict paths while avoiding any GitLab dependency.
 ## Checkpoint fields
 - Decision chosen: Workspace-only ref resolution with hybrid caller-profile policy.
 - Why this option: GitLab is gone; local workspace resolution is deterministic, offline-first, and compatible with Pi/hook-driven gates.
-- Files changed: `src/rocs_cli/layers.py`, `src/rocs_cli/cli.py`, `src/rocs_cli/env.py`, `src/rocs_cli/authority.py`, `src/rocs_cli/cache.py`, `scripts/ci/full.sh`, `README.md`, `docs/ref-resolution-ci-strategy.md`, `docs/artifacts.md`, `tests/test_workspace_resolution.py`, `tests/test_cli.py`, `AGENTS.md`, `next_session_prompt.md`.
+- Files changed: `src/rocs_cli/layers.py`, `src/rocs_cli/cli.py`, `src/rocs_cli/env.py`, `src/rocs_cli/authority.py`, `src/rocs_cli/cache.py`, `scripts/ci/full.sh`, `scripts/bootstrap-repo.sh`, `scripts/audit-fleet.py`, `README.md`, `docs/ref-resolution-ci-strategy.md`, `docs/artifacts.md`, `tests/test_workspace_resolution.py`, `tests/test_cli.py`, `tests/test_bootstrap_repo_script.py`, `tests/test_audit_fleet_script.py`, `tests/test_run_fleet_audit_nightly_script.py`, `AGENTS.md`, `next_session_prompt.md`.
 - Tests run/results: `uv run python -m unittest discover -s tests -p 'test_*.py' -q` ✅ (`Ran 106 tests`); `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` ✅.
 - Consumer migration impact: manifests must use `<repo:...>` locators and local gates should call `scripts/ci/full.sh` from Pi or hooks.
 - Rollback plan: not recommended; migrate remaining manifests instead of restoring remote fallback.

@@ -55,16 +55,12 @@ def _mk_repo(
     if ci_gate:
         if ci_contract == "current":
             _write(
-                repo / "gitlab" / "ci" / "rocs.yml",
+                repo / ".githooks" / "pre-push",
                 "\n".join(
                     [
-                        "stages:",
-                        "  - validate",
-                        "",
-                        "rocs:validate:",
-                        "  stage: validate",
-                        "  script:",
-                        "    - ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh",
+                        "#!/usr/bin/env bash",
+                        "set -euo pipefail",
+                        "ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh",
                         "",
                     ]
                 ),
@@ -75,7 +71,7 @@ def _mk_repo(
             _write(repo / "scripts" / "ci" / "full.sh", wrapper)
         else:
             _write(repo / "gitlab" / "ci" / "rocs.yml", "stages:\n  - validate\n")
-        _write(repo / ".gitlab-ci.yml", "include:\n  - local: 'gitlab/ci/rocs.yml'\n")
+            _write(repo / ".gitlab-ci.yml", "include:\n  - local: 'gitlab/ci/rocs.yml'\n")
 
     return repo
 
@@ -247,19 +243,19 @@ class TestAuditFleetScript(unittest.TestCase):
             payload = json.loads(proc.stdout)
             self.assertEqual(payload["summary"]["requirement_violations"], 1)
             evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
-            self.assertEqual(evidence["wrapper_hits"], [])
+            self.assertEqual(evidence["hook_hits"], [])
+            self.assertNotEqual(evidence["legacy_gate_hits"], [])
             self.assertEqual(evidence["wrapper_call_present"], False)
             self.assertEqual(evidence["profile_contract_present"], False)
 
-    def test_comment_only_ci_markers_do_not_count_as_contract(self) -> None:
+    def test_comment_only_hook_markers_do_not_count_as_contract(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"
             repo = workspace / "softwareco" / "owned" / "app-a"
             repo.mkdir(parents=True, exist_ok=True)
             _write(repo / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
             _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
-            _write(repo / "gitlab" / "ci" / "rocs.yml", "# ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n")
-            _write(repo / ".gitlab-ci.yml", "# include:\n#   - local: 'gitlab/ci/rocs.yml'\n")
+            _write(repo / ".githooks" / "pre-push", "# ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n")
             _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
 
             policy = _policy_for(["ai-society/softwareco/owned/app-a"])
@@ -276,34 +272,18 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
             payload = json.loads(proc.stdout)
             evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
-            self.assertEqual(evidence["include_present"], False)
+            self.assertEqual(evidence["hook_hits"], [".githooks/pre-push"])
             self.assertEqual(evidence["wrapper_call_present"], False)
             self.assertEqual(evidence["profile_contract_present"], False)
 
-    def test_profile_export_in_separate_job_does_not_satisfy_wrapper_contract(self) -> None:
+    def test_hook_without_profile_assignment_does_not_satisfy_wrapper_contract(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"
             repo = workspace / "softwareco" / "owned" / "app-a"
             repo.mkdir(parents=True, exist_ok=True)
             _write(repo / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
             _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
-            _write(
-                repo / "gitlab" / "ci" / "rocs.yml",
-                "\n".join(
-                    [
-                        "stages:",
-                        "  - validate",
-                        "set-profile:",
-                        "  script:",
-                        "    - export ROCS_CI_PROFILE=branch-ci",
-                        "run-wrapper:",
-                        "  script:",
-                        "    - bash scripts/ci/full.sh",
-                        "",
-                    ]
-                ),
-            )
-            _write(repo / ".gitlab-ci.yml", "include:\n  - local: 'gitlab/ci/rocs.yml'\n")
+            _write(repo / ".githooks" / "pre-push", "#!/usr/bin/env bash\nset -euo pipefail\nbash scripts/ci/full.sh\n")
             _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
 
             policy = _policy_for(["ai-society/softwareco/owned/app-a"])
@@ -320,7 +300,6 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
             payload = json.loads(proc.stdout)
             evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
-            self.assertEqual(evidence["include_present"], True)
             self.assertEqual(evidence["wrapper_call_present"], True)
             self.assertEqual(evidence["profile_contract_present"], False)
 

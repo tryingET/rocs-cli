@@ -261,74 +261,41 @@ CONCEPTS_README = norm(
     """
 )
 
-CI_INCLUDE_ROOT = norm(
+HOOKS_README = norm(
     """
-    include:
-      - local: 'gitlab/ci/rocs.yml'
-    """
-)
+    # ROCS local gate hooks
 
-CI_SNIPPET_ADVISORY = norm(
-    """
-    stages:
-      - validate
+    Enable the checked-in hooks for this repo with:
 
-    rocs:vendored-check:
-      stage: validate
-      image: ghcr.io/astral-sh/uv:python3.11-bookworm-slim
-      rules:
-        - when: always
-      allow_failure: true
-      script:
-        - uvx -n --from ./tools/rocs-cli rocs vendored-check --vendored-dir ./tools/rocs-cli
+    ```bash
+    git config core.hooksPath .githooks
+    ```
 
-    rocs:validate:
-      stage: validate
-      image: ghcr.io/astral-sh/uv:python3.11-bookworm-slim
-      rules:
-        - when: always
-      allow_failure: true
-      script:
-        - python --version
-        - uv --version
-        - uvx --version
-        - uvx -n --from ./tools/rocs-cli rocs version
-        - ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh
-      artifacts:
-        when: always
-        paths:
-          - ontology/dist/
+    The pre-push hook delegates to `scripts/ci/full.sh` so local gates and Pi-driven runs share one policy surface.
     """
 )
 
-CI_SNIPPET_STRICT = norm(
+HOOK_PRE_PUSH_ADVISORY = norm(
     """
-    stages:
-      - validate
+    #!/usr/bin/env bash
+    set -euo pipefail
 
-    rocs:vendored-check:
-      stage: validate
-      image: ghcr.io/astral-sh/uv:python3.11-bookworm-slim
-      rules:
-        - when: always
-      script:
-        - uvx -n --from ./tools/rocs-cli rocs vendored-check --vendored-dir ./tools/rocs-cli
+    repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+    cd "$repo_root"
 
-    rocs:validate:
-      stage: validate
-      image: ghcr.io/astral-sh/uv:python3.11-bookworm-slim
-      rules:
-        - when: always
-      script:
-        - python --version
-        - uv --version
-        - uvx --version
-        - uvx -n --from ./tools/rocs-cli rocs version
-        - ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=main-strict bash scripts/ci/full.sh
-      artifacts:
-        when: always
-        paths:
-          - ontology/dist/
+    ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh
+    """
+)
+
+HOOK_PRE_PUSH_STRICT = norm(
+    """
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+    cd "$repo_root"
+
+    ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=main-strict bash scripts/ci/full.sh
     """
 )
 
@@ -402,9 +369,9 @@ def _ci_include_has_rocs(entries: list[object]) -> bool:
     return False
 
 
-def add_rocs_include(text: str) -> str:
+def remove_rocs_include(text: str) -> str | None:
     if not text.strip():
-        return CI_INCLUDE_ROOT
+        return None
 
     try:
         loaded = yaml.safe_load(text) or {}
@@ -414,17 +381,18 @@ def add_rocs_include(text: str) -> str:
         raise SystemExit("invalid .gitlab-ci.yml: root must be a mapping")
 
     include_entries = _normalize_ci_include(loaded.get("include"))
-    if _ci_include_has_rocs(include_entries):
+    filtered = [entry for entry in include_entries if not _ci_include_has_rocs([entry])]
+    if len(filtered) == len(include_entries):
         return ensure_trailing_newline(text)
 
-    include_entries.append({"local": "gitlab/ci/rocs.yml"})
-    if "include" in loaded:
-        loaded["include"] = include_entries
-        updated = loaded
+    if filtered:
+        loaded["include"] = filtered
     else:
-        updated = {"include": include_entries, **loaded}
+        loaded.pop("include", None)
 
-    return ensure_trailing_newline(yaml.safe_dump(updated, sort_keys=False, allow_unicode=True))
+    if not loaded:
+        return None
+    return ensure_trailing_newline(yaml.safe_dump(loaded, sort_keys=False, allow_unicode=True))
 
 
 repo_root = Path(sys.argv[1]).resolve()
@@ -447,11 +415,15 @@ policy = CLASS_POLICY[repo_class]
 CI_WRAPPER = ensure_trailing_newline((repo_root / "scripts" / "ci" / "full.sh").read_text("utf-8"))
 
 planned_writes: dict[str, str] = {}
+planned_deletes: set[str] = set()
+planned_exec: set[str] = set()
 planned_actions: list[dict[str, str]] = []
 
 
-def plan_file(relpath: str, content: str, *, allow_modify: bool = False) -> None:
+def plan_file(relpath: str, content: str, *, allow_modify: bool = False, executable: bool = False) -> None:
     p = target / relpath
+    if executable:
+        planned_exec.add(relpath)
     if p.exists():
         if p.is_dir():
             planned_actions.append({"path": relpath, "action": "skip", "reason": "path is a directory"})
@@ -469,6 +441,18 @@ def plan_file(relpath: str, content: str, *, allow_modify: bool = False) -> None
 
     planned_writes[relpath] = content
     planned_actions.append({"path": relpath, "action": "create"})
+
+
+def plan_delete(relpath: str, *, reason: str) -> None:
+    p = target / relpath
+    if not p.exists():
+        planned_actions.append({"path": relpath, "action": "unchanged"})
+        return
+    if p.is_dir():
+        planned_actions.append({"path": relpath, "action": "skip", "reason": "path is a directory"})
+        return
+    planned_deletes.add(relpath)
+    planned_actions.append({"path": relpath, "action": "delete", "reason": reason})
 
 
 def infer_company_from_target(path: Path) -> str | None:
@@ -506,6 +490,30 @@ def plan_manifest_file(relpath: str, default_content: str) -> None:
     plan_file(relpath, default_content)
 
 
+def plan_remove_legacy_gitlab_ci() -> None:
+    plan_delete("gitlab/ci/rocs.yml", reason="remove legacy generated GitLab ROCS gate")
+
+    ci_root = target / ".gitlab-ci.yml"
+    if not ci_root.exists():
+        planned_actions.append({"path": ".gitlab-ci.yml", "action": "unchanged"})
+        return
+    if ci_root.is_dir():
+        planned_actions.append({"path": ".gitlab-ci.yml", "action": "skip", "reason": "path is a directory"})
+        return
+
+    current = ci_root.read_text("utf-8")
+    updated = remove_rocs_include(current)
+    if updated == current:
+        planned_actions.append({"path": ".gitlab-ci.yml", "action": "unchanged"})
+        return
+    if updated is None:
+        planned_deletes.add(".gitlab-ci.yml")
+        planned_actions.append({"path": ".gitlab-ci.yml", "action": "delete", "reason": "remove generated ROCS GitLab include"})
+        return
+    planned_writes[".gitlab-ci.yml"] = updated
+    planned_actions.append({"path": ".gitlab-ci.yml", "action": "modify", "reason": "remove generated ROCS GitLab include"})
+
+
 if policy["ontology_manifest"]:
     scaffold = policy["ontology_scaffold"]
     if scaffold == "repo":
@@ -522,27 +530,16 @@ else:
     planned_actions.append({"path": "ontology/*", "action": "skip", "reason": "class policy: not required"})
 
 if policy["rocs_ci_gate"]:
-    ci_snippet = CI_SNIPPET_STRICT if policy["gate_mode"] == "strict" else CI_SNIPPET_ADVISORY
-    plan_file("gitlab/ci/rocs.yml", ci_snippet, allow_modify=True)
+    hook = HOOK_PRE_PUSH_STRICT if policy["gate_mode"] == "strict" else HOOK_PRE_PUSH_ADVISORY
+    plan_file(".githooks/pre-push", hook, allow_modify=True, executable=True)
+    plan_file(".githooks/README.md", HOOKS_README, allow_modify=True)
     plan_file("scripts/ci/full.sh", CI_WRAPPER, allow_modify=True)
-
-    ci_root = target / ".gitlab-ci.yml"
-    if ci_root.exists() and ci_root.is_dir():
-        planned_actions.append({"path": ".gitlab-ci.yml", "action": "skip", "reason": "path is a directory"})
-    elif ci_root.exists():
-        current = ci_root.read_text("utf-8")
-        updated = add_rocs_include(current)
-        if updated == current:
-            planned_actions.append({"path": ".gitlab-ci.yml", "action": "unchanged"})
-        else:
-            planned_writes[".gitlab-ci.yml"] = updated
-            planned_actions.append({"path": ".gitlab-ci.yml", "action": "modify"})
-    else:
-        planned_writes[".gitlab-ci.yml"] = CI_INCLUDE_ROOT
-        planned_actions.append({"path": ".gitlab-ci.yml", "action": "create"})
+    plan_remove_legacy_gitlab_ci()
 else:
-    planned_actions.append({"path": "gitlab/ci/rocs.yml", "action": "skip", "reason": "class policy: not required"})
+    planned_actions.append({"path": ".githooks/pre-push", "action": "skip", "reason": "class policy: not required"})
+    planned_actions.append({"path": ".githooks/README.md", "action": "skip", "reason": "class policy: not required"})
     planned_actions.append({"path": "scripts/ci/full.sh", "action": "skip", "reason": "class policy: not required"})
+    planned_actions.append({"path": "gitlab/ci/rocs.yml", "action": "skip", "reason": "class policy: not required"})
     planned_actions.append({"path": ".gitlab-ci.yml", "action": "skip", "reason": "class policy: not required"})
 
 before_snapshot = snapshot_tree(target)
@@ -587,12 +584,19 @@ if policy["rocs_cli_vendored"]:
         print(json.dumps(error_report, indent=2, sort_keys=True))
         raise SystemExit(proc.returncode)
 
-if not dry_run and planned_writes:
+if not dry_run and (planned_writes or planned_deletes or planned_exec):
     target.mkdir(parents=True, exist_ok=True)
+    for relpath in sorted(planned_deletes):
+        p = target / relpath
+        p.unlink(missing_ok=True)
     for relpath in sorted(planned_writes):
         p = target / relpath
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(planned_writes[relpath], "utf-8")
+    for relpath in sorted(planned_exec):
+        p = target / relpath
+        if p.exists() and p.is_file():
+            p.chmod(p.stat().st_mode | 0o111)
 
 report: dict[str, object] = {
     "schema_version": 1,
@@ -605,9 +609,7 @@ report: dict[str, object] = {
 }
 
 if dry_run:
-    rollback_paths = {
-        relpath for relpath, content in planned_writes.items() if content
-    }
+    rollback_paths = set(planned_writes) | set(planned_deletes)
     if policy["rocs_cli_vendored"]:
         rollback_paths.add("tools/rocs-cli/**")
     report["rollback_paths"] = sorted(rollback_paths)
@@ -619,9 +621,11 @@ else:
     modified_files = sorted(
         rel for rel in (before_paths & after_paths) if before_snapshot[rel] != after_snapshot[rel]
     )
+    deleted_files = sorted(before_paths - after_paths)
     report["created_files"] = created_files
     report["modified_files"] = modified_files
-    report["rollback_paths"] = sorted(created_files + modified_files)
+    report["deleted_files"] = deleted_files
+    report["rollback_paths"] = sorted(created_files + modified_files + deleted_files)
 
 print(json.dumps(report, indent=2, sort_keys=True))
 PY

@@ -50,9 +50,10 @@ Keep the hybrid contract:
 - Set `ROCS_WORKSPACE_ROOT=~/ai-society` (or your equivalent workspace root).
 - Migrate any legacy `<gitlab:...>` manifest entries to `<repo:...>`.
 - Use `scripts/ci/full.sh` as the canonical shared gate surface.
+- The shipped bootstrap/audit contract uses `.githooks/pre-push` + `scripts/ci/full.sh`.
 - Invoke that wrapper from:
+  - checked-in git hooks (for example pre-push)
   - Pi tasks/runners
-  - git hooks (for example pre-push)
   - other local automation
 
 ## Minimal migration plan
