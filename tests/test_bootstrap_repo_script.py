@@ -1,5 +1,6 @@
 import hashlib
 import json
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -230,6 +231,62 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertEqual(pre_push.get("action"), "blocked")
             self.assertIn("utf-8", pre_push.get("reason", ""))
             self.assertNotIn("Traceback", proc.stderr)
+
+    def test_existing_unreadable_managed_file_is_reported_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            (target / ".githooks").mkdir(parents=True)
+            pre_push = target / ".githooks" / "pre-push"
+            pre_push.write_text("echo hi\n", "utf-8")
+            pre_push.chmod(0)
+            try:
+                proc = _run_bootstrap(str(target), "--class", "required", "--dry-run")
+            finally:
+                pre_push.chmod(stat.S_IRUSR | stat.S_IWUSR)
+
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            report = _json_report(proc)
+            self.assertTrue(report.get("blocked"))
+            blocked = [row for row in report.get("planned_actions", []) if row.get("path") == ".githooks/pre-push"][0]
+            self.assertEqual(blocked.get("action"), "blocked")
+            self.assertIn("unreadable", blocked.get("reason", ""))
+            self.assertNotIn("Traceback", proc.stderr)
+
+    def test_blocked_apply_mode_aborts_before_writes_or_chmod(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            (target / ".githooks").mkdir(parents=True)
+            pre_push = target / ".githooks" / "pre-push"
+            pre_push.write_bytes(b"\xff\xfe\x00bin")
+            pre_push.chmod(0o644)
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            report = _json_report(proc)
+            self.assertTrue(report.get("blocked"))
+            self.assertEqual(report.get("created_files"), [])
+            self.assertEqual(report.get("modified_files"), [])
+            self.assertEqual(report.get("deleted_files"), [])
+            self.assertFalse((target / "tools" / "rocs-cli").exists())
+            self.assertFalse((target / "ontology").exists())
+            self.assertFalse((target / "scripts" / "ci" / "full.sh").exists())
+            self.assertEqual(stat.S_IMODE(pre_push.stat().st_mode), 0o644)
+
+    def test_existing_pre_push_mode_change_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+
+            first = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+
+            pre_push = target / ".githooks" / "pre-push"
+            pre_push.chmod(0o644)
+
+            second = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+            report = _json_report(second)
+            self.assertIn(".githooks/pre-push", report.get("modified_files", []))
+            self.assertEqual(stat.S_IMODE(pre_push.stat().st_mode), 0o755)
 
     def test_ontology_repo_class_uses_strict_overlay_scaffold(self) -> None:
         with tempfile.TemporaryDirectory() as td:

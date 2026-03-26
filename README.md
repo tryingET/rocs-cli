@@ -104,7 +104,8 @@ FCOS convergence scripts:
   - installs `scripts/ci/full.sh`, `.githooks/pre-push`, and `.githooks/README.md`
   - converges away legacy generated `gitlab/ci/rocs.yml` / `.gitlab-ci.yml` ROCS surfaces when present
   - emits a deterministic JSON report with `rollback_paths`
-  - fails closed with a JSON blocker report when managed files cannot be safely read as UTF-8 or are replaced by directories
+  - fails closed with a JSON blocker report when managed files are unreadable, not valid UTF-8, or replaced by directories
+  - blocker detection happens before vendoring/writes/chmod in apply mode
   - `--dry-run` validates and reports without writing files
 - `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
   - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)

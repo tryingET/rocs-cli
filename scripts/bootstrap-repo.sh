@@ -70,6 +70,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import stat
 import subprocess
 import sys
 import textwrap
@@ -342,7 +343,14 @@ def snapshot_tree(path: Path) -> Dict[str, str]:
         rel = p.relative_to(path)
         if ".git" in rel.parts:
             continue
-        out[rel.as_posix()] = sha256_file(p)
+        try:
+            mode = stat.S_IMODE(p.stat().st_mode)
+            digest = sha256_file(p)
+        except OSError as exc:
+            detail = exc.strerror or exc.__class__.__name__
+            out[rel.as_posix()] = f"error:{exc.__class__.__name__}:{detail}"
+            continue
+        out[rel.as_posix()] = f"mode={mode:o} sha256={digest}"
     return out
 
 
@@ -350,11 +358,14 @@ def ensure_trailing_newline(text: str) -> str:
     return text if text.endswith("\n") else text + "\n"
 
 
-def read_utf8_text(path: Path) -> str | None:
+def read_utf8_text(path: Path) -> tuple[str | None, str | None]:
     try:
-        return path.read_text("utf-8")
+        return path.read_text("utf-8"), None
     except UnicodeDecodeError:
-        return None
+        return None, "file is not valid utf-8"
+    except OSError as exc:
+        detail = exc.strerror or exc.__class__.__name__
+        return None, f"file is unreadable: {detail}"
 
 
 def _normalize_ci_include(value: object) -> list[object]:
@@ -435,26 +446,30 @@ def plan_blocked(relpath: str, *, reason: str) -> None:
 
 def plan_file(relpath: str, content: str, *, allow_modify: bool = False, executable: bool = False) -> None:
     p = target / relpath
-    if executable:
-        planned_exec.add(relpath)
     if p.exists():
         if p.is_dir():
             plan_blocked(relpath, reason="path is a directory")
             return
-        current = read_utf8_text(p)
-        if current is None:
-            plan_blocked(relpath, reason="file is not valid utf-8")
+        current, read_error = read_utf8_text(p)
+        if read_error is not None:
+            plan_blocked(relpath, reason=read_error)
             return
         if current == content:
+            if executable:
+                planned_exec.add(relpath)
             planned_actions.append({"path": relpath, "action": "unchanged"})
             return
         if not allow_modify:
             planned_actions.append({"path": relpath, "action": "skip", "reason": "file exists"})
             return
+        if executable:
+            planned_exec.add(relpath)
         planned_writes[relpath] = content
         planned_actions.append({"path": relpath, "action": "modify"})
         return
 
+    if executable:
+        planned_exec.add(relpath)
     planned_writes[relpath] = content
     planned_actions.append({"path": relpath, "action": "create"})
 
@@ -493,9 +508,9 @@ def canonicalize_legacy_manifest(content: str) -> str:
 def plan_manifest_file(relpath: str, default_content: str) -> None:
     p = target / relpath
     if p.exists() and p.is_file():
-        current = read_utf8_text(p)
-        if current is None:
-            plan_blocked(relpath, reason="file is not valid utf-8")
+        current, read_error = read_utf8_text(p)
+        if read_error is not None:
+            plan_blocked(relpath, reason=read_error)
             return
         canonicalized = canonicalize_legacy_manifest(current)
         if canonicalized != current:
@@ -520,9 +535,9 @@ def plan_remove_legacy_gitlab_ci() -> None:
         plan_blocked(".gitlab-ci.yml", reason="path is a directory")
         return
 
-    current = read_utf8_text(ci_root)
-    if current is None:
-        plan_blocked(".gitlab-ci.yml", reason="file is not valid utf-8")
+    current, read_error = read_utf8_text(ci_root)
+    if read_error is not None:
+        plan_blocked(".gitlab-ci.yml", reason=read_error)
         return
     updated = remove_rocs_include(current)
     if updated == current:
@@ -564,13 +579,38 @@ else:
     planned_actions.append({"path": "gitlab/ci/rocs.yml", "action": "skip", "reason": "class policy: not required"})
     planned_actions.append({"path": ".gitlab-ci.yml", "action": "skip", "reason": "class policy: not required"})
 
-before_snapshot = snapshot_tree(target)
-
 vendor_result: dict[str, object] = {
     "enabled": bool(policy["rocs_cli_vendored"]),
     "path": "tools/rocs-cli",
     "status": "skipped",
 }
+
+if planned_blockers:
+    blocked_report: dict[str, object] = {
+        "schema_version": 1,
+        "target": str(target),
+        "repo_class": repo_class,
+        "dry_run": dry_run,
+        "capabilities": policy,
+        "planned_actions": sorted(planned_actions, key=lambda x: x["path"]),
+        "vendor_sync": vendor_result,
+        "blocked": True,
+        "blocked_paths": sorted(planned_blockers, key=lambda x: x["path"]),
+    }
+    if dry_run:
+        rollback_paths = set(planned_writes) | set(planned_deletes)
+        if policy["rocs_cli_vendored"]:
+            rollback_paths.add("tools/rocs-cli/**")
+        blocked_report["rollback_paths"] = sorted(rollback_paths)
+    else:
+        blocked_report["created_files"] = []
+        blocked_report["modified_files"] = []
+        blocked_report["deleted_files"] = []
+        blocked_report["rollback_paths"] = []
+    print(json.dumps(blocked_report, indent=2, sort_keys=True))
+    raise SystemExit(1)
+
+before_snapshot = snapshot_tree(target)
 
 if policy["rocs_cli_vendored"]:
     vendor_cmd = [str(repo_root / "scripts" / "vendor-to.sh"), str(target / "tools" / "rocs-cli")]
@@ -653,6 +693,4 @@ else:
     report["rollback_paths"] = sorted(created_files + modified_files + deleted_files)
 
 print(json.dumps(report, indent=2, sort_keys=True))
-if planned_blockers:
-    raise SystemExit(1)
 PY
