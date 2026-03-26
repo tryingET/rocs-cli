@@ -120,6 +120,12 @@ class TestVendorToScript(unittest.TestCase):
             self.assertNotEqual(proc.returncode, 0)
             self.assertIn("target exists and is not a directory", proc.stdout + proc.stderr)
 
+    def test_vendor_to_dry_run_rejects_target_inside_source_repo_tree(self) -> None:
+        target = REPO_ROOT / "tools" / "_self_vendor_probe"
+        proc = _run_vendor_to(str(target), "--dry-run")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("source repo tree", proc.stdout + proc.stderr)
+
     def test_validate_vendor_target_rejects_descendant_of_source_package(self) -> None:
         target = REPO_ROOT / "src" / "rocs_cli" / "nested-vendor"
         with self.assertRaises(ValueError) as ctx:

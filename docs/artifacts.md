@@ -25,6 +25,9 @@ Notes:
 ### `resolve.json` (`schema_version: 2`)
 Written by `rocs resolve --write-dist` and `rocs build`.
 
+Notes:
+- `rocs build` clears stale build artifacts (`resolve.json`, `summary.json`, `id_index.json`) before each run, so failed rebuilds do not leave prior success snapshots behind.
+
 Top-level keys (v2):
 - `schema_version` (int)
 - `version` (string; rocs-cli version)

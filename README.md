@@ -24,8 +24,8 @@ Commands:
 - `rocs graph --repo . [--relation is_a] [--format excalidraw|excalidraw-cli-json|dot] [--json] [--out <path>]`
 - `rocs cache dir|ls|prune|clear`
 - `rocs normalize --repo . [--apply]`
-- `rocs pack <ont_id> --repo . [--profile <name>] [--resolve-refs] [--json]` (`<ont_id>` may be a concept or relation id)
-- `rocs build --repo . [--profile <name>] [--resolve-refs] [--clean] [--json]` (fail-closed: refuses invalid ontology content)
+- `rocs pack <ont_id> --repo . [--profile <name>] [--resolve-refs] [--json]` (`<ont_id>` may be a concept or relation id; fails closed if limits exclude the requested root doc)
+- `rocs build --repo . [--profile <name>] [--resolve-refs] [--clean] [--json]` (fail-closed: refuses invalid ontology content and clears stale build artifacts before each run)
 
 Scope (MVP):
 - Validate ROCS repo structure + ontology front matter schema.
@@ -97,13 +97,14 @@ FCOS convergence scripts:
 - `scripts/vendor-to.sh <target> [--version X.Y.Z] [--dry-run]`
   - syncs `pyproject.toml`, `README.md`, and `src/rocs_cli/` into `<target>`
   - writes/updates `<target>/VENDORED_HASHES.json` (hash coverage includes all files under `src/rocs_cli/`)
-  - refuses targets that overlap the source repo root or the source package tree
+  - refuses targets that overlap the source repo tree or the source package tree
   - `--dry-run` uses the same preflight validation as apply mode
 - `scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--dry-run]`
   - class-based FCOS bootstrap (vendored `rocs-cli`, ontology scaffold, local gate wiring)
   - installs `scripts/ci/full.sh`, `.githooks/pre-push`, and `.githooks/README.md`
   - converges away legacy generated `gitlab/ci/rocs.yml` / `.gitlab-ci.yml` ROCS surfaces when present
   - emits a deterministic JSON report with `rollback_paths`
+  - fails closed with a JSON blocker report when managed files cannot be safely read as UTF-8 or are replaced by directories
   - `--dry-run` validates and reports without writing files
 - `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
   - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)

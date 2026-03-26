@@ -350,6 +350,13 @@ def ensure_trailing_newline(text: str) -> str:
     return text if text.endswith("\n") else text + "\n"
 
 
+def read_utf8_text(path: Path) -> str | None:
+    try:
+        return path.read_text("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
 def _normalize_ci_include(value: object) -> list[object]:
     if value is None:
         return []
@@ -418,6 +425,12 @@ planned_writes: dict[str, str] = {}
 planned_deletes: set[str] = set()
 planned_exec: set[str] = set()
 planned_actions: list[dict[str, str]] = []
+planned_blockers: list[dict[str, str]] = []
+
+
+def plan_blocked(relpath: str, *, reason: str) -> None:
+    planned_actions.append({"path": relpath, "action": "blocked", "reason": reason})
+    planned_blockers.append({"path": relpath, "reason": reason})
 
 
 def plan_file(relpath: str, content: str, *, allow_modify: bool = False, executable: bool = False) -> None:
@@ -426,9 +439,12 @@ def plan_file(relpath: str, content: str, *, allow_modify: bool = False, executa
         planned_exec.add(relpath)
     if p.exists():
         if p.is_dir():
-            planned_actions.append({"path": relpath, "action": "skip", "reason": "path is a directory"})
+            plan_blocked(relpath, reason="path is a directory")
             return
-        current = p.read_text("utf-8")
+        current = read_utf8_text(p)
+        if current is None:
+            plan_blocked(relpath, reason="file is not valid utf-8")
+            return
         if current == content:
             planned_actions.append({"path": relpath, "action": "unchanged"})
             return
@@ -449,7 +465,7 @@ def plan_delete(relpath: str, *, reason: str) -> None:
         planned_actions.append({"path": relpath, "action": "unchanged"})
         return
     if p.is_dir():
-        planned_actions.append({"path": relpath, "action": "skip", "reason": "path is a directory"})
+        plan_blocked(relpath, reason="path is a directory")
         return
     planned_deletes.add(relpath)
     planned_actions.append({"path": relpath, "action": "delete", "reason": reason})
@@ -477,7 +493,10 @@ def canonicalize_legacy_manifest(content: str) -> str:
 def plan_manifest_file(relpath: str, default_content: str) -> None:
     p = target / relpath
     if p.exists() and p.is_file():
-        current = p.read_text("utf-8")
+        current = read_utf8_text(p)
+        if current is None:
+            plan_blocked(relpath, reason="file is not valid utf-8")
+            return
         canonicalized = canonicalize_legacy_manifest(current)
         if canonicalized != current:
             planned_writes[relpath] = canonicalized
@@ -498,10 +517,13 @@ def plan_remove_legacy_gitlab_ci() -> None:
         planned_actions.append({"path": ".gitlab-ci.yml", "action": "unchanged"})
         return
     if ci_root.is_dir():
-        planned_actions.append({"path": ".gitlab-ci.yml", "action": "skip", "reason": "path is a directory"})
+        plan_blocked(".gitlab-ci.yml", reason="path is a directory")
         return
 
-    current = ci_root.read_text("utf-8")
+    current = read_utf8_text(ci_root)
+    if current is None:
+        plan_blocked(".gitlab-ci.yml", reason="file is not valid utf-8")
+        return
     updated = remove_rocs_include(current)
     if updated == current:
         planned_actions.append({"path": ".gitlab-ci.yml", "action": "unchanged"})
@@ -606,7 +628,10 @@ report: dict[str, object] = {
     "capabilities": policy,
     "planned_actions": sorted(planned_actions, key=lambda x: x["path"]),
     "vendor_sync": vendor_result,
+    "blocked": bool(planned_blockers),
 }
+if planned_blockers:
+    report["blocked_paths"] = sorted(planned_blockers, key=lambda x: x["path"])
 
 if dry_run:
     rollback_paths = set(planned_writes) | set(planned_deletes)
@@ -628,4 +653,6 @@ else:
     report["rollback_paths"] = sorted(created_files + modified_files + deleted_files)
 
 print(json.dumps(report, indent=2, sort_keys=True))
+if planned_blockers:
+    raise SystemExit(1)
 PY

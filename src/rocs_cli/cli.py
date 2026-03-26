@@ -186,6 +186,12 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
     return out
 
 
+def _clear_build_artifacts(repo: Path) -> None:
+    dist = dist_dir(repo)
+    for name in ("resolve.json", "summary.json", "id_index.json"):
+        (dist / name).unlink(missing_ok=True)
+
+
 def _write_authority_receipt_if_possible(
     repo: Path,
     *,
@@ -455,6 +461,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     if args.clean and dist.exists():
         shutil.rmtree(dist)
     dist.mkdir(parents=True, exist_ok=True)
+    _clear_build_artifacts(repo)
     try:
         view = _load_view(args)
     except RocsCliError as e:
@@ -476,7 +483,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     findings, _budget_payload = _schema_validation_result(
         view,
         strict_placeholders=strict_placeholders,
-        validate_deps=False,
+        validate_deps=True,
     )
     if findings:
         _write_authority_receipt_if_possible(

@@ -43,6 +43,8 @@ def validate_vendor_target(*, repo_root: Path, target: Path) -> None:
         raise ValueError("refusing to vendor into source repo root")
     if resolved_target == resolved_source_pkg or resolved_target.is_relative_to(resolved_source_pkg):
         raise ValueError(f"refusing to vendor into source package tree: {resolved_target}")
+    if resolved_target.is_relative_to(resolved_repo_root):
+        raise ValueError(f"refusing to vendor into source repo tree: {resolved_target}")
     if resolved_target.exists() and not resolved_target.is_dir():
         raise ValueError(f"target exists and is not a directory: {resolved_target}")
 

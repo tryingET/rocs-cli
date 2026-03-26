@@ -689,6 +689,16 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(payload.get("pack", {}).get("counts", {}).get("docs"), 1)
             self.assertEqual(payload.get("docs", [{}])[0].get("ont_id"), "core.Agent")
 
+    def test_pack_rejects_root_doc_excluded_by_max_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            code, out = _run_capture(["pack", "core.Agent", "--repo", str(repo), "--max-bytes", "10", "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "usage")
+            self.assertIn("requested root doc", payload.get("error", {}).get("message", ""))
+
     def test_pack_rejects_non_positive_max_docs(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
@@ -798,6 +808,44 @@ class TestRocsCli(unittest.TestCase):
             receipt = json.loads((repo / "ontology" / "dist" / "authority-receipt.build.json").read_text("utf-8"))
             self.assertEqual(receipt.get("ok"), False)
             self.assertGreaterEqual(receipt.get("result", {}).get("finding_count", 0), 1)
+
+    def test_build_clears_stale_summary_after_prior_success_then_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+            self.assertTrue((repo / "ontology" / "dist" / "summary.json").exists())
+
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Agent"',
+                        "  type: concept",
+                        '  labels: ["Agent"]',
+                        "  relations: []",
+                        "  examples:",
+                        '    - "an example"',
+                        "---",
+                        "",
+                        "# Agent",
+                        "",
+                        "## Definition",
+                        "an agent",
+                        "",
+                    ]
+                ),
+            )
+
+            code, out = _run_capture(["build", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertFalse((repo / "ontology" / "dist" / "summary.json").exists())
+            self.assertFalse((repo / "ontology" / "dist" / "id_index.json").exists())
+            self.assertFalse((repo / "ontology" / "dist" / "resolve.json").exists())
+            self.assertTrue((repo / "ontology" / "dist" / "authority-receipt.build.json").exists())
 
     def test_build_resolve_refs_with_no_ref_layers_is_not_authoritative(self) -> None:
         with tempfile.TemporaryDirectory() as td:

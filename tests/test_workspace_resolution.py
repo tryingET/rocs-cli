@@ -247,6 +247,106 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertIn("no longer supported", payload.get("error", {}).get("message", ""))
             self.assertIn("<repo:ai-society/core/dep@v1>", payload.get("error", {}).get("message", ""))
 
+    def test_build_fails_closed_on_invalid_dependency_layer(self) -> None:
+        project_path = "core/dep"
+        locator = f"<repo:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            dep = ws / "core" / "dep"
+            dep.mkdir(parents=True, exist_ok=True)
+            _git(dep, ["init"])
+            _git(dep, ["config", "user.email", "test@example.invalid"])
+            _git(dep, ["config", "user.name", "test"])
+            _git(dep, ["remote", "add", "origin", f"http://example.invalid/{project_path}.git"])
+            _write(dep / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
+            _write(
+                dep / "ontology" / "src" / "reference" / "relations" / "is_a.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.rel.is_a"',
+                        "  type: relation",
+                        '  labels: ["is_a"]',
+                        '  description: "taxonomy"',
+                        "---",
+                        "",
+                        "# is_a",
+                        "",
+                        "## Definition",
+                        "taxonomy",
+                        "",
+                    ]
+                ),
+            )
+            _write(
+                dep / "ontology" / "src" / "reference" / "concepts" / "core.Bad.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Bad"',
+                        "  type: concept",
+                        "  relations: []",
+                        "---",
+                        "",
+                        "# Bad",
+                        "",
+                        "## Definition",
+                        "bad",
+                        "",
+                    ]
+                ),
+            )
+            _git(dep, ["add", "."])
+            _git(dep, ["commit", "-m", "init"])
+            _git(dep, ["tag", "v1"])
+
+            repo = _mk_rocs_repo(td_path, locator=locator)
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Local.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Local"',
+                        "  type: concept",
+                        '  labels: ["Local"]',
+                        '  description: "local"',
+                        "  relations: []",
+                        "  examples:",
+                        '    - "example"',
+                        "  anti_examples:",
+                        '    - "anti-example"',
+                        "---",
+                        "",
+                        "# Local",
+                        "",
+                        "## Definition",
+                        "local",
+                        "",
+                    ]
+                ),
+            )
+
+            code, out = _run_capture(
+                [
+                    "build",
+                    "--repo",
+                    str(repo),
+                    "--resolve-refs",
+                    "--workspace-root",
+                    str(ws),
+                    "--json",
+                ]
+            )
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIn("ONT003", {finding.get("rule_id") for finding in payload.get("findings") or []})
+            self.assertIn("ONT004", {finding.get("rule_id") for finding in payload.get("findings") or []})
+
     def test_build_authority_receipt_captures_workspace_repo_resolution(self) -> None:
         project_path = "core/dep"
         locator = f"<repo:{project_path}@v1>"

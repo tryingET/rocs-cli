@@ -82,13 +82,23 @@ def build_pack(
     packed: list[PackedDoc] = []
     bytes_used = 0
 
-    def add_doc(ont_id: str, kind: str, doc: OntDoc) -> bool:
+    def add_doc(ont_id: str, kind: str, doc: OntDoc, *, required: bool = False) -> bool:
         nonlocal bytes_used
         if config.max_docs is not None and len(packed) >= config.max_docs:
+            if required:
+                raise RocsCliError(
+                    kind="usage",
+                    message=f"pack limits exclude requested root doc: {ont_id} (max_docs={config.max_docs})",
+                )
             return False
         text = doc.path.read_text("utf-8")
         b = len(text.encode("utf-8"))
         if config.max_bytes is not None and bytes_used + b > config.max_bytes:
+            if required:
+                raise RocsCliError(
+                    kind="usage",
+                    message=f"pack limits exclude requested root doc: {ont_id} (max_bytes={config.max_bytes})",
+                )
             return False
         bytes_used += b
         packed.append(PackedDoc(ont_id=ont_id, kind=kind, path=str(doc.path), text=text))
@@ -136,7 +146,7 @@ def build_pack(
         cdoc = concepts.get(cid)
         if not cdoc:
             continue
-        add_doc(cid, "concept", cdoc)
+        add_doc(cid, "concept", cdoc, required=(cid == root_id))
 
     included_relation_labels: set[str] = set()
     if config.include_relation_defs:
@@ -157,7 +167,7 @@ def build_pack(
     if relation_root_id is not None:
         rdoc = relations.get(relation_root_id)
         if rdoc is not None:
-            add_doc(relation_root_id, "relation", rdoc)
+            add_doc(relation_root_id, "relation", rdoc, required=True)
 
     rel_label_to_ids = relation_label_index(relations)
     included_relation_ids: set[str] = set()

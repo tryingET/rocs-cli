@@ -216,6 +216,21 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertEqual(report.get("modified_files"), [])
             self.assertFalse((target / "scripts" / "ci" / "full.sh").exists())
 
+    def test_existing_binary_managed_file_is_reported_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            (target / ".githooks").mkdir(parents=True)
+            (target / ".githooks" / "pre-push").write_bytes(b"\xff\xfe\x00bin")
+
+            proc = _run_bootstrap(str(target), "--class", "required", "--dry-run")
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            report = _json_report(proc)
+            self.assertTrue(report.get("blocked"))
+            pre_push = [row for row in report.get("planned_actions", []) if row.get("path") == ".githooks/pre-push"][0]
+            self.assertEqual(pre_push.get("action"), "blocked")
+            self.assertIn("utf-8", pre_push.get("reason", ""))
+            self.assertNotIn("Traceback", proc.stderr)
+
     def test_ontology_repo_class_uses_strict_overlay_scaffold(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "ontology"
