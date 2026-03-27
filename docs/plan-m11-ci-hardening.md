@@ -1,13 +1,28 @@
 ---
-summary: "Implementation plan for M11 ROCS-CLI hardening (token + refs): secure GitLab fetching, stable errors, CI matrix + ruff."
+summary: "Historical M11 plan kept for provenance; superseded by workspace-only ref resolution and local gate policy."
 read_when:
-  - "When implementing Milestone 11 issues #1–#6 in rocs-cli"
-  - "When changing offline-first/network behavior or GitLab archive handling"
+  - "When tracing why older ROCS docs mention GitLab archive fetching"
+  - "When comparing the old M11 hardening plan to the current workspace-only design"
 ---
 
-# M11 plan: rocs-cli hardening (token + refs)
+# Historical M11 plan: rocs-cli hardening (token + refs)
 
 Source issue: `ai-society/core/rocs-cli#1` (“M11 Proposal: ROCS CI hardening (token + refs)”).
+
+## Status
+This document is **historical**.
+
+The current ROCS design no longer uses GitLab archive fetching or remote fallback:
+- ref locators are workspace-only via `<repo:...@ref>`
+- legacy `<gitlab:...@ref>` locators are rejected
+- local gates run through `scripts/ci/full.sh`
+
+Read these current docs first:
+- `README.md`
+- `docs/ref-resolution-ci-strategy.md`
+- `docs/artifacts.md`
+
+The remainder of this file is preserved as an archival implementation plan from the pre-workspace-only design.
 
 ## Outcome (restated)
 - `rocs validate/lint/build/diff` deterministic for same inputs (define “same inputs” below).
