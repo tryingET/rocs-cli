@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import stat
 import subprocess
 import tempfile
@@ -72,7 +73,8 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertNotIn('<gitlab:org/', manifest)
 
             hook = (target / ".githooks" / "pre-push").read_text("utf-8")
-            self.assertIn("ROCS_CI_PROFILE=branch-ci", hook)
+            self.assertIn('export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"', hook)
+            self.assertIn('export ROCS_CMD="${ROCS_CMD:-uv run --project ./tools/rocs-cli python -m rocs_cli}"', hook)
             self.assertIn("bash scripts/ci/full.sh", hook)
             self.assertNotIn("rocs build --repo . --resolve-refs", hook)
             self.assertNotIn("rocs validate --repo . --resolve-refs", hook)
@@ -166,7 +168,7 @@ class TestBootstrapRepoScript(unittest.TestCase):
 
             hook = (target / ".githooks" / "pre-push").read_text("utf-8")
             wrapper = (target / "scripts" / "ci" / "full.sh").read_text("utf-8")
-            self.assertIn("ROCS_CI_PROFILE=branch-ci", hook)
+            self.assertIn('export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"', hook)
             self.assertIn("bash scripts/ci/full.sh", hook)
             self.assertIn("ROCS_WORKSPACE_ROOT", wrapper)
             self.assertIn("ROCS_WORKSPACE_REF_MODE", wrapper)
@@ -241,6 +243,55 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertNotIn("gitlab/ci/rocs.yml", gitlab_ci)
             self.assertIn("!reference [.shared, rules]", gitlab_ci)
             self.assertTrue((target / ".githooks" / "pre-push").is_file())
+
+    def test_existing_gitlab_ci_with_reference_tag_and_no_rocs_include_is_left_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            target.mkdir(parents=True)
+            original = "\n".join(
+                [
+                    "job:",
+                    "  script:",
+                    "    - echo ok",
+                    "  rules: !reference [.shared, rules]",
+                    ".shared:",
+                    "  rules:",
+                    "    - if: $CI_PIPELINE_SOURCE",
+                    "",
+                ]
+            )
+            (target / ".gitlab-ci.yml").write_text(original, "utf-8")
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertEqual((target / ".gitlab-ci.yml").read_text("utf-8"), original)
+
+    def test_existing_gitlab_ci_flow_style_rocs_include_with_reference_tag_is_removed(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            target.mkdir(parents=True)
+            (target / ".gitlab-ci.yml").write_text(
+                "\n".join(
+                    [
+                        "include: ['gitlab/ci/rocs.yml', 'gitlab/ci/keep.yml']",
+                        "job:",
+                        "  rules: !reference [.shared, rules]",
+                        ".shared:",
+                        "  rules:",
+                        "    - if: $CI_PIPELINE_SOURCE",
+                        "",
+                    ]
+                ),
+                "utf-8",
+            )
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            gitlab_ci = (target / ".gitlab-ci.yml").read_text("utf-8")
+            self.assertNotIn("gitlab/ci/rocs.yml", gitlab_ci)
+            self.assertIn("gitlab/ci/keep.yml", gitlab_ci)
+            self.assertIn("!reference [.shared, rules]", gitlab_ci)
 
     def test_existing_gitlab_ci_multiline_rocs_include_with_reference_tag_is_removed_atomically(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -362,6 +413,28 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertIn(".githooks/pre-push", report.get("modified_files", []))
             self.assertEqual(stat.S_IMODE(pre_push.stat().st_mode), 0o755)
 
+    def test_required_bootstrap_hook_runs_local_dev_path_only_without_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            env = os.environ.copy()
+            env["HOME"] = td
+            env["ROCS_CMD"] = f"uv run --directory {REPO_ROOT} python -m rocs_cli"
+            env["ROCS_REPO"] = str(target)
+            hook_proc = subprocess.run(
+                ["bash", str(target / ".githooks" / "pre-push")],
+                cwd=target,
+                check=False,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            self.assertEqual(hook_proc.returncode, 0, hook_proc.stdout + hook_proc.stderr)
+            self.assertTrue((target / "ontology" / "dist" / "summary.json").is_file())
+
     def test_ontology_repo_class_uses_strict_overlay_scaffold(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "ontology"
@@ -374,7 +447,7 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertIn('<repo:core/ontology-kernel@main>', manifest)
 
             hook = (target / ".githooks" / "pre-push").read_text("utf-8")
-            self.assertIn("ROCS_CI_PROFILE=main-strict", hook)
+            self.assertIn('export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-main-strict}"', hook)
             self.assertIn("bash scripts/ci/full.sh", hook)
             self.assertTrue((target / "scripts" / "ci" / "full.sh").is_file())
 

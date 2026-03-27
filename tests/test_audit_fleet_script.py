@@ -337,6 +337,35 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(evidence["hook_exec_present"], False)
             self.assertEqual(evidence["hook_exec_checked"], {".githooks/pre-push": False})
 
+    def test_template_hook_does_not_count_as_active_ci_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = workspace / "softwareco" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            _write(repo / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
+            _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
+            _write(repo / ".githooks" / "pre-push.j2", "#!/usr/bin/env bash\nset -euo pipefail\nROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n")
+            _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["rocs_ci_gate"])
+            self.assertEqual(evidence["hook_hits"], [])
+            self.assertEqual(evidence["hook_template_hits"], [".githooks/pre-push.j2"])
+            self.assertEqual(evidence["wrapper_hits"], ["scripts/ci/full.sh"])
+
     def test_repo_locators_require_workspace_aware_wrapper_contract(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"

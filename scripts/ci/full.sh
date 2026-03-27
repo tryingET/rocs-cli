@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ROCS CI profile wrapper
 # Profiles:
-#   - local-dev   : offline-first by default (refs optional; workspace matching defaults loose)
+#   - local-dev   : offline-first by default (path layers only; workspace refs optional)
 #   - branch-ci   : strict refs required (workspace matching defaults strict)
 #   - main-strict : strict refs required (authoritative gate; workspace matching defaults strict)
 
@@ -63,14 +63,15 @@ strict_gate() {
 case "$ROCS_CI_PROFILE" in
   local-dev)
     # Keep local loops fast/offline unless explicitly requested.
+    # Default local-dev runs path layers only so repos with ref layers still validate/build offline.
     # When ROCS_LOCAL_RESOLVE_REFS=1, the default workspace ref mode flips to strict.
     clean_dist
     if [[ "${ROCS_LOCAL_RESOLVE_REFS:-0}" == "1" ]]; then
       run_rocs validate "${common_args[@]}" --resolve-refs
       run_rocs build "${common_args[@]}" --resolve-refs
     else
-      run_rocs validate "${common_args[@]}"
-      run_rocs build "${common_args[@]}"
+      run_rocs validate "${common_args[@]}" --only path
+      run_rocs build "${common_args[@]}" --only path
     fi
     ;;
 

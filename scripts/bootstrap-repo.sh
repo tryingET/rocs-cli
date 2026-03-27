@@ -282,7 +282,9 @@ HOOK_PRE_PUSH_ADVISORY = norm(
     repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
     cd "$repo_root"
 
-    ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh
+    export ROCS_CMD="${ROCS_CMD:-uv run --project ./tools/rocs-cli python -m rocs_cli}"
+    export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"
+    bash scripts/ci/full.sh
     """
 )
 
@@ -294,7 +296,9 @@ HOOK_PRE_PUSH_STRICT = norm(
     repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
     cd "$repo_root"
 
-    ROCS_CMD='uvx -n --from ./tools/rocs-cli rocs' ROCS_CI_PROFILE=main-strict bash scripts/ci/full.sh
+    export ROCS_CMD="${ROCS_CMD:-uv run --project ./tools/rocs-cli python -m rocs_cli}"
+    export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-main-strict}"
+    bash scripts/ci/full.sh
     """
 )
 
@@ -389,6 +393,33 @@ def _is_rocs_include_scalar(value: str) -> bool:
     return value.strip().strip("\"'") == "gitlab/ci/rocs.yml"
 
 
+def _render_inline_include(entries: list[object]) -> str:
+    rendered = yaml.safe_dump(entries, sort_keys=False, default_flow_style=True).strip()
+    return f"include: {rendered}"
+
+
+def _filter_inline_include_value(value: str) -> tuple[str | None, bool]:
+    stripped = value.strip()
+    if not stripped:
+        return None, False
+    if _is_rocs_include_scalar(stripped):
+        return None, True
+    if not stripped.startswith("["):
+        return None, False
+    try:
+        loaded = yaml.safe_load(stripped)
+    except yaml.YAMLError:
+        return None, False
+    if not isinstance(loaded, list):
+        return None, False
+    filtered = [entry for entry in loaded if not _ci_include_has_rocs([entry])]
+    if len(filtered) == len(loaded):
+        return None, False
+    if not filtered:
+        return None, True
+    return _render_inline_include(filtered), True
+
+
 def _leading_spaces(line: str) -> int:
     return len(line) - len(line.lstrip(" "))
 
@@ -405,8 +436,12 @@ def _remove_rocs_include_textually(text: str) -> str | None:
         if _leading_spaces(line) == 0 and stripped.startswith("include:"):
             inline_value = stripped[len("include:") :].strip()
             if inline_value:
-                if _is_rocs_include_scalar(inline_value):
+                rewritten, handled = _filter_inline_include_value(inline_value)
+                if handled:
                     changed = True
+                    if rewritten is not None:
+                        newline = "\n" if line.endswith("\n") else ""
+                        out.append(rewritten + newline)
                     i += 1
                     continue
                 out.append(line)
@@ -502,6 +537,8 @@ def _remove_rocs_include_textually(text: str) -> str | None:
 def remove_rocs_include(text: str) -> str | None:
     if not text.strip():
         return None
+    if "gitlab/ci/rocs.yml" not in text:
+        return ensure_trailing_newline(text)
 
     try:
         loaded = yaml.safe_load(text) or {}

@@ -32,12 +32,18 @@ MANIFEST_CANDIDATES: tuple[str, ...] = (
 
 ROCS_GATE_HOOK_CANDIDATES: tuple[str, ...] = (
     ".githooks/pre-push",
+)
+
+ROCS_GATE_HOOK_TEMPLATE_CANDIDATES: tuple[str, ...] = (
     ".githooks/pre-push.j2",
     ".githooks/pre-push.jinja",
 )
 
 ROCS_CI_WRAPPER_CANDIDATES: tuple[str, ...] = (
     "scripts/ci/full.sh",
+)
+
+ROCS_CI_WRAPPER_TEMPLATE_CANDIDATES: tuple[str, ...] = (
     "scripts/ci/full.sh.j2",
     "scripts/ci/full.sh.jinja",
 )
@@ -272,7 +278,9 @@ def _normalize_script_text(text: str) -> list[str]:
 
 
 def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspace_contract: bool) -> tuple[bool, dict[str, Any]]:
+    hook_template_hits = _find_existing(base, ROCS_GATE_HOOK_TEMPLATE_CANDIDATES)
     wrapper_hits = _find_existing(base, ROCS_CI_WRAPPER_CANDIDATES)
+    wrapper_template_hits = _find_existing(base, ROCS_CI_WRAPPER_TEMPLATE_CANDIDATES)
     legacy_gate_hits = _find_existing(base, LEGACY_GATE_CANDIDATES)
     wrapper_call_present = False
     profile_contract_present = False
@@ -326,7 +334,9 @@ def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspac
 
     evidence = {
         "hook_hits": hook_hits,
+        "hook_template_hits": hook_template_hits,
         "wrapper_hits": wrapper_hits,
+        "wrapper_template_hits": wrapper_template_hits,
         "legacy_gate_hits": legacy_gate_hits,
         "hook_contract_checked": hook_contract_checked,
         "hook_exec_required": hook_exec_required,

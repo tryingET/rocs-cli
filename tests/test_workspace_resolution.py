@@ -499,6 +499,30 @@ class TestWorkspaceResolution(unittest.TestCase):
             combined = (proc.stdout + proc.stderr).replace("\n", " ")
             self.assertIn("mismatch in strict mode", combined)
 
+    def test_ci_wrapper_local_dev_defaults_to_path_layers_only(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
+
+            with _Env(
+                ROCS_CI_PROFILE="local-dev",
+                ROCS_REPO=str(repo),
+                ROCS_CMD="uv run python -m rocs_cli",
+            ):
+                proc = subprocess.run(
+                    ["bash", "scripts/ci/full.sh"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            aggregate = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
+            self.assertEqual(sorted(aggregate.get("commands", {}).keys()), ["build", "validate"])
+            build_receipt = aggregate["commands"]["build"]
+            self.assertEqual(build_receipt.get("resolve_refs_requested"), False)
+            self.assertEqual(build_receipt.get("authority_mode"), "local_only")
+            self.assertEqual([layer.get("kind") for layer in build_receipt.get("layer_sources") or []], ["path"])
+
     def test_ci_wrapper_local_dev_opt_in_defaults_workspace_matching_to_strict(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)

@@ -82,7 +82,7 @@ Tests:
 CI profile wrapper (template-side policy contract):
 - Script: `scripts/ci/full.sh`
 - Profiles via `ROCS_CI_PROFILE=local-dev|branch-ci|main-strict`
-  - `local-dev`: offline-first default; `--resolve-refs` stays off unless `ROCS_LOCAL_RESOLVE_REFS=1`, and that opt-in path defaults workspace matching to `strict`
+  - `local-dev`: offline-first default; runs `--only path` unless `ROCS_LOCAL_RESOLVE_REFS=1`, and that opt-in path enables `--resolve-refs` with workspace matching defaulting to `strict`
   - `branch-ci`: requires `--resolve-refs` and defaults workspace matching to `strict` (fail-closed)
   - `main-strict`: requires `--resolve-refs` and defaults workspace matching to `strict` (authoritative fail-closed gate)
 - `ROCS_WORKSPACE_REF_MODE` remains an explicit override when a caller intentionally needs different behavior.
@@ -102,6 +102,8 @@ FCOS convergence scripts:
 - `scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--dry-run]`
   - class-based FCOS bootstrap (vendored `rocs-cli`, ontology scaffold, local gate wiring)
   - installs `scripts/ci/full.sh`, `.githooks/pre-push`, and `.githooks/README.md`
+  - required repos default the generated pre-push hook to `ROCS_CI_PROFILE=local-dev`; ontology repos default to `main-strict`
+  - generated hooks honor `ROCS_CMD` overrides and otherwise default to `uv run --project ./tools/rocs-cli python -m rocs_cli`
   - converges away legacy generated `gitlab/ci/rocs.yml` / `.gitlab-ci.yml` ROCS surfaces when present
   - emits a deterministic JSON report with `rollback_paths`
   - fails closed with a JSON blocker report when managed files are unreadable, not valid UTF-8, or replaced by directories
@@ -109,7 +111,7 @@ FCOS convergence scripts:
   - `--dry-run` validates and reports without writing files
 - `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
   - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)
-  - `rocs_ci_gate` checks checked-in hook gate surfaces (`.githooks/pre-push` + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); comments do not count as evidence
+  - `rocs_ci_gate` checks concrete checked-in hook gate surfaces (`.githooks/pre-push` + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); template files and comments do not count as evidence
   - emits deterministic JSON/Markdown scorecards (stdout when PATH omitted)
   - stable exit codes: `0` pass, `2` required capability violations, `1` policy/usage error
 - `scripts/open-remediation-batch.sh --input <audit.json> --mode patch|apply [--output [PATH]] [--workspace-root <path>]`

@@ -42,7 +42,7 @@ Keep the hybrid contract:
 
 | Context | Canonical caller contract | `--resolve-refs` | Workspace ref mode default | Failure behavior |
 |---|---|---:|---|---|
-| Local dev | `ROCS_CI_PROFILE=local-dev` | Off by default; enabled with `ROCS_LOCAL_RESOLVE_REFS=1` | `loose` by default; flips to `strict` when local ref resolution is explicitly enabled | Default mode stays fast and offline. Strict opt-in fails on missing workspace deps or ref mismatch. |
+| Local dev | `ROCS_CI_PROFILE=local-dev` | Off by default; enabled with `ROCS_LOCAL_RESOLVE_REFS=1` | `loose` by default; flips to `strict` when local ref resolution is explicitly enabled | Default mode stays fast and offline by operating on `--only path`. Strict opt-in fails on missing workspace deps or ref mismatch. |
 | Branch gate | `ROCS_CI_PROFILE=branch-ci` | Required | `strict` | Fail closed on unresolved refs or ref mismatch. |
 | Main/protected gate | `ROCS_CI_PROFILE=main-strict` | Required | `strict` | Fail closed always. |
 
@@ -50,7 +50,8 @@ Keep the hybrid contract:
 - Set `ROCS_WORKSPACE_ROOT=~/ai-society` (or your equivalent workspace root).
 - Migrate any legacy `<gitlab:...>` manifest entries to `<repo:...>`.
 - Use `scripts/ci/full.sh` as the canonical shared gate surface.
-- The shipped bootstrap/audit contract uses `.githooks/pre-push` + `scripts/ci/full.sh`.
+- The shipped bootstrap/audit contract uses concrete checked-in files: `.githooks/pre-push` + `scripts/ci/full.sh`.
+- Bootstrap defaults required repos to a `local-dev` pre-push hook and ontology repos to `main-strict`.
 - Invoke that wrapper from:
   - checked-in git hooks (for example pre-push)
   - Pi tasks/runners
