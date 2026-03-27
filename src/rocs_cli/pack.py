@@ -38,6 +38,14 @@ def _int_or_error(v: object, *, field: str, minimum: int | None = None, allow_no
     return out
 
 
+def _bool_or_error(v: object, *, field: str) -> bool:
+    if v is None:
+        return False
+    if isinstance(v, bool):
+        return v
+    raise RocsCliError(kind="config", message=f"pack.{field} must be a boolean")
+
+
 def _parse_profile_pack_cfg(profile_def: dict | None) -> PackConfig:
     if not isinstance(profile_def, dict):
         return PackConfig()
@@ -56,7 +64,7 @@ def _parse_profile_pack_cfg(profile_def: dict | None) -> PackConfig:
             raise RocsCliError(kind="config", message="pack.rel_types must be a list")
         rel_types = {str(x) for x in raw_rel_types if str(x).strip()}
 
-    include_relation_defs = bool(pack.get("include_relation_defs") or False)
+    include_relation_defs = _bool_or_error(pack.get("include_relation_defs"), field="include_relation_defs")
     max_docs = _int_or_error(pack.get("max_docs"), field="max_docs", minimum=1, allow_none=True)
     max_bytes = _int_or_error(pack.get("max_bytes"), field="max_bytes", minimum=1, allow_none=True)
 

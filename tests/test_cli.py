@@ -740,6 +740,27 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(payload.get("error", {}).get("kind"), "config")
             self.assertIn("pack.max_docs", payload.get("error", {}).get("message", ""))
 
+    def test_pack_rejects_quoted_boolean_profile_flags(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(
+                Path(td),
+                manifest_extra="\n".join(
+                    [
+                        "  profiles:",
+                        "    default: repo-dev",
+                        "    repo-dev:",
+                        "      pack:",
+                        '        include_relation_defs: "false"',
+                    ]
+                ),
+            )
+            code, out = _run_capture(["pack", "core.Agent", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "config")
+            self.assertIn("pack.include_relation_defs", payload.get("error", {}).get("message", ""))
+
     def test_build_writes_id_index(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))

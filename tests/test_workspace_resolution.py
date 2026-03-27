@@ -185,6 +185,32 @@ class TestWorkspaceResolution(unittest.TestCase):
             dep = [x for x in payload["layers"] if x["name"] == "dep"][0]
             self.assertEqual(dep["source"], "workspace")
 
+    def test_repo_locator_does_not_strip_arbitrary_prefix_segments(self) -> None:
+        locator = "<repo:foo/bar/repo@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            _init_workspace_repo(ws / "bar" / "repo", project_path="bar/repo", tag="v1", make_mismatch=False)
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            code, out = _run_capture(
+                [
+                    "resolve",
+                    "--repo",
+                    str(repo),
+                    "--resolve-refs",
+                    "--workspace-root",
+                    str(ws),
+                    "--workspace-ref-mode",
+                    "strict",
+                    "--json",
+                ]
+            )
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertIn("local ref not available", payload.get("error", {}).get("message", ""))
+
     def test_strict_mismatch_fails_cleanly(self) -> None:
         project_path = "core/dep"
         locator = f"<repo:{project_path}@v1>"

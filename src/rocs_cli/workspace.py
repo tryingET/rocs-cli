@@ -32,7 +32,11 @@ def workspace_repo_candidates(workspace_root: Path, project_path: str) -> list[P
     candidates: list[Path] = []
 
     candidates.append((workspace_root / Path(*parts)).resolve())
-    if len(parts) >= 2:
+
+    # Support the explicit workspace namespace prefix when a locator uses
+    # `<repo:ai-society/...>` or `<repo:<workspace-root-name>/...>` while the
+    # local checkout root already points at that namespace directory.
+    if len(parts) >= 2 and parts[0] in {"ai-society", workspace_root.name}:
         candidates.append((workspace_root / Path(*parts[1:])).resolve())
 
     out: list[Path] = []

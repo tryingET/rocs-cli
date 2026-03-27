@@ -84,27 +84,25 @@ def norm(text: str) -> str:
     return textwrap.dedent(text).strip("\n") + "\n"
 
 
-REPO_MANIFEST = norm(
-    """
-    rocs:
-      layers:
-        - name: core
-          ref: "<repo:core/ontology-kernel@main>"
-        - name: company
-          ref: "<repo:softwareco/ontology@main>"
-        - name: repo
-          path: "ontology/src"
-      profiles:
-        default: "repo-dev"
-        guiding-circle:
-          include_layers: ["core", "company"]
-          exclude_layers: ["repo"]
-          budget: 1800
-        repo-dev:
-          include_layers: ["core", "company", "repo"]
-          budget: 2800
-    """
-)
+REPO_MANIFEST_TEMPLATE = """
+rocs:
+  layers:
+    - name: core
+      ref: "<repo:core/ontology-kernel@main>"
+    - name: company
+      ref: "{company_ref}"
+    - name: repo
+      path: "ontology/src"
+  profiles:
+    default: "repo-dev"
+    guiding-circle:
+      include_layers: ["core", "company"]
+      exclude_layers: ["repo"]
+      budget: 1800
+    repo-dev:
+      include_layers: ["core", "company", "repo"]
+      budget: 2800
+"""
 
 ONTOLOGY_REPO_MANIFEST = norm(
     """
@@ -382,9 +380,123 @@ def _ci_include_has_rocs(entries: list[object]) -> bool:
     for entry in entries:
         if isinstance(entry, dict) and str(entry.get("local") or "") == "gitlab/ci/rocs.yml":
             return True
-        if isinstance(entry, str) and entry.strip() == "gitlab/ci/rocs.yml":
+        if isinstance(entry, str) and entry.strip().strip("\"'") == "gitlab/ci/rocs.yml":
             return True
     return False
+
+
+def _is_rocs_include_scalar(value: str) -> bool:
+    return value.strip().strip("\"'") == "gitlab/ci/rocs.yml"
+
+
+def _leading_spaces(line: str) -> int:
+    return len(line) - len(line.lstrip(" "))
+
+
+def _remove_rocs_include_textually(text: str) -> str | None:
+    lines = text.splitlines(keepends=True)
+    out: list[str] = []
+    i = 0
+    changed = False
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if _leading_spaces(line) == 0 and stripped.startswith("include:"):
+            inline_value = stripped[len("include:") :].strip()
+            if inline_value:
+                if _is_rocs_include_scalar(inline_value):
+                    changed = True
+                    i += 1
+                    continue
+                out.append(line)
+                i += 1
+                continue
+
+            j = i + 1
+            block: list[str] = []
+            while j < len(lines):
+                current = lines[j]
+                if current.strip() and _leading_spaces(current) == 0:
+                    break
+                block.append(current)
+                j += 1
+
+            kept: list[str] = []
+            k = 0
+            while k < len(block):
+                current = block[k]
+                stripped_current = current.strip()
+                if not stripped_current:
+                    if kept:
+                        kept.append(current)
+                    k += 1
+                    continue
+                if stripped_current.startswith("#"):
+                    kept.append(current)
+                    k += 1
+                    continue
+
+                if stripped_current.startswith("-"):
+                    entry_lines = [current]
+                    entry_indent = _leading_spaces(current)
+                    k += 1
+                    while k < len(block):
+                        nxt = block[k]
+                        nxt_stripped = nxt.strip()
+                        nxt_indent = _leading_spaces(nxt)
+                        if nxt_stripped and nxt_indent == entry_indent and nxt_stripped.startswith("-"):
+                            break
+                        entry_lines.append(nxt)
+                        k += 1
+
+                    first = stripped_current[1:].strip()
+                    remove_entry = _is_rocs_include_scalar(first)
+                    if not remove_entry and first.startswith("local:"):
+                        remove_entry = _is_rocs_include_scalar(first.split(":", 1)[1])
+                    if not remove_entry:
+                        for entry_line in entry_lines[1:]:
+                            entry_line_stripped = entry_line.strip()
+                            if entry_line_stripped.startswith("local:") and _is_rocs_include_scalar(entry_line_stripped.split(":", 1)[1]):
+                                remove_entry = True
+                                break
+                    if remove_entry:
+                        changed = True
+                        continue
+                    kept.extend(entry_lines)
+                    continue
+
+                if stripped_current.startswith("local:"):
+                    if _is_rocs_include_scalar(stripped_current.split(":", 1)[1]):
+                        changed = True
+                        k += 1
+                        continue
+
+                kept.append(current)
+                k += 1
+
+            while kept and not kept[0].strip():
+                kept.pop(0)
+            while kept and not kept[-1].strip():
+                kept.pop()
+
+            if kept:
+                out.append(line)
+                out.extend(kept)
+                if j < len(lines) and out and not out[-1].endswith("\n"):
+                    out[-1] += "\n"
+            else:
+                changed = True
+            i = j
+            continue
+
+        out.append(line)
+        i += 1
+
+    result = "".join(out)
+    if not result.strip():
+        return None
+    return ensure_trailing_newline(result if changed else text)
 
 
 def remove_rocs_include(text: str) -> str | None:
@@ -394,7 +506,10 @@ def remove_rocs_include(text: str) -> str | None:
     try:
         loaded = yaml.safe_load(text) or {}
     except yaml.YAMLError as exc:
-        raise SystemExit(f"invalid .gitlab-ci.yml: {exc}") from exc
+        updated = _remove_rocs_include_textually(text)
+        if updated == ensure_trailing_newline(text):
+            raise SystemExit(f"invalid .gitlab-ci.yml: {exc}") from exc
+        return updated
     if not isinstance(loaded, dict):
         raise SystemExit("invalid .gitlab-ci.yml: root must be a mapping")
 
@@ -493,15 +608,23 @@ def infer_company_from_target(path: Path) -> str | None:
     return None
 
 
+def company_ref_for_target(path: Path) -> str:
+    company = infer_company_from_target(path) or "softwareco"
+    return f"<repo:{company}/ontology@main>"
+
+
+def repo_manifest_for_target(path: Path) -> str:
+    return norm(REPO_MANIFEST_TEMPLATE.format(company_ref=company_ref_for_target(path)))
+
+
 LEGACY_CORE_LOCATOR_RE = re.compile(r"<gitlab:(?:ai-society/)?(?:core/ontology-kernel|org/ontology-kernel)@[^>]+>")
 LEGACY_COMPANY_LOCATOR_RE = re.compile(r"<gitlab:(?:ai-society/)?(?:org/ontology|holdingco/ontology|softwareco/ontology|healthco/ontology)@[^>]+>")
 
 
 def canonicalize_legacy_manifest(content: str) -> str:
     updated = LEGACY_CORE_LOCATOR_RE.sub("<repo:core/ontology-kernel@main>", content)
-    company = infer_company_from_target(target)
-    if company is not None and repo_class != "ontology_repo":
-        updated = LEGACY_COMPANY_LOCATOR_RE.sub(f"<repo:{company}/ontology@main>", updated)
+    if repo_class != "ontology_repo":
+        updated = LEGACY_COMPANY_LOCATOR_RE.sub(company_ref_for_target(target), updated)
     return updated
 
 
@@ -554,7 +677,7 @@ def plan_remove_legacy_gitlab_ci() -> None:
 if policy["ontology_manifest"]:
     scaffold = policy["ontology_scaffold"]
     if scaffold == "repo":
-        plan_manifest_file("ontology/manifest.yaml", REPO_MANIFEST)
+        plan_manifest_file("ontology/manifest.yaml", repo_manifest_for_target(target))
         plan_file("ontology/index.md", ONTOLOGY_INDEX)
         plan_file("ontology/src/system4d.yaml", REPO_SYSTEM4D)
         plan_file("ontology/src/bridge/mapping.yaml", BRIDGE_MAPPING)

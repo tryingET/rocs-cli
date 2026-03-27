@@ -279,12 +279,28 @@ def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspac
     hook_contract_checked: list[str] = []
     hook_parse_errors: dict[str, str] = {}
     hook_contexts_checked: list[dict[str, Any]] = []
+    hook_exec_checked: dict[str, bool] = {}
+    hook_exec_required = False
+    hook_exec_present = False
 
     for rel in hook_hits:
         p = base / rel
         if not p.is_file():
             continue
         hook_contract_checked.append(rel)
+
+        exec_required = rel == ".githooks/pre-push"
+        is_executable = True
+        if exec_required:
+            hook_exec_required = True
+            try:
+                is_executable = bool(p.stat().st_mode & 0o111)
+            except OSError:
+                is_executable = False
+            hook_exec_checked[rel] = is_executable
+            if is_executable:
+                hook_exec_present = True
+
         try:
             text = p.read_text("utf-8")
         except UnicodeDecodeError:
@@ -303,6 +319,8 @@ def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspac
     workspace_contract_ok, workspace_contract_evidence = _wrapper_workspace_contract(base, wrapper_hits)
 
     ok = bool(hook_hits) and bool(wrapper_hits) and wrapper_call_present and profile_contract_present
+    if hook_exec_required:
+        ok = ok and hook_exec_present
     if requires_workspace_contract:
         ok = ok and workspace_contract_ok
 
@@ -311,6 +329,9 @@ def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspac
         "wrapper_hits": wrapper_hits,
         "legacy_gate_hits": legacy_gate_hits,
         "hook_contract_checked": hook_contract_checked,
+        "hook_exec_required": hook_exec_required,
+        "hook_exec_present": hook_exec_present,
+        "hook_exec_checked": hook_exec_checked,
         "wrapper_call_present": wrapper_call_present,
         "profile_contract_present": profile_contract_present,
         "workspace_contract_required": requires_workspace_contract,

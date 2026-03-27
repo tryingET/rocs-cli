@@ -65,6 +65,7 @@ def _mk_repo(
                     ]
                 ),
             )
+            (repo / ".githooks" / "pre-push").chmod(0o755)
             wrapper = "#!/usr/bin/env bash\nset -euo pipefail\n"
             if workspace_contract:
                 wrapper += "export ROCS_WORKSPACE_ROOT=\"${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}\"\nexport ROCS_WORKSPACE_REF_MODE=\"${ROCS_WORKSPACE_REF_MODE:-loose}\"\n"
@@ -256,6 +257,7 @@ class TestAuditFleetScript(unittest.TestCase):
             _write(repo / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
             _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
             _write(repo / ".githooks" / "pre-push", "# ROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n")
+            (repo / ".githooks" / "pre-push").chmod(0o755)
             _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
 
             policy = _policy_for(["ai-society/softwareco/owned/app-a"])
@@ -284,6 +286,7 @@ class TestAuditFleetScript(unittest.TestCase):
             _write(repo / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
             _write(repo / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
             _write(repo / ".githooks" / "pre-push", "#!/usr/bin/env bash\nset -euo pipefail\nbash scripts/ci/full.sh\n")
+            (repo / ".githooks" / "pre-push").chmod(0o755)
             _write(repo / "scripts" / "ci" / "full.sh", "#!/usr/bin/env bash\nset -euo pipefail\n")
 
             policy = _policy_for(["ai-society/softwareco/owned/app-a"])
@@ -302,6 +305,37 @@ class TestAuditFleetScript(unittest.TestCase):
             evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
             self.assertEqual(evidence["wrapper_call_present"], True)
             self.assertEqual(evidence["profile_contract_present"], False)
+
+    def test_non_executable_hook_does_not_count_as_ci_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+            )
+            (repo / ".githooks" / "pre-push").chmod(0o644)
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["rocs_ci_gate"])
+            self.assertEqual(evidence["hook_exec_required"], True)
+            self.assertEqual(evidence["hook_exec_present"], False)
+            self.assertEqual(evidence["hook_exec_checked"], {".githooks/pre-push": False})
 
     def test_repo_locators_require_workspace_aware_wrapper_contract(self) -> None:
         with tempfile.TemporaryDirectory() as td:

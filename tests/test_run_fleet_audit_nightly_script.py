@@ -34,6 +34,7 @@ def _mk_repo(workspace_root: Path, rel: str, *, ci_gate: bool) -> Path:
             repo / ".githooks" / "pre-push",
             "#!/usr/bin/env bash\nset -euo pipefail\nROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n",
         )
+        (repo / ".githooks" / "pre-push").chmod(0o755)
         _write(
             repo / "scripts" / "ci" / "full.sh",
             "#!/usr/bin/env bash\nset -euo pipefail\nexport ROCS_WORKSPACE_ROOT=\"${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}\"\nexport ROCS_WORKSPACE_REF_MODE=\"${ROCS_WORKSPACE_REF_MODE:-loose}\"\n",

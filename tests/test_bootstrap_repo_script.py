@@ -201,6 +201,79 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertIn("<repo:softwareco/ontology@main>", manifest)
             self.assertNotIn("<gitlab:", manifest)
 
+    def test_required_bootstrap_infers_company_from_target_path(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "ai-society" / "holdingco" / "owned" / "app-a"
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            manifest = (target / "ontology" / "manifest.yaml").read_text("utf-8")
+            self.assertIn("<repo:holdingco/ontology@main>", manifest)
+            self.assertNotIn("<repo:softwareco/ontology@main>", manifest)
+
+    def test_existing_gitlab_ci_with_reference_tag_is_converged_without_yaml_roundtrip_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            target.mkdir(parents=True)
+            (target / ".gitlab-ci.yml").write_text(
+                "\n".join(
+                    [
+                        "include:",
+                        "  - local: 'gitlab/ci/rocs.yml'",
+                        "job:",
+                        "  script:",
+                        "    - echo ok",
+                        "  rules: !reference [.shared, rules]",
+                        ".shared:",
+                        "  rules:",
+                        "    - if: $CI_PIPELINE_SOURCE",
+                        "",
+                    ]
+                ),
+                "utf-8",
+            )
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            gitlab_ci = (target / ".gitlab-ci.yml").read_text("utf-8")
+            self.assertNotIn("gitlab/ci/rocs.yml", gitlab_ci)
+            self.assertIn("!reference [.shared, rules]", gitlab_ci)
+            self.assertTrue((target / ".githooks" / "pre-push").is_file())
+
+    def test_existing_gitlab_ci_multiline_rocs_include_with_reference_tag_is_removed_atomically(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            target.mkdir(parents=True)
+            (target / ".gitlab-ci.yml").write_text(
+                "\n".join(
+                    [
+                        "include:",
+                        "  - local: 'gitlab/ci/rocs.yml'",
+                        "    rules:",
+                        "      - if: $CI_PIPELINE_SOURCE",
+                        "  - local: 'gitlab/ci/keep.yml'",
+                        "job:",
+                        "  rules: !reference [.shared, rules]",
+                        ".shared:",
+                        "  rules:",
+                        "    - if: $CI_PIPELINE_SOURCE",
+                        "",
+                    ]
+                ),
+                "utf-8",
+            )
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            gitlab_ci = (target / ".gitlab-ci.yml").read_text("utf-8")
+            self.assertNotIn("gitlab/ci/rocs.yml", gitlab_ci)
+            self.assertNotIn("    rules:\n      - if: $CI_PIPELINE_SOURCE\n  - local: 'gitlab/ci/keep.yml'", gitlab_ci)
+            self.assertIn("gitlab/ci/keep.yml", gitlab_ci)
+            self.assertIn("!reference [.shared, rules]", gitlab_ci)
+
     def test_optional_class_is_inventory_only(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "repo"
