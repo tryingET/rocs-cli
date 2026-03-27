@@ -329,6 +329,37 @@ class TestRunFleetAuditNightlyScript(unittest.TestCase):
             self.assertEqual(summary["remediation_generated"], False)
             self.assertNotIn("remediation_batch", summary)
 
+    def test_stale_batch_directory_is_cleared_before_clean_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(workspace, "softwareco/owned/app-a", ci_gate=True)
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(
+                yaml.safe_dump(_policy_for("ai-society/softwareco/owned/app-a"), sort_keys=False),
+                "utf-8",
+            )
+            artifact_root = Path(td) / "artifacts"
+            run_dir = artifact_root / "20260321T000451Z"
+            (run_dir / "remediation-batch.json").mkdir(parents=True, exist_ok=True)
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "FCOS_WORKSPACE_ROOT": str(workspace),
+                    "FCOS_POLICY_PATH": str(policy_path),
+                    "FCOS_AUDIT_ARTIFACT_ROOT": str(artifact_root),
+                    "FCOS_REMEDIATION_MODE": "audit-only",
+                    "FCOS_AUDIT_TIMESTAMP": "20260321T000451Z",
+                }
+            )
+
+            proc = _run_nightly(env=env)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertFalse((run_dir / "remediation-batch.json").exists())
+            summary = json.loads((run_dir / "run-summary.json").read_text("utf-8"))
+            self.assertEqual(summary["status"], "pass")
+            self.assertEqual(summary["remediation_generated"], False)
+
     def test_invalid_timestamp_is_rejected_into_invalid_artifact_bucket(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"

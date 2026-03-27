@@ -119,6 +119,29 @@ printf '#!/usr/bin/env bash\nset -euo pipefail\n' > \"$target/scripts/ci/full.sh
             self.assertTrue((repo / "ontology" / "manifest.yaml").is_file())
             self.assertTrue((repo / "scripts" / "ci" / "full.sh").is_file())
 
+    def test_patch_mode_does_not_require_bootstrap_script(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "ai-society" / "softwareco" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            audit_path = Path(td) / "audit.json"
+            audit_path.write_text(
+                json.dumps(_audit_payload(repo, missing=["rocs_ci_gate"]), indent=2) + "\n",
+                "utf-8",
+            )
+
+            proc = _run_script(
+                "--input",
+                str(audit_path),
+                "--mode",
+                "patch",
+                "--bootstrap-script",
+                str(Path(td) / "missing-bootstrap.sh"),
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            self.assertEqual(payload["summary"]["planned_bootstrap_actions"], 1)
+            self.assertEqual(payload["actions"][0]["kind"], "bootstrap_repo")
+
     def test_missing_repo_path_is_reported_as_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td) / "ai-society" / "softwareco" / "owned" / "app-a"

@@ -11,6 +11,13 @@ from pathlib import Path
 from typing import Any
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from rocs_cli.fleet_preflight import FleetPreflightError, remove_stale_artifact, validate_bootstrap_script  # noqa: E402
+
+
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_ACTION_REQUIRED = 2
@@ -199,8 +206,24 @@ def main() -> int:
     remediation_batch = run_dir / "remediation-batch.json"
     summary_path = run_dir / "run-summary.json"
     run_dir.mkdir(parents=True, exist_ok=True)
-    if remediation_batch.exists():
-        remediation_batch.unlink()
+    try:
+        remove_stale_artifact(remediation_batch)
+    except FleetPreflightError as exc:
+        summary = {
+            "schema_version": 1,
+            "timestamp": timestamp,
+            "workspace_root": str(workspace_root),
+            "policy_path": str(policy_path),
+            "run_dir": str(run_dir),
+            "scorecard_json": str(scorecard_json),
+            "scorecard_markdown": str(scorecard_markdown),
+            "remediation_mode": args.remediation_mode,
+            "status": STATUS_BATCH_ERROR,
+            "exit_code": EXIT_ERROR,
+            "error": str(exc),
+        }
+        _write_json(summary_path, summary)
+        return EXIT_ERROR
 
     summary: dict[str, Any] = {
         "schema_version": 1,
@@ -221,10 +244,13 @@ def main() -> int:
         summary.update({"status": STATUS_BATCH_ERROR, "exit_code": EXIT_ERROR, "error": f"remediation script not found: {remediation_script}"})
         _write_json(summary_path, summary)
         return EXIT_ERROR
-    if bootstrap_script is not None and not bootstrap_script.is_file():
-        summary.update({"status": STATUS_BATCH_ERROR, "exit_code": EXIT_ERROR, "error": f"bootstrap script not found: {bootstrap_script}"})
-        _write_json(summary_path, summary)
-        return EXIT_ERROR
+    if bootstrap_script is not None and args.remediation_mode == "apply":
+        try:
+            validate_bootstrap_script("apply", bootstrap_script)
+        except FleetPreflightError as exc:
+            summary.update({"status": STATUS_BATCH_ERROR, "exit_code": EXIT_ERROR, "error": str(exc)})
+            _write_json(summary_path, summary)
+            return EXIT_ERROR
 
     audit_proc = _run_json_command(
         [

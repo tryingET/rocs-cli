@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 from rocs_cli.errors import RocsCliError
 from rocs_cli.model import OntDoc, relation_label_index
@@ -28,8 +29,9 @@ def _int_or_error(v: object, *, field: str, minimum: int | None = None, allow_no
         if allow_none:
             return None
         raise RocsCliError(kind="config", message=f"pack.{field} must be set")
+    value = cast(Any, v)
     try:
-        out = int(v)
+        out = int(value)
     except Exception as e:
         raise RocsCliError(kind="config", message=f"pack.{field} must be an integer") from e
     if minimum is not None and out < minimum:

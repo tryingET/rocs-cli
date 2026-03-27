@@ -581,6 +581,59 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(json_a.read_text("utf-8"), json_b.read_text("utf-8"))
             self.assertEqual(md_a.read_text("utf-8"), md_b.read_text("utf-8"))
 
+    def test_repo_path_escape_is_treated_as_missing_and_out_of_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            workspace.mkdir(parents=True, exist_ok=True)
+            outside = Path(td) / "outside-repo"
+            outside.mkdir(parents=True, exist_ok=True)
+            _write(outside / "tools" / "rocs-cli" / "VENDORED_HASHES.json", json.dumps({"schema_version": 1, "files": {}}, indent=2) + "\n")
+            _write(outside / "ontology" / "manifest.yaml", "rocs:\n  layer: repo\n")
+            _write(outside / ".githooks" / "pre-push", "#!/usr/bin/env bash\nset -euo pipefail\nROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n")
+            (outside / ".githooks" / "pre-push").chmod(0o755)
+            _write(
+                outside / "scripts" / "ci" / "full.sh",
+                "#!/usr/bin/env bash\nset -euo pipefail\nexport ROCS_WORKSPACE_ROOT=\"${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}\"\nexport ROCS_WORKSPACE_REF_MODE=\"${ROCS_WORKSPACE_REF_MODE:-loose}\"\n",
+            )
+
+            policy = _policy_for(["../outside-repo"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            self.assertEqual(payload["summary"]["requirement_violations"], 3)
+            self.assertFalse(payload["repos"][0]["exists"])
+            self.assertEqual(
+                payload["repos"][0]["evidence"]["path_boundary"]["reason"],
+                "resolved path escapes workspace root",
+            )
+
+    def test_invalid_utf8_policy_returns_exit_1_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            workspace.mkdir(parents=True)
+            bad_policy = Path(td) / "bad.yaml"
+            bad_policy.write_bytes(b"\xff\xfe\x00")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(bad_policy),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("not valid utf-8", proc.stderr)
+            self.assertNotIn("Traceback", proc.stderr)
+
     def test_invalid_policy_returns_exit_1(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"

@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from rocs_cli.fleet_preflight import FleetPreflightError, normalize_policy_repo_path, validate_bootstrap_script
 from rocs_cli.managed_surface import workspace_company_inference_is_ambiguous
 
 
@@ -87,30 +88,6 @@ def _stable_batch_id(raw_bytes: bytes) -> str:
     return f"fcos-remediate-{digest}"
 
 
-def _normalize_policy_repo_path(workspace_root: Path, policy_path: str) -> Path:
-    p = Path(policy_path)
-    if p.is_absolute():
-        return p.resolve()
-
-    direct = (workspace_root / p).resolve()
-    if direct.exists():
-        return direct
-
-    parts = p.parts
-    if parts and parts[0] == workspace_root.name:
-        return workspace_root.joinpath(*parts[1:]).resolve()
-
-    return direct
-
-
-def _is_within_workspace(workspace_root: Path, candidate: Path) -> bool:
-    try:
-        candidate.relative_to(workspace_root)
-        return True
-    except ValueError:
-        return False
-
-
 def _workspace_root_from(scorecard: dict[str, Any], explicit: str | None) -> Path:
     source = explicit or scorecard.get("workspace_root")
     if not isinstance(source, str) or not source.strip():
@@ -121,11 +98,9 @@ def _workspace_root_from(scorecard: dict[str, Any], explicit: str | None) -> Pat
     return root
 
 
-def _manual_reason(*, exists: bool, repo_class: str, drifts: list[str], in_workspace: bool, safe_target: bool, ambiguous_company: bool) -> str:
-    if not safe_target:
-        return "repo path is empty or resolves to workspace root"
-    if not in_workspace:
-        return "resolved path escapes workspace root"
+def _manual_reason(*, exists: bool, repo_class: str, drifts: list[str], path_issue: str | None, ambiguous_company: bool) -> str:
+    if path_issue is not None:
+        return path_issue
     if ambiguous_company:
         return "company inference is ambiguous for this ai-society workspace path; manual bootstrap selection required"
     if not exists:
@@ -164,11 +139,9 @@ def _build_batch(
         ]
 
         policy_path = str(row.get("path") or "")
-        normalized_resolved_path = _normalize_policy_repo_path(workspace_root, policy_path)
-        in_workspace = _is_within_workspace(workspace_root, normalized_resolved_path)
-        safe_target = bool(policy_path.strip()) and normalized_resolved_path != workspace_root
-        ambiguous_company = workspace_company_inference_is_ambiguous(normalized_resolved_path)
-        exists = normalized_resolved_path.is_dir()
+        normalized_resolved_path, path_issue = normalize_policy_repo_path(workspace_root, policy_path)
+        ambiguous_company = path_issue is None and workspace_company_inference_is_ambiguous(normalized_resolved_path)
+        exists = path_issue is None and normalized_resolved_path.is_dir()
         scorecard_resolved_path = str(row.get("resolved_path") or "")
 
         base_action: dict[str, Any] = {
@@ -183,7 +156,7 @@ def _build_batch(
         }
 
         planned_bootstrap = False
-        if missing and exists and safe_target and in_workspace and not ambiguous_company and row.get("class") in ACTIONABLE_CLASSES:
+        if missing and exists and path_issue is None and not ambiguous_company and row.get("class") in ACTIONABLE_CLASSES:
             actions.append(
                 {
                     **base_action,
@@ -223,8 +196,7 @@ def _build_batch(
                         exists=exists,
                         repo_class=str(row.get("class") or ""),
                         drifts=drifts,
-                        in_workspace=in_workspace,
-                        safe_target=safe_target,
+                        path_issue=path_issue,
                         ambiguous_company=ambiguous_company,
                     ),
                     "requirement_violations": missing,
@@ -317,13 +289,10 @@ def main() -> int:
     input_path = Path(args.input).expanduser().resolve()
     bootstrap_script = Path(args.bootstrap_script).expanduser().resolve()
 
-    if not bootstrap_script.is_file():
-        print(f"error: bootstrap script not found: {bootstrap_script}", file=sys.stderr)
-        return EXIT_ERROR
-
     try:
         scorecard, raw_bytes = _load_scorecard(input_path)
         workspace_root = _workspace_root_from(scorecard, args.workspace_root)
+        validate_bootstrap_script(args.mode, bootstrap_script)
         batch = _build_batch(
             scorecard,
             raw_bytes=raw_bytes,
@@ -331,7 +300,7 @@ def main() -> int:
             bootstrap_script=bootstrap_script,
             workspace_root=workspace_root,
         )
-    except RemediationError as exc:
+    except (RemediationError, FleetPreflightError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
 

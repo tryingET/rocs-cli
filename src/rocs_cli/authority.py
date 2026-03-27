@@ -4,7 +4,7 @@ import contextlib
 import json
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from rocs_cli import __version__
 from rocs_cli.errors import RocsCliError
@@ -34,8 +34,11 @@ def _receipt_lock(lock_path: Path):
             if os.name == "nt":
                 import msvcrt  # noqa: PLC0415
 
-                msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
-                locked = True
+                win_lock = getattr(cast(Any, msvcrt), "locking", None)
+                lock_flag = getattr(cast(Any, msvcrt), "LK_LOCK", None)
+                if callable(win_lock) and lock_flag is not None:
+                    win_lock(f.fileno(), lock_flag, 1)
+                    locked = True
             else:
                 import fcntl  # noqa: PLC0415
 
@@ -52,7 +55,10 @@ def _receipt_lock(lock_path: Path):
                     if os.name == "nt":
                         import msvcrt  # noqa: PLC0415
 
-                        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                        win_lock = getattr(cast(Any, msvcrt), "locking", None)
+                        unlock_flag = getattr(cast(Any, msvcrt), "LK_UNLCK", None)
+                        if callable(win_lock) and unlock_flag is not None:
+                            win_lock(f.fileno(), unlock_flag, 1)
                     else:
                         import fcntl  # noqa: PLC0415
 

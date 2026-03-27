@@ -15,7 +15,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from rocs_cli.managed_surface import normalize_shell_lines, strip_hash_comments, yaml_scalar_strings
+from rocs_cli.fleet_preflight import FleetPreflightError, normalize_policy_repo_path, read_utf8_text  # noqa: E402
+from rocs_cli.managed_surface import normalize_shell_lines, strip_hash_comments, yaml_scalar_strings  # noqa: E402
 
 
 EXIT_OK = 0
@@ -107,7 +108,9 @@ def _load_policy(path: Path) -> dict[str, Any]:
     if not path.is_file():
         raise PolicyError(f"policy not found: {path}")
     try:
-        raw = yaml.safe_load(path.read_text("utf-8"))
+        raw = yaml.safe_load(read_utf8_text(path, label="policy"))
+    except FleetPreflightError as exc:
+        raise PolicyError(str(exc)) from exc
     except yaml.YAMLError as exc:
         raise PolicyError(f"invalid YAML: {exc}") from exc
     if not isinstance(raw, dict):
@@ -167,25 +170,6 @@ def _validate_policy(policy: dict[str, Any]) -> None:
         caps = entry.get("capabilities")
         if not isinstance(caps, dict):
             raise PolicyError(f"policy.fleet.repos[{idx}].capabilities must be a mapping")
-
-
-def _normalize_policy_repo_path(workspace_root: Path, policy_path: str) -> Path:
-    p = Path(policy_path)
-    if p.is_absolute():
-        return p
-
-    direct = workspace_root / p
-    if direct.exists():
-        return direct
-
-    parts = p.parts
-    if parts and parts[0] == workspace_root.name:
-        trimmed = workspace_root.joinpath(*parts[1:])
-        if trimmed.exists():
-            return trimmed
-        return trimmed
-
-    return direct
 
 
 def _find_existing(base: Path, candidates: tuple[str, ...]) -> list[str]:
@@ -449,8 +433,8 @@ def _build_scorecard(policy: dict[str, Any], *, workspace_root: Path, policy_pat
     for entry_any in sorted(fleet_entries, key=lambda x: str(x.get("path", ""))):
         entry = dict(entry_any)
         policy_repo_path = str(entry.get("path", ""))
-        resolved = _normalize_policy_repo_path(workspace_root, policy_repo_path)
-        exists = resolved.is_dir()
+        resolved, path_issue = normalize_policy_repo_path(workspace_root, policy_repo_path)
+        exists = path_issue is None and resolved.is_dir()
 
         repo_class = str(entry.get("class"))
         expected_caps = _sort_caps(repo_classes[repo_class]["required_capabilities"])
@@ -460,11 +444,19 @@ def _build_scorecard(policy: dict[str, Any], *, workspace_root: Path, policy_pat
             observed_caps, evidence = _detect_capabilities(resolved)
         else:
             observed_caps = {k: False for k in CAPABILITY_KEYS}
-            evidence = {
-                "missing_path": {
-                    "resolved": str(resolved),
+            if path_issue is not None:
+                evidence = {
+                    "path_boundary": {
+                        "resolved": str(resolved),
+                        "reason": path_issue,
+                    }
                 }
-            }
+            else:
+                evidence = {
+                    "missing_path": {
+                        "resolved": str(resolved),
+                    }
+                }
 
         requirement_violations: list[str] = []
         for key in CAPABILITY_KEYS:
