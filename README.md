@@ -99,19 +99,21 @@ FCOS convergence scripts:
   - writes/updates `<target>/VENDORED_HASHES.json` (hash coverage includes all files under `src/rocs_cli/`)
   - refuses targets that overlap the source repo tree or the source package tree
   - `--dry-run` uses the same preflight validation as apply mode
-- `scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--dry-run]`
+- `scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--company holdingco|softwareco|healthco] [--dry-run]`
   - class-based FCOS bootstrap (vendored `rocs-cli`, ontology scaffold, local gate wiring)
   - installs `scripts/ci/full.sh`, `.githooks/pre-push`, and `.githooks/README.md`
   - required repos default the generated pre-push hook to `ROCS_CI_PROFILE=local-dev`; ontology repos default to `main-strict`
   - generated hooks honor `ROCS_CMD` overrides and otherwise default to `uv run --project ./tools/rocs-cli python -m rocs_cli`
   - converges away legacy generated `gitlab/ci/rocs.yml` / `.gitlab-ci.yml` ROCS surfaces when present
   - emits a deterministic JSON report with `rollback_paths`
-  - fails closed with a JSON blocker report when managed files are unreadable, not valid UTF-8, or replaced by directories
+  - fails closed with a JSON blocker report when managed files are unreadable, not valid UTF-8, replaced by directories, or symlinked through managed paths
+  - for ai-society workspace targets with ambiguous company ownership (for example `core/...`), pass `--company` explicitly instead of silently defaulting
   - blocker detection happens before vendoring/writes/chmod in apply mode
   - `--dry-run` validates and reports without writing files
 - `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
   - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)
   - `rocs_ci_gate` checks concrete checked-in hook gate surfaces (`.githooks/pre-push` + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); template files and comments do not count as evidence
+  - manifest locator checks ignore commented migration notes and inspect live YAML values when possible
   - emits deterministic JSON/Markdown scorecards (stdout when PATH omitted)
   - stable exit codes: `0` pass, `2` required capability violations, `1` policy/usage error
 - `scripts/open-remediation-batch.sh --input <audit.json> --mode patch|apply [--output [PATH]] [--workspace-root <path>]`

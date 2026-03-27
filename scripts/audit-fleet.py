@@ -11,6 +11,13 @@ from typing import Any
 import yaml
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from rocs_cli.managed_surface import normalize_shell_lines, strip_hash_comments, yaml_scalar_strings
+
+
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_VIOLATIONS = 2
@@ -201,9 +208,18 @@ def _manifest_contract_status(base: Path, manifest_hits: list[str]) -> tuple[boo
     except UnicodeDecodeError:
         return False, {"primary_hit": primary_hit, "locator_kind": "invalid", "parse_error": "not utf-8", "locators": []}, False
 
+    scalar_strings = yaml_scalar_strings(text)
+    if scalar_strings is not None:
+        locator_source = "yaml_scalars"
+        locator_chunks = scalar_strings
+    else:
+        locator_source = "comment_stripped_text"
+        locator_chunks = [strip_hash_comments(text)]
+
     locators = [
         {"kind": match.group("kind"), "value": match.group(0)}
-        for match in LOCATOR_RE.finditer(text)
+        for chunk in locator_chunks
+        for match in LOCATOR_RE.finditer(chunk)
     ]
     repo_locators = [entry["value"] for entry in locators if entry["kind"] == "repo"]
     gitlab_locators = [entry["value"] for entry in locators if entry["kind"] == "gitlab"]
@@ -221,6 +237,7 @@ def _manifest_contract_status(base: Path, manifest_hits: list[str]) -> tuple[boo
     evidence = {
         "primary_hit": primary_hit,
         "locator_kind": locator_kind,
+        "locator_source": locator_source,
         "locators": locators,
         "requires_workspace_contract": bool(repo_locators),
     }
@@ -235,6 +252,7 @@ def _wrapper_workspace_contract(base: Path, wrapper_hits: list[str]) -> tuple[bo
     parse_errors: dict[str, str] = {}
     workspace_root_present = False
     workspace_ref_mode_present = False
+    wrapper_contract_lines: list[dict[str, Any]] = []
 
     for rel in wrapper_hits:
         p = base / rel
@@ -246,14 +264,17 @@ def _wrapper_workspace_contract(base: Path, wrapper_hits: list[str]) -> tuple[bo
         except UnicodeDecodeError:
             parse_errors[rel] = "not utf-8"
             continue
-        if WORKSPACE_ROOT_TOKEN_RE.search(text):
+        lines = normalize_shell_lines(text)
+        wrapper_contract_lines.append({"path": rel, "lines": lines})
+        if any(WORKSPACE_ROOT_TOKEN_RE.search(line) for line in lines):
             workspace_root_present = True
-        if WORKSPACE_REF_MODE_TOKEN_RE.search(text):
+        if any(WORKSPACE_REF_MODE_TOKEN_RE.search(line) for line in lines):
             workspace_ref_mode_present = True
 
     ok = workspace_root_present and workspace_ref_mode_present
     evidence: dict[str, Any] = {
         "wrapper_workspace_checked": checked,
+        "wrapper_contract_lines": wrapper_contract_lines,
         "workspace_root_present": workspace_root_present,
         "workspace_ref_mode_present": workspace_ref_mode_present,
     }
@@ -268,13 +289,7 @@ _PROFILE_EXPORT_RE = re.compile(r"^\s*export\s+ROCS_CI_PROFILE=[^\s]+")
 
 
 def _normalize_script_text(text: str) -> list[str]:
-    lines: list[str] = []
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        lines.append(line)
-    return lines
+    return normalize_shell_lines(text)
 
 
 def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspace_contract: bool) -> tuple[bool, dict[str, Any]]:

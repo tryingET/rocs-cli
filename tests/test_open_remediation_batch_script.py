@@ -213,6 +213,25 @@ printf '#!/usr/bin/env bash\nset -euo pipefail\n' > \"$target/scripts/ci/full.sh
             self.assertEqual(payload["actions"][0]["status"], "blocked")
             self.assertIn("workspace root", payload["actions"][0]["reason"])
 
+    def test_ambiguous_workspace_company_is_blocked_for_manual_followup(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "ai-society" / "core" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            audit = _audit_payload(repo, missing=["rocs_ci_gate"])
+            audit["repos"][0]["path"] = "ai-society/core/owned/app-a"
+            audit["workspace_root"] = str(Path(td) / "ai-society")
+            audit_path = Path(td) / "audit.json"
+            audit_path.write_text(json.dumps(audit, indent=2) + "\n", "utf-8")
+
+            proc = _run_script("--input", str(audit_path), "--mode", "patch")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            self.assertEqual(payload["summary"]["planned_bootstrap_actions"], 0)
+            self.assertEqual(payload["summary"]["blocked_actions"], 1)
+            self.assertEqual(payload["actions"][0]["status"], "blocked")
+            self.assertTrue(payload["actions"][0]["ambiguous_company"])
+            self.assertIn("manual bootstrap selection", payload["actions"][0]["reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

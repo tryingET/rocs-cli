@@ -214,6 +214,23 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertIn("<repo:holdingco/ontology@main>", manifest)
             self.assertNotIn("<repo:softwareco/ontology@main>", manifest)
 
+    def test_required_bootstrap_blocks_ambiguous_workspace_company_inference(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "ai-society" / "core" / "owned" / "app-a"
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            report = _json_report(proc)
+            self.assertTrue(report.get("blocked"))
+            blocked = [row for row in report.get("planned_actions", []) if row.get("path") == "ontology/manifest.yaml"][0]
+            self.assertIn("could not infer company", blocked.get("reason", ""))
+            self.assertFalse((target / "tools" / "rocs-cli").exists())
+
+            explicit = _run_bootstrap(str(target), "--class", "required", "--company", "holdingco")
+            self.assertEqual(explicit.returncode, 0, explicit.stdout + explicit.stderr)
+            manifest = (target / "ontology" / "manifest.yaml").read_text("utf-8")
+            self.assertIn("<repo:holdingco/ontology@main>", manifest)
+
     def test_existing_gitlab_ci_with_reference_tag_is_converged_without_yaml_roundtrip_failure(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "repo"
@@ -402,6 +419,24 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertEqual(blocked.get("action"), "blocked")
             self.assertIn("unreadable", blocked.get("reason", ""))
             self.assertNotIn("Traceback", proc.stderr)
+
+    def test_symlinked_managed_file_is_blocked_without_following_it(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            outside = Path(td) / "outside.txt"
+            outside.write_text("ORIGINAL\n", "utf-8")
+            (target / ".githooks").mkdir(parents=True)
+            (target / ".githooks" / "pre-push").symlink_to(outside)
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            report = _json_report(proc)
+            self.assertTrue(report.get("blocked"))
+            blocked = [row for row in report.get("planned_actions", []) if row.get("path") == ".githooks/pre-push"][0]
+            self.assertEqual(blocked.get("action"), "blocked")
+            self.assertIn("symlink", blocked.get("reason", ""))
+            self.assertEqual(outside.read_text("utf-8"), "ORIGINAL\n")
+            self.assertFalse((target / "tools" / "rocs-cli").exists())
 
     def test_blocked_apply_mode_aborts_before_writes_or_chmod(self) -> None:
         with tempfile.TemporaryDirectory() as td:

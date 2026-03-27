@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--dry-run]"
+  echo "Usage: scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--company holdingco|softwareco|healthco] [--dry-run]"
   echo
   echo "Bootstraps FCOS baseline files into <target> using class policy."
   echo "- required: vendored rocs-cli + ontology scaffold + CI gate (advisory)"
@@ -14,6 +14,7 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
 TARGET=""
 REPO_CLASS=""
+COMPANY=""
 DRY_RUN=0
 
 while (($# > 0)); do
@@ -25,6 +26,15 @@ while (($# > 0)); do
         exit 2
       fi
       REPO_CLASS="$2"
+      shift 2
+      ;;
+    --company)
+      if (($# < 2)); then
+        echo "error: --company requires a value" >&2
+        usage >&2
+        exit 2
+      fi
+      COMPANY="$2"
       shift 2
       ;;
     --dry-run)
@@ -64,7 +74,7 @@ if [[ -z "$REPO_CLASS" ]]; then
   exit 2
 fi
 
-python3 - "$ROOT" "$TARGET" "$REPO_CLASS" "$DRY_RUN" <<'PY'
+python3 - "$ROOT" "$TARGET" "$REPO_CLASS" "$COMPANY" "$DRY_RUN" <<'PY'
 from __future__ import annotations
 
 import hashlib
@@ -78,6 +88,10 @@ from pathlib import Path
 from typing import Dict
 
 import yaml
+
+
+sys.path.insert(0, str(Path(sys.argv[1]).resolve() / "src"))
+from rocs_cli.managed_surface import KNOWN_COMPANIES, infer_company_from_parts, managed_path_blocker, workspace_company_inference_is_ambiguous
 
 
 def norm(text: str) -> str:
@@ -360,7 +374,11 @@ def ensure_trailing_newline(text: str) -> str:
     return text if text.endswith("\n") else text + "\n"
 
 
-def read_utf8_text(path: Path) -> tuple[str | None, str | None]:
+def read_utf8_text(path: Path, *, root: Path | None = None) -> tuple[str | None, str | None]:
+    if root is not None:
+        blocker = managed_path_blocker(root, path)
+        if blocker is not None:
+            return None, blocker
     try:
         return path.read_text("utf-8"), None
     except UnicodeDecodeError:
@@ -572,10 +590,13 @@ def remove_rocs_include(text: str) -> str | None:
 repo_root = Path(sys.argv[1]).resolve()
 target_raw = Path(sys.argv[2]).expanduser()
 repo_class = sys.argv[3].strip()
-dry_run = sys.argv[4] == "1"
+company_override = sys.argv[4].strip()
+dry_run = sys.argv[5] == "1"
 
 if repo_class not in CLASS_POLICY:
     raise SystemExit(f"unknown --class: {repo_class}")
+if company_override and company_override not in KNOWN_COMPANIES:
+    raise SystemExit(f"unknown --company: {company_override}")
 
 if target_raw.is_absolute():
     target = target_raw.resolve()
@@ -602,11 +623,12 @@ def plan_blocked(relpath: str, *, reason: str) -> None:
 
 def plan_file(relpath: str, content: str, *, allow_modify: bool = False, executable: bool = False) -> None:
     p = target / relpath
+    blocker = managed_path_blocker(target, p)
+    if blocker is not None:
+        plan_blocked(relpath, reason=blocker)
+        return
     if p.exists():
-        if p.is_dir():
-            plan_blocked(relpath, reason="path is a directory")
-            return
-        current, read_error = read_utf8_text(p)
+        current, read_error = read_utf8_text(p, root=target)
         if read_error is not None:
             plan_blocked(relpath, reason=read_error)
             return
@@ -632,30 +654,40 @@ def plan_file(relpath: str, content: str, *, allow_modify: bool = False, executa
 
 def plan_delete(relpath: str, *, reason: str) -> None:
     p = target / relpath
+    blocker = managed_path_blocker(target, p)
+    if blocker is not None:
+        plan_blocked(relpath, reason=blocker)
+        return
     if not p.exists():
         planned_actions.append({"path": relpath, "action": "unchanged"})
-        return
-    if p.is_dir():
-        plan_blocked(relpath, reason="path is a directory")
         return
     planned_deletes.add(relpath)
     planned_actions.append({"path": relpath, "action": "delete", "reason": reason})
 
 
 def infer_company_from_target(path: Path) -> str | None:
-    for company in ("holdingco", "softwareco", "healthco"):
-        if company in path.parts:
-            return company
-    return None
+    if company_override:
+        return company_override
+    company = infer_company_from_parts(path)
+    if company is not None:
+        return company
+    if workspace_company_inference_is_ambiguous(path):
+        return None
+    return "softwareco"
 
 
-def company_ref_for_target(path: Path) -> str:
-    company = infer_company_from_target(path) or "softwareco"
+def company_ref_for_target(path: Path) -> str | None:
+    company = infer_company_from_target(path)
+    if company is None:
+        return None
     return f"<repo:{company}/ontology@main>"
 
 
-def repo_manifest_for_target(path: Path) -> str:
-    return norm(REPO_MANIFEST_TEMPLATE.format(company_ref=company_ref_for_target(path)))
+def repo_manifest_for_target(path: Path) -> str | None:
+    company_ref = company_ref_for_target(path)
+    if company_ref is None:
+        return None
+    return norm(REPO_MANIFEST_TEMPLATE.format(company_ref=company_ref))
 
 
 LEGACY_CORE_LOCATOR_RE = re.compile(r"<gitlab:(?:ai-society/)?(?:core/ontology-kernel|org/ontology-kernel)@[^>]+>")
@@ -665,14 +697,20 @@ LEGACY_COMPANY_LOCATOR_RE = re.compile(r"<gitlab:(?:ai-society/)?(?:org/ontology
 def canonicalize_legacy_manifest(content: str) -> str:
     updated = LEGACY_CORE_LOCATOR_RE.sub("<repo:core/ontology-kernel@main>", content)
     if repo_class != "ontology_repo":
-        updated = LEGACY_COMPANY_LOCATOR_RE.sub(company_ref_for_target(target), updated)
+        company_ref = company_ref_for_target(target)
+        if company_ref is not None:
+            updated = LEGACY_COMPANY_LOCATOR_RE.sub(company_ref, updated)
     return updated
 
 
 def plan_manifest_file(relpath: str, default_content: str) -> None:
     p = target / relpath
+    blocker = managed_path_blocker(target, p)
+    if blocker is not None:
+        plan_blocked(relpath, reason=blocker)
+        return
     if p.exists() and p.is_file():
-        current, read_error = read_utf8_text(p)
+        current, read_error = read_utf8_text(p, root=target)
         if read_error is not None:
             plan_blocked(relpath, reason=read_error)
             return
@@ -699,7 +737,7 @@ def plan_remove_legacy_gitlab_ci() -> None:
         plan_blocked(".gitlab-ci.yml", reason="path is a directory")
         return
 
-    current, read_error = read_utf8_text(ci_root)
+    current, read_error = read_utf8_text(ci_root, root=target)
     if read_error is not None:
         plan_blocked(".gitlab-ci.yml", reason=read_error)
         return
@@ -718,12 +756,22 @@ def plan_remove_legacy_gitlab_ci() -> None:
 if policy["ontology_manifest"]:
     scaffold = policy["ontology_scaffold"]
     if scaffold == "repo":
-        plan_manifest_file("ontology/manifest.yaml", repo_manifest_for_target(target))
-        plan_file("ontology/index.md", ONTOLOGY_INDEX)
-        plan_file("ontology/src/system4d.yaml", REPO_SYSTEM4D)
-        plan_file("ontology/src/bridge/mapping.yaml", BRIDGE_MAPPING)
-        plan_file("ontology/src/bridge/README.md", BRIDGE_README)
-        plan_file("ontology/src/reference/concepts/README.md", CONCEPTS_README)
+        manifest_content = repo_manifest_for_target(target)
+        if manifest_content is None:
+            plan_blocked(
+                "ontology/manifest.yaml",
+                reason=(
+                    "could not infer company from target path inside ai-society workspace "
+                    "(pass --company holdingco|softwareco|healthco)"
+                ),
+            )
+        else:
+            plan_manifest_file("ontology/manifest.yaml", manifest_content)
+            plan_file("ontology/index.md", ONTOLOGY_INDEX)
+            plan_file("ontology/src/system4d.yaml", REPO_SYSTEM4D)
+            plan_file("ontology/src/bridge/mapping.yaml", BRIDGE_MAPPING)
+            plan_file("ontology/src/bridge/README.md", BRIDGE_README)
+            plan_file("ontology/src/reference/concepts/README.md", CONCEPTS_README)
     elif scaffold == "ontology_repo":
         plan_manifest_file("ontology/manifest.yaml", ONTOLOGY_REPO_MANIFEST)
         plan_file("ontology/src/system4d.yaml", ONTOLOGY_REPO_SYSTEM4D)
@@ -812,6 +860,26 @@ if policy["rocs_cli_vendored"]:
 
 if not dry_run and (planned_writes or planned_deletes or planned_exec):
     target.mkdir(parents=True, exist_ok=True)
+    for relpath in sorted(set(planned_deletes) | set(planned_writes) | set(planned_exec)):
+        blocker = managed_path_blocker(target, target / relpath)
+        if blocker is not None:
+            error_report = {
+                "schema_version": 1,
+                "target": str(target),
+                "repo_class": repo_class,
+                "dry_run": dry_run,
+                "capabilities": policy,
+                "planned_actions": sorted(planned_actions, key=lambda x: x["path"]),
+                "vendor_sync": vendor_result,
+                "blocked": True,
+                "blocked_paths": [{"path": relpath, "reason": blocker}],
+                "created_files": [],
+                "modified_files": [],
+                "deleted_files": [],
+                "rollback_paths": [],
+            }
+            print(json.dumps(error_report, indent=2, sort_keys=True))
+            raise SystemExit(1)
     for relpath in sorted(planned_deletes):
         p = target / relpath
         p.unlink(missing_ok=True)

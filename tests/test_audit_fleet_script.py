@@ -408,6 +408,51 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(evidence["workspace_root_present"], False)
             self.assertEqual(evidence["workspace_ref_mode_present"], False)
 
+    def test_commented_wrapper_tokens_do_not_count_as_workspace_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+                manifest_text="\n".join(
+                    [
+                        "rocs:",
+                        "  layers:",
+                        "    - name: core",
+                        "      ref: '<repo:core/ontology-kernel@main>'",
+                        "",
+                    ]
+                ) + "\n",
+            )
+            (repo / "scripts" / "ci" / "full.sh").write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                "# export ROCS_WORKSPACE_ROOT=\"${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}\"\n"
+                "# export ROCS_WORKSPACE_REF_MODE=\"${ROCS_WORKSPACE_REF_MODE:-strict}\"\n",
+                "utf-8",
+            )
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["rocs_ci_gate"])
+            self.assertEqual(evidence["workspace_root_present"], False)
+            self.assertEqual(evidence["workspace_ref_mode_present"], False)
+
     def test_legacy_gitlab_locators_fail_manifest_contract(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"
@@ -447,6 +492,35 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["ontology_manifest"])
             self.assertEqual(evidence["locator_kind"], "gitlab")
             self.assertEqual(evidence["contract_reason"], "legacy_gitlab_locators")
+
+    def test_commented_legacy_locator_does_not_fail_manifest_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+                manifest_text="# migration note: <gitlab:ai-society/core/ontology-kernel@v0.1.0>\nrocs:\n  layer: repo\n",
+            )
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["ontology_manifest"]
+            self.assertEqual(evidence["locator_kind"], "none")
+            self.assertEqual(payload["summary"]["status"], "pass")
 
     def test_output_is_deterministic_across_repeated_runs(self) -> None:
         with tempfile.TemporaryDirectory() as td:

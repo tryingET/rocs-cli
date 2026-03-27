@@ -10,6 +10,13 @@ from pathlib import Path
 from typing import Any
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from rocs_cli.managed_surface import workspace_company_inference_is_ambiguous
+
+
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_APPLY_PARTIAL = 2
@@ -114,11 +121,13 @@ def _workspace_root_from(scorecard: dict[str, Any], explicit: str | None) -> Pat
     return root
 
 
-def _manual_reason(*, exists: bool, repo_class: str, drifts: list[str], in_workspace: bool, safe_target: bool) -> str:
+def _manual_reason(*, exists: bool, repo_class: str, drifts: list[str], in_workspace: bool, safe_target: bool, ambiguous_company: bool) -> str:
     if not safe_target:
         return "repo path is empty or resolves to workspace root"
     if not in_workspace:
         return "resolved path escapes workspace root"
+    if ambiguous_company:
+        return "company inference is ambiguous for this ai-society workspace path; manual bootstrap selection required"
     if not exists:
         return "repo path missing; bootstrap batch cannot create missing repo roots"
     if repo_class not in ACTIONABLE_CLASSES:
@@ -158,6 +167,7 @@ def _build_batch(
         normalized_resolved_path = _normalize_policy_repo_path(workspace_root, policy_path)
         in_workspace = _is_within_workspace(workspace_root, normalized_resolved_path)
         safe_target = bool(policy_path.strip()) and normalized_resolved_path != workspace_root
+        ambiguous_company = workspace_company_inference_is_ambiguous(normalized_resolved_path)
         exists = normalized_resolved_path.is_dir()
         scorecard_resolved_path = str(row.get("resolved_path") or "")
 
@@ -168,11 +178,12 @@ def _build_batch(
             "resolved_path_mismatch": bool(scorecard_resolved_path) and scorecard_resolved_path != str(normalized_resolved_path),
             "repo_class": row.get("class"),
             "exists": exists,
+            "ambiguous_company": ambiguous_company,
             "workspace_root": str(workspace_root),
         }
 
         planned_bootstrap = False
-        if missing and exists and safe_target and in_workspace and row.get("class") in ACTIONABLE_CLASSES:
+        if missing and exists and safe_target and in_workspace and not ambiguous_company and row.get("class") in ACTIONABLE_CLASSES:
             actions.append(
                 {
                     **base_action,
@@ -214,6 +225,7 @@ def _build_batch(
                         drifts=drifts,
                         in_workspace=in_workspace,
                         safe_target=safe_target,
+                        ambiguous_company=ambiguous_company,
                     ),
                     "requirement_violations": missing,
                     "declaration_drifts": drifts,
