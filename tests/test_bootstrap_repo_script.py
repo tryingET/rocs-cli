@@ -293,6 +293,32 @@ class TestBootstrapRepoScript(unittest.TestCase):
             self.assertIn("gitlab/ci/keep.yml", gitlab_ci)
             self.assertIn("!reference [.shared, rules]", gitlab_ci)
 
+    def test_existing_gitlab_ci_inline_mapping_rocs_include_with_reference_tag_is_removed(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "repo"
+            target.mkdir(parents=True)
+            (target / ".gitlab-ci.yml").write_text(
+                "\n".join(
+                    [
+                        "include: {local: 'gitlab/ci/rocs.yml'}",
+                        "job:",
+                        "  rules: !reference [.shared, rules]",
+                        ".shared:",
+                        "  rules:",
+                        "    - if: $CI_PIPELINE_SOURCE",
+                        "",
+                    ]
+                ),
+                "utf-8",
+            )
+
+            proc = _run_bootstrap(str(target), "--class", "required")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+            gitlab_ci = (target / ".gitlab-ci.yml").read_text("utf-8")
+            self.assertNotIn("gitlab/ci/rocs.yml", gitlab_ci)
+            self.assertIn("!reference [.shared, rules]", gitlab_ci)
+
     def test_existing_gitlab_ci_multiline_rocs_include_with_reference_tag_is_removed_atomically(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "repo"

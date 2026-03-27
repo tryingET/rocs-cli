@@ -404,11 +404,15 @@ def _filter_inline_include_value(value: str) -> tuple[str | None, bool]:
         return None, False
     if _is_rocs_include_scalar(stripped):
         return None, True
-    if not stripped.startswith("["):
+    if not stripped.startswith(("[", "{")):
         return None, False
     try:
         loaded = yaml.safe_load(stripped)
     except yaml.YAMLError:
+        return None, False
+    if isinstance(loaded, dict):
+        if _ci_include_has_rocs([loaded]):
+            return None, True
         return None, False
     if not isinstance(loaded, list):
         return None, False
