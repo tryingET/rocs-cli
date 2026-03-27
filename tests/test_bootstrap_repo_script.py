@@ -35,7 +35,8 @@ def _snapshot_tree(path: Path) -> dict[str, str]:
         return out
     for p in sorted(path.rglob("*")):
         if p.is_file() and ".git" not in p.parts:
-            out[str(p.relative_to(path))] = _sha256(p)
+            mode = stat.S_IMODE(p.stat().st_mode)
+            out[str(p.relative_to(path))] = f"mode={mode:o} sha256={_sha256(p)}"
     return out
 
 
