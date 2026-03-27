@@ -9,11 +9,12 @@ import yaml
 FRONT_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
 
 
-def split_frontmatter(text: str) -> tuple[dict | None, str]:
+def split_frontmatter(text: str) -> tuple[object | None, str]:
     m = FRONT_RE.match(text)
     if not m:
         return None, text
-    fm = yaml.safe_load(m.group(1)) or {}
+    loaded = yaml.safe_load(m.group(1))
+    fm = {} if loaded is None else loaded
     return fm, text[m.end() :]
 
 
@@ -25,6 +26,11 @@ def load_frontmatter(path: Path) -> tuple[dict, str]:
         raise ValueError(f"invalid front matter YAML: {path}: {e}") from e
     if fm is None:
         raise ValueError(f"missing front matter: {path}")
+    if not isinstance(fm, dict):
+        raise ValueError(f"front matter must be a mapping: {path}")
+    ont = fm.get("ont")
+    if ont is not None and not isinstance(ont, dict):
+        raise ValueError(f"front matter ont must be a mapping: {path}")
     return fm, body
 
 

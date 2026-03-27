@@ -7,6 +7,8 @@ from typing import Any
 
 import yaml
 
+from rocs_cli.errors import RocsCliError
+
 
 KNOWN_COMPANIES: tuple[str, ...] = ("holdingco", "softwareco", "healthco")
 
@@ -41,14 +43,17 @@ def _hash_comment_index(line: str) -> int | None:
     return None
 
 
+def strip_inline_hash_comment(line: str) -> str:
+    idx = _hash_comment_index(line)
+    if idx is None:
+        return line
+    return line[:idx].rstrip()
+
+
 def strip_hash_comments(text: str) -> str:
     out: list[str] = []
     for raw in text.splitlines():
-        idx = _hash_comment_index(raw)
-        if idx is None:
-            out.append(raw)
-            continue
-        out.append(raw[:idx].rstrip())
+        out.append(strip_inline_hash_comment(raw))
     return "\n".join(out)
 
 
@@ -83,6 +88,34 @@ def yaml_scalar_strings(text: str) -> list[str] | None:
     if loaded is None:
         return []
     return list(_iter_scalar_strings(loaded))
+
+
+def ensure_managed_output_dir(root: Path, path: Path, *, label: str) -> Path:
+    root = root.expanduser().resolve()
+    path = path.expanduser()
+    blocker = managed_path_blocker(root, path / ".rocs-write-probe")
+    if blocker is not None:
+        raise RocsCliError(
+            kind="config",
+            message=f"{label} is not writable: {path} ({blocker})",
+            details={"path": str(path), "blocker": blocker},
+        )
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def ensure_managed_output_file(root: Path, path: Path, *, label: str) -> Path:
+    root = root.expanduser().resolve()
+    path = path.expanduser()
+    blocker = managed_path_blocker(root, path)
+    if blocker is not None:
+        raise RocsCliError(
+            kind="config",
+            message=f"{label} is not writable: {path} ({blocker})",
+            details={"path": str(path), "blocker": blocker},
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def managed_path_blocker(root: Path, path: Path) -> str | None:

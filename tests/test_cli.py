@@ -326,6 +326,34 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(payload.get("error", {}).get("kind"), "content")
             self.assertIn("missing front matter", payload.get("error", {}).get("message", ""))
 
+    def test_validate_json_non_mapping_front_matter_returns_content_error(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "---\n- 1\n---\n\n# Agent\n",
+            )
+            code, out = _run_capture(["validate", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "content")
+            self.assertIn("front matter must be a mapping", payload.get("error", {}).get("message", ""))
+
+    def test_validate_json_non_mapping_ont_returns_content_error(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "---\nont: [1]\n---\n\n# Agent\n",
+            )
+            code, out = _run_capture(["validate", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "content")
+            self.assertIn("front matter ont must be a mapping", payload.get("error", {}).get("message", ""))
+
     def test_lint_ruleset_strict_fails_on_warn(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
@@ -409,6 +437,30 @@ class TestRocsCli(unittest.TestCase):
                 os.environ.pop("ROCS_WORKSPACE_ROOT", None)
                 self.assertEqual(_run(["validate", "--repo", str(repo_root)]), 0)
                 self.assertEqual(os.environ.get("ROCS_WORKSPACE_ROOT"), "/tmp/workspace-from-default-env")
+            finally:
+                if prev_env_file is None:
+                    os.environ.pop("ROCS_ENV_FILE", None)
+                else:
+                    os.environ["ROCS_ENV_FILE"] = prev_env_file
+                if prev_workspace_root is None:
+                    os.environ.pop("ROCS_WORKSPACE_ROOT", None)
+                else:
+                    os.environ["ROCS_WORKSPACE_ROOT"] = prev_workspace_root
+
+    def test_env_loader_strips_inline_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            env_file = Path(td) / ".env"
+            env_file.write_text("ROCS_WORKSPACE_ROOT=/tmp/example-workspace # inline comment\n", "utf-8")
+
+            prev_env_file = os.environ.get("ROCS_ENV_FILE")
+            prev_workspace_root = os.environ.get("ROCS_WORKSPACE_ROOT")
+            try:
+                os.environ["ROCS_ENV_FILE"] = str(env_file)
+                os.environ.pop("ROCS_WORKSPACE_ROOT", None)
+
+                repo = _mk_repo(Path(td))
+                self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+                self.assertEqual(os.environ.get("ROCS_WORKSPACE_ROOT"), "/tmp/example-workspace")
             finally:
                 if prev_env_file is None:
                     os.environ.pop("ROCS_ENV_FILE", None)
@@ -578,6 +630,123 @@ class TestRocsCli(unittest.TestCase):
             out = Path(td) / "g.excalidraw.json"
             self.assertEqual(_run(["graph", "--repo", str(repo), "--relation", "is_a", "--out", str(out)]), 0)
             self.assertTrue(out.exists())
+
+    def test_graph_json_preserves_edges_to_missing_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Agent"',
+                        "  type: concept",
+                        '  labels: ["Agent"]',
+                        '  description: "an agent"',
+                        "  relations:",
+                        "    - type: is_a",
+                        '      target: "core.Missing"',
+                        "  examples:",
+                        '    - "an example"',
+                        "  anti_examples:",
+                        '    - "an anti-example"',
+                        "---",
+                        "",
+                        "# Agent",
+                        "",
+                        "## Definition",
+                        "an agent",
+                        "",
+                    ]
+                ),
+            )
+            code, out = _run_capture(["graph", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            graph_payload = json.loads(Path(payload["out"]).read_text("utf-8"))
+            self.assertIn("core.Missing", graph_payload["nodes"])
+            self.assertEqual(graph_payload["edges"], [{"src": "core.Agent", "rel": "is_a", "dst": "core.Missing"}])
+
+    def test_graph_dot_escapes_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            _write(
+                repo / "ontology" / "src" / "reference" / "relations" / "quoted.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.rel.quoted"',
+                        "  type: relation",
+                        "  labels:",
+                        "    - 'owns\"now'",
+                        '  description: "quoted relation"',
+                        "  group: taxonomy",
+                        "  characteristics:",
+                        "    transitive: false",
+                        "    symmetric: false",
+                        "---",
+                        "",
+                        "# quoted",
+                        "",
+                        "## Definition",
+                        "quoted relation",
+                        "",
+                        "## Domain / Range",
+                        "- Domain: concept",
+                        "- Range: concept",
+                        "",
+                    ]
+                ),
+            )
+            _write(
+                repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+                "\n".join(
+                    [
+                        "---",
+                        "ont:",
+                        '  id: "core.Agent"',
+                        "  type: concept",
+                        '  labels: ["Agent"]',
+                        '  description: "an agent"',
+                        "  relations:",
+                        "    - type: 'owns\"now'",
+                        '      target: "core.Actor"',
+                        "  examples:",
+                        '    - "an example"',
+                        "  anti_examples:",
+                        '    - "an anti-example"',
+                        "---",
+                        "",
+                        "# Agent",
+                        "",
+                        "## Definition",
+                        "an agent",
+                        "",
+                    ]
+                ),
+            )
+            out = Path(td) / "graph.dot"
+            self.assertEqual(_run(["graph", "--repo", str(repo), "--format", "dot", "--out", str(out)]), 0)
+            self.assertIn('[label="owns\\"now"]', out.read_text("utf-8"))
+
+    def test_build_blocks_symlinked_dist(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = _mk_repo(root)
+            outside = root / "outside"
+            outside.mkdir()
+            dist = repo / "ontology" / "dist"
+            dist.symlink_to(outside, target_is_directory=True)
+
+            code, out = _run_capture(["build", "--repo", str(repo), "--json"])
+            self.assertEqual(code, 1)
+            payload = _parse_json(out)
+            self.assertEqual(payload.get("ok"), False)
+            self.assertEqual(payload.get("error", {}).get("kind"), "config")
+            self.assertIn("build output dir is not writable", payload.get("error", {}).get("message", ""))
+            self.assertEqual(list(outside.iterdir()), [])
 
     def test_lint_flags_empty_markdown_heading(self) -> None:
         with tempfile.TemporaryDirectory() as td:

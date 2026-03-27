@@ -17,7 +17,10 @@ class OntDoc:
 
     @property
     def ont(self) -> dict:
-        return self.fm.get("ont") or {}
+        ont = self.fm.get("ont")
+        if isinstance(ont, dict):
+            return ont
+        return {}
 
     @property
     def ont_id(self) -> str:

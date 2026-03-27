@@ -33,6 +33,7 @@ from rocs_cli.pack import build_pack, pack_config_from_profile
 from rocs_cli.repo_view import RepoView, load_repo_view
 from rocs_cli.rules import Finding, RULES
 from rocs_cli.errors import RocsCliError
+from rocs_cli.managed_surface import ensure_managed_output_dir, ensure_managed_output_file
 from rocs_cli.rulesets import behavior_for_ruleset, effective_ruleset
 from rocs_cli.validate import (
     enforce_budget,
@@ -159,9 +160,12 @@ def _print_findings(findings: list[Finding]) -> None:
             console.print(f"- {f.rule_id} {f.severity}: {f.message}")
 
 
+def _ensure_dist_dir(repo: Path, *, label: str) -> Path:
+    return ensure_managed_output_dir(repo, dist_dir(repo), label=label)
+
+
 def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
-    dist = dist_dir(repo)
-    dist.mkdir(parents=True, exist_ok=True)
+    dist = _ensure_dist_dir(repo, label="resolve artifact dir")
     entries = []
     for layer_spec in layers:
         entries.append(
@@ -181,7 +185,7 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
         "profile": profile,
         "layers": entries,
     }
-    out = dist / "resolve.json"
+    out = ensure_managed_output_file(repo, dist / "resolve.json", label="resolve artifact")
     out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
     return out
 
@@ -458,9 +462,10 @@ def cmd_build(args: argparse.Namespace) -> int:
     repo = _repo_root(args.repo)
     ws_mode = effective_workspace_ref_mode(getattr(args, "workspace_ref_mode", None))
     dist = dist_dir(repo)
+    _ensure_dist_dir(repo, label="build output dir")
     if args.clean and dist.exists():
         shutil.rmtree(dist)
-    dist.mkdir(parents=True, exist_ok=True)
+    _ensure_dist_dir(repo, label="build output dir")
     _clear_build_artifacts(repo)
     try:
         view = _load_view(args)
@@ -514,9 +519,9 @@ def cmd_build(args: argparse.Namespace) -> int:
         "concept_ids": sorted(view.concepts.keys()),
         "relation_ids": sorted(view.relations.keys()),
     }
-    summary_out = dist / "summary.json"
+    summary_out = ensure_managed_output_file(repo, dist / "summary.json", label="build summary artifact")
     summary_out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
-    id_index_out = dist / "id_index.json"
+    id_index_out = ensure_managed_output_file(repo, dist / "id_index.json", label="build id-index artifact")
     id_index_out.write_text(
         json.dumps(build_id_index(concepts=view.concepts, relations=view.relations), indent=2, sort_keys=True) + "\n", "utf-8"
     )
@@ -660,21 +665,22 @@ def cmd_graph(args: argparse.Namespace) -> int:
     if args.relation:
         rel_filter = {args.relation}
     edges = build_edges(view.concepts, rel_filter=rel_filter)
-    nodes = sorted(view.concepts.keys())
+    nodes = sorted(set(view.concepts.keys()) | {edge.src for edge in edges} | {edge.dst for edge in edges})
     if args.collapse_prefix:
         nodes, edges = collapse_nodes(nodes, edges, prefixes=args.collapse_prefix.split(","))
     layout = compute_layout(nodes, edges, layout=args.layout)
     if args.out:
         out = Path(args.out)
     else:
+        dist = _ensure_dist_dir(view.repo, label="graph output dir")
         if args.json:
-            out = dist_dir(view.repo) / "graph.json"
+            out = ensure_managed_output_file(view.repo, dist / "graph.json", label="graph artifact")
         elif args.format == "dot":
-            out = dist_dir(view.repo) / "graph.dot"
+            out = ensure_managed_output_file(view.repo, dist / "graph.dot", label="graph artifact")
         elif args.format == "excalidraw-cli-json":
-            out = dist_dir(view.repo) / "graph.excalidraw-cli.json"
+            out = ensure_managed_output_file(view.repo, dist / "graph.excalidraw-cli.json", label="graph artifact")
         else:
-            out = dist_dir(view.repo) / "graph.excalidraw.json"
+            out = ensure_managed_output_file(view.repo, dist / "graph.excalidraw.json", label="graph artifact")
     direction = "LR" if args.layout == "dag" else "TB"
     fmt = "json" if args.json else args.format
     write_graph(out, fmt=fmt, nodes=nodes, edges=edges, layout=layout, direction=direction)
@@ -808,9 +814,8 @@ def cmd_diff(args: argparse.Namespace) -> int:
         "breaking": breaking,
     }
 
-    dist = dist_dir(repo)
-    dist.mkdir(parents=True, exist_ok=True)
-    out = dist / "diff.json"
+    dist = _ensure_dist_dir(repo, label="diff output dir")
+    out = ensure_managed_output_file(repo, dist / "diff.json", label="diff artifact")
     out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
 
     if args.json:
