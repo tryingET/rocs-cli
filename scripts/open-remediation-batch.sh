@@ -246,17 +246,34 @@ def _apply_batch(batch: dict[str, Any]) -> tuple[dict[str, Any], int]:
 
     for action in actions:
         if action.get("kind") != "bootstrap_repo":
+            status = str(action.get("status") or "blocked")
             apply_results.append(
                 {
                     "path": action.get("path"),
-                    "status": action.get("status"),
+                    "status": status,
                     "reason": action.get("reason"),
                 }
             )
+            if status != "applied":
+                exit_code = EXIT_APPLY_PARTIAL
             continue
 
         command = [str(x) for x in action.get("command") or []]
-        proc = subprocess.run(command, check=False, capture_output=True, text=True)
+        try:
+            proc = subprocess.run(command, check=False, capture_output=True, text=True)
+        except OSError as exc:
+            detail = exc.strerror or exc.__class__.__name__
+            apply_results.append(
+                {
+                    "path": action.get("path"),
+                    "resolved_path": action.get("resolved_path"),
+                    "status": "apply_failed",
+                    "error": f"could not execute bootstrap action ({detail})",
+                }
+            )
+            exit_code = EXIT_APPLY_PARTIAL
+            continue
+
         result: dict[str, Any] = {
             "path": action.get("path"),
             "resolved_path": action.get("resolved_path"),

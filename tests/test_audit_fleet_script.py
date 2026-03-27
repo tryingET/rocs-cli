@@ -337,6 +337,77 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(evidence["hook_exec_present"], False)
             self.assertEqual(evidence["hook_exec_checked"], {".githooks/pre-push": False})
 
+    def test_symlinked_hook_does_not_count_as_checked_in_ci_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+            )
+            outside = Path(td) / "external-pre-push"
+            outside.write_text(
+                "#!/usr/bin/env bash\nset -euo pipefail\nROCS_CI_PROFILE=branch-ci bash scripts/ci/full.sh\n",
+                "utf-8",
+            )
+            outside.chmod(0o755)
+            (repo / ".githooks" / "pre-push").unlink()
+            (repo / ".githooks" / "pre-push").symlink_to(outside)
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["rocs_ci_gate"])
+            self.assertEqual(evidence["hook_hits"], [])
+            self.assertEqual(evidence["hook_blocked_hits"], [{"path": ".githooks/pre-push", "reason": "path is a symlink"}])
+
+    def test_unreadable_manifest_is_reported_as_a_violation_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+            )
+            manifest = repo / "ontology" / "manifest.yaml"
+            manifest.chmod(0)
+            try:
+                policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+                policy_path = Path(td) / "fleet-state.yaml"
+                policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+                proc = _run_audit(
+                    "--workspace-root",
+                    str(workspace),
+                    "--policy",
+                    str(policy_path),
+                    "--json",
+                )
+                self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+                self.assertEqual(proc.stderr, "")
+                payload = json.loads(proc.stdout)
+                evidence = payload["repos"][0]["evidence"]["ontology_manifest"]
+                self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["ontology_manifest"])
+                self.assertEqual(evidence["locator_kind"], "invalid")
+                self.assertIn("could not read ontology manifest", evidence["parse_error"])
+            finally:
+                manifest.chmod(0o644)
+
     def test_template_hook_does_not_count_as_active_ci_gate(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             workspace = Path(td) / "ai-society"
@@ -365,6 +436,43 @@ class TestAuditFleetScript(unittest.TestCase):
             self.assertEqual(evidence["hook_hits"], [])
             self.assertEqual(evidence["hook_template_hits"], [".githooks/pre-push.j2"])
             self.assertEqual(evidence["wrapper_hits"], ["scripts/ci/full.sh"])
+
+    def test_symlinked_wrapper_does_not_count_as_checked_in_ci_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            repo = _mk_repo(
+                workspace,
+                "softwareco/owned/app-a",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+            )
+            outside = Path(td) / "external-full.sh"
+            outside.write_text(
+                "#!/usr/bin/env bash\nset -euo pipefail\nexport ROCS_WORKSPACE_ROOT=\"${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}\"\nexport ROCS_WORKSPACE_REF_MODE=\"${ROCS_WORKSPACE_REF_MODE:-loose}\"\n",
+                "utf-8",
+            )
+            outside.chmod(0o755)
+            (repo / "scripts" / "ci" / "full.sh").unlink()
+            (repo / "scripts" / "ci" / "full.sh").symlink_to(outside)
+
+            policy = _policy_for(["ai-society/softwareco/owned/app-a"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["rocs_ci_gate"]
+            self.assertEqual(payload["violations"]["required_capabilities"][0]["missing"], ["rocs_ci_gate"])
+            self.assertEqual(evidence["wrapper_hits"], [])
+            self.assertEqual(evidence["wrapper_workspace_blocked_hits"], [{"path": "scripts/ci/full.sh", "reason": "path is a symlink"}])
 
     def test_repo_locators_require_workspace_aware_wrapper_contract(self) -> None:
         with tempfile.TemporaryDirectory() as td:

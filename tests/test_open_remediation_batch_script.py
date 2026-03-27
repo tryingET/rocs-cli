@@ -236,6 +236,41 @@ printf '#!/usr/bin/env bash\nset -euo pipefail\n' > \"$target/scripts/ci/full.sh
             self.assertEqual(payload["actions"][0]["status"], "blocked")
             self.assertIn("workspace root", payload["actions"][0]["reason"])
 
+    def test_apply_mode_returns_action_required_when_only_blocked_followup_remains(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "ai-society" / "core" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            audit = _audit_payload(repo, missing=["rocs_ci_gate"])
+            audit["repos"][0]["path"] = "ai-society/core/owned/app-a"
+            audit["workspace_root"] = str(Path(td) / "ai-society")
+            audit_path = Path(td) / "audit.json"
+            audit_path.write_text(json.dumps(audit, indent=2) + "\n", "utf-8")
+
+            proc = _run_script("--input", str(audit_path), "--mode", "apply")
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            self.assertEqual(payload["summary"]["blocked_actions"], 1)
+            self.assertEqual(payload["apply_results"][0]["status"], "blocked")
+
+    def test_apply_mode_rejects_non_executable_bootstrap_script(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "ai-society" / "softwareco" / "owned" / "app-a"
+            repo.mkdir(parents=True, exist_ok=True)
+            audit_path = Path(td) / "audit.json"
+            audit_path.write_text(
+                json.dumps(_audit_payload(repo, missing=["rocs_ci_gate"]), indent=2) + "\n",
+                "utf-8",
+            )
+            bootstrap = Path(td) / "bootstrap.sh"
+            bootstrap.write_text("#!/usr/bin/env bash\nexit 0\n", "utf-8")
+            bootstrap.chmod(0o644)
+
+            proc = _run_script("--input", str(audit_path), "--mode", "apply", "--bootstrap-script", str(bootstrap))
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertEqual(proc.stdout, "")
+            self.assertIn("bootstrap script is not runnable", proc.stderr)
+            self.assertNotIn("Traceback", proc.stderr)
+
     def test_ambiguous_workspace_company_is_blocked_for_manual_followup(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td) / "ai-society" / "core" / "owned" / "app-a"

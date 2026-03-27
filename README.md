@@ -113,6 +113,7 @@ FCOS convergence scripts:
 - `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
   - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)
   - `rocs_ci_gate` checks concrete checked-in hook gate surfaces (`.githooks/pre-push` + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); template files and comments do not count as evidence
+  - symlinked, unreadable, non-UTF-8, or otherwise blocked managed surfaces do not count as compliant evidence and are reported in scorecard evidence
   - manifest locator checks ignore commented migration notes and inspect live YAML values when possible
   - emits deterministic JSON/Markdown scorecards (stdout when PATH omitted)
   - stable exit codes: `0` pass, `2` required capability violations, `1` policy/usage error
@@ -122,7 +123,7 @@ FCOS convergence scripts:
   - may emit both a bootstrap action and a blocked manual follow-up for the same repo when file drift and declaration drift coexist
   - `patch` mode emits planned bootstrap/manual follow-up actions without mutating repos
   - `apply` mode runs `scripts/bootstrap-repo.sh` for bootstrap-managed required drift and records per-repo apply results
-  - stable exit codes: `0` batch generated/applied successfully, `2` apply failures, `1` input/usage error
+  - stable exit codes: `0` batch generated successfully or apply completed cleanly, `2` apply failures or blocked manual follow-up remains, `1` input/usage error
 - `scripts/run-fleet-audit-nightly.py`
   - authoritative nightly control loop: runs the fleet audit, writes JSON/Markdown scorecards under `${XDG_STATE_HOME:-$HOME/.local/state}/fcos/nightly/<timestamp>/`, and emits a JSON `run-summary.json`
   - returns `0` only for `status=pass`; any detected drift or remediation outcome returns `2`; runtime/config failures return `1`

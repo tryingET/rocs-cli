@@ -15,7 +15,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from rocs_cli.fleet_preflight import FleetPreflightError, normalize_policy_repo_path, read_utf8_text  # noqa: E402
+from rocs_cli.fleet_preflight import (  # noqa: E402
+    FileProbe,
+    FleetPreflightError,
+    normalize_policy_repo_path,
+    probe_managed_candidates,
+    read_utf8_text,
+)
 from rocs_cli.managed_surface import normalize_shell_lines, strip_hash_comments, yaml_scalar_strings  # noqa: E402
 
 
@@ -172,26 +178,40 @@ def _validate_policy(policy: dict[str, Any]) -> None:
             raise PolicyError(f"policy.fleet.repos[{idx}].capabilities must be a mapping")
 
 
-def _find_existing(base: Path, candidates: tuple[str, ...]) -> list[str]:
-    found: list[str] = []
-    for rel in candidates:
-        p = base / rel
-        if p.is_file():
-            found.append(rel)
-    return found
+def _probe_paths(base: Path, candidates: tuple[str, ...], *, label: str, load_text: bool = False) -> list[FileProbe]:
+    return probe_managed_candidates(base, candidates, label=label, load_text=load_text)
 
 
-def _manifest_contract_status(base: Path, manifest_hits: list[str]) -> tuple[bool, dict[str, Any], bool]:
-    if not manifest_hits:
-        return False, {"primary_hit": None, "locator_kind": "missing", "locators": []}, False
+def _valid_hits(probes: list[FileProbe]) -> list[str]:
+    return [probe.relpath for probe in probes if probe.valid]
 
-    primary_hit = manifest_hits[0]
-    manifest_path = base / primary_hit
-    try:
-        text = manifest_path.read_text("utf-8")
-    except UnicodeDecodeError:
-        return False, {"primary_hit": primary_hit, "locator_kind": "invalid", "parse_error": "not utf-8", "locators": []}, False
 
+def _blocked_hits(probes: list[FileProbe]) -> list[dict[str, str]]:
+    return [
+        {"path": probe.relpath, "reason": str(probe.blocker or "unknown")}
+        for probe in probes
+        if probe.present and not probe.valid
+    ]
+
+
+def _manifest_contract_status(manifest_probes: list[FileProbe]) -> tuple[bool, dict[str, Any], bool]:
+    valid_probes = [probe for probe in manifest_probes if probe.valid]
+    blocked_hits = _blocked_hits(manifest_probes)
+    if not valid_probes:
+        evidence: dict[str, Any] = {"primary_hit": None, "locator_kind": "missing", "locators": []}
+        if blocked_hits:
+            evidence.update(
+                {
+                    "primary_hit": blocked_hits[0]["path"],
+                    "locator_kind": "invalid",
+                    "parse_error": blocked_hits[0]["reason"],
+                    "blocked_hits": blocked_hits,
+                }
+            )
+        return False, evidence, False
+
+    primary_probe = valid_probes[0]
+    text = primary_probe.text or ""
     scalar_strings = yaml_scalar_strings(text)
     if scalar_strings is not None:
         locator_source = "yaml_scalars"
@@ -219,37 +239,30 @@ def _manifest_contract_status(base: Path, manifest_hits: list[str]) -> tuple[boo
 
     contract_ok = not gitlab_locators
     evidence = {
-        "primary_hit": primary_hit,
+        "primary_hit": primary_probe.relpath,
         "locator_kind": locator_kind,
         "locator_source": locator_source,
         "locators": locators,
         "requires_workspace_contract": bool(repo_locators),
     }
+    if blocked_hits:
+        evidence["blocked_hits"] = blocked_hits
     if gitlab_locators:
         evidence["contract_reason"] = "legacy_gitlab_locators"
 
     return contract_ok, evidence, bool(repo_locators)
 
 
-def _wrapper_workspace_contract(base: Path, wrapper_hits: list[str]) -> tuple[bool, dict[str, Any]]:
-    checked: list[str] = []
-    parse_errors: dict[str, str] = {}
+def _wrapper_workspace_contract(wrapper_probes: list[FileProbe]) -> tuple[bool, dict[str, Any]]:
+    valid_probes = [probe for probe in wrapper_probes if probe.valid]
+    checked: list[str] = [probe.relpath for probe in valid_probes]
     workspace_root_present = False
     workspace_ref_mode_present = False
     wrapper_contract_lines: list[dict[str, Any]] = []
 
-    for rel in wrapper_hits:
-        p = base / rel
-        if not p.is_file():
-            continue
-        checked.append(rel)
-        try:
-            text = p.read_text("utf-8")
-        except UnicodeDecodeError:
-            parse_errors[rel] = "not utf-8"
-            continue
-        lines = normalize_shell_lines(text)
-        wrapper_contract_lines.append({"path": rel, "lines": lines})
+    for probe in valid_probes:
+        lines = normalize_shell_lines(probe.text or "")
+        wrapper_contract_lines.append({"path": probe.relpath, "lines": lines})
         if any(WORKSPACE_ROOT_TOKEN_RE.search(line) for line in lines):
             workspace_root_present = True
         if any(WORKSPACE_REF_MODE_TOKEN_RE.search(line) for line in lines):
@@ -262,8 +275,9 @@ def _wrapper_workspace_contract(base: Path, wrapper_hits: list[str]) -> tuple[bo
         "workspace_root_present": workspace_root_present,
         "workspace_ref_mode_present": workspace_ref_mode_present,
     }
-    if parse_errors:
-        evidence["wrapper_workspace_parse_errors"] = parse_errors
+    blocked_hits = _blocked_hits(wrapper_probes)
+    if blocked_hits:
+        evidence["wrapper_workspace_blocked_hits"] = blocked_hits
     return ok, evidence
 
 
@@ -276,45 +290,38 @@ def _normalize_script_text(text: str) -> list[str]:
     return normalize_shell_lines(text)
 
 
-def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspace_contract: bool) -> tuple[bool, dict[str, Any]]:
-    hook_template_hits = _find_existing(base, ROCS_GATE_HOOK_TEMPLATE_CANDIDATES)
-    wrapper_hits = _find_existing(base, ROCS_CI_WRAPPER_CANDIDATES)
-    wrapper_template_hits = _find_existing(base, ROCS_CI_WRAPPER_TEMPLATE_CANDIDATES)
-    legacy_gate_hits = _find_existing(base, LEGACY_GATE_CANDIDATES)
+def _hook_contract_status(base: Path, *, requires_workspace_contract: bool) -> tuple[bool, dict[str, Any]]:
+    hook_probes = _probe_paths(base, ROCS_GATE_HOOK_CANDIDATES, label="ROCS gate hook", load_text=True)
+    hook_template_probes = _probe_paths(base, ROCS_GATE_HOOK_TEMPLATE_CANDIDATES, label="ROCS gate hook template")
+    wrapper_probes = _probe_paths(base, ROCS_CI_WRAPPER_CANDIDATES, label="ROCS CI wrapper", load_text=True)
+    wrapper_template_probes = _probe_paths(base, ROCS_CI_WRAPPER_TEMPLATE_CANDIDATES, label="ROCS CI wrapper template")
+    legacy_gate_probes = _probe_paths(base, LEGACY_GATE_CANDIDATES, label="legacy ROCS gate")
     wrapper_call_present = False
     profile_contract_present = False
     hook_contract_checked: list[str] = []
-    hook_parse_errors: dict[str, str] = {}
     hook_contexts_checked: list[dict[str, Any]] = []
     hook_exec_checked: dict[str, bool] = {}
     hook_exec_required = False
     hook_exec_present = False
 
-    for rel in hook_hits:
-        p = base / rel
-        if not p.is_file():
-            continue
-        hook_contract_checked.append(rel)
+    valid_hook_probes = [probe for probe in hook_probes if probe.valid]
+    for probe in valid_hook_probes:
+        hook_contract_checked.append(probe.relpath)
 
-        exec_required = rel == ".githooks/pre-push"
+        exec_required = probe.relpath == ".githooks/pre-push"
         is_executable = True
         if exec_required:
             hook_exec_required = True
             try:
-                is_executable = bool(p.stat().st_mode & 0o111)
+                is_executable = bool(probe.path.stat().st_mode & 0o111)
             except OSError:
                 is_executable = False
-            hook_exec_checked[rel] = is_executable
+            hook_exec_checked[probe.relpath] = is_executable
             if is_executable:
                 hook_exec_present = True
 
-        try:
-            text = p.read_text("utf-8")
-        except UnicodeDecodeError:
-            hook_parse_errors[rel] = "not utf-8"
-            continue
-        lines = _normalize_script_text(text)
-        hook_contexts_checked.append({"path": rel, "lines": lines})
+        lines = _normalize_script_text(probe.text or "")
+        hook_contexts_checked.append({"path": probe.relpath, "lines": lines})
         has_wrapper = any(_WRAPPER_CALL_RE.search(line) for line in lines)
         has_inline_profile = any(_WRAPPER_CALL_RE.search(line) and _PROFILE_ASSIGN_RE.search(line) for line in lines)
         has_export_profile = any(_PROFILE_EXPORT_RE.search(line) for line in lines)
@@ -323,8 +330,10 @@ def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspac
         if has_inline_profile or (has_wrapper and has_export_profile):
             profile_contract_present = True
 
-    workspace_contract_ok, workspace_contract_evidence = _wrapper_workspace_contract(base, wrapper_hits)
+    workspace_contract_ok, workspace_contract_evidence = _wrapper_workspace_contract(wrapper_probes)
 
+    hook_hits = _valid_hits(hook_probes)
+    wrapper_hits = _valid_hits(wrapper_probes)
     ok = bool(hook_hits) and bool(wrapper_hits) and wrapper_call_present and profile_contract_present
     if hook_exec_required:
         ok = ok and hook_exec_present
@@ -333,10 +342,14 @@ def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspac
 
     evidence = {
         "hook_hits": hook_hits,
-        "hook_template_hits": hook_template_hits,
+        "hook_template_hits": _valid_hits(hook_template_probes),
+        "hook_blocked_hits": _blocked_hits(hook_probes),
+        "hook_template_blocked_hits": _blocked_hits(hook_template_probes),
         "wrapper_hits": wrapper_hits,
-        "wrapper_template_hits": wrapper_template_hits,
-        "legacy_gate_hits": legacy_gate_hits,
+        "wrapper_template_hits": _valid_hits(wrapper_template_probes),
+        "wrapper_template_blocked_hits": _blocked_hits(wrapper_template_probes),
+        "legacy_gate_hits": _valid_hits(legacy_gate_probes),
+        "legacy_gate_blocked_hits": _blocked_hits(legacy_gate_probes),
         "hook_contract_checked": hook_contract_checked,
         "hook_exec_required": hook_exec_required,
         "hook_exec_present": hook_exec_present,
@@ -347,8 +360,6 @@ def _hook_contract_status(base: Path, hook_hits: list[str], *, requires_workspac
         **workspace_contract_evidence,
         "hook_contexts_checked": hook_contexts_checked,
     }
-    if hook_parse_errors:
-        evidence["hook_parse_errors"] = hook_parse_errors
     return ok, evidence
 
 
@@ -365,42 +376,48 @@ def _safe_bool(value: Any) -> bool | None:
 
 
 def _detect_capabilities(resolved_path: Path) -> tuple[dict[str, bool], dict[str, Any]]:
-    vendored_hash_path = resolved_path / "tools" / "rocs-cli" / "VENDORED_HASHES.json"
+    vendored_probes = _probe_paths(
+        resolved_path,
+        ("tools/rocs-cli/VENDORED_HASHES.json",),
+        label="vendored hash file",
+        load_text=True,
+    )
+    vendored_probe = vendored_probes[0] if vendored_probes else None
     rocs_cli_vendored = False
     vendored_reason = "missing"
-    if vendored_hash_path.is_file():
-        try:
-            payload = json.loads(vendored_hash_path.read_text("utf-8"))
-            if payload.get("schema_version") == 1 and isinstance(payload.get("files"), dict):
-                rocs_cli_vendored = True
-                vendored_reason = "ok"
-            else:
-                vendored_reason = "invalid_hash_schema"
-        except json.JSONDecodeError:
-            vendored_reason = "invalid_json"
+    if vendored_probe is not None:
+        if not vendored_probe.valid:
+            vendored_reason = str(vendored_probe.blocker or "invalid")
+        else:
+            try:
+                payload = json.loads(vendored_probe.text or "")
+                if payload.get("schema_version") == 1 and isinstance(payload.get("files"), dict):
+                    rocs_cli_vendored = True
+                    vendored_reason = "ok"
+                else:
+                    vendored_reason = "invalid_hash_schema"
+            except json.JSONDecodeError:
+                vendored_reason = "invalid_json"
 
-    manifest_hits = _find_existing(resolved_path, MANIFEST_CANDIDATES)
-    manifest_contract_ok, manifest_contract_evidence, requires_workspace_contract = _manifest_contract_status(
-        resolved_path,
-        manifest_hits,
-    )
-    hook_hits = _find_existing(resolved_path, ROCS_GATE_HOOK_CANDIDATES)
+    manifest_probes = _probe_paths(resolved_path, MANIFEST_CANDIDATES, label="ontology manifest", load_text=True)
+    manifest_hits = _valid_hits(manifest_probes)
+    manifest_contract_ok, manifest_contract_evidence, requires_workspace_contract = _manifest_contract_status(manifest_probes)
     hook_contract_ok, hook_contract_evidence = _hook_contract_status(
         resolved_path,
-        hook_hits,
         requires_workspace_contract=requires_workspace_contract,
     )
 
     observed = {
         "rocs_cli_vendored": rocs_cli_vendored,
         "ontology_manifest": bool(manifest_hits) and manifest_contract_ok,
-        "rocs_ci_gate": bool(hook_hits) and hook_contract_ok,
+        "rocs_ci_gate": bool(hook_contract_evidence.get("hook_hits")) and hook_contract_ok,
     }
 
     evidence = {
         "rocs_cli_vendored": {
             "hash_file": "tools/rocs-cli/VENDORED_HASHES.json",
             "status": vendored_reason,
+            "blocked_hits": _blocked_hits(vendored_probes),
         },
         "ontology_manifest": {
             "hits": manifest_hits,
@@ -640,7 +657,7 @@ def main() -> int:
             policy_path=policy_path,
             report_only=bool(args.report_only),
         )
-    except PolicyError as exc:
+    except (PolicyError, FleetPreflightError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
 
