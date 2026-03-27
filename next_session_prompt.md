@@ -5,7 +5,11 @@ read_when:
   - "When wiring local gates through Pi or git hooks"
 ---
 
-# Next Session Prompt — ROCS ref resolution (workspace-only)
+# Session Status — ROCS ref resolution (workspace-only)
+
+## Status
+Completed on the current branch.
+The repo now enforces workspace-only `<repo:...@ref>` resolution, rejects legacy `<gitlab:...@ref>` locators, and uses `scripts/ci/full.sh` as the canonical local gate wrapper for Pi/hooks.
 
 ## Session trigger
 Start from the new invariant: ROCS resolves refs from the local workspace only.
@@ -45,6 +49,6 @@ Keep refs essential on strict paths while avoiding any GitLab dependency.
 - Decision chosen: Workspace-only ref resolution with hybrid caller-profile policy.
 - Why this option: GitLab is gone; local workspace resolution is deterministic, offline-first, and compatible with Pi/hook-driven gates.
 - Files changed: `src/rocs_cli/layers.py`, `src/rocs_cli/cli.py`, `src/rocs_cli/env.py`, `src/rocs_cli/authority.py`, `src/rocs_cli/cache.py`, `src/rocs_cli/pack.py`, `src/rocs_cli/vendored.py`, `src/rocs_cli/fleet_preflight.py`, `scripts/ci/full.sh`, `scripts/bootstrap-repo.sh`, `scripts/audit-fleet.py`, `scripts/open-remediation-batch.sh`, `scripts/run-fleet-audit-nightly.py`, `README.md`, `docs/ref-resolution-ci-strategy.md`, `docs/artifacts.md`, `tests/test_workspace_resolution.py`, `tests/test_cli.py`, `tests/test_bootstrap_repo_script.py`, `tests/test_vendor_to_script.py`, `tests/test_audit_fleet_script.py`, `tests/test_open_remediation_batch_script.py`, `tests/test_run_fleet_audit_nightly_script.py`, `AGENTS.md`, `next_session_prompt.md`.
-- Tests run/results: `uv run python -m unittest discover -s tests -p 'test_*.py' -q` ✅ (`Ran 141 tests`); `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` ✅.
+- Tests run/results: `uv run python -m unittest discover -s tests -p 'test_*.py' -q` ✅ (`Ran 147 tests`); `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` ✅.
 - Consumer migration impact: manifests must use `<repo:...>` locators and local gates should call `scripts/ci/full.sh` from Pi or hooks.
 - Rollback plan: not recommended; migrate remaining manifests instead of restoring remote fallback.

@@ -42,7 +42,7 @@ Keep the hybrid contract:
 
 | Context | Canonical caller contract | `--resolve-refs` | Workspace ref mode default | Failure behavior |
 |---|---|---:|---|---|
-| Local dev | `ROCS_CI_PROFILE=local-dev` | Off by default; enabled with `ROCS_LOCAL_RESOLVE_REFS=1` | `loose` by default; flips to `strict` when local ref resolution is explicitly enabled | Default mode stays fast and offline by operating on `--only path`. Strict opt-in fails on missing workspace deps or ref mismatch. |
+| Local dev | `ROCS_CI_PROFILE=local-dev` | Off by default; enabled with `ROCS_LOCAL_RESOLVE_REFS=1` | Not applicable while refs stay off; when local ref resolution is explicitly enabled, default to `strict` | Default mode stays fast and offline by operating on `--only path`. Strict opt-in fails on missing workspace deps or ref mismatch. |
 | Branch gate | `ROCS_CI_PROFILE=branch-ci` | Required | `strict` | Fail closed on unresolved refs or ref mismatch. |
 | Main/protected gate | `ROCS_CI_PROFILE=main-strict` | Required | `strict` | Fail closed always. |
 
