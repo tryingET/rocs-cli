@@ -1,54 +1,48 @@
 ---
-summary: "Workspace-only ROCS ref resolution after removing legacy GitLab support."
+summary: "Active handoff for the current rocs-cli tactical wave after direction-to-execution repair."
 read_when:
-  - "When deciding ROCS ref-resolution policy for template consumers"
-  - "When wiring local gates through Pi or git hooks"
+  - "You are starting the next rocs-cli session"
+  - "You need the truthful next operating wave and authoritative task IDs"
 ---
 
-# Session Status — ROCS ref resolution (workspace-only)
+# Session Status — bootstrap/audit helper convergence
 
 ## Status
-Completed on the current branch.
-The repo now enforces workspace-only `<repo:...@ref>` resolution, rejects legacy `<gitlab:...@ref>` locators, and uses `scripts/ci/full.sh` as the canonical local gate wrapper for Pi/hooks.
+The previous workspace-only ref-resolution wave is complete on the current branch.
+This repo now has explicit direction docs and an active operating wave backed by authoritative AK tasks.
 
-## Session trigger
-Start from the new invariant: ROCS resolves refs from the local workspace only.
-
-## Objective
-Keep refs essential on strict paths while avoiding any GitLab dependency.
-
-## Invariants
-- Keep `--resolve-refs`.
-- Keep strict provenance on branch/main gates.
-- Do not reintroduce remote archive fallback.
-- Prefer local wrapper / Pi / hook integration over remote CI assumptions.
-
-## Current decision
-- Supported locator form: `<repo:...@ref>`
-- Unsupported legacy form: `<gitlab:...@ref>`
-- Canonical caller contract: `scripts/ci/full.sh`
-- Strictness profiles:
-  - `local-dev`
-  - `branch-ci`
-  - `main-strict`
-
-## Read-first allowlist
+## Start here
 1. `AGENTS.md`
 2. `README.md`
-3. `docs/ref-resolution-ci-strategy.md`
-4. `src/rocs_cli/cli.py`
-5. `src/rocs_cli/layers.py`
-6. `src/rocs_cli/authority.py`
-7. `tests/test_workspace_resolution.py`
-8. `tests/test_cli.py`
+3. `docs/project/vision.md`
+4. `docs/project/strategic_goals.md`
+5. `docs/project/tactical_goals.md`
+6. `docs/project/operating_plan.md`
+7. `docs/ref-resolution-ci-strategy.md`
+8. Inspect AK tasks `#363` and `#364` from `softwareco/owned/agent-kernel` via `./scripts/ak-v2.sh task show <id>`
+
+## Active goal stack
+- Strategic goal: eliminate contract drift in downstream fleet helper surfaces
+- Tactical goal: remove the remaining bootstrap/audit helper drift with shared, directly tested seams
+- Active AK tasks:
+  - `#363` Modularize bootstrap CI-include remediation into directly unit-tested Python helpers
+  - `#364` Extract shared FCOS gate contract helpers to eliminate bootstrap/audit drift
+
+## Objective
+Finish the shared-helper convergence wave without expanding into non-active docs/operator backlog.
+
+## Invariants
+- Keep the CLI small, boring, deterministic, and offline-first.
+- Keep workspace-only `<repo:...@ref>` resolution; do not reintroduce remote fallback.
+- Keep `scripts/ci/full.sh` as the canonical local gate wrapper.
+- When generated/template surfaces change, validate both fresh bootstrap and rerun-on-existing convergence.
 
 ## Validation baseline
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q`
+- `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict`
 
 ## Checkpoint fields
-- Decision chosen: Workspace-only ref resolution with hybrid caller-profile policy.
-- Why this option: GitLab is gone; local workspace resolution is deterministic, offline-first, and compatible with Pi/hook-driven gates.
-- Files changed: `src/rocs_cli/layers.py`, `src/rocs_cli/cli.py`, `src/rocs_cli/env.py`, `src/rocs_cli/authority.py`, `src/rocs_cli/cache.py`, `src/rocs_cli/pack.py`, `src/rocs_cli/vendored.py`, `src/rocs_cli/fleet_preflight.py`, `scripts/ci/full.sh`, `scripts/bootstrap-repo.sh`, `scripts/audit-fleet.py`, `scripts/open-remediation-batch.sh`, `scripts/run-fleet-audit-nightly.py`, `README.md`, `docs/ref-resolution-ci-strategy.md`, `docs/artifacts.md`, `tests/test_workspace_resolution.py`, `tests/test_cli.py`, `tests/test_bootstrap_repo_script.py`, `tests/test_vendor_to_script.py`, `tests/test_audit_fleet_script.py`, `tests/test_open_remediation_batch_script.py`, `tests/test_run_fleet_audit_nightly_script.py`, `AGENTS.md`, `next_session_prompt.md`.
-- Tests run/results: `uv run python -m unittest discover -s tests -p 'test_*.py' -q` ✅ (`Ran 147 tests`); `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` ✅.
-- Consumer migration impact: manifests must use `<repo:...>` locators and local gates should call `scripts/ci/full.sh` from Pi or hooks.
-- Rollback plan: not recommended; migrate remaining manifests instead of restoring remote fallback.
+- Previous wave closed: stale AK task `#329` should be treated as completed work, not new backlog.
+- Direction source of truth: `docs/project/vision.md`, `docs/project/strategic_goals.md`, `docs/project/tactical_goals.md`, `docs/project/operating_plan.md`.
+- Active execution source of truth: AK tasks `#363` and `#364`.
+- Intentionally deferred until after this wave: broader docs/operator cleanup for the stabilized local-gate contract.
