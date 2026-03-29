@@ -39,7 +39,7 @@ def is_severity(value: str) -> bool:
 
 
 # Core registry (kept intentionally small + boring; add as checks grow).
-register_rule("STRUCT001", default_severity="error", summary="missing ontology/manifest.yaml")
+register_rule("STRUCT001", default_severity="error", summary="missing managed ontology manifest")
 register_rule("STRUCT010", default_severity="error", summary="missing layer src_root")
 register_rule("STRUCT011", default_severity="error", summary="missing layer system4d.yaml")
 

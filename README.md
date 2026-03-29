@@ -29,8 +29,11 @@ Commands:
 
 Scope (MVP):
 - Validate ROCS repo structure + ontology front matter schema.
-- Build local artifacts into `ontology/dist/`.
-- Emit `ontology/dist/authority-receipt.json` plus per-command `authority-receipt.<command>.json` artifacts for `build`/`validate` runs so local consumers can see authority mode and per-layer resolution sources without losing multi-step evidence.
+- Support both managed ontology layouts:
+  - standard repo layout: `ontology/manifest.yaml`, `ontology/src/`, `ontology/dist/`
+  - ontology-repo root layout: `manifest.yaml`, `src/`, `dist/`
+- Build local artifacts into the managed `dist/` directory for the selected layout.
+- Emit `authority-receipt.json` plus per-command `authority-receipt.<command>.json` artifacts inside that managed `dist/` directory for `build`/`validate` runs so local consumers can see authority mode and per-layer resolution sources without losing multi-step evidence.
 - Resolve layered ontology refs from a local workspace only.
 
 Layer refs (optional):
@@ -81,6 +84,7 @@ Tests:
 
 CI profile wrapper (template-side policy contract):
 - Script: `scripts/ci/full.sh`
+- Layout note: ontology repos may live either at `ontology/` inside a normal repo or directly at repo root when the repo itself is the ontology container.
 - Profiles via `ROCS_CI_PROFILE=local-dev|branch-ci|main-strict`
   - `local-dev`: offline-first default; runs `--only path` unless `ROCS_LOCAL_RESOLVE_REFS=1`, and that opt-in path enables `--resolve-refs` with workspace matching defaulting to `strict`
   - `branch-ci`: requires `--resolve-refs` and defaults workspace matching to `strict` (fail-closed)

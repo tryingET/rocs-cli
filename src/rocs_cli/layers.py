@@ -33,7 +33,40 @@ def repo_root(repo: str) -> Path:
     return Path(repo).resolve()
 
 
+def manifest_candidates(repo_root: Path) -> tuple[Path, ...]:
+    root_manifest = repo_root / "manifest.yaml"
+    nested_manifest = repo_root / "ontology" / "manifest.yaml"
+    if repo_root.name == "ontology":
+        return (root_manifest, nested_manifest)
+    return (nested_manifest, root_manifest)
+
+
 def ontology_root(repo_root: Path) -> Path:
+    root_manifest = repo_root / "manifest.yaml"
+    nested_manifest = repo_root / "ontology" / "manifest.yaml"
+    root_exists = root_manifest.exists()
+    nested_exists = nested_manifest.exists()
+
+    if root_exists and nested_exists:
+        raise RocsCliError(
+            kind="config",
+            message=(
+                "ambiguous ontology root: both manifest.yaml and "
+                "ontology/manifest.yaml exist"
+            ),
+            details={
+                "repo_root": str(repo_root),
+                "candidates": [str(root_manifest), str(nested_manifest)],
+            },
+        )
+    if root_exists:
+        return repo_root
+    if nested_exists:
+        return repo_root / "ontology"
+    if (repo_root / "ontology").exists():
+        return repo_root / "ontology"
+    if repo_root.name == "ontology":
+        return repo_root
     return repo_root / "ontology"
 
 
@@ -43,6 +76,10 @@ def manifest_path(repo_root: Path) -> Path:
 
 def dist_dir(repo_root: Path) -> Path:
     return ontology_root(repo_root) / "dist"
+
+
+def default_repo_src_path(repo_root: Path) -> str:
+    return "src" if ontology_root(repo_root) == repo_root else "ontology/src"
 
 
 def _require_mapping(value: object, *, where: str) -> dict:
@@ -264,7 +301,7 @@ def resolve_layers(
             if d.get("ref"):
                 layer_cfgs.append({"name": str(d.get("layer") or ""), "ref": str(d.get("ref") or "")})
         self_name = str(rocs.get("layer") or "repo")
-        layer_cfgs.append({"name": self_name, "path": "ontology/src"})
+        layer_cfgs.append({"name": self_name, "path": default_repo_src_path(repo_root)})
 
     include: set[str] | None = None
     exclude: set[str] = set()

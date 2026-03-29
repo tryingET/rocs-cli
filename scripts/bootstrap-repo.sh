@@ -149,6 +149,22 @@ ONTOLOGY_INDEX = norm(
     """
 )
 
+ONTOLOGY_REPO_INDEX = norm(
+    """
+    # Ontology Index (company overlay)
+
+    Start here when browsing manually.
+
+    - `manifest.yaml` — company overlay metadata + dependency on core
+    - `src/system4d.yaml` — company-level System4D boundaries/constraints
+    - `src/reference/concepts/` — company concepts
+    - `src/bridge/mapping.yaml` — concept-to-artifact mappings
+    - `dist/` — generated artifacts
+
+    Tip: Use `uvx --from ./tools/rocs-cli rocs pack <concept_id> --resolve-refs --workspace-ref-mode loose` instead of opening many files.
+    """
+)
+
 REPO_SYSTEM4D = norm(
     """
     ontology:
@@ -773,8 +789,12 @@ if policy["ontology_manifest"]:
             plan_file("ontology/src/bridge/README.md", BRIDGE_README)
             plan_file("ontology/src/reference/concepts/README.md", CONCEPTS_README)
     elif scaffold == "ontology_repo":
-        plan_manifest_file("ontology/manifest.yaml", ONTOLOGY_REPO_MANIFEST)
-        plan_file("ontology/src/system4d.yaml", ONTOLOGY_REPO_SYSTEM4D)
+        plan_manifest_file("manifest.yaml", ONTOLOGY_REPO_MANIFEST)
+        plan_file("index.md", ONTOLOGY_REPO_INDEX)
+        plan_file("src/system4d.yaml", ONTOLOGY_REPO_SYSTEM4D)
+        plan_file("src/bridge/mapping.yaml", BRIDGE_MAPPING)
+        plan_file("src/bridge/README.md", BRIDGE_README)
+        plan_file("src/reference/concepts/README.md", CONCEPTS_README)
 else:
     planned_actions.append({"path": "ontology/*", "action": "skip", "reason": "class policy: not required"})
 

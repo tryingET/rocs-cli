@@ -39,6 +39,7 @@ def _mk_repo(
     ci_contract: str = "current",
     manifest_text: str | None = None,
     workspace_contract: bool = True,
+    manifest_relpath: str = "ontology/manifest.yaml",
 ) -> Path:
     repo = workspace_root / rel
     repo.mkdir(parents=True, exist_ok=True)
@@ -50,7 +51,7 @@ def _mk_repo(
         )
 
     if manifest:
-        _write(repo / "ontology" / "manifest.yaml", manifest_text or "rocs:\n  layer: repo\n")
+        _write(repo / manifest_relpath, manifest_text or "rocs:\n  layer: repo\n")
 
     if ci_gate:
         if ci_contract == "current":
@@ -628,6 +629,37 @@ class TestAuditFleetScript(unittest.TestCase):
             payload = json.loads(proc.stdout)
             evidence = payload["repos"][0]["evidence"]["ontology_manifest"]
             self.assertEqual(evidence["locator_kind"], "none")
+            self.assertEqual(payload["summary"]["status"], "pass")
+
+    def test_root_layout_manifest_counts_as_ontology_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "ai-society"
+            _mk_repo(
+                workspace,
+                "softwareco/ontology",
+                vendored=True,
+                manifest=True,
+                ci_gate=True,
+                manifest_relpath="manifest.yaml",
+                manifest_text="rocs:\n  layer: company\n  depends_on:\n    - layer: core\n      ref: '<repo:core/ontology-kernel@main>'\n",
+            )
+
+            policy = _policy_for(["ai-society/softwareco/ontology"])
+            policy_path = Path(td) / "fleet-state.yaml"
+            policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), "utf-8")
+
+            proc = _run_audit(
+                "--workspace-root",
+                str(workspace),
+                "--policy",
+                str(policy_path),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            payload = json.loads(proc.stdout)
+            evidence = payload["repos"][0]["evidence"]["ontology_manifest"]
+            self.assertEqual(evidence["primary_hit"], "manifest.yaml")
+            self.assertEqual(evidence["locator_kind"], "repo")
             self.assertEqual(payload["summary"]["status"], "pass")
 
     def test_output_is_deterministic_across_repeated_runs(self) -> None:

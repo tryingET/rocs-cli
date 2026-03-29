@@ -888,7 +888,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--json", action="store_true", help="emit JSON output")
-    p.add_argument("--write-dist", action="store_true", help="write ontology/dist/resolve.json")
+    p.add_argument("--write-dist", action="store_true", help="write managed dist/resolve.json artifact")
     p.set_defaults(fn=cmd_resolve)
 
     p = sub.add_parser("summary", parents=[p_resolve_common])
@@ -991,7 +991,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--layout", choices=["grid", "dag"], default="grid")
     p.add_argument("--format", choices=["excalidraw", "excalidraw-cli-json", "dot"], default="excalidraw")
     p.add_argument("--json", action="store_true", help="emit JSON output (writes graph.json by default)")
-    p.add_argument("--out", help="output path (default: ontology/dist/graph.<fmt>.*)")
+    p.add_argument("--out", help="output path (default: managed dist/graph.<fmt>.*)")
     p.set_defaults(fn=cmd_graph)
 
     p = sub.add_parser("build", parents=[p_resolve_common])
@@ -1005,7 +1005,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--env-file", help="dotenv file to load into environment (for local config)")
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
-    p.add_argument("--clean", action="store_true", help="remove ontology/dist before building")
+    p.add_argument("--clean", action="store_true", help="remove the managed dist directory before building")
     p.add_argument("--json", action="store_true", help="emit JSON output")
     p.set_defaults(fn=cmd_build)
 

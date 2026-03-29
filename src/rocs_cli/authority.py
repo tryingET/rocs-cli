@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from rocs_cli import __version__
 from rocs_cli.errors import RocsCliError
-from rocs_cli.layers import dist_dir, parse_ref_locator
+from rocs_cli.layers import dist_dir, manifest_path, parse_ref_locator
 from rocs_cli.managed_surface import ensure_managed_output_dir, ensure_managed_output_file
 from rocs_cli.workspace import workspace_ref_mode_from_env
 
@@ -76,7 +76,12 @@ def effective_workspace_ref_mode(explicit_mode: str | None) -> str:
 
 
 def can_write_authority_receipt(repo_root: Path) -> bool:
-    return repo_root.exists() and (repo_root / "ontology").exists()
+    if not repo_root.exists():
+        return False
+    try:
+        return manifest_path(repo_root).exists()
+    except RocsCliError:
+        return False
 
 
 def authority_receipt_path(repo_root: Path) -> Path:

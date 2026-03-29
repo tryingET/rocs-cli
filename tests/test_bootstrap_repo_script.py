@@ -503,9 +503,11 @@ class TestBootstrapRepoScript(unittest.TestCase):
             proc = _run_bootstrap(str(target), "--class", "ontology_repo")
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
-            manifest = (target / "ontology" / "manifest.yaml").read_text("utf-8")
+            manifest = (target / "manifest.yaml").read_text("utf-8")
             self.assertIn("layer: company", manifest)
             self.assertIn('<repo:core/ontology-kernel@main>', manifest)
+            self.assertTrue((target / "src" / "system4d.yaml").is_file())
+            self.assertTrue((target / "index.md").is_file())
 
             hook = (target / ".githooks" / "pre-push").read_text("utf-8")
             self.assertIn('export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-main-strict}"', hook)

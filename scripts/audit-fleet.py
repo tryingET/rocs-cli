@@ -42,6 +42,12 @@ MANIFEST_CANDIDATES: tuple[str, ...] = (
     "ontology/manifest.yml.j2",
     "ontology/manifest.yaml.jinja",
     "ontology/manifest.yml.jinja",
+    "manifest.yaml",
+    "manifest.yml",
+    "manifest.yaml.j2",
+    "manifest.yml.j2",
+    "manifest.yaml.jinja",
+    "manifest.yml.jinja",
 )
 
 ROCS_GATE_HOOK_CANDIDATES: tuple[str, ...] = (

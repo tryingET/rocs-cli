@@ -51,7 +51,7 @@ run_rocs() {
 }
 
 clean_dist() {
-  rm -rf "$ROCS_REPO/ontology/dist"
+  rm -rf "$ROCS_REPO/ontology/dist" "$ROCS_REPO/dist"
 }
 
 strict_gate() {

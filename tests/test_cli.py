@@ -17,10 +17,11 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, "utf-8")
 
 
-def _mk_repo(tmp: Path, *, manifest_extra: str = "") -> Path:
+def _mk_repo(tmp: Path, *, manifest_extra: str = "", layout: str = "nested") -> Path:
     repo = tmp / "repo"
+    ontology_root = repo if layout == "root" else repo / "ontology"
     _write(
-        repo / "ontology" / "manifest.yaml",
+        ontology_root / "manifest.yaml",
         "\n".join(
             [
                 "rocs:",
@@ -33,9 +34,9 @@ def _mk_repo(tmp: Path, *, manifest_extra: str = "") -> Path:
             ]
         ),
     )
-    _write(repo / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
+    _write(ontology_root / "src" / "system4d.yaml", "system4d: {}\n")
     _write(
-        repo / "ontology" / "src" / "reference" / "relations" / "is_a.md",
+        ontology_root / "src" / "reference" / "relations" / "is_a.md",
         "\n".join(
             [
                 "---",
@@ -66,7 +67,7 @@ def _mk_repo(tmp: Path, *, manifest_extra: str = "") -> Path:
         ),
     )
     _write(
-        repo / "ontology" / "src" / "reference" / "concepts" / "core.Actor.md",
+        ontology_root / "src" / "reference" / "concepts" / "core.Actor.md",
         "\n".join(
             [
                 "---",
@@ -91,7 +92,7 @@ def _mk_repo(tmp: Path, *, manifest_extra: str = "") -> Path:
         ),
     )
     _write(
-        repo / "ontology" / "src" / "reference" / "concepts" / "core.Agent.md",
+        ontology_root / "src" / "reference" / "concepts" / "core.Agent.md",
         "\n".join(
             [
                 "---",
@@ -186,6 +187,12 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(payload.get("findings"), [])
             self.assertIn("budget", payload)
 
+    def test_validate_ok_for_root_layout_ontology_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td), layout="root")
+            self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+            self.assertTrue((repo / "dist" / "authority-receipt.validate.json").exists())
+
     def test_validate_writes_authority_receipt(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = _mk_repo(Path(td))
@@ -243,6 +250,13 @@ class TestRocsCli(unittest.TestCase):
             self.assertEqual(receipt.get("ok"), False)
             self.assertEqual(receipt.get("authority_mode"), "local_only")
             self.assertGreaterEqual(receipt.get("result", {}).get("finding_count", 0), 1)
+
+    def test_build_writes_dist_at_repo_root_for_root_layout_ontology_repo(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td), layout="root")
+            self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+            self.assertTrue((repo / "dist" / "summary.json").exists())
+            self.assertTrue((repo / "dist" / "id_index.json").exists())
 
     def test_validate_ruleset_strict_implies_strict_placeholders(self) -> None:
         with tempfile.TemporaryDirectory() as td:

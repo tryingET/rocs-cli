@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from rocs_cli.layers import LayerSpec, manifest_path
+from rocs_cli.layers import LayerSpec, manifest_candidates, manifest_path
 from rocs_cli.model import collect_docs, iter_md, relation_label_index
 from rocs_cli.rules import Finding
 
@@ -54,8 +54,19 @@ def _id_ok(ont_id: str) -> bool:
 
 def validate_repo_structure(repo_root: Path) -> list[Finding]:
     findings: list[Finding] = []
-    if not manifest_path(repo_root).exists():
-        findings.append(Finding(rule_id="STRUCT001", severity="error", message="missing ontology/manifest.yaml"))
+    try:
+        manifest = manifest_path(repo_root)
+    except Exception:
+        manifest = None
+    if manifest is None or not manifest.exists():
+        candidates = ", ".join(str(path.relative_to(repo_root)) for path in manifest_candidates(repo_root))
+        findings.append(
+            Finding(
+                rule_id="STRUCT001",
+                severity="error",
+                message=f"missing ontology manifest ({candidates})",
+            )
+        )
     return findings
 
 
