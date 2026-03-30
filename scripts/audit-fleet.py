@@ -15,6 +15,16 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from rocs_cli.fcos_gate import (  # noqa: E402
+    FCOS_CI_WRAPPER_CANDIDATES,
+    FCOS_CI_WRAPPER_TEMPLATE_CANDIDATES,
+    FCOS_GATE_HOOK_CANDIDATES,
+    FCOS_GATE_HOOK_PATH,
+    FCOS_GATE_HOOK_TEMPLATE_CANDIDATES,
+    LEGACY_FCOS_GATE_CANDIDATES,
+    hook_contract_evidence,
+    wrapper_workspace_contract_evidence,
+)
 from rocs_cli.fleet_preflight import (  # noqa: E402
     FileProbe,
     FleetPreflightError,
@@ -22,7 +32,7 @@ from rocs_cli.fleet_preflight import (  # noqa: E402
     probe_managed_candidates,
     read_utf8_text,
 )
-from rocs_cli.managed_surface import normalize_shell_lines, strip_hash_comments, yaml_scalar_strings  # noqa: E402
+from rocs_cli.managed_surface import strip_hash_comments, yaml_scalar_strings  # noqa: E402
 
 
 EXIT_OK = 0
@@ -50,36 +60,7 @@ MANIFEST_CANDIDATES: tuple[str, ...] = (
     "manifest.yml.jinja",
 )
 
-ROCS_GATE_HOOK_CANDIDATES: tuple[str, ...] = (
-    ".githooks/pre-push",
-)
-
-ROCS_GATE_HOOK_TEMPLATE_CANDIDATES: tuple[str, ...] = (
-    ".githooks/pre-push.j2",
-    ".githooks/pre-push.jinja",
-)
-
-ROCS_CI_WRAPPER_CANDIDATES: tuple[str, ...] = (
-    "scripts/ci/full.sh",
-)
-
-ROCS_CI_WRAPPER_TEMPLATE_CANDIDATES: tuple[str, ...] = (
-    "scripts/ci/full.sh.j2",
-    "scripts/ci/full.sh.jinja",
-)
-
-LEGACY_GATE_CANDIDATES: tuple[str, ...] = (
-    "gitlab/ci/rocs.yml",
-    "gitlab/ci/rocs.yml.j2",
-    "gitlab/ci/rocs.yml.jinja",
-    ".gitlab-ci.yml",
-    ".gitlab-ci.yml.j2",
-    ".gitlab-ci.yml.jinja",
-)
-
 LOCATOR_RE = re.compile(r"<(?P<kind>repo|gitlab):[^>]+>")
-WORKSPACE_ROOT_TOKEN_RE = re.compile(r"ROCS_WORKSPACE_ROOT|--workspace-root")
-WORKSPACE_REF_MODE_TOKEN_RE = re.compile(r"ROCS_WORKSPACE_REF_MODE|--workspace-ref-mode")
 
 
 class PolicyError(ValueError):
@@ -267,12 +248,10 @@ def _wrapper_workspace_contract(wrapper_probes: list[FileProbe]) -> tuple[bool, 
     wrapper_contract_lines: list[dict[str, Any]] = []
 
     for probe in valid_probes:
-        lines = normalize_shell_lines(probe.text or "")
-        wrapper_contract_lines.append({"path": probe.relpath, "lines": lines})
-        if any(WORKSPACE_ROOT_TOKEN_RE.search(line) for line in lines):
-            workspace_root_present = True
-        if any(WORKSPACE_REF_MODE_TOKEN_RE.search(line) for line in lines):
-            workspace_ref_mode_present = True
+        contract = wrapper_workspace_contract_evidence(probe.text or "")
+        wrapper_contract_lines.append({"path": probe.relpath, "lines": contract["lines"]})
+        workspace_root_present = workspace_root_present or bool(contract["workspace_root_present"])
+        workspace_ref_mode_present = workspace_ref_mode_present or bool(contract["workspace_ref_mode_present"])
 
     ok = workspace_root_present and workspace_ref_mode_present
     evidence: dict[str, Any] = {
@@ -287,21 +266,12 @@ def _wrapper_workspace_contract(wrapper_probes: list[FileProbe]) -> tuple[bool, 
     return ok, evidence
 
 
-_WRAPPER_CALL_RE = re.compile(r"(?:^|\s)(?:(?:bash|sh)\s+)?(?:\./)?scripts/ci/full\.sh(?:\s|$)")
-_PROFILE_ASSIGN_RE = re.compile(r"(?:^|\s)ROCS_CI_PROFILE=[^\s]+")
-_PROFILE_EXPORT_RE = re.compile(r"^\s*export\s+ROCS_CI_PROFILE=[^\s]+")
-
-
-def _normalize_script_text(text: str) -> list[str]:
-    return normalize_shell_lines(text)
-
-
 def _hook_contract_status(base: Path, *, requires_workspace_contract: bool) -> tuple[bool, dict[str, Any]]:
-    hook_probes = _probe_paths(base, ROCS_GATE_HOOK_CANDIDATES, label="ROCS gate hook", load_text=True)
-    hook_template_probes = _probe_paths(base, ROCS_GATE_HOOK_TEMPLATE_CANDIDATES, label="ROCS gate hook template")
-    wrapper_probes = _probe_paths(base, ROCS_CI_WRAPPER_CANDIDATES, label="ROCS CI wrapper", load_text=True)
-    wrapper_template_probes = _probe_paths(base, ROCS_CI_WRAPPER_TEMPLATE_CANDIDATES, label="ROCS CI wrapper template")
-    legacy_gate_probes = _probe_paths(base, LEGACY_GATE_CANDIDATES, label="legacy ROCS gate")
+    hook_probes = _probe_paths(base, FCOS_GATE_HOOK_CANDIDATES, label="ROCS gate hook", load_text=True)
+    hook_template_probes = _probe_paths(base, FCOS_GATE_HOOK_TEMPLATE_CANDIDATES, label="ROCS gate hook template")
+    wrapper_probes = _probe_paths(base, FCOS_CI_WRAPPER_CANDIDATES, label="ROCS CI wrapper", load_text=True)
+    wrapper_template_probes = _probe_paths(base, FCOS_CI_WRAPPER_TEMPLATE_CANDIDATES, label="ROCS CI wrapper template")
+    legacy_gate_probes = _probe_paths(base, LEGACY_FCOS_GATE_CANDIDATES, label="legacy ROCS gate")
     wrapper_call_present = False
     profile_contract_present = False
     hook_contract_checked: list[str] = []
@@ -314,7 +284,7 @@ def _hook_contract_status(base: Path, *, requires_workspace_contract: bool) -> t
     for probe in valid_hook_probes:
         hook_contract_checked.append(probe.relpath)
 
-        exec_required = probe.relpath == ".githooks/pre-push"
+        exec_required = probe.relpath == FCOS_GATE_HOOK_PATH
         is_executable = True
         if exec_required:
             hook_exec_required = True
@@ -326,14 +296,11 @@ def _hook_contract_status(base: Path, *, requires_workspace_contract: bool) -> t
             if is_executable:
                 hook_exec_present = True
 
-        lines = _normalize_script_text(probe.text or "")
-        hook_contexts_checked.append({"path": probe.relpath, "lines": lines})
-        has_wrapper = any(_WRAPPER_CALL_RE.search(line) for line in lines)
-        has_inline_profile = any(_WRAPPER_CALL_RE.search(line) and _PROFILE_ASSIGN_RE.search(line) for line in lines)
-        has_export_profile = any(_PROFILE_EXPORT_RE.search(line) for line in lines)
-        if has_wrapper:
+        contract = hook_contract_evidence(probe.text or "")
+        hook_contexts_checked.append({"path": probe.relpath, "lines": contract["lines"]})
+        if contract["wrapper_call_present"]:
             wrapper_call_present = True
-        if has_inline_profile or (has_wrapper and has_export_profile):
+        if contract["profile_contract_present"]:
             profile_contract_present = True
 
     workspace_contract_ok, workspace_contract_evidence = _wrapper_workspace_contract(wrapper_probes)

@@ -87,10 +87,9 @@ import textwrap
 from pathlib import Path
 from typing import Dict
 
-import yaml
-
-
 sys.path.insert(0, str(Path(sys.argv[1]).resolve() / "src"))
+from rocs_cli.fcos_gate import FCOS_CI_WRAPPER_PATH, FCOS_GATE_HOOK_PATH, FCOS_HOOKS_README, render_pre_push_hook
+from rocs_cli.gitlab_ci import LEGACY_ROCS_INCLUDE_PATH, remove_rocs_include
 from rocs_cli.managed_surface import KNOWN_COMPANIES, infer_company_from_parts, managed_path_blocker, workspace_company_inference_is_ambiguous
 
 
@@ -290,47 +289,7 @@ CONCEPTS_README = norm(
     """
 )
 
-HOOKS_README = norm(
-    """
-    # ROCS local gate hooks
-
-    Enable the checked-in hooks for this repo with:
-
-    ```bash
-    git config core.hooksPath .githooks
-    ```
-
-    The pre-push hook delegates to `scripts/ci/full.sh` so local gates and Pi-driven runs share one policy surface.
-    """
-)
-
-HOOK_PRE_PUSH_ADVISORY = norm(
-    """
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-    cd "$repo_root"
-
-    export ROCS_CMD="${ROCS_CMD:-uv run --project ./tools/rocs-cli python -m rocs_cli}"
-    export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"
-    bash scripts/ci/full.sh
-    """
-)
-
-HOOK_PRE_PUSH_STRICT = norm(
-    """
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-    cd "$repo_root"
-
-    export ROCS_CMD="${ROCS_CMD:-uv run --project ./tools/rocs-cli python -m rocs_cli}"
-    export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-main-strict}"
-    bash scripts/ci/full.sh
-    """
-)
+HOOKS_README = FCOS_HOOKS_README
 
 CLASS_POLICY = {
     "required": {
@@ -404,205 +363,6 @@ def read_utf8_text(path: Path, *, root: Path | None = None) -> tuple[str | None,
         return None, f"file is unreadable: {detail}"
 
 
-def _normalize_ci_include(value: object) -> list[object]:
-    if value is None:
-        return []
-    if isinstance(value, list):
-        return list(value)
-    if isinstance(value, (dict, str)):
-        return [value]
-    raise SystemExit("invalid .gitlab-ci.yml: top-level include must be a string, mapping, or list")
-
-
-def _ci_include_has_rocs(entries: list[object]) -> bool:
-    for entry in entries:
-        if isinstance(entry, dict) and str(entry.get("local") or "") == "gitlab/ci/rocs.yml":
-            return True
-        if isinstance(entry, str) and entry.strip().strip("\"'") == "gitlab/ci/rocs.yml":
-            return True
-    return False
-
-
-def _is_rocs_include_scalar(value: str) -> bool:
-    return value.strip().strip("\"'") == "gitlab/ci/rocs.yml"
-
-
-def _render_inline_include(entries: list[object]) -> str:
-    rendered = yaml.safe_dump(entries, sort_keys=False, default_flow_style=True).strip()
-    return f"include: {rendered}"
-
-
-def _filter_inline_include_value(value: str) -> tuple[str | None, bool]:
-    stripped = value.strip()
-    if not stripped:
-        return None, False
-    if _is_rocs_include_scalar(stripped):
-        return None, True
-    if not stripped.startswith(("[", "{")):
-        return None, False
-    try:
-        loaded = yaml.safe_load(stripped)
-    except yaml.YAMLError:
-        return None, False
-    if isinstance(loaded, dict):
-        if _ci_include_has_rocs([loaded]):
-            return None, True
-        return None, False
-    if not isinstance(loaded, list):
-        return None, False
-    filtered = [entry for entry in loaded if not _ci_include_has_rocs([entry])]
-    if len(filtered) == len(loaded):
-        return None, False
-    if not filtered:
-        return None, True
-    return _render_inline_include(filtered), True
-
-
-def _leading_spaces(line: str) -> int:
-    return len(line) - len(line.lstrip(" "))
-
-
-def _remove_rocs_include_textually(text: str) -> str | None:
-    lines = text.splitlines(keepends=True)
-    out: list[str] = []
-    i = 0
-    changed = False
-
-    while i < len(lines):
-        line = lines[i]
-        stripped = line.strip()
-        if _leading_spaces(line) == 0 and stripped.startswith("include:"):
-            inline_value = stripped[len("include:") :].strip()
-            if inline_value:
-                rewritten, handled = _filter_inline_include_value(inline_value)
-                if handled:
-                    changed = True
-                    if rewritten is not None:
-                        newline = "\n" if line.endswith("\n") else ""
-                        out.append(rewritten + newline)
-                    i += 1
-                    continue
-                out.append(line)
-                i += 1
-                continue
-
-            j = i + 1
-            block: list[str] = []
-            while j < len(lines):
-                current = lines[j]
-                if current.strip() and _leading_spaces(current) == 0:
-                    break
-                block.append(current)
-                j += 1
-
-            kept: list[str] = []
-            k = 0
-            while k < len(block):
-                current = block[k]
-                stripped_current = current.strip()
-                if not stripped_current:
-                    if kept:
-                        kept.append(current)
-                    k += 1
-                    continue
-                if stripped_current.startswith("#"):
-                    kept.append(current)
-                    k += 1
-                    continue
-
-                if stripped_current.startswith("-"):
-                    entry_lines = [current]
-                    entry_indent = _leading_spaces(current)
-                    k += 1
-                    while k < len(block):
-                        nxt = block[k]
-                        nxt_stripped = nxt.strip()
-                        nxt_indent = _leading_spaces(nxt)
-                        if nxt_stripped and nxt_indent == entry_indent and nxt_stripped.startswith("-"):
-                            break
-                        entry_lines.append(nxt)
-                        k += 1
-
-                    first = stripped_current[1:].strip()
-                    remove_entry = _is_rocs_include_scalar(first)
-                    if not remove_entry and first.startswith("local:"):
-                        remove_entry = _is_rocs_include_scalar(first.split(":", 1)[1])
-                    if not remove_entry:
-                        for entry_line in entry_lines[1:]:
-                            entry_line_stripped = entry_line.strip()
-                            if entry_line_stripped.startswith("local:") and _is_rocs_include_scalar(entry_line_stripped.split(":", 1)[1]):
-                                remove_entry = True
-                                break
-                    if remove_entry:
-                        changed = True
-                        continue
-                    kept.extend(entry_lines)
-                    continue
-
-                if stripped_current.startswith("local:"):
-                    if _is_rocs_include_scalar(stripped_current.split(":", 1)[1]):
-                        changed = True
-                        k += 1
-                        continue
-
-                kept.append(current)
-                k += 1
-
-            while kept and not kept[0].strip():
-                kept.pop(0)
-            while kept and not kept[-1].strip():
-                kept.pop()
-
-            if kept:
-                out.append(line)
-                out.extend(kept)
-                if j < len(lines) and out and not out[-1].endswith("\n"):
-                    out[-1] += "\n"
-            else:
-                changed = True
-            i = j
-            continue
-
-        out.append(line)
-        i += 1
-
-    result = "".join(out)
-    if not result.strip():
-        return None
-    return ensure_trailing_newline(result if changed else text)
-
-
-def remove_rocs_include(text: str) -> str | None:
-    if not text.strip():
-        return None
-    if "gitlab/ci/rocs.yml" not in text:
-        return ensure_trailing_newline(text)
-
-    try:
-        loaded = yaml.safe_load(text) or {}
-    except yaml.YAMLError as exc:
-        updated = _remove_rocs_include_textually(text)
-        if updated == ensure_trailing_newline(text):
-            raise SystemExit(f"invalid .gitlab-ci.yml: {exc}") from exc
-        return updated
-    if not isinstance(loaded, dict):
-        raise SystemExit("invalid .gitlab-ci.yml: root must be a mapping")
-
-    include_entries = _normalize_ci_include(loaded.get("include"))
-    filtered = [entry for entry in include_entries if not _ci_include_has_rocs([entry])]
-    if len(filtered) == len(include_entries):
-        return ensure_trailing_newline(text)
-
-    if filtered:
-        loaded["include"] = filtered
-    else:
-        loaded.pop("include", None)
-
-    if not loaded:
-        return None
-    return ensure_trailing_newline(yaml.safe_dump(loaded, sort_keys=False, allow_unicode=True))
-
-
 repo_root = Path(sys.argv[1]).resolve()
 target_raw = Path(sys.argv[2]).expanduser()
 repo_class = sys.argv[3].strip()
@@ -623,7 +383,7 @@ if target.exists() and not target.is_dir():
     raise SystemExit(f"target exists and is not a directory: {target}")
 
 policy = CLASS_POLICY[repo_class]
-CI_WRAPPER = ensure_trailing_newline((repo_root / "scripts" / "ci" / "full.sh").read_text("utf-8"))
+CI_WRAPPER = ensure_trailing_newline((repo_root / FCOS_CI_WRAPPER_PATH).read_text("utf-8"))
 
 planned_writes: dict[str, str] = {}
 planned_deletes: set[str] = set()
@@ -743,7 +503,7 @@ def plan_manifest_file(relpath: str, default_content: str) -> None:
 
 
 def plan_remove_legacy_gitlab_ci() -> None:
-    plan_delete("gitlab/ci/rocs.yml", reason="remove legacy generated GitLab ROCS gate")
+    plan_delete(LEGACY_ROCS_INCLUDE_PATH, reason="remove legacy generated GitLab ROCS gate")
 
     ci_root = target / ".gitlab-ci.yml"
     if not ci_root.exists():
@@ -757,7 +517,10 @@ def plan_remove_legacy_gitlab_ci() -> None:
     if read_error is not None:
         plan_blocked(".gitlab-ci.yml", reason=read_error)
         return
-    updated = remove_rocs_include(current)
+    try:
+        updated = remove_rocs_include(current)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if updated == current:
         planned_actions.append({"path": ".gitlab-ci.yml", "action": "unchanged"})
         return
@@ -799,16 +562,16 @@ else:
     planned_actions.append({"path": "ontology/*", "action": "skip", "reason": "class policy: not required"})
 
 if policy["rocs_ci_gate"]:
-    hook = HOOK_PRE_PUSH_STRICT if policy["gate_mode"] == "strict" else HOOK_PRE_PUSH_ADVISORY
-    plan_file(".githooks/pre-push", hook, allow_modify=True, executable=True)
+    hook = render_pre_push_hook(policy["gate_mode"])
+    plan_file(FCOS_GATE_HOOK_PATH, hook, allow_modify=True, executable=True)
     plan_file(".githooks/README.md", HOOKS_README, allow_modify=True)
-    plan_file("scripts/ci/full.sh", CI_WRAPPER, allow_modify=True)
+    plan_file(FCOS_CI_WRAPPER_PATH, CI_WRAPPER, allow_modify=True)
     plan_remove_legacy_gitlab_ci()
 else:
-    planned_actions.append({"path": ".githooks/pre-push", "action": "skip", "reason": "class policy: not required"})
+    planned_actions.append({"path": FCOS_GATE_HOOK_PATH, "action": "skip", "reason": "class policy: not required"})
     planned_actions.append({"path": ".githooks/README.md", "action": "skip", "reason": "class policy: not required"})
-    planned_actions.append({"path": "scripts/ci/full.sh", "action": "skip", "reason": "class policy: not required"})
-    planned_actions.append({"path": "gitlab/ci/rocs.yml", "action": "skip", "reason": "class policy: not required"})
+    planned_actions.append({"path": FCOS_CI_WRAPPER_PATH, "action": "skip", "reason": "class policy: not required"})
+    planned_actions.append({"path": LEGACY_ROCS_INCLUDE_PATH, "action": "skip", "reason": "class policy: not required"})
     planned_actions.append({"path": ".gitlab-ci.yml", "action": "skip", "reason": "class policy: not required"})
 
 vendor_result: dict[str, object] = {
