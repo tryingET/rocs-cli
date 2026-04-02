@@ -63,7 +63,15 @@ def _git(repo: Path, args: list[str]) -> None:
     subprocess.run(["git", "-C", str(repo), *args], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-def _init_workspace_repo(repo: Path, *, project_path: str, tag: str, make_mismatch: bool, origin_project_path: str | None = None) -> None:
+def _init_workspace_repo(
+    repo: Path,
+    *,
+    project_path: str,
+    tag: str,
+    make_mismatch: bool,
+    origin_project_path: str | None = None,
+    layout: str = "nested",
+) -> None:
     repo.mkdir(parents=True, exist_ok=True)
     _git(repo, ["init"])
     _git(repo, ["config", "user.email", "test@example.invalid"])
@@ -72,7 +80,9 @@ def _init_workspace_repo(repo: Path, *, project_path: str, tag: str, make_mismat
     origin_pp = origin_project_path or project_path
     _git(repo, ["remote", "add", "origin", f"http://example.invalid/{origin_pp}.git"])
 
-    _write(repo / "ontology" / "src" / "system4d.yaml", "system4d: {}\n")
+    ontology_root = repo if layout == "root" else repo / "ontology"
+    _write(ontology_root / "manifest.yaml", "rocs:\n  layer: dep\n")
+    _write(ontology_root / "src" / "system4d.yaml", "system4d: {}\n")
     _git(repo, ["add", "."])
     _git(repo, ["commit", "-m", "init"])
     _git(repo, ["tag", tag])
@@ -151,6 +161,40 @@ class TestWorkspaceResolution(unittest.TestCase):
             payload = _parse_json(out)
             dep = [x for x in payload["layers"] if x["name"] == "dep"][0]
             self.assertEqual(dep["source"], "workspace")
+
+    def test_workspace_repo_locator_resolves_root_layout_ontology_repo_src(self) -> None:
+        project_path = "holdingco/ontology"
+        locator = f"<repo:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            _init_workspace_repo(
+                ws / "holdingco" / "ontology",
+                project_path=project_path,
+                tag="v1",
+                make_mismatch=False,
+                layout="root",
+            )
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            code, out = _run_capture(
+                [
+                    "resolve",
+                    "--repo",
+                    str(repo),
+                    "--resolve-refs",
+                    "--workspace-root",
+                    str(ws),
+                    "--workspace-ref-mode",
+                    "strict",
+                    "--json",
+                ]
+            )
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            dep = [x for x in payload["layers"] if x["name"] == "dep"][0]
+            self.assertEqual(dep["source"], "workspace")
+            self.assertEqual(dep["src_root"], str((ws / "holdingco" / "ontology" / "src").resolve()))
 
     def test_repo_locator_uses_workspace_layout_without_origin_match(self) -> None:
         project_path = "core/dep"

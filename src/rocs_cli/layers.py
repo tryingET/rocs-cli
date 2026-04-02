@@ -262,7 +262,7 @@ def _src_root_for_ref(
         workspace_root=workspace_root,
         workspace_ref_mode=workspace_ref_mode,
     )
-    return (repo / "ontology" / "src"), origin, source, notes
+    return (repo / default_repo_src_path(repo)), origin, source, notes
 
 
 def resolve_layers(
