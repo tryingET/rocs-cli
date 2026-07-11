@@ -20,6 +20,8 @@ read_when:
 - Schema-2 pinned self-contained consumer lock and isolated acceptance fixture.
 
 ### Changed
+- **Breaking (Wave 5):** transaction simulation and apply now reject permission-mode drift as well as byte drift, and receipt roots must be direct siblings of the ontology root so every pending journal can be reconciled under one bounded transaction lock before mutation.
+- Wave 5 verifies staged postimages against receipt-bound bytes and modes before generation exchange, verifies successful receipts immediately, restores exact modes during rollback, and recovers pending apply or rollback journals before a distinct transaction proceeds.
 - **Breaking:** remediation apply now requires schema-version 2 scorecards with policy/evidence SHA-256 digests and rejects any input that differs from a fresh deterministic fleet audit.
 - **Breaking:** fleet policies now reject non-boolean or unknown capabilities, duplicate normalized repository paths, and repository paths outside the workspace.
 - **Breaking:** fleet auditing now requires complete, schema-exact SHA-256 vendored manifests and verifies every covered regular file; empty, malformed, incomplete, traversal, symlink, and unexpected package-file cases fail closed.

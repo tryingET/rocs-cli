@@ -143,6 +143,13 @@ class TestSemanticTransactions(unittest.TestCase):
             "context": (self.root / "src/context.txt").read_bytes(),
         }
 
+    def _rollback_journal(self, receipt, stage):
+        return {"schema_version": 1, "kind": "rollback",
+                "transaction_digest": receipt["transaction_digest"],
+                "receipt_digest": receipt["receipt_digest"], "root": str(self.root),
+                "stage": str(stage), "preimages": receipt["preimages"],
+                "postimages": receipt["postimages"]}
+
     def test_full_two_write_lifecycle_is_generation_atomic(self) -> None:
         before = self._bytes()
         self.assertFalse(
@@ -163,6 +170,53 @@ class TestSemanticTransactions(unittest.TestCase):
         self.assertEqual(self._bytes()["a"], DOC_A_NEW.encode())
         self.assertEqual(rollback_transaction(receipt, self.tx, self.root)["status"], "rolled_back")
         self.assertEqual(self._bytes(), before)
+
+    def test_preimage_permission_drift_fails_closed(self) -> None:
+        target = self.root / "src/reference/concepts/local.md"
+        original = target.stat().st_mode & 0o7777
+        target.chmod(original ^ 0o100)
+        try:
+            with self.assertRaisesRegex(TransactionError, "bytes or mode drift"):
+                simulate_transaction(self.tx, self.plan, self.cap, self.root, self.authority)
+            self.assertEqual(target.read_bytes(), DOC_A.encode())
+        finally:
+            target.chmod(original)
+
+    def test_ordinary_rollback_restores_nondefault_preimage_mode(self) -> None:
+        target = self.root / "src/reference/concepts/local.md"
+        target.chmod(0o640)
+        plan, tx = self._make_transaction(DOC_A_NEW, DOC_B_NEW)
+        receipt = apply_transaction(
+            tx, plan, self.cap, self._approval(tx), self.root, self.artifacts, self.authority
+        )
+        self.assertEqual(target.stat().st_mode & 0o7777, 0o640)
+        self.assertEqual(rollback_transaction(receipt, tx, self.root)["status"], "rolled_back")
+        self.assertEqual(target.read_bytes(), DOC_A.encode())
+        self.assertEqual(target.stat().st_mode & 0o7777, 0o640)
+
+    def test_process_death_after_exchange_is_recovered_before_distinct_apply(self) -> None:
+        plan2, tx2 = self._make_transaction(DOC_A_NEW.replace("new\n", "other\n"), DOC_B_NEW)
+        bundle = self.root.parent / "crash-input.json"
+        bundle.write_text(json.dumps({"tx": self.tx, "plan": self.plan, "cap": self.cap,
+            "approval": self._approval(), "authority": self.authority}), "utf-8")
+        script = """import json,sys
+from pathlib import Path
+from rocs_cli.transactions import apply_transaction
+v=json.loads(Path(sys.argv[1]).read_text())
+apply_transaction(v['tx'],v['plan'],v['cap'],v['approval'],Path(sys.argv[2]),Path(sys.argv[3]),v['authority'],'process_exit_after_exchange')
+"""
+        child = subprocess.run([sys.executable, "-c", script, str(bundle), str(self.root),
+                                str(self.artifacts)], cwd=Path(__file__).resolve().parents[1])
+        self.assertEqual(child.returncode, 91)
+        self.assertEqual(self._bytes()["a"], DOC_A_NEW.encode())
+        distinct_artifacts = self.root.parent / "distinct-artifacts"
+        distinct_artifacts.mkdir()
+        receipt = apply_transaction(tx2, plan2, self.cap, self._approval(tx2), self.root,
+                                    distinct_artifacts, self.authority)
+        self.assertTrue(verify_receipt(receipt, tx2, self.root)["ok"])
+        self.assertIn(b"other", self._bytes()["a"])
+        self.assertFalse(list(self.artifacts.glob(".rocs-pending-*")))
+        self.assertFalse(list(self.root.parent.glob(".rocs-generation-*")))
 
     def test_apply_failures_restore_the_complete_generation(self) -> None:
         before = self._bytes()
@@ -214,9 +268,7 @@ class TestSemanticTransactions(unittest.TestCase):
         for item in receipt["preimages"]:
             (stage / item["path"]).write_bytes(bytes.fromhex(item["content_hex"]))
         journal = self.root.parent / ".rocs-rollback-pending.json"
-        journal.write_text(json.dumps({"schema_version": 1,
-            "transaction_digest": receipt["transaction_digest"], "root": str(self.root),
-            "stage": str(stage)}), "utf-8")
+        journal.write_text(json.dumps(self._rollback_journal(receipt, stage)), "utf-8")
         _exchange(self.root, stage)  # simulate process death after the atomic rollback exchange
         self.assertEqual(self._bytes()["a"], DOC_A.encode())
         result = rollback_transaction(receipt, self.tx, self.root)
@@ -224,6 +276,30 @@ class TestSemanticTransactions(unittest.TestCase):
         self.assertEqual(self._bytes()["a"], DOC_A.encode())
         self.assertFalse(journal.exists())
         self.assertFalse(stage.exists())
+
+    def test_apply_recovers_pending_rollback_before_distinct_mutation(self) -> None:
+        from rocs_cli.transactions import _exchange
+
+        receipt = apply_transaction(
+            self.tx, self.plan, self.cap, self._approval(), self.root, self.artifacts, self.authority
+        )
+        stage = Path(tempfile.mkdtemp(prefix=".rocs-rollback-", dir=self.root.parent))
+        shutil.copytree(self.root, stage, dirs_exist_ok=True, symlinks=True)
+        for item in receipt["preimages"]:
+            target = stage / item["path"]
+            target.write_bytes(bytes.fromhex(item["content_hex"])); target.chmod(item["mode"])
+        journal = self.root.parent / ".rocs-rollback-pending.json"
+        journal.write_text(json.dumps(self._rollback_journal(receipt, stage)), "utf-8")
+        _exchange(self.root, stage)
+        plan2, tx2 = self._make_transaction(
+            DOC_A_NEW.replace("new\n", "after-recovery\n"), DOC_B_NEW
+        )
+        artifacts2 = self.root.parent / "after-rollback-artifacts"; artifacts2.mkdir()
+        result = apply_transaction(tx2, plan2, self.cap, self._approval(tx2), self.root,
+                                   artifacts2, self.authority)
+        self.assertTrue(verify_receipt(result, tx2, self.root)["ok"])
+        self.assertFalse(journal.exists())
+        self.assertIn(b"after-recovery", self._bytes()["a"])
 
     def test_forged_recovery_stage_cannot_delete_or_install_sibling_tree(self) -> None:
         from rocs_cli.transactions import _expected_receipt
@@ -248,9 +324,7 @@ class TestSemanticTransactions(unittest.TestCase):
         forged = self.root.parent / ".rocs-rollback-forged"
         forged.mkdir(); (forged / "attacker").write_text("payload", "utf-8")
         rollback_journal = self.root.parent / ".rocs-rollback-pending.json"
-        rollback_journal.write_text(json.dumps({"schema_version": 1,
-            "transaction_digest": receipt["transaction_digest"], "root": str(self.root),
-            "stage": str(forged)}), "utf-8")
+        rollback_journal.write_text(json.dumps(self._rollback_journal(receipt, forged)), "utf-8")
         with self.assertRaises(TransactionError):
             rollback_transaction(receipt, self.tx, self.root)
         self.assertEqual(self._bytes()["a"], DOC_A_NEW.encode())
@@ -270,9 +344,7 @@ class TestSemanticTransactions(unittest.TestCase):
             target.chmod(item["mode"])
         (stage / receipt["preimages"][0]["path"]).chmod(0o777)
         journal = self.root.parent / ".rocs-rollback-pending.json"
-        journal.write_text(json.dumps({"schema_version": 1,
-            "transaction_digest": receipt["transaction_digest"], "root": str(self.root),
-            "stage": str(stage)}), "utf-8")
+        journal.write_text(json.dumps(self._rollback_journal(receipt, stage)), "utf-8")
         with self.assertRaises(TransactionError):
             rollback_transaction(receipt, self.tx, self.root)
         self.assertEqual(self._bytes()["a"], DOC_A_NEW.encode())

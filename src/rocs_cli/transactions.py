@@ -236,7 +236,10 @@ def _binding(t: dict[str, Any], p: dict[str, Any], cap: dict[str, Any], authorit
 def _check_preimages(t: dict[str, Any], root: Path) -> None:
     root = _safe_root(root, "ontology root")
     for item in t["write_preimages"]:
-        if _sha(_contained_file(root, item["path"]).read_bytes()) != item["sha256"]: raise TransactionError(f"base drift: {item['path']}")
+        target = _contained_file(root, item["path"])
+        if (_sha(target.read_bytes()) != item["sha256"]
+                or stat.S_IMODE(os.lstat(target).st_mode) != item["mode"]):
+            raise TransactionError(f"base bytes or mode drift: {item['path']}")
 
 
 def simulate_transaction(tx: Any, plan: Any, capsule: Any, root: Path, authority_artifact: Any) -> dict[str, Any]:

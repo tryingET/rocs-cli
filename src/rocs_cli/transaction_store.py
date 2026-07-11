@@ -68,6 +68,8 @@ def _fsync_tree(root: Path) -> None:
 def _receipt_root(root: Path, receipt_root: Path) -> Path:
     rr = _safe_root(receipt_root, "receipt root")
     if rr == root or rr.is_relative_to(root) or root.is_relative_to(rr): raise TransactionError("receipt root must be disjoint from ontology root")
+    if rr.parent != root.parent:
+        raise TransactionError("receipt root must be a direct sibling of the ontology root")
     if rr.stat().st_dev != root.parent.stat().st_dev: raise TransactionError("receipt and generations must share a filesystem")
     return rr
 
@@ -133,49 +135,93 @@ def _apply_journal_path(rr: Path, transaction_digest: str) -> Path:
     return rr / (".rocs-pending-" + transaction_digest[7:] + ".json")
 
 
-def _recover_pending(root: Path, rr: Path, t: dict[str, Any], receipt: dict[str, Any]) -> None:
-    journal = _apply_journal_path(rr, t["transaction_digest"])
-    if not journal.exists():
-        return
+def _validate_journal_images(value: Any, label: str, include_content: bool) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value:
+        raise TransactionError(f"{label} must be a non-empty list")
+    result: list[dict[str, Any]] = []
+    paths: list[str] = []
+    keys = {"path", "sha256", "mode"} | ({"content_hex"} if include_content else set())
+    for raw in value:
+        item = _exact(raw, keys, label)
+        path = item["path"]
+        if not isinstance(path, str) or not path or Path(path).is_absolute() or ".." in Path(path).parts:
+            raise TransactionError(f"unsafe {label} path")
+        if (not isinstance(item["sha256"], str) or not item["sha256"].startswith("sha256:")
+                or type(item["mode"]) is not int or not 0 <= item["mode"] <= 0o7777):
+            raise TransactionError(f"invalid {label} authority")
+        if include_content:
+            try: data = bytes.fromhex(item["content_hex"])
+            except (TypeError, ValueError) as exc: raise TransactionError("invalid journal preimage") from exc
+            if data.hex() != item["content_hex"] or _sha(data) != item["sha256"]:
+                raise TransactionError("journal preimage digest drift")
+        paths.append(path); result.append(item)
+    if paths != sorted(set(paths)):
+        raise TransactionError(f"{label} paths are not canonical")
+    return result
+
+
+def _recover_journal(root: Path, rr: Path, journal: Path) -> None:
     if journal.is_symlink() or not journal.is_file():
         raise TransactionError("unsafe pending recovery journal")
-    try:
-        j = json.loads(journal.read_bytes())
-    except (OSError, json.JSONDecodeError) as exc:
-        raise TransactionError("malformed pending recovery journal") from exc
-    keys = {"schema_version", "kind", "transaction_digest", "root", "stage", "receipt_digest", "preimages", "postimages"}
-    j = _exact(j, keys, "recovery journal")
-    if (type(j["schema_version"]) is not int or j["schema_version"] != 1 or j["kind"] != "apply"
-            or j["transaction_digest"] != t["transaction_digest"] or j["receipt_digest"] != receipt["receipt_digest"]
-            or j["preimages"] != t["write_preimages"] or j["postimages"] != receipt["postimages"]):
+    try: j = json.loads(journal.read_bytes())
+    except (OSError, json.JSONDecodeError) as exc: raise TransactionError("malformed pending recovery journal") from exc
+    j = _exact(j, {"schema_version", "kind", "transaction_digest", "root", "stage", "receipt_digest", "preimages", "postimages"}, "recovery journal")
+    pre = _validate_journal_images(j["preimages"], "preimages", True)
+    post = _validate_journal_images(j["postimages"], "postimages", False)
+    if ([x["path"] for x in pre] != [x["path"] for x in post]
+            or type(j["schema_version"]) is not int or j["schema_version"] != 1 or j["kind"] != "apply"
+            or not isinstance(j["transaction_digest"], str) or journal != _apply_journal_path(rr, j["transaction_digest"])
+            or not isinstance(j["receipt_digest"], str) or not j["receipt_digest"].startswith("sha256:")):
         raise TransactionError("recovery journal binding drift")
+    # A journal for another root is not ours, but must be structurally readable so a
+    # malformed journal can never evade root relevance classification.
+    if j["root"] != str(root):
+        return
     stage = Path(j["stage"])
-    if (j["root"] != str(root) or stage.parent != root.parent or not stage.name.startswith(".rocs-generation-")
+    if (stage.parent != root.parent or not stage.name.startswith(".rocs-generation-")
             or stage.is_symlink() or not stage.is_dir()):
         raise TransactionError("unsafe recovery journal paths")
-    receipt_path = rr / (receipt["receipt_digest"][7:] + ".json")
-    paths = [item["path"] for item in t["write_preimages"]]
-    current_is_pre = _matches_generation(root, t["write_preimages"])
-    current_is_post = _matches_generation(root, receipt["postimages"])
-    stage_is_pre = _matches_generation(stage, t["write_preimages"])
-    stage_is_post = _matches_generation(stage, receipt["postimages"])
-    if not _same_outside_writes(root, stage, paths):
-        raise TransactionError("recovery stage differs outside transaction writes")
+    receipt_path = rr / (j["receipt_digest"][7:] + ".json")
+    paths = [item["path"] for item in pre]
+    current_is_pre = _matches_generation(root, pre); current_is_post = _matches_generation(root, post)
+    stage_is_pre = _matches_generation(stage, pre); stage_is_post = _matches_generation(stage, post)
+    if not _same_outside_writes(root, stage, paths): raise TransactionError("recovery stage differs outside transaction writes")
     if receipt_path.exists():
-        if (receipt_path.is_symlink() or receipt_path.read_bytes() != _canonical(receipt)
-                or not current_is_post or not stage_is_pre):
+        if receipt_path.is_symlink(): raise TransactionError("unsafe committed receipt")
+        try: committed = json.loads(receipt_path.read_bytes())
+        except (OSError, json.JSONDecodeError) as exc: raise TransactionError("malformed committed receipt") from exc
+        if (not isinstance(committed, dict) or committed.get("receipt_digest") != j["receipt_digest"]
+                or _digest({k: v for k, v in committed.items() if k != "receipt_digest"}) != j["receipt_digest"]
+                or committed.get("transaction_digest") != j["transaction_digest"]
+                or committed.get("preimages") != pre or committed.get("postimages") != post
+                or receipt_path.read_bytes() != _canonical(committed) or not current_is_post or not stage_is_pre):
             raise TransactionError("committed recovery state is inconsistent")
         shutil.rmtree(stage)
     elif current_is_pre and stage_is_post:
         shutil.rmtree(stage)
     elif current_is_post and stage_is_pre:
-        _exchange(root, stage)
-        _fsync_dir(root.parent)
-        shutil.rmtree(stage)
-    else:
-        raise TransactionError("recovery journal found unknown generation")
-    journal.unlink()
-    _fsync_dir(rr)
+        _exchange(root, stage); _fsync_dir(root.parent); shutil.rmtree(stage)
+    else: raise TransactionError("recovery journal found unknown generation")
+    journal.unlink(); _fsync_dir(rr)
+
+
+def _recover_all_pending(root: Path, rr: Path) -> set[str]:
+    # Receipt roots are constrained to direct siblings, making the complete journal
+    # namespace finite and discoverable without a registry or filesystem-wide search.
+    journals = list(root.parent.glob(".rocs-pending-*.json"))
+    journals += list(root.parent.glob("*/.rocs-pending-*.json"))
+    for journal in sorted(set(journals), key=lambda p: p.as_posix()):
+        _recover_journal(root, journal.parent, journal)
+    recovered: set[str] = set()
+    rollback = root.parent / ".rocs-rollback-pending.json"
+    if rollback.exists() or rollback.is_symlink():
+        recovered.add(_recover_rollback_journal(root, rollback))
+    return recovered
+
+
+def _recover_pending(root: Path, rr: Path, t: dict[str, Any], receipt: dict[str, Any]) -> None:
+    # Compatibility facade: recovery is ontology-wide, never incoming-transaction scoped.
+    _recover_all_pending(root, rr)
 
 
 def apply_transaction(tx: Any, plan: Any, capsule: Any, approval: Any, root: Path, receipt_root: Path, authority_artifact: Any, inject_failure: str | None = None) -> dict[str, Any]:
@@ -188,7 +234,7 @@ def apply_transaction(tx: Any, plan: Any, capsule: Any, approval: Any, root: Pat
     journal = _apply_journal_path(rr, t["transaction_digest"])
     out = rr / (receipt["receipt_digest"][7:] + ".json")
     try:
-        _recover_pending(root, rr, t, receipt)
+        _recover_all_pending(root, rr)
         recovery_complete = True
         if out.exists() or out.is_symlink():
             raise TransactionError("content-addressed receipt already exists")
@@ -196,6 +242,8 @@ def apply_transaction(tx: Any, plan: Any, capsule: Any, approval: Any, root: Pat
         stage = Path(tempfile.mkdtemp(prefix=".rocs-generation-", dir=root.parent)); shutil.copytree(root, stage, dirs_exist_ok=True, symlinks=True)
         for op in t["operations"]: (stage / op["path"]).write_text(op["content"], "utf-8")
         _full_validate(stage)
+        if not _matches_generation(stage, receipt["postimages"]):
+            raise TransactionError("staged generation does not match authority receipt")
         _fsync_tree(stage)
         if inject_failure == "before_journal": raise TransactionError("injected failure before journal")
         j = {"schema_version": 1, "kind": "apply", "transaction_digest": t["transaction_digest"],
@@ -204,9 +252,11 @@ def apply_transaction(tx: Any, plan: Any, capsule: Any, approval: Any, root: Pat
         _write_exclusive(journal, j)
         if inject_failure == "before_exchange": raise TransactionError("injected failure before exchange")
         _exchange(root, stage); exchanged = True; _fsync_dir(root.parent)
+        if inject_failure == "process_exit_after_exchange": os._exit(91)
         if inject_failure == "after_exchange": raise TransactionError("injected failure after exchange")
         if inject_failure == "receipt_write": raise TransactionError("injected receipt write failure")
         _write_exclusive(out, receipt)
+        verify_receipt(receipt, t, root)
         if inject_failure == "after_receipt": raise TransactionError("injected failure after durable receipt")
         journal.unlink(); _fsync_dir(rr); shutil.rmtree(stage); return receipt
     except BaseException:
@@ -224,24 +274,25 @@ def apply_transaction(tx: Any, plan: Any, capsule: Any, approval: Any, root: Pat
         raise
     finally: os.close(lock_fd)
 
-def _recover_rollback(root: Path, r: dict[str, Any]) -> bool:
-    journal = root.parent / ".rocs-rollback-pending.json"
-    if not journal.exists(): return False
+def _recover_rollback_journal(root: Path, journal: Path) -> str:
     if journal.is_symlink() or not journal.is_file(): raise TransactionError("unsafe rollback journal")
     try: j = json.loads(journal.read_bytes())
     except (OSError, json.JSONDecodeError) as exc: raise TransactionError("malformed rollback journal") from exc
-    j = _exact(j, {"schema_version", "transaction_digest", "root", "stage"}, "rollback journal")
+    j = _exact(j, {"schema_version", "kind", "transaction_digest", "receipt_digest", "root", "stage", "preimages", "postimages"}, "rollback journal")
+    pre = _validate_journal_images(j["preimages"], "preimages", True)
+    postimages = _validate_journal_images(j["postimages"], "postimages", False)
     stage = Path(j["stage"])
-    if (type(j["schema_version"]) is not int or j["schema_version"] != 1
-            or j["transaction_digest"] != r["transaction_digest"] or j["root"] != str(root)
-            or stage.parent != root.parent or not stage.name.startswith(".rocs-rollback-")
-            or stage.is_symlink() or not stage.is_dir()):
+    if (type(j["schema_version"]) is not int or j["schema_version"] != 1 or j["kind"] != "rollback"
+            or not isinstance(j["transaction_digest"], str) or not isinstance(j["receipt_digest"], str)
+            or [x["path"] for x in pre] != [x["path"] for x in postimages]
+            or j["root"] != str(root) or stage.parent != root.parent
+            or not stage.name.startswith(".rocs-rollback-") or stage.is_symlink() or not stage.is_dir()):
         raise TransactionError("rollback journal binding mismatch")
-    paths = [item["path"] for item in r["preimages"]]
-    post = _matches_generation(root, r["postimages"])
-    pre = _matches_generation(root, r["preimages"])
-    stage_post = _matches_generation(stage, r["postimages"])
-    stage_pre = _matches_generation(stage, r["preimages"])
+    paths = [item["path"] for item in pre]
+    post = _matches_generation(root, postimages)
+    pre_match = _matches_generation(root, pre)
+    stage_post = _matches_generation(stage, postimages)
+    stage_pre = _matches_generation(stage, pre)
     if not _same_outside_writes(root, stage, paths):
         raise TransactionError("rollback stage differs outside transaction writes")
     if post:
@@ -249,13 +300,19 @@ def _recover_rollback(root: Path, r: dict[str, Any]) -> bool:
             raise TransactionError("rollback recovery stage is not the prepared preimage generation")
         _exchange(root, stage)
         _fsync_dir(root.parent)
-    elif pre:
+    elif pre_match:
         if not stage_post:
             raise TransactionError("rollback recovery stage is not the prior postimage generation")
     else:
         raise TransactionError("rollback recovery found unknown generation")
     shutil.rmtree(stage); journal.unlink(); _fsync_dir(root.parent)
-    return True
+    return j["transaction_digest"]
+
+
+def _recover_rollback(root: Path, r: dict[str, Any]) -> bool:
+    journal = root.parent / ".rocs-rollback-pending.json"
+    if not journal.exists(): return False
+    return _recover_rollback_journal(root, journal) == r["transaction_digest"]
 
 
 def rollback_transaction(receipt: Any, tx: Any, root: Path, inject_failure: str | None = None) -> dict[str, Any]:
@@ -264,7 +321,8 @@ def rollback_transaction(receipt: Any, tx: Any, root: Path, inject_failure: str 
     lock_fd = os.open(root.parent / ".rocs-transaction.lock", os.O_RDWR | os.O_CREAT, 0o600)
     fcntl.flock(lock_fd, fcntl.LOCK_EX)
     try:
-        if _recover_rollback(root, r):
+        recovered = _recover_all_pending(root, root.parent)
+        if r["transaction_digest"] in recovered:
             return {"ok": True, "receipt_digest": r["receipt_digest"], "status": "rolled_back"}
         verify_receipt(r, tx, root)
         stage = Path(tempfile.mkdtemp(prefix=".rocs-rollback-", dir=root.parent)); exchanged = False
@@ -272,9 +330,12 @@ def rollback_transaction(receipt: Any, tx: Any, root: Path, inject_failure: str 
         try:
             shutil.copytree(root, stage, dirs_exist_ok=True, symlinks=True)
             for item in r["preimages"]:
-                (stage / item["path"]).write_bytes(bytes.fromhex(item["content_hex"]))
+                target = stage / item["path"]
+                target.write_bytes(bytes.fromhex(item["content_hex"])); target.chmod(item["mode"])
             _fsync_tree(stage)
-            j = {"schema_version": 1, "transaction_digest": r["transaction_digest"], "root": str(root), "stage": str(stage)}
+            j = {"schema_version": 1, "kind": "rollback", "transaction_digest": r["transaction_digest"],
+                 "receipt_digest": r["receipt_digest"], "root": str(root), "stage": str(stage),
+                 "preimages": r["preimages"], "postimages": r["postimages"]}
             _write_exclusive(journal, j)
             if inject_failure == "rollback_exchange": raise TransactionError("injected rollback failure")
             _exchange(root, stage); exchanged = True; _fsync_dir(root.parent)
