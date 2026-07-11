@@ -28,5 +28,7 @@ When changing generated CI/template surfaces:
 - prefer behavior-contract checks over file-presence-only checks
 
 ## Direction workflow
-- When this repo's direction docs under `docs/project/` change, or when current posture needs verification, use `ak direction import|check|export` from the repo root.
-- Treat `ak direction check` as the authority-reconciliation gate between repo direction docs and AK's structured direction substrate.
+- Read `docs/project/vision.md` for durable ambition and `docs/project/product-posture.md` for current maturity.
+- Read live strategic frames and implementation waves with `ak strategy list --repo .` and `ak wave list --repo .`; use AK tasks, decisions, and evidence for execution truth.
+- Use `ak direction check --repo .` as an integrity gate. `ak direction import` is legacy migration only, not routine reconciliation.
+- Do not recreate SG/TG/OP planning files. Historical snapshots live under `docs/project/archive/`.

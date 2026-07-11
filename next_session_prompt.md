@@ -1,48 +1,44 @@
 ---
-summary: "Active handoff for the current rocs-cli tactical wave after direction-to-execution repair."
+summary: "Stable AK-native bootstrap for rocs-cli sessions."
 read_when:
-  - "You are starting the next rocs-cli session"
-  - "You need the truthful next operating wave and authoritative task IDs"
+  - "You are starting or resuming rocs-cli work."
+type: "reference"
 ---
 
-# Session Status — bootstrap/audit helper convergence
+# Next Session Prompt
 
-## Status
-The previous workspace-only ref-resolution wave is complete on the current branch.
-This repo now has explicit direction docs and an active operating wave backed by authoritative AK tasks.
+Continue in `~/ai-society/core/rocs-cli`.
 
-## Start here
+## Read first
+
 1. `AGENTS.md`
 2. `README.md`
 3. `docs/project/vision.md`
-4. `docs/project/strategic_goals.md`
-5. `docs/project/tactical_goals.md`
-6. `docs/project/operating_plan.md`
-7. `docs/ref-resolution-ci-strategy.md`
-8. Inspect AK tasks `#363` and `#364` from `softwareco/owned/agent-kernel` via `./scripts/ak-v2.sh task show <id>`
+4. `docs/project/product-posture.md`
 
-## Active goal stack
-- Strategic goal: eliminate contract drift in downstream fleet helper surfaces
-- Tactical goal: remove the remaining bootstrap/audit helper drift with shared, directly tested seams
-- Active AK tasks:
-  - `#363` Modularize bootstrap CI-include remediation into directly unit-tested Python helpers
-  - `#364` Extract shared FCOS gate contract helpers to eliminate bootstrap/audit drift
+## Read live state
 
-## Objective
-Finish the shared-helper convergence wave without expanding into non-active docs/operator backlog.
+```bash
+ak strategy list --repo .
+ak wave list --repo .
+ak task ready --repo .
+ak direction check --repo . --machine
+```
 
-## Invariants
-- Keep the CLI small, boring, deterministic, and offline-first.
-- Keep workspace-only `<repo:...@ref>` resolution; do not reintroduce remote fallback.
-- Keep `scripts/ci/full.sh` as the canonical local gate wrapper.
-- When generated/template surfaces change, validate both fresh bootstrap and rerun-on-existing convergence.
+AK is the live direction, task, decision, and evidence authority. This handoff is a stable bootstrap, not a queue or status mirror. Do not use archived SG/TG/OP files as current direction and do not run `ak direction import` for routine reconciliation.
 
-## Validation baseline
-- `uv run python -m unittest discover -s tests -p 'test_*.py' -q`
-- `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict`
+## Operating boundaries
 
-## Checkpoint fields
-- Previous wave closed: stale AK task `#329` should be treated as completed work, not new backlog.
-- Direction source of truth: `docs/project/vision.md`, `docs/project/strategic_goals.md`, `docs/project/tactical_goals.md`, `docs/project/operating_plan.md`.
-- Active execution source of truth: AK tasks `#363` and `#364`.
-- Intentionally deferred until after this wave: broader docs/operator cleanup for the stabilized local-gate contract.
+- Keep the CLI deterministic, offline-first, and small.
+- Preserve workspace-only reference resolution; do not reintroduce remote fallback.
+- ROCS and ontology owners define controlled semantic meaning. This CLI validates and transports it; it does not invent it.
+- Use an exact AK task and its scope when one is supplied. If no task is ready, do not manufacture work from archived plans.
+
+## Validation
+
+```bash
+uv run python -m unittest discover -s tests -p 'test_*.py' -q
+node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict
+ak direction check --repo . --machine
+git diff --check
+```

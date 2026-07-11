@@ -1,12 +1,13 @@
 ---
-summary: "Top strategic goals for rocs-cli selected from repo reality with Eisenhower-3D."
+summary: "Historical rocs-cli strategic-goal snapshot retained for migration audit."
 read_when:
-  - "You need the current strategic ranking before creating tactics or tasks"
-  - "You are checking whether the active strategic goal should roll over"
+  - "You are tracing the retired SG/TG/OP decomposition and its completed work."
 type: "reference"
 ---
 
-# Strategic goals
+# Archived strategic goals
+
+> Historical snapshot only. Status language below records the former plan and is not current direction. Use `ak strategy list --repo .`, `ak wave list --repo .`, and AK tasks for live truth.
 
 ## Scoring method
 Eisenhower-3D inputs:
@@ -24,7 +25,7 @@ Higher importance + urgency wins. Lower difficulty breaks ties.
 | Keep the post-GitLab local-gate contract truthful across docs, handoff, and validation surfaces | Previous wave closed in `next_session_prompt.md`; repo lacked explicit direction docs before this session | 4 | 4 | 2 | **Strategic Goal 2 — next** |
 | Expand new product surface area (new commands/features beyond current contract hardening) | No active repo-local task truth or urgent repo evidence | 2 | 1 | 4 | Excluded as speculative |
 
-## Strategic Goal 1 — active
+## Strategic Goal 1 — active at snapshot time (now historical)
 **Eliminate contract drift in downstream fleet helper surfaces.**
 
 Success looks like:
@@ -32,7 +33,7 @@ Success looks like:
 - bootstrap/audit/remediation paths reuse the same contract logic where appropriate
 - fresh bootstrap + rerun convergence remain validated
 
-## Strategic Goal 2 — next
+## Strategic Goal 2 — next at snapshot time (not current direction)
 **Keep the stabilized local-gate/operator contract truthful and easy to consume.**
 
 Success looks like:
@@ -40,5 +41,5 @@ Success looks like:
 - local operator entrypoints are clear (`scripts/ci/full.sh`, workspace-only refs, local validation)
 - validation coverage guards the published contract
 
-## Rollover rule
-Do not promote Strategic Goal 2 until the active tactical work under Strategic Goal 1 is materially complete.
+## Historical rollover rule
+The original snapshot deferred Strategic Goal 2 until its tactical work completed. Do not apply this rule to current AK-native direction.

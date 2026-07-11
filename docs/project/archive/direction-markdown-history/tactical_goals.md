@@ -1,14 +1,15 @@
 ---
-summary: "Tactical decomposition for the single active rocs-cli strategic goal."
+summary: "Historical rocs-cli tactical-goal snapshot retained for migration audit."
 read_when:
-  - "You need the medium-sized repo-local waves under the active strategic goal"
-  - "You are deciding whether to refresh the operating plan or promote the next tactic"
+  - "You are tracing the retired SG/TG/OP decomposition and its completed work."
 type: "reference"
 ---
 
-# Tactical goals
+# Archived tactical goals
 
-Active strategic goal: **Strategic Goal 1 — eliminate contract drift in downstream fleet helper surfaces**.
+> Historical snapshot only. Status language below records the former plan; tasks `#363` and `#364` are done. Use AK-native strategy, wave, and task views for current truth.
+
+Strategic goal at snapshot time: **Strategic Goal 1 — eliminate contract drift in downstream fleet helper surfaces**.
 
 ## Tactical Goal 1 — complete
 **Close the workspace-only ref-resolution wave and reconcile stale task truth.**
@@ -18,7 +19,7 @@ Evidence of completion:
 - `next_session_prompt.md` from the previous wave records that closure
 - AK task `#329` is the stale carry-over for that now-complete wave and should be closed, not treated as new ready work
 
-## Tactical Goal 2 — active
+## Tactical Goal 2 — active at snapshot time (now complete)
 **Remove the remaining bootstrap/audit helper drift with shared, directly tested seams.**
 
 Why active now:
@@ -31,7 +32,7 @@ Exit criteria:
 - shared FCOS gate contract helpers are extracted where bootstrap/audit currently drift
 - touched surfaces still pass fresh-bootstrap and rerun convergence validation
 
-## Tactical Goal 3 — next
+## Tactical Goal 3 — next at snapshot time (not current direction)
 **Refresh docs/operator surfaces only after Tactical Goal 2 stabilizes the helper boundary.**
 
 Why next instead of active:

@@ -2,7 +2,7 @@
 summary: "Vision and hard scope boundaries for rocs-cli."
 read_when:
   - "You need the stable purpose and scope boundary for this repo"
-  - "You are refreshing strategy, tactics, or the active operating wave"
+  - "You are checking whether a proposed strategic frame or implementation wave fits the durable scope"
 type: "reference"
 ---
 
@@ -30,11 +30,11 @@ Evidence:
 ## Durable outcomes
 1. ROCS mechanics stay deterministic, offline-first, and easy to explain.
 2. Downstream repos can adopt the local gate/bootstrap/audit surfaces without hidden drift.
-3. Repo-local direction stays truthful: strategy -> tactics -> operating slices -> authoritative AK tasks.
+3. Repo-local direction stays truthful: durable vision -> product posture -> AK strategic frame -> optional implementation wave -> authoritative AK tasks and evidence.
 
 ## Evidence used for this vision refresh
 - `AGENTS.md`
 - `README.md`
-- `next_session_prompt.md` (previous wave closure)
-- recent repo-local AK tasks (`#329`, `#363`, `#364`)
-- recent commits focused on workspace-only ref resolution plus bootstrap/audit hardening
+- `docs/project/product-posture.md`
+- AK-native strategic frame and implementation-wave views
+- completed repo-local AK tasks and commits focused on workspace-only ref resolution plus bootstrap/audit hardening
