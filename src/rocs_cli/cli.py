@@ -17,9 +17,34 @@ from rocs_cli.authority import (
     write_authority_receipt,
 )
 from rocs_cli.cache import cache_dir, clear_cache, list_cache_entries, prune_cache
+from rocs_cli.contracts import command_contract
+from rocs_cli.constitution import (
+    ConstitutionError,
+    challenge_candidate,
+    differential,
+    generate_mutants,
+    pareto_frontier,
+    strict_json_load,
+    validate_candidate,
+)
 from rocs_cli.graph import build_edges, collapse_nodes, compute_layout, write_graph
 from rocs_cli.id_index import build_id_index
 from rocs_cli.inverses import check_inverses
+from rocs_cli.intelligence import (
+    compile_plan,
+    create_capsule,
+    load_json as load_membrane_json,
+    validate_capsule,
+    validate_proposal,
+    write_compiled_plan,
+)
+from rocs_cli.transactions import (
+    apply_transaction,
+    prepare_transaction,
+    rollback_transaction,
+    simulate_transaction,
+    verify_receipt,
+)
 from rocs_cli.layers import (
     dist_dir,
     parse_ref_locator,
@@ -237,6 +262,106 @@ def cmd_version(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_contracts(_args: argparse.Namespace) -> int:
+    payload = {**command_contract(), "tool": {"name": "rocs-cli", "version": __version__}}
+    console.print_json(json.dumps(payload, sort_keys=True))
+    return 0
+
+
+def cmd_constitution(args: argparse.Namespace) -> int:
+    def load(name: str):
+        values = getattr(args, name)
+        if type(values) is not list or len(values) != 1:
+            raise ConstitutionError(f"--{name.replace('_', '-')} must be supplied exactly once")
+        with Path(values[0]).open("r", encoding="utf-8") as handle:
+            return strict_json_load(handle)
+
+    if args.constitution_cmd == "validate":
+        payload = validate_candidate(load("candidate"))
+    elif args.constitution_cmd == "challenge":
+        payload = challenge_candidate(load("candidate"))
+    elif args.constitution_cmd == "differential":
+        payload = differential(load("candidate_a"), load("candidate_b"), load("subjects"))
+    else:
+        payload = generate_mutants(load("contract"), load("acceptance"), load("corpus"))
+    console.print_json(json.dumps(payload, sort_keys=True))
+    return 0 if payload.get("fixtures_consistent", True) else 1
+
+
+def cmd_repair_market(args: argparse.Namespace) -> int:
+    if type(args.market) is not list or len(args.market) != 1:
+        raise ConstitutionError("--market must be supplied exactly once")
+    with Path(args.market[0]).open("r", encoding="utf-8") as handle:
+        payload = pareto_frontier(strict_json_load(handle))
+    console.print_json(json.dumps(payload, sort_keys=True))
+    return 0
+
+
+def cmd_wave1(args: argparse.Namespace) -> int:
+    from rocs_cli import wave1
+
+    op = args.operation
+    if op in {"bootstrap", "converge"}:
+        payload = wave1.bootstrap(Path(args.target), args.repo_class, dry_run=args.dry_run, converge=op == "converge")
+        console.print_json(json.dumps(payload))
+        return 0
+    if op == "vendor":
+        payload = wave1.vendor(_repo_root("."), Path(args.target), version=args.release_version, dry_run=args.dry_run)
+        console.print_json(json.dumps(payload))
+        return 0
+    if op in {"release-plan", "release-apply"}:
+        function = wave1.release_plan if op == "release-plan" else wave1.release_apply
+        console.print_json(json.dumps(function(args.release_version, project=_repo_root("."))))
+        return 0
+    if op == "verify":
+        payload, code = wave1.verify(Path(args.path))
+    elif op == "cleanup":
+        payload, code = wave1.cleanup(Path(args.repo), dry_run=args.dry_run), 0
+    elif op == "doctor":
+        payload, code = wave1.doctor(Path(args.repo))
+    elif op == "generate":
+        payload, code = wave1.generate(Path(args.out), args.count), 0
+    elif op == "benchmark":
+        payload, code = wave1.benchmark(args.command, args.count, args.runs), 0
+    else:
+        raise ValueError(f"unknown operation: {op}")
+    console.print_json(json.dumps(payload))
+    return code
+
+
+def cmd_fleet(args: argparse.Namespace) -> int:
+    from rocs_cli import fleet
+
+    root, policy = Path(args.workspace_root), Path(args.policy)
+    if args.fleet_cmd == "observe":
+        payload, code = fleet.observe(root, policy, report_only=args.report_only)
+    elif args.fleet_cmd == "plan":
+        payload, code = fleet.plan(root, policy)
+    elif args.fleet_cmd == "apply":
+        payload, code = fleet.apply(root, policy, dry_run=args.dry_run)
+    elif args.fleet_cmd == "run":
+        payload, code = fleet.run(root, policy, mode=args.mode)
+    else:
+        raise ValueError(f"unknown fleet operation: {args.fleet_cmd}")
+    text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    destination = args.json
+    if destination and destination != "-":
+        out = Path(destination).expanduser().resolve()
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, "utf-8")
+    else:
+        print(text, end="")
+    if getattr(args, "markdown", None):
+        if args.fleet_cmd != "observe":
+            raise ValueError("--markdown is supported only by fleet observe")
+        md = fleet._render_markdown(payload)
+        if args.markdown == "-":
+            print(md, end="")
+        else:
+            Path(args.markdown).expanduser().resolve().write_text(md, "utf-8")
+    return code
+
+
 def cmd_rules(args: argparse.Namespace) -> int:
     rules = sorted(RULES.values(), key=lambda r: r.rule_id)
     payload = {
@@ -284,7 +409,9 @@ def cmd_explain(args: argparse.Namespace) -> int:
 def cmd_resolve(args: argparse.Namespace) -> int:
     view = _load_view(args, load_docs=False)
     repo = view.repo
-    profile_name = view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    profile_name = (
+        view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    )
     resolution_notes = view.meta.get("resolution_notes") if isinstance(view.meta, dict) else None
     layer_entries: list[dict[str, object]] = []
     for layer_spec in view.layers:
@@ -334,7 +461,9 @@ def cmd_resolve(args: argparse.Namespace) -> int:
 def cmd_summary(args: argparse.Namespace) -> int:
     view = _load_view(args)
     repo = view.repo
-    profile_name = view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    profile_name = (
+        view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    )
     resolution_notes = view.meta.get("resolution_notes") if isinstance(view.meta, dict) else None
     layer_entries: list[dict[str, object]] = []
     for layer_spec in view.layers:
@@ -401,7 +530,11 @@ def cmd_validate(args: argparse.Namespace) -> int:
             result=_finding_summary(findings),
         )
         if args.json:
-            console.print_json(json.dumps({"ok": False, "findings": _findings_to_json(findings), "budget": {"budget": None, "units": None}}))
+            console.print_json(
+                json.dumps(
+                    {"ok": False, "findings": _findings_to_json(findings), "budget": {"budget": None, "units": None}}
+                )
+            )
         else:
             console.print("[red]rocs validate: FAIL[/red]")
             _print_findings(findings)
@@ -420,7 +553,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
             error=e,
         )
         raise
-    profile_name = view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    profile_name = (
+        view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    )
     profile_def = view.meta.get("profile_def") if isinstance(view.meta, dict) else None
     ruleset_name = effective_ruleset(cli_ruleset=getattr(args, "ruleset", None), profile_def=profile_def)
     ruleset_behavior = behavior_for_ruleset(ruleset_name)
@@ -445,7 +580,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
     )
     if findings:
         if args.json:
-            console.print_json(json.dumps({"ok": False, "findings": _findings_to_json(findings), "budget": budget_payload}))
+            console.print_json(
+                json.dumps({"ok": False, "findings": _findings_to_json(findings), "budget": budget_payload})
+            )
         else:
             console.print("[red]rocs validate: FAIL[/red]")
             _print_findings(findings)
@@ -481,7 +618,9 @@ def cmd_build(args: argparse.Namespace) -> int:
             error=e,
         )
         raise
-    profile_name = view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    profile_name = (
+        view.meta.get("profile") if isinstance(view.meta, dict) and isinstance(view.meta.get("profile"), str) else None
+    )
     profile_def = view.meta.get("profile_def") if isinstance(view.meta, dict) else None
     ruleset_name = effective_ruleset(cli_ruleset=None, profile_def=profile_def)
     strict_placeholders = behavior_for_ruleset(ruleset_name).strict_placeholders
@@ -523,7 +662,8 @@ def cmd_build(args: argparse.Namespace) -> int:
     summary_out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
     id_index_out = ensure_managed_output_file(repo, dist / "id_index.json", label="build id-index artifact")
     id_index_out.write_text(
-        json.dumps(build_id_index(concepts=view.concepts, relations=view.relations), indent=2, sort_keys=True) + "\n", "utf-8"
+        json.dumps(build_id_index(concepts=view.concepts, relations=view.relations), indent=2, sort_keys=True) + "\n",
+        "utf-8",
     )
     authority_receipt_out = _write_authority_receipt_if_possible(
         repo,
@@ -769,9 +909,7 @@ def cmd_diff(args: argparse.Namespace) -> int:
     _maybe_load_env_file(getattr(args, "env_file", None), repo_root=repo)
     baseline = args.baseline.strip()
     if not args.resolve_refs:
-        raise SystemExit(
-            "rocs diff requires --resolve-refs to resolve a <repo:...@...> baseline"
-        )
+        raise SystemExit("rocs diff requires --resolve-refs to resolve a <repo:...@...> baseline")
     parsed = parse_ref_locator(baseline)
     if parsed is None:
         raise SystemExit("--baseline must be a <repo:...@...> locator")
@@ -803,7 +941,9 @@ def cmd_diff(args: argparse.Namespace) -> int:
         "schema_version": 1,
         "version": __version__,
         "repo": str(repo),
-        "profile": cur_view.meta.get("profile") if isinstance(cur_view.meta, dict) and isinstance(cur_view.meta.get("profile"), str) else None,
+        "profile": cur_view.meta.get("profile")
+        if isinstance(cur_view.meta, dict) and isinstance(cur_view.meta.get("profile"), str)
+        else None,
         "baseline": baseline,
         "baseline_repo": str(base_repo),
         "diff": {
@@ -834,8 +974,91 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_context(args: argparse.Namespace) -> int:
+    root = Path(args.root)
+    inputs = []
+    for spec in args.input:
+        if ":" not in spec:
+            raise SystemExit("--input must be LAYER:PATH where LAYER is path or ref")
+        layer, path = spec.split(":", 1)
+        inputs.append((path, layer))
+    capsule = create_capsule(root, inputs)
+    write_compiled_plan(
+        Path(args.artifact_root),
+        args.out,
+        capsule,
+        ontology_root=root,
+        capsule=capsule,
+        input_files=[root / path for path, _layer in inputs],
+    )
+    return 0
+
+
+def cmd_proposal(args: argparse.Namespace) -> int:
+    capsule = validate_capsule(load_membrane_json(Path(args.capsule)))
+    proposal, digest = validate_proposal(load_membrane_json(Path(args.proposal)), capsule)
+    if args.proposal_cmd == "validate":
+        console.print_json(json.dumps({"ok": True, "proposal_digest": digest}, sort_keys=True))
+        return 0
+    plan = compile_plan(proposal, digest, capsule, load_membrane_json(Path(args.approval)))
+    write_compiled_plan(
+        Path(args.artifact_root),
+        args.out,
+        plan,
+        ontology_root=Path(args.ontology_root),
+        capsule=capsule,
+        input_files=[Path(args.capsule), Path(args.proposal), Path(args.approval)],
+    )
+    return 0
+
+
+def cmd_transaction(args: argparse.Namespace) -> int:
+    load = lambda name: load_membrane_json(Path(getattr(args, name)))
+    root = Path(args.ontology_root)
+    if args.transaction_cmd == "prepare":
+        value = prepare_transaction(
+            load("plan"), load("capsule"), root, load("effects"), args.owner, load("authority_artifact")
+        )
+        write_compiled_plan(
+            Path(args.artifact_root),
+            args.out,
+            value,
+            ontology_root=root,
+            capsule=validate_capsule(load("capsule")),
+            input_files=[Path(args.plan), Path(args.capsule), Path(args.effects)],
+        )
+        return 0
+    if args.transaction_cmd == "simulate":
+        value = simulate_transaction(
+            load("transaction"), load("plan"), load("capsule"), root, load("authority_artifact")
+        )
+    elif args.transaction_cmd == "apply":
+        value = apply_transaction(
+            load("transaction"),
+            load("plan"),
+            load("capsule"),
+            load("approval"),
+            root,
+            Path(args.receipt_root),
+            load("authority_artifact"),
+            inject_failure=args.inject_failure,
+        )
+    elif args.transaction_cmd == "verify":
+        value = verify_receipt(load("receipt"), load("transaction"), root)
+    else:
+        value = rollback_transaction(load("receipt"), load("transaction"), root)
+    console.print_json(json.dumps(value, sort_keys=True))
+    return 0
+
+
+class _StrictArgumentParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("allow_abbrev", False)
+        super().__init__(*args, **kwargs)
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="rocs")
+    parser = _StrictArgumentParser(prog="rocs")
     parser.add_argument("--version", action="version", version=f"rocs-cli {__version__}")
     parser.add_argument("--debug", action="store_true", help="show full tracebacks on error")
     parser.add_argument("--no-index-cache", action="store_true", help="disable incremental doc/index cache (debugging)")
@@ -866,6 +1089,147 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("version")
     p.set_defaults(fn=cmd_version)
+
+    p = sub.add_parser("contracts", help="emit the closed machine-readable command contract")
+    p.set_defaults(fn=cmd_contracts)
+
+    p = sub.add_parser("constitution", help="validate and challenge proposal-only constitutional rules")
+    constitution_sub = p.add_subparsers(dest="constitution_cmd", required=True)
+    for name in ("validate", "challenge"):
+        p2 = constitution_sub.add_parser(name)
+        p2.add_argument("--candidate", action="append", required=True)
+        p2.set_defaults(fn=cmd_constitution, machine_json=True)
+    p2 = constitution_sub.add_parser("differential")
+    p2.add_argument("--candidate-a", action="append", required=True)
+    p2.add_argument("--candidate-b", action="append", required=True)
+    p2.add_argument("--subjects", action="append", required=True)
+    p2.set_defaults(fn=cmd_constitution, machine_json=True)
+    p2 = constitution_sub.add_parser("mutate")
+    p2.add_argument("--contract", action="append", required=True)
+    p2.add_argument("--acceptance", action="append", required=True)
+    p2.add_argument("--corpus", action="append", required=True)
+    p2.set_defaults(fn=cmd_constitution, machine_json=True)
+
+    p = sub.add_parser("repair-market", help="compute a proposal-only stable Pareto frontier")
+    p.add_argument("--market", action="append", required=True)
+    p.set_defaults(fn=cmd_repair_market, machine_json=True)
+
+    p = sub.add_parser("context", help="create a deterministic content-addressed context capsule")
+    context_sub = p.add_subparsers(dest="context_cmd", required=True)
+    p2 = context_sub.add_parser("create")
+    p2.add_argument("--root", required=True)
+    p2.add_argument("--input", action="append", required=True, metavar="LAYER:PATH")
+    p2.add_argument("--artifact-root", required=True, help="existing disjoint root bounding capsule artifacts")
+    p2.add_argument("--out", required=True, help="artifact-root-relative output path")
+    p2.set_defaults(fn=cmd_context)
+
+    p = sub.add_parser("proposal", help="validate or compile an untrusted proposal without mutation")
+    proposal_sub = p.add_subparsers(dest="proposal_cmd", required=True)
+    p2 = proposal_sub.add_parser("validate")
+    p2.add_argument("--capsule", required=True)
+    p2.add_argument("--proposal", required=True)
+    p2.set_defaults(fn=cmd_proposal)
+    p2 = proposal_sub.add_parser("compile")
+    p2.add_argument("--capsule", required=True)
+    p2.add_argument("--proposal", required=True)
+    p2.add_argument("--approval", required=True)
+    p2.add_argument("--ontology-root", required=True, help="source/input root forbidden to compiled artifacts")
+    p2.add_argument("--artifact-root", required=True, help="existing disjoint root bounding compiled artifacts")
+    p2.add_argument("--out", required=True, help="artifact-root-relative output path")
+    p2.set_defaults(fn=cmd_proposal)
+
+    p = sub.add_parser("transaction", help="prepare, simulate, apply, verify, or rollback a semantic transaction")
+    transaction_sub = p.add_subparsers(dest="transaction_cmd", required=True)
+    p2 = transaction_sub.add_parser("prepare")
+    p2.add_argument("--plan", required=True)
+    p2.add_argument("--capsule", required=True)
+    p2.add_argument("--effects", required=True)
+    p2.add_argument("--owner", required=True)
+    p2.add_argument("--authority-artifact", required=True)
+    p2.add_argument("--ontology-root", required=True)
+    p2.add_argument("--artifact-root", required=True)
+    p2.add_argument("--out", required=True)
+    p2.set_defaults(fn=cmd_transaction)
+    p2 = transaction_sub.add_parser("simulate")
+    p2.add_argument("--transaction", required=True)
+    p2.add_argument("--plan", required=True)
+    p2.add_argument("--capsule", required=True)
+    p2.add_argument("--authority-artifact", required=True)
+    p2.add_argument("--ontology-root", required=True)
+    p2.set_defaults(fn=cmd_transaction)
+    p2 = transaction_sub.add_parser("apply")
+    p2.add_argument("--transaction", required=True)
+    p2.add_argument("--plan", required=True)
+    p2.add_argument("--capsule", required=True)
+    p2.add_argument("--approval", required=True)
+    p2.add_argument("--authority-artifact", required=True)
+    p2.add_argument("--ontology-root", required=True)
+    p2.add_argument("--receipt-root", required=True)
+    p2.add_argument("--inject-failure", help=argparse.SUPPRESS)
+    p2.set_defaults(fn=cmd_transaction)
+    for name in ("verify", "rollback"):
+        p2 = transaction_sub.add_parser(name)
+        p2.add_argument("--receipt", required=True)
+        p2.add_argument("--transaction", required=True)
+        p2.add_argument("--ontology-root", required=True)
+        p2.set_defaults(fn=cmd_transaction)
+
+    p = sub.add_parser("fleet", help="fleet observation and convergence")
+    fleet_sub = p.add_subparsers(dest="fleet_cmd", required=True)
+    p2 = fleet_sub.add_parser("observe", help="audit fleet capabilities deterministically")
+    p2.add_argument("--workspace-root", required=True)
+    p2.add_argument("--policy", required=True)
+    p2.add_argument("--json", nargs="?", const="-", default=None, metavar="PATH")
+    p2.add_argument("--markdown", nargs="?", const="-", default=None, metavar="PATH")
+    p2.add_argument("--report-only", action="store_true")
+    p2.set_defaults(fn=cmd_fleet)
+    for name in ("plan", "apply", "run"):
+        p2 = fleet_sub.add_parser(name, help=f"{name} deterministic fleet convergence")
+        p2.add_argument("--workspace-root", required=True)
+        p2.add_argument("--policy", required=True)
+        p2.add_argument("--json", nargs="?", const="-", default=None)
+        if name == "apply":
+            p2.add_argument("--dry-run", action="store_true")
+        if name == "run":
+            p2.add_argument("--mode", choices=["audit-only", "patch", "apply"], default="apply")
+        p2.set_defaults(fn=cmd_fleet)
+
+    for name in ("bootstrap", "converge"):
+        p = sub.add_parser(name, help=f"repository {name}")
+        p.add_argument("target")
+        p.add_argument("--class", dest="repo_class", required=True, choices=["required", "optional", "ontology_repo"])
+        p.add_argument("--dry-run", action="store_true")
+        p.set_defaults(fn=cmd_wave1, operation=name)
+    p = sub.add_parser("vendor", help="publish a pinned self-contained consumer artifact")
+    p.add_argument("target")
+    p.add_argument("--release-version")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(fn=cmd_wave1, operation="vendor")
+    p = sub.add_parser("release", help="plan or apply an explicit release")
+    release_sub = p.add_subparsers(dest="release_cmd", required=True)
+    for name in ("plan", "apply"):
+        p2 = release_sub.add_parser(name)
+        p2.add_argument("--version", dest="release_version", required=True)
+        p2.set_defaults(fn=cmd_wave1, operation=f"release-{name}")
+    p = sub.add_parser("verify", help="verify pinned consumer identity and hashes")
+    p.add_argument("path")
+    p.set_defaults(fn=cmd_wave1, operation="verify")
+    p = sub.add_parser("cleanup", help="safely remove managed build outputs")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(fn=cmd_wave1, operation="cleanup")
+    p = sub.add_parser("doctor", help="check standalone consumer and tool identity")
+    p.add_argument("--repo", default=".")
+    p.set_defaults(fn=cmd_wave1, operation="doctor")
+    p = sub.add_parser("generate", help="generate a deterministic benchmark repository")
+    p.add_argument("--out", required=True)
+    p.add_argument("--count", type=int, default=200)
+    p.set_defaults(fn=cmd_wave1, operation="generate")
+    p = sub.add_parser("benchmark", help="benchmark an importable ROCS capability")
+    p.add_argument("--command", choices=["build", "validate", "lint"], default="build")
+    p.add_argument("--count", type=int, default=500)
+    p.add_argument("--runs", type=int, default=7)
+    p.set_defaults(fn=cmd_wave1, operation="benchmark")
 
     p = sub.add_parser("rules")
     p.add_argument("--json", action="store_true", help="emit JSON output")
@@ -1022,7 +1386,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--only", help="filter layers: path|ref")
     p.add_argument("--layer", help="filter a specific layer name")
     p.add_argument("--depth", type=int, help="relation expansion depth (default: profile pack.max_depth or 0)")
-    p.add_argument("--rel-types", help="comma-separated relation labels to follow (default: profile pack.rel_types or all)")
+    p.add_argument(
+        "--rel-types", help="comma-separated relation labels to follow (default: profile pack.rel_types or all)"
+    )
     p.add_argument("--include-relation-defs", action="store_true", help="include relation definition docs used")
     p.add_argument("--max-docs", type=int, help="max docs in pack (default: profile pack.max_docs)")
     p.add_argument("--max-bytes", type=int, help="max UTF-8 bytes in pack (default: profile pack.max_bytes)")
@@ -1030,7 +1396,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(fn=cmd_pack)
 
     p = sub.add_parser("vendored-check")
-    p.add_argument("--vendored-dir", required=True, help="path to vendored rocs-cli dir (contains VENDORED_HASHES.json)")
+    p.add_argument(
+        "--vendored-dir", required=True, help="path to vendored rocs-cli dir (contains VENDORED_HASHES.json)"
+    )
     p.set_defaults(fn=cmd_vendored_check)
 
     p = sub.add_parser("cache")
@@ -1071,7 +1439,7 @@ def main(argv: list[str] | None = None) -> None:
         os.environ["ROCS_INDEX_CACHE_DEBUG"] = "1"
 
     def _wants_json() -> bool:
-        return bool(getattr(args, "json", False))
+        return bool(getattr(args, "json", False) or getattr(args, "machine_json", False))
 
     def _emit_error(kind: str, message: str, *, details: dict | None = None) -> None:
         if _wants_json():

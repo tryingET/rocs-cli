@@ -1,4 +1,2 @@
-# Optional cron fallback (use this OR the systemd timer, not both):
-# Run the FCOS fleet audit nightly, persist scorecards under XDG state, and
-# emit remediation batches when drift is detected.
-17 2 * * * /usr/bin/env bash -lc 'mkdir -p /home/tryinget/.local/state/fcos/nightly && cd /home/tryinget/ai-society/core/rocs-cli && FCOS_WORKSPACE_ROOT=/home/tryinget/ai-society FCOS_REMEDIATION_MODE=patch exec uv run python scripts/run-fleet-audit-nightly.py >> /home/tryinget/.local/state/fcos/nightly/cron.log 2>&1'
+# Optional cron fallback (use this OR the systemd timer, not both).
+17 2 * * * /home/tryinget/.local/bin/rocs fleet run --mode patch --workspace-root /home/tryinget/ai-society --policy /home/tryinget/ai-society/holdingco/governance-kernel/governance/programs/fcos/fleet-state.yaml --json /home/tryinget/.local/state/fcos/nightly/run.json

@@ -14,6 +14,11 @@ ROCS_CMD="${ROCS_CMD:-uv run python -m rocs_cli}"
 workspace_root="${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}"
 workspace_ref_mode="${ROCS_WORKSPACE_REF_MODE:-}"
 
+if [[ -f "$ROCS_REPO/pyproject.toml" ]] && grep -q '^name = "rocs-cli"$' "$ROCS_REPO/pyproject.toml"; then
+  uv run --project "$ROCS_REPO" python -m unittest discover -s "$ROCS_REPO/tests" -p 'test_*.py' -q
+  exit 0
+fi
+
 profile_default_workspace_ref_mode() {
   case "$ROCS_CI_PROFILE" in
     local-dev)
@@ -51,7 +56,47 @@ run_rocs() {
 }
 
 clean_dist() {
-  rm -rf "$ROCS_REPO/ontology/dist" "$ROCS_REPO/dist"
+  python3 - "$ROCS_REPO" <<'PY'
+import os
+import shutil
+import stat
+import sys
+from pathlib import Path
+
+raw = Path(sys.argv[1]).expanduser()
+try:
+    root = raw.resolve(strict=True)
+except OSError as exc:
+    raise SystemExit(f"refusing cleanup: ROCS_REPO is not a real directory: {raw} ({exc})")
+if root == Path(root.anchor) or not root.is_dir():
+    raise SystemExit(f"refusing cleanup: invalid ROCS_REPO root: {root}")
+manifests = (root / "ontology/manifest.yaml", root / "ontology/manifest.yml", root / "manifest.yaml", root / "manifest.yml")
+has_manifest = any(p.exists() and not p.is_symlink() and stat.S_ISREG(p.stat().st_mode) for p in manifests)
+pyproject = root / "pyproject.toml"
+is_rocs_source = pyproject.is_file() and not pyproject.is_symlink() and 'name = "rocs-cli"' in pyproject.read_text("utf-8")
+if not has_manifest and not is_rocs_source:
+    raise SystemExit(f"refusing cleanup: ROCS_REPO is neither an ontology repo nor the rocs-cli source repo: {root}")
+targets = []
+for lexical in (root / "ontology/dist", root / "dist"):
+    # Resolve every target before deleting any, so rejection is preflight-atomic.
+    # Resolve the target itself when present, exposing a symlink escape.  For an
+    # absent target, resolve its existing parents and retain the final name.
+    resolved = lexical.resolve(strict=False)
+    try:
+        rel = resolved.relative_to(root)
+    except ValueError:
+        raise SystemExit(f"refusing cleanup: target escapes ROCS_REPO: {lexical} -> {resolved}")
+    if not rel.parts:
+        raise SystemExit(f"refusing cleanup: target is not strictly beneath ROCS_REPO: {resolved}")
+    if lexical.is_symlink():
+        raise SystemExit(f"refusing cleanup: cleanup target is a symlink: {lexical}")
+    targets.append(lexical)
+for lexical in targets:
+    if lexical.is_dir():
+        shutil.rmtree(lexical)
+    elif lexical.exists():
+        lexical.unlink()
+PY
 }
 
 strict_gate() {

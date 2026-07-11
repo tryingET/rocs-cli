@@ -1,0 +1,8 @@
+rocs:
+  layers:
+    - name: repo
+      path: ontology/src
+  profiles:
+    default: repo-dev
+    repo-dev:
+      include_layers: [repo]

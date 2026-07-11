@@ -21,8 +21,12 @@ Local dev:
 - `uv run python -m rocs_cli --help`
 - `uv run python -m unittest discover -s tests -p 'test_*.py' -q` (includes README↔CLI wiring check)
 - Optional YAML CLI tooling (`yq`): `uv sync --extra tooling && uv run --extra tooling yq --version`
-- Bump version (SemVer): `uv run python scripts/bump_version.py --bump patch|minor|major [--preid rc] [--sync-vendored]`
+- Release version (SemVer): `uv run python -m rocs_cli release plan|apply --version <version>`
 
 When changing generated CI/template surfaces:
 - validate both fresh bootstrap and rerun-on-existing-repo convergence
 - prefer behavior-contract checks over file-presence-only checks
+
+## Direction workflow
+- When this repo's direction docs under `docs/project/` change, or when current posture needs verification, use `ak direction import|check|export` from the repo root.
+- Treat `ak direction check` as the authority-reconciliation gate between repo direction docs and AK's structured direction substrate.

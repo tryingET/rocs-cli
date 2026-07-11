@@ -24,7 +24,7 @@ Keep `rocs-cli` the small, boring, offline-first ROCS toolchain for AI Society:
 
 Evidence:
 - coding surfaces: `src/rocs_cli/`, `tests/`, `pyproject.toml`
-- contract/governance surfaces: `README.md`, `docs/*.md`, `scripts/bootstrap-repo.sh`, `scripts/audit-fleet.py`, `scripts/open-remediation-batch.sh`, `scripts/run-fleet-audit-nightly.py`
+- contract/governance surfaces: `README.md`, `docs/*.md`, and the closed `rocs contracts` capability protocol
 - operator contract emphasis in `AGENTS.md` and `next_session_prompt.md`
 
 ## Durable outcomes

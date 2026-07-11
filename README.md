@@ -11,6 +11,12 @@ Minimal ROCS CLI for ai-society.
 
 Commands:
 - `rocs version`
+- `rocs constitution` → `validate|challenge|differential|mutate` (proposal-only; never activates rules)
+- `rocs repair-market --market bids.json` (stable Pareto frontier; never selects/applies a winner)
+- `rocs context` → `create --root . --input path:ontology/src/example.md --artifact-root artifacts/intelligence --out capsule.json`
+- `rocs proposal` → `validate --capsule capsule.json --proposal proposal.json`
+- `rocs proposal` → `compile --capsule capsule.json --proposal proposal.json --approval approval.json --ontology-root . --artifact-root ../rocs-artifacts --out plan.json`
+- `rocs transaction` → `prepare|simulate|apply|verify|rollback` (the sole ontology-mutation path)
 - `rocs rules [--json]`
 - `rocs explain <rule_id> [--json]`
 - `rocs resolve --repo . [--profile <name>] [--resolve-refs] [--json]`
@@ -97,45 +103,26 @@ CI profile wrapper (template-side policy contract):
   - `ROCS_REPO` (default: `.`)
   - `ROCS_PROFILE` (optional manifest profile)
 
-FCOS convergence scripts:
-- `scripts/vendor-to.sh <target> [--version X.Y.Z] [--dry-run]`
-  - syncs `pyproject.toml`, `README.md`, and `src/rocs_cli/` into `<target>`
-  - writes/updates `<target>/VENDORED_HASHES.json` (hash coverage includes all files under `src/rocs_cli/`)
-  - refuses targets that overlap the source repo tree or the source package tree
-  - `--dry-run` uses the same preflight validation as apply mode
-- `scripts/bootstrap-repo.sh <target> --class required|optional|ontology_repo [--company holdingco|softwareco|healthco] [--dry-run]`
-  - class-based FCOS bootstrap (vendored `rocs-cli`, ontology scaffold, local gate wiring)
-  - installs `scripts/ci/full.sh`, `.githooks/pre-push`, and `.githooks/README.md`
-  - required repos default the generated pre-push hook to `ROCS_CI_PROFILE=local-dev`; ontology repos default to `main-strict`
-  - generated hooks honor `ROCS_CMD` overrides and otherwise default to `uv run --project ./tools/rocs-cli python -m rocs_cli`
-  - converges away legacy generated `gitlab/ci/rocs.yml` / `.gitlab-ci.yml` ROCS surfaces when present
-  - emits a deterministic JSON report with `rollback_paths`
-  - fails closed with a JSON blocker report when managed files are unreadable, not valid UTF-8, replaced by directories, or symlinked through managed paths
-  - for ai-society workspace targets with ambiguous company ownership (for example `core/...`), pass `--company` explicitly instead of silently defaulting
-  - blocker detection happens before vendoring/writes/chmod in apply mode
-  - `--dry-run` validates and reports without writing files
-- `scripts/audit-fleet.py --workspace-root <path> --policy <fleet-state.yaml> [--json [PATH]] [--markdown [PATH]] [--report-only]`
-  - audits each policy ledger entry against observed capabilities (`rocs_cli_vendored`, `ontology_manifest`, `rocs_ci_gate`)
-  - `rocs_ci_gate` checks concrete checked-in hook gate surfaces (`.githooks/pre-push` + `scripts/ci/full.sh` + explicit `ROCS_CI_PROFILE` call); template files and comments do not count as evidence
-  - symlinked, unreadable, non-UTF-8, or otherwise blocked managed surfaces do not count as compliant evidence and are reported in scorecard evidence
-  - manifest locator checks ignore commented migration notes and inspect live YAML values when possible
-  - emits deterministic JSON/Markdown scorecards (stdout when PATH omitted)
-  - stable exit codes: `0` pass, `2` required capability violations, `1` policy/usage error
-- `scripts/open-remediation-batch.sh --input <audit.json> --mode patch|apply [--output [PATH]] [--workspace-root <path>]`
-  - turns fleet-audit scorecards into deterministic remediation batches
-  - recomputes repo targets from the authoritative workspace root instead of trusting scorecard `resolved_path`
-  - may emit both a bootstrap action and a blocked manual follow-up for the same repo when file drift and declaration drift coexist
-  - `patch` mode emits planned bootstrap/manual follow-up actions without mutating repos
-  - `apply` mode runs `scripts/bootstrap-repo.sh` for bootstrap-managed required drift and records per-repo apply results
-  - stable exit codes: `0` batch generated successfully or apply completed cleanly, `2` apply failures or blocked manual follow-up remains, `1` input/usage error
-- `scripts/run-fleet-audit-nightly.py`
-  - authoritative nightly control loop: runs the fleet audit, writes JSON/Markdown scorecards under `${XDG_STATE_HOME:-$HOME/.local/state}/fcos/nightly/<timestamp>/`, and emits a JSON `run-summary.json`
-  - returns `0` only for `status=pass`; any detected drift or remediation outcome returns `2`; runtime/config failures return `1`
-  - validates timestamps as `YYYYMMDDTHHMMSSZ`, clears stale remediation artifacts for reused run directories, and keeps `audit-only` decoupled from remediation-script availability
-  - configure via `FCOS_WORKSPACE_ROOT`, `FCOS_POLICY_PATH`, `FCOS_AUDIT_ARTIFACT_ROOT`, `FCOS_REMEDIATION_MODE=audit-only|patch|apply`, optional `FCOS_BOOTSTRAP_SCRIPT`
-- `scripts/run-fleet-audit-nightly.sh`
-  - thin compatibility wrapper that executes `uv run python scripts/run-fleet-audit-nightly.py`
-  - scheduling assets: `scripts/systemd/fcos-fleet-audit-nightly.{service,timer}` and `scripts/cron/fcos-fleet-audit-nightly.cron`
+Constitutional foundry (proposal-only, offline):
+- Schema-1 candidate packets bind owner/adoption scope, rationale, an allowlisted closed predicate AST, positive/negative fixtures, adversarial counterexamples, severity and suppression policy, false-positive challenges, evidence digests, and a canonical candidate digest.
+- `constitution validate|challenge|differential|mutate` deterministically validates/challenges candidates, compares behavior, and generates mutants only from accepted digest-bound capability/operation contracts. It has no eval, import, shell, network, callback, generated-code, activation, suppression, or certification path.
+- `repair-market` validates competing proposal-only plans and returns a stable Pareto frontier over mutation radius, owner crossings, rollback cost, convergence evidence, verification cost, and maintenance burden. It returns no winner and applies nothing.
+- Rule adoption/activation is outside this repository/runtime and requires a separate owner decision and an ordinary reviewed deterministic Python implementation. See `docs/project/wave4-constitution-coverage.md`.
+
+Intelligence membrane (optional, offline by default):
+- `context create` emits a canonical, content-addressed schema-1 capsule from explicitly named UTF-8 files. Inputs are tagged `path` or `ref`; symlinks, traversal, duplicate paths, and files outside `--root` fail closed.
+- A model/adapter may only consume capsule bytes and return proposal bytes. The importable `ProposalAdapter` protocol grants no shell, filesystem, network, validation, or approval authority, and ROCS invokes no adapter or network by default.
+- `proposal validate` treats strict JSON proposals as untrusted data. Unknown fields/capabilities, digest drift, undeclared paths, and ref-layer writes fail closed.
+- `proposal compile` additionally requires a separate schema-1 operator approval bound to the proposal digest. It emits a deterministic schema-1 plan and never applies operations. `--out` is a relative path bounded by an existing `--artifact-root`, which must be disjoint from `--ontology-root`; absolute paths, traversal, symlinks, command-input collisions, and capsule path/ref-layer collisions fail closed. Plans bind tool/registry versions, capsule/proposal/approval digests, closed capabilities, exact paths, human authority, verifier, rollback, and proposed operations.
+- `transaction prepare` binds that immutable plan and capsule to base authority, exact byte preimages, semantic ID/blast-radius/obligation effects, owner partitions, deterministic gates, and rollback. `simulate` is non-mutating. `apply` alone mutates and requires a distinct `operator:` approval bound to the transaction digest; it revalidates all inputs, rejects drift/ref/cross-owner writes, stages on the target filesystem, runs ROCS gates, and compensates every failed publication byte-exactly. `verify` and `rollback` consume digest-validated content-addressed receipts and reject post-apply drift. These operations execute no shell, model, or network code.
+
+Wave 1 convergence CLI (the former script API was removed with no shims):
+- `rocs bootstrap TARGET --class required|optional|ontology_repo [--dry-run]` installs the complete class contract.
+- `rocs converge TARGET --class required|optional|ontology_repo [--dry-run]` idempotently restores that contract and removes replaced generated scripts.
+- `rocs vendor TARGET [--release-version X.Y.Z] [--dry-run]` publishes `pyproject.toml`, `README.md`, the complete package, and schema-2 `VENDORED_HASHES.json`.
+- `rocs fleet` provides distinct `observe`, `plan`, `apply`, and `run` operations. Each takes a workspace root and policy; apply supports dry-run and run supports audit-only, patch, or apply mode.
+- `rocs release plan|apply --version X.Y.Z`, `rocs verify PATH`, `rocs cleanup`, and `rocs doctor` provide release, integrity, maintenance, and standalone acceptance operations.
+- Scheduling assets retained under `scripts/{cron,systemd}` invoke `rocs fleet run`; they contain no operational behavior.
 
 YAML tooling (optional, for shell-level policy inspection):
 - Runtime YAML parsing in `rocs-cli` is already provided by `pyyaml`.
@@ -143,8 +130,8 @@ YAML tooling (optional, for shell-level policy inspection):
 - Run query helper: `uv run --extra tooling yq --version`
 
 Perf harness (synthetic, offline):
-- `uv run python scripts/bench.py --cmd build --n-concepts 600 --runs 7 --out artifacts/perf/bench.json`
-  - CI runs this as a non-gating job (artifact for trend visibility; allow_failure).
+- `rocs benchmark --command build --count 600 --runs 7`
+  - The benchmark and deterministic repository generator are importable package capabilities.
 
 Exit codes:
 - `0`: success
@@ -165,3 +152,15 @@ Type checking:
 VHS recordings (documentation by recorded behavior):
 - Install `vhs` (and its deps: `ttyd`, `ffmpeg`), then run: `core/rocs-cli/scripts/vhs-run.sh`
 - Outputs land in `core/rocs-cli/artifacts/vhs/` (gitignored); share the `.gif` when reporting behavior regressions.
+
+## Wave 1 operational CLI
+
+Wave 1 removes the executable-script API. The closed operations are discoverable
+with `rocs contracts`: `fleet observe|plan|apply|run`, `bootstrap`, `converge`,
+`vendor`, `release plan|apply`, `verify`, `cleanup`, `doctor`, `benchmark`, and
+`generate`. Core behavior is importable from `rocs_cli.fleet`,
+`rocs_cli.wave1`, and `rocs_cli.generator`.
+
+A consumer is pinned by `VENDORED_HASHES.json` schema 2. `rocs vendor TARGET`
+publishes the complete package and lock; `rocs verify TARGET` checks identity and
+every locked byte. It does not depend on a sibling checkout or workspace PATH.
