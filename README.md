@@ -97,6 +97,9 @@ CI profile wrapper (template-side policy contract):
   - `main-strict`: requires `--resolve-refs` and defaults workspace matching to `strict` (authoritative fail-closed gate)
 - `ROCS_WORKSPACE_REF_MODE` remains an explicit override when a caller intentionally needs different behavior.
 - This same wrapper is the recommended local hook/Pi entrypoint for pre-push or pre-merge checks.
+- Bootstrapped consumers run the checked-in `tools/rocs-cli` bundle with isolated system `python3 -I -S -B`; the generated wrapper verifies an embedded digest of `VENDORED_HASHES.json` and then every bundled file before import. It does not require `uv`, a source checkout, network access, or ambient `PYTHONPATH`. Bootstrap from an installed wheel or sdist uses immutable packaged seed assets; explicit `rocs vendor TARGET` remains source-project based.
+- Bootstrap serializes publication with a persistent external sibling lock named `.<repo>.rocs-bootstrap.lock`; it preflights and reports that coordination path separately, never exchanges or unlinks its inode, and creates no undeclared lock inside the consumer tree.
+- `ontology_repo` consumers use root `manifest.yaml` and `src/`; required/optional consumers retain the nested `ontology/` layout. Generated hooks resolve the repository from their installed path, matching Git's real hook invocation contract.
 - See `docs/ref-resolution-ci-strategy.md` for the architecture/policy rationale and migration guidance.
 - Optional overrides:
   - `ROCS_CMD` (default: `uv run python -m rocs_cli`)

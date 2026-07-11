@@ -9,6 +9,7 @@ read_when:
 ## [Unreleased]
 
 ### Removed
+- **Breaking (Wave 6):** removed `.gitlab-ci.yml`, the `rocs_cli.gitlab_ci` helper API, and its GitLab include-rewriting tests. Local gates have sole authority; no compatibility shims remain.
 - **Breaking (Wave 1):** removed `audit-fleet.py`, `open-remediation-batch.sh`, `run-fleet-audit-nightly.py`, `run-fleet-audit-nightly.sh`, `bootstrap-repo.sh`, `vendor-to.sh`, `bump_version.py`, `bench.py`, and `gen_bench_repo.py`; there are no compatibility shims.
 - **Breaking (Wave 1):** removed their script-specific tests. Scheduler assets now invoke `rocs fleet run`.
 
@@ -20,6 +21,7 @@ read_when:
 - Schema-2 pinned self-contained consumer lock and isolated acceptance fixture.
 
 ### Changed
+- **Breaking (Wave 6):** `ontology_repo` bootstrap now manages root `manifest.yaml` and `src/system4d.yaml`, never a nested `ontology/` tree. Generated gates verify the complete bundled lock before importing code and execute it with `python -S`; `local-dev` is path-only while `main-strict` and `branch-ci` resolve local refs strictly.
 - **Breaking (Wave 5):** transaction simulation and apply now reject permission-mode drift as well as byte drift, and receipt roots must be direct siblings of the ontology root so every pending journal can be reconciled under one bounded transaction lock before mutation.
 - Wave 5 verifies staged postimages against receipt-bound bytes and modes before generation exchange, verifies successful receipts immediately, restores exact modes during rollback, and recovers pending apply or rollback journals before a distinct transaction proceeds.
 - **Breaking:** remediation apply now requires schema-version 2 scorecards with policy/evidence SHA-256 digests and rejects any input that differs from a fresh deterministic fleet audit.
@@ -31,9 +33,6 @@ read_when:
 - Bootstrap now builds and verifies a complete sibling stage, publishes it with a same-filesystem atomic rename, and restores the prior tree on every injected late failure.
 - Added an importable versioned closed capability registry used by bootstrap, fleet audit validation, and remediation policy logic; unknown classes and capabilities fail closed.
 - Hardened ROCS manifest layer parsing so each layer must declare exactly one of `path` or `ref`.
-- Made bootstrap CI include wiring structural: `.gitlab-ci.yml` is now merged as YAML and invalid CI YAML fails closed instead of being text-spliced.
-- Made fleet CI-gate auditing semantic: parsed CI YAML/script nodes are inspected, comment-only markers no longer count as contract evidence, and `ROCS_CI_PROFILE` must be bound in the same script context as the wrapper call.
-- Switched GitLab ref-cache keys to an injective encoding while preserving reads from complete legacy cache entries.
 
 ### Fixed
 - `rocs vendor` rejects targets that overlap the source package tree, preventing recursive self-copy behavior.

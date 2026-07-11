@@ -6,10 +6,13 @@ callable as Python and the CLI is only an adapter.
 
 from __future__ import annotations
 
+import ctypes
 import fcntl
+import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -48,61 +51,90 @@ def _remove_path(path: Path) -> None:
         path.unlink()
 
 
+def _exchange(a: Path, b: Path) -> None:
+    libc = ctypes.CDLL(None, use_errno=True)
+    renameat2 = getattr(libc, "renameat2", None)
+    if renameat2 is None:
+        raise RuntimeError("atomic generation exchange unsupported")
+    if renameat2(-100, os.fsencode(a), -100, os.fsencode(b), 2) != 0:
+        error = ctypes.get_errno()
+        raise RuntimeError(f"atomic generation exchange failed: {os.strerror(error)}")
+
+
+def _fsync_dir(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def _publish_sibling(stage: Path, target: Path, *, fail_point: str | None = None) -> None:
-    """Publish a verified sibling stage atomically and restore its preimage on failure."""
-    backup = target.parent / f".{target.name}.backup-{os.getpid()}"
-    _remove_path(backup)
+    """Publish one complete generation atomically and restore it on a caught failure."""
     had_target = target.exists() or target.is_symlink()
-    moved_preimage = False
     published = False
+    exchanged = False
     try:
         if fail_point == "prepublish":
             raise RuntimeError("injected failure before atomic publication")
-        if had_target:
-            os.replace(target, backup)
-            moved_preimage = True
         if fail_point == "publish":
             raise RuntimeError("injected failure during atomic publication")
-        os.replace(stage, target)
+        if had_target:
+            _exchange(target, stage)
+            exchanged = True
+        else:
+            os.replace(stage, target)
         published = True
+        _fsync_dir(target.parent)
         if fail_point == "after_publish":
             raise RuntimeError("injected failure after atomic publication")
     except BaseException:
-        if published:
+        if exchanged:
+            _exchange(target, stage)
+            _fsync_dir(target.parent)
+        elif published:
             _remove_path(target)
-        if moved_preimage and backup.exists():
-            os.replace(backup, target)
+            _fsync_dir(target.parent)
         raise
-    else:
-        _remove_path(backup)
     finally:
         _remove_path(stage)
-        if not published and not moved_preimage:
-            _remove_path(backup)
 
 
-def vendor(source: Path, target: Path, *, version: str | None = None, dry_run: bool = False) -> dict[str, Any]:
-    """Publish a pinned, hash-complete consumer tree through a verified sibling stage."""
-    source, target = source.resolve(), target.expanduser().resolve()
-    pyproject, readme, package = validate_vendor_source_layout(source)
-    validate_vendor_target(repo_root=source, target=target)
-    effective = version or __version__
-    result = {"schema_version": 2, "tool": "rocs-cli", "version": effective, "target": str(target), "dry_run": dry_run}
+def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: Path, target: Path,
+                        *, effective: str, dry_run: bool = False, use_lock: bool = True) -> dict[str, Any]:
+    """Build the artifact from an explicit, complete asset set."""
+    result = {"schema_version": 2, "tool": "rocs-cli", "version": effective,
+              "target": str(target), "dry_run": dry_run}
     if dry_run:
         return result
     target.parent.mkdir(parents=True, exist_ok=True)
     lock_path = target.parent / f".{target.name}.vendor.lock"
-    with lock_path.open("a+b") as lock_file:
-        fcntl.flock(lock_file, fcntl.LOCK_EX)
+    lock_file = lock_path.open("a+b") if use_lock else None
+    try:
+        if lock_file is not None:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
         stage = Path(tempfile.mkdtemp(prefix=f".{target.name}.stage-", dir=target.parent))
         try:
             shutil.copytree(package, stage / "src/rocs_cli", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-            shutil.copy2(pyproject, stage / "pyproject.toml")
+            pyproject_text = pyproject.read_text("utf-8")
+            version_pattern = r'(?m)^(version\s*=\s*)["\'][^"\']+["\']\s*$'
+            pyproject_text, replacements = re.subn(
+                version_pattern, lambda match: f'{match.group(1)}"{effective}"', pyproject_text, count=1
+            )
+            if replacements != 1:
+                raise RuntimeError("bootstrap pyproject must contain exactly one project version")
+            (stage / "pyproject.toml").write_text(pyproject_text, "utf-8")
             shutil.copy2(readme, stage / "README.md")
-            uv_lock = source / "uv.lock"
             if not uv_lock.is_file():
                 raise RuntimeError("self-contained artifact requires uv.lock")
-            shutil.copy2(uv_lock, stage / "uv.lock")
+            uv_text = uv_lock.read_text("utf-8")
+            uv_pattern = r'(?m)(^name = "rocs-cli"\nversion = ")[^"]+("$)'
+            uv_text, uv_replacements = re.subn(
+                uv_pattern, lambda match: f"{match.group(1)}{effective}{match.group(2)}", uv_text, count=1
+            )
+            if uv_replacements != 1:
+                raise RuntimeError("bootstrap uv.lock must contain exactly one rocs-cli package version")
+            (stage / "uv.lock").write_text(uv_text, "utf-8")
             runtime = stage / "runtime"
             runtime.mkdir()
             for module_name in ("yaml", "rich", "markdown_it", "mdurl", "pygments"):
@@ -132,7 +164,30 @@ def vendor(source: Path, target: Path, *, version: str | None = None, dry_run: b
             _publish_sibling(stage, target, fail_point=os.environ.get("ROCS_VENDOR_FAIL_AFTER"))
         finally:
             _remove_path(stage)
+    finally:
+        if lock_file is not None:
+            lock_file.close()
     return result
+
+
+def vendor(source: Path, target: Path, *, version: str | None = None, dry_run: bool = False) -> dict[str, Any]:
+    """Vendor a truthful source project; installed-distribution bootstrap is separate."""
+    source, target = source.resolve(), target.expanduser().resolve()
+    pyproject, readme, package = validate_vendor_source_layout(source)
+    validate_vendor_target(repo_root=source, target=target)
+    return _vendor_from_assets(package, pyproject, readme, source / "uv.lock", target,
+                               effective=version or __version__, dry_run=dry_run)
+
+
+def _vendor_installed(target: Path) -> dict[str, Any]:
+    package = Path(__file__).resolve().parent
+    assets = package / "_bootstrap_assets"
+    for name in ("pyproject.toml", "README.md", "uv.lock"):
+        if not (assets / name).is_file():
+            raise RuntimeError(f"installed distribution is missing bootstrap asset: {name}")
+    # Bootstrap already owns the stable consumer lock. Do not open a second lock.
+    return _vendor_from_assets(package, assets / "pyproject.toml", assets / "README.md",
+                               assets / "uv.lock", target, effective=__version__, use_lock=False)
 
 
 def verify(path: Path) -> tuple[dict[str, Any], int]:
@@ -167,14 +222,58 @@ def _preflight_managed_path(root: Path, rel: str, *, directory: bool = False) ->
                 raise ValueError(f"managed path is not a {kind}: {rel}")
 
 
-_CI_WRAPPER = """#!/usr/bin/env bash
+_VENDORED_LOCK_DIGEST_TOKEN = "__ROCS_VENDORED_LOCK_SHA256__"
+
+_CI_WRAPPER = r'''#!/usr/bin/env bash
 set -euo pipefail
-repo="${ROCS_REPO:-$(pwd)}"
-rocs=(uv run --offline --frozen --project "$repo/tools/rocs-cli" python -m rocs_cli)
+# Sanitize lookup before invoking even basic helper commands.
+export PATH="/usr/local/bin:/usr/bin:/bin"
+unset PYTHONPATH
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo="${ROCS_REPO:-$(cd -- "$script_dir/../.." && pwd)}"
+artifact="$repo/tools/rocs-cli"
+python_bin="python3"
+export ROCS_WORKSPACE_ROOT="${ROCS_WORKSPACE_ROOT:-$repo}"
+export PYTHONDONTWRITEBYTECODE=1
+
+# Verify with the standard library before importing or executing any bundled byte.
+"$python_bin" -I -S -B - "$artifact" <<'PY'
+import hashlib, json, os, stat, sys
+from pathlib import Path
+root = Path(sys.argv[1]).resolve(strict=True)
+lock = root / "VENDORED_HASHES.json"
+trusted_lock_digest = "__ROCS_VENDORED_LOCK_SHA256__"
+try:
+    lock_bytes = lock.read_bytes()
+    if hashlib.sha256(lock_bytes).hexdigest() != trusted_lock_digest:
+        raise ValueError("lock digest does not match generated trust anchor")
+    payload = json.loads(lock_bytes)
+    expected = payload["files"]
+except Exception as exc:
+    raise SystemExit(f"ROCS bundled runtime lock invalid: {exc}")
+actual = {}
+for path in sorted(root.rglob("*")):
+    if path == lock:
+        continue
+    mode = path.lstat().st_mode
+    if stat.S_ISLNK(mode) or (not stat.S_ISREG(mode) and not stat.S_ISDIR(mode)):
+        raise SystemExit(f"ROCS bundled runtime has invalid file type: {path.relative_to(root)}")
+    if stat.S_ISREG(mode):
+        actual[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+if actual != expected:
+    raise SystemExit("ROCS bundled runtime verification failed closed")
+PY
+rocs=("$python_bin" -I -S -B "$artifact/rocs.py")
+profile="${ROCS_CI_PROFILE:-local-dev}"
+case "$profile" in
+  local-dev) resolve=(--only path) ;;
+  main-strict|branch-ci) resolve=(--resolve-refs --workspace-ref-mode strict) ;;
+  *) echo "unknown ROCS_CI_PROFILE: $profile" >&2; exit 2 ;;
+esac
 "${rocs[@]}" cleanup --repo "$repo"
-"${rocs[@]}" validate --repo "$repo" --json
-"${rocs[@]}" build --repo "$repo" --json
-"""
+"${rocs[@]}" validate --repo "$repo" --json "${resolve[@]}"
+"${rocs[@]}" build --repo "$repo" --json "${resolve[@]}"
+'''
 
 
 def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge: bool = False) -> dict[str, Any]:
@@ -183,9 +282,9 @@ def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge:
     policy = class_policy(repo_class)
     if not final_target.is_dir():
         raise ValueError(f"target repository not found: {final_target}")
-    source = _distribution_root()
+    ontology_root = "" if repo_class == "ontology_repo" else "ontology/"
     managed = [
-        "tools/rocs-cli", "ontology/manifest.yaml", "ontology/src/system4d.yaml",
+        "tools/rocs-cli", f"{ontology_root}manifest.yaml", f"{ontology_root}src/system4d.yaml",
         "scripts/ci/full.sh", ".githooks/pre-push", ".githooks/README.md",
     ]
     legacy = [
@@ -198,6 +297,9 @@ def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge:
         "schema_version": 2, "operation": "converge" if converge else "bootstrap",
         "class": repo_class, "target": str(final_target), "dry_run": dry_run,
         "changes": changes, "rollback_paths": changes,
+        "coordination_paths": [],
+        "external_coordination_paths": [str(final_target.parent / f".{final_target.name}.rocs-bootstrap.lock")],
+        "coordination_persistent": True,
     }
     managed_directories = {"tools", "tools/rocs-cli"}
     for rel in managed_directories:
@@ -205,52 +307,79 @@ def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge:
     for rel in managed:
         if rel not in managed_directories and rel != "tools/rocs-cli":
             _preflight_managed_path(final_target, rel)
+    lock_path = final_target.parent / f".{final_target.name}.rocs-bootstrap.lock"
+    try:
+        lock_mode = os.lstat(lock_path).st_mode
+    except FileNotFoundError:
+        pass
+    else:
+        if stat.S_ISLNK(lock_mode) or not stat.S_ISREG(lock_mode):
+            raise ValueError(f"external coordination path is not a regular file: {lock_path}")
     if dry_run:
         return result
 
-    stage = Path(tempfile.mkdtemp(prefix=f".{final_target.name}.bootstrap-stage-", dir=final_target.parent))
+    parent_fd = os.open(final_target.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        shutil.copytree(final_target, stage, dirs_exist_ok=True, symlinks=True, copy_function=shutil.copy2)
-        if policy["rocs_cli_vendored"]:
-            vendor(source, stage / "tools/rocs-cli")
-            if os.environ.get("ROCS_BOOTSTRAP_FAIL_AFTER") == "vendor":
-                raise RuntimeError("injected failure after vendor")
-            manifest = stage / "ontology/manifest.yaml"
-            manifest.parent.mkdir(parents=True, exist_ok=True)
-            if not manifest.exists():
-                manifest.write_text(
-                    "rocs:\n  layers:\n    - name: repo\n      path: ontology/src\n  profiles:\n    default: repo-dev\n    repo-dev:\n      include_layers: [repo]\n",
+        lock_fd = os.open(lock_path.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o644, dir_fd=parent_fd)
+    finally:
+        os.close(parent_fd)
+    lock_file = os.fdopen(lock_fd, "a+b")
+    if not stat.S_ISREG(os.fstat(lock_fd).st_mode):
+        lock_file.close()
+        raise ValueError(f"external coordination path is not a regular file: {lock_path}")
+    try:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        stage = Path(tempfile.mkdtemp(prefix=f".{final_target.name}.bootstrap-stage-", dir=final_target.parent))
+        try:
+            shutil.copytree(final_target, stage, dirs_exist_ok=True, symlinks=True, copy_function=shutil.copy2)
+            if policy["rocs_cli_vendored"]:
+                _vendor_installed(stage / "tools/rocs-cli")
+                if os.environ.get("ROCS_BOOTSTRAP_FAIL_AFTER") == "vendor":
+                    raise RuntimeError("injected failure after vendor")
+                manifest = stage / f"{ontology_root}manifest.yaml"
+                manifest.parent.mkdir(parents=True, exist_ok=True)
+                if not manifest.exists():
+                    layer_path = "src" if repo_class == "ontology_repo" else "ontology/src"
+                    manifest.write_text(
+                        f"rocs:\n  layers:\n    - name: repo\n      path: {layer_path}\n  profiles:\n    default: repo-dev\n    repo-dev:\n      include_layers: [repo]\n",
+                        "utf-8",
+                    )
+                system4d = stage / f"{ontology_root}src/system4d.yaml"
+                system4d.parent.mkdir(parents=True, exist_ok=True)
+                if not system4d.exists():
+                    system4d.write_text("system4d: {}\n", "utf-8")
+                ci = stage / "scripts/ci/full.sh"
+                ci.parent.mkdir(parents=True, exist_ok=True)
+                lock_digest = hashlib.sha256((stage / "tools/rocs-cli/VENDORED_HASHES.json").read_bytes()).hexdigest()
+                ci.write_text(_CI_WRAPPER.replace(_VENDORED_LOCK_DIGEST_TOKEN, lock_digest), "utf-8")
+                ci.chmod(0o755)
+                hook = stage / ".githooks/pre-push"
+                hook.parent.mkdir(parents=True, exist_ok=True)
+                profile = "main-strict" if policy["gate_mode"] == "strict" else "local-dev"
+                hook.write_text(
+                    f'#!/bin/sh\nset -eu\nPATH=/usr/local/bin:/usr/bin:/bin; export PATH\nunset PYTHONPATH\nrepo="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"\n'
+                    f'export ROCS_REPO="${{ROCS_REPO:-$repo}}"\n'
+                    f'export ROCS_CI_PROFILE="${{ROCS_CI_PROFILE:-{profile}}}"\n'
+                    f'cd "$repo"\nexec scripts/ci/full.sh\n',
                     "utf-8",
                 )
-            system4d = stage / "ontology/src/system4d.yaml"
-            system4d.parent.mkdir(parents=True, exist_ok=True)
-            if not system4d.exists():
-                system4d.write_text("system4d: {}\n", "utf-8")
-            ci = stage / "scripts/ci/full.sh"
-            ci.parent.mkdir(parents=True, exist_ok=True)
-            ci.write_text(_CI_WRAPPER, "utf-8")
-            ci.chmod(0o755)
-            hook = stage / ".githooks/pre-push"
-            hook.parent.mkdir(parents=True, exist_ok=True)
-            profile = "main-strict" if policy["gate_mode"] == "strict" else "local-dev"
-            hook.write_text(
-                f'#!/bin/sh\nROCS_CI_PROFILE={profile} exec scripts/ci/full.sh\n', "utf-8"
-            )
-            hook.chmod(0o755)
-            (hook.parent / "README.md").write_text(
-                "Managed ROCS local gate. Run `git config core.hooksPath .githooks`.\n", "utf-8"
-            )
-        for rel in legacy:
-            _remove_path(stage / rel)
-        if os.environ.get("ROCS_BOOTSTRAP_FAIL_AFTER") == "managed":
-            raise RuntimeError("injected failure after managed writes")
-        if policy["rocs_cli_vendored"]:
-            ok, errors = verify_vendored_hashes(stage / "tools/rocs-cli")
-            if not ok:
-                raise RuntimeError("staged bootstrap verification failed: " + "; ".join(errors))
-        _publish_sibling(stage, final_target, fail_point=os.environ.get("ROCS_BOOTSTRAP_FAIL_AFTER"))
+                hook.chmod(0o755)
+                (hook.parent / "README.md").write_text(
+                    "Managed ROCS local gate. Run `git config core.hooksPath .githooks`.\n", "utf-8"
+                )
+            for rel in legacy:
+                _remove_path(stage / rel)
+            if os.environ.get("ROCS_BOOTSTRAP_FAIL_AFTER") == "managed":
+                raise RuntimeError("injected failure after managed writes")
+            if policy["rocs_cli_vendored"]:
+                ok, errors = verify_vendored_hashes(stage / "tools/rocs-cli")
+                if not ok:
+                    raise RuntimeError("staged bootstrap verification failed: " + "; ".join(errors))
+            _publish_sibling(stage, final_target, fail_point=os.environ.get("ROCS_BOOTSTRAP_FAIL_AFTER"))
+        finally:
+            _remove_path(stage)
     finally:
-        _remove_path(stage)
+        lock_file.close()
     return result
 
 

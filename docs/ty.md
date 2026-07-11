@@ -51,8 +51,8 @@ Notes:
 - Keep config minimal; add strictness only when it pays.
 - Don’t bake secrets or absolute paths into config.
 
-## CI wiring
-GitLab CI runs:
+## Gate posture
+The canonical repository gate is local `scripts/ci/full.sh`; there is no remote CI authority. `ty` remains an optional explicit local check because `uvx` may require a populated cache or network access:
 
 ```bash
 uvx ty==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ty"])') check src/rocs_cli

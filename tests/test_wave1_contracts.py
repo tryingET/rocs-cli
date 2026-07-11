@@ -5,6 +5,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -89,6 +90,17 @@ class Wave1ContractTests(unittest.TestCase):
                 self.assertEqual(snapshot, sorted((p.relative_to(repo), p.read_bytes()) for p in repo.rglob("*") if p.is_file()))
                 self.assertEqual((first["class"], second["operation"]), (repo_class, "converge"))
 
+    def test_installed_bootstrap_seed_tracks_release_identity(self) -> None:
+        from rocs_cli import __version__
+
+        root = Path(__file__).resolve().parents[1]
+        assets = root / "src/rocs_cli/_bootstrap_assets"
+        seed_lock = (assets / "uv.lock").read_text("utf-8")
+        root_lock = (root / "uv.lock").read_text("utf-8")
+        normalize_header = lambda text: re.sub(r'(?m)^exclude-newer = .+$', 'exclude-newer = "<normalized>"', text)
+        self.assertEqual(normalize_header(seed_lock), normalize_header(root_lock))
+        self.assertIn(f'version = "{__version__}"', (assets / "pyproject.toml").read_text("utf-8"))
+
     def test_vendor_dry_run_version_and_target_boundaries(self) -> None:
         from rocs_cli.wave1 import vendor
 
@@ -99,6 +111,11 @@ class Wave1ContractTests(unittest.TestCase):
             result = vendor(root, target, version="9.8.7-test", dry_run=True)
             self.assertEqual(result["version"], "9.8.7-test")
             self.assertFalse(target.exists())
+            vendor(root, target, version="9.8.7-test")
+            self.assertIn('version = "9.8.7-test"', (target / "pyproject.toml").read_text("utf-8"))
+            self.assertIn('name = "rocs-cli"\nversion = "9.8.7-test"', (target / "uv.lock").read_text("utf-8"))
+            manifest = json.loads((target / "VENDORED_HASHES.json").read_text("utf-8"))
+            self.assertEqual(manifest["upstream_version"], "9.8.7-test")
             with self.assertRaises(ValueError):
                 vendor(root, root / "nested-artifact", dry_run=True)
 

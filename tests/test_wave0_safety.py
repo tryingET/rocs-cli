@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 from rocs_cli.capabilities import CAPABILITY_NAMES, CAPABILITY_REGISTRY_VERSION, CLASS_REQUIREMENTS, class_policy
+from rocs_cli.wave1 import bootstrap
 
 ROOT = Path(__file__).resolve().parents[1]
 FULL = ROOT / "scripts/ci/full.sh"
@@ -86,6 +87,11 @@ class TestWave0Safety(unittest.TestCase):
                 )
                 self.assertNotEqual(proc.returncode, 0)
                 self.assertEqual(tree_fingerprint(repo), before)
+                preview = bootstrap(repo, "required", dry_run=True)
+                self.assertEqual(preview["coordination_paths"], [])
+                lock = Path(preview["external_coordination_paths"][0])
+                self.assertTrue(lock.is_file())
+                self.assertEqual(stat.S_IMODE(lock.stat().st_mode), 0o644)
 
     def test_bootstrap_rejects_managed_symlink_without_touching_target(self) -> None:
         with tempfile.TemporaryDirectory() as td:
