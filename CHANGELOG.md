@@ -37,5 +37,6 @@ read_when:
 - Hardened ROCS manifest layer parsing so each layer must declare exactly one of `path` or `ref`.
 
 ### Fixed
+- Repository and generated FCOS gate commands use frozen dependency resolution, so deterministic validation no longer normalizes the intentional `uv.lock` snapshot as a side effect.
 - `rocs vendor` rejects targets that overlap the source package tree, preventing recursive self-copy behavior.
 - Authority receipt lock handling no longer triggers a `return`-in-`finally` warning during compilation.

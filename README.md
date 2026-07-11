@@ -9,6 +9,19 @@ read_when:
 
 Minimal ROCS CLI for ai-society.
 
+## Agent quick start
+
+Do not assume `rocs` is globally installed. From this source checkout run
+`uv run --frozen python -m rocs_cli ...`. In a consumer repository prefer its
+checked-in `./scripts/rocs.sh ...`; a bootstrapped consumer's deterministic
+acceptance entrypoint is `./scripts/ci/full.sh`.
+
+Run the selected launcher with `contracts` (for example,
+`./scripts/rocs.sh contracts`) before automating an unfamiliar operation: schema
+3 declares its conditional filesystem effects, required authority artifacts, and
+observable exit codes. For ontology retrieval, prefer `summary`, `pack`, `rules`,
+and `explain` over reading an entire ontology source tree.
+
 Commands:
 - `rocs version`
 - `rocs constitution` → `validate|challenge|differential|mutate` (proposal-only; never activates rules)
@@ -86,7 +99,7 @@ Graph export:
 - For `excalidraw-cli` (external): use `--format excalidraw-cli-json`, then run `excalidraw-cli create <file> -o graph.excalidraw`.
 
 Tests:
-- `uv run python -m unittest discover -s tests -p 'test_*.py' -q`
+- `uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q`
 
 CI profile wrapper (template-side policy contract):
 - Script: `scripts/ci/full.sh`
@@ -102,7 +115,7 @@ CI profile wrapper (template-side policy contract):
 - `ontology_repo` consumers use root `manifest.yaml` and `src/`; required/optional consumers retain the nested `ontology/` layout. Generated hooks resolve the repository from their installed path, matching Git's real hook invocation contract.
 - See `docs/ref-resolution-ci-strategy.md` for the architecture/policy rationale and migration guidance.
 - Optional overrides:
-  - `ROCS_CMD` (default: `uv run python -m rocs_cli`)
+  - `ROCS_CMD` (default: `uv run --frozen python -m rocs_cli`)
   - `ROCS_REPO` (default: `.`)
   - `ROCS_PROFILE` (optional manifest profile)
 
@@ -130,7 +143,7 @@ Wave 1 convergence CLI (the former script API was removed with no shims):
 YAML tooling (optional, for shell-level policy inspection):
 - Runtime YAML parsing in `rocs-cli` is already provided by `pyyaml`.
 - Install CLI helpers via extras: `uv sync --extra tooling`
-- Run query helper: `uv run --extra tooling yq --version`
+- Run query helper: `uv run --frozen --extra tooling yq --version`
 
 Perf harness (synthetic, offline):
 - `rocs benchmark --command build --count 600 --runs 7`

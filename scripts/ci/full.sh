@@ -10,12 +10,12 @@ set -euo pipefail
 ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"
 ROCS_REPO="${ROCS_REPO:-.}"
 ROCS_PROFILE="${ROCS_PROFILE:-}"
-ROCS_CMD="${ROCS_CMD:-uv run python -m rocs_cli}"
+ROCS_CMD="${ROCS_CMD:-uv run --frozen python -m rocs_cli}"
 workspace_root="${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}"
 workspace_ref_mode="${ROCS_WORKSPACE_REF_MODE:-}"
 
 if [[ -f "$ROCS_REPO/pyproject.toml" ]] && grep -q '^name = "rocs-cli"$' "$ROCS_REPO/pyproject.toml"; then
-  uv run --project "$ROCS_REPO" python -m unittest discover -s "$ROCS_REPO/tests" -p 'test_*.py' -q
+  uv run --frozen --project "$ROCS_REPO" python -m unittest discover -s "$ROCS_REPO/tests" -p 'test_*.py' -q
   exit 0
 fi
 

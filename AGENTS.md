@@ -18,10 +18,16 @@ Remote workflow:
 - If remote coordination is needed later, document the replacement workflow explicitly instead of reintroducing GitLab assumptions.
 
 Local dev:
-- `uv run python -m rocs_cli --help`
-- `uv run python -m unittest discover -s tests -p 'test_*.py' -q` (includes README↔CLI wiring check)
-- Optional YAML CLI tooling (`yq`): `uv sync --extra tooling && uv run --extra tooling yq --version`
-- Release version (SemVer): `uv run python -m rocs_cli release plan|apply --version <version>`
+- `uv run --frozen python -m rocs_cli --help`
+- `uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q` (includes README↔CLI wiring check)
+- Optional YAML CLI tooling (`yq`): `uv sync --extra tooling && uv run --frozen --extra tooling yq --version`
+- Release version (SemVer): `uv run --frozen python -m rocs_cli release plan|apply --version <version>`
+
+Agent/operator use:
+- Do not assume `rocs` is installed on `PATH`. In this checkout use `uv run --frozen python -m rocs_cli ...`.
+- In a consumer repository prefer its checked-in `./scripts/rocs.sh ...`; if it has only the bootstrapped gate, use `./scripts/ci/full.sh` for acceptance.
+- Run `... contracts` before automating an unfamiliar command or reasoning about its conditional filesystem effects and required authority artifacts.
+- Use `summary`, `pack`, `rules`, and `explain` for bounded retrieval instead of loading an ontology tree into context.
 
 When changing generated CI/template surfaces:
 - validate both fresh bootstrap and rerun-on-existing-repo convergence

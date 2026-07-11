@@ -487,7 +487,7 @@ class TestWorkspaceResolution(unittest.TestCase):
             ws = td_path / "ws"
             _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=False)
 
-            with _Env(ROCS_CI_PROFILE="branch-ci", ROCS_REPO=str(repo), ROCS_WORKSPACE_ROOT=str(ws), ROCS_CMD="uv run python -m rocs_cli"):
+            with _Env(ROCS_CI_PROFILE="branch-ci", ROCS_REPO=str(repo), ROCS_WORKSPACE_ROOT=str(ws), ROCS_CMD="uv run --frozen python -m rocs_cli"):
                 proc = subprocess.run(
                     ["bash", "scripts/ci/full.sh"],
                     check=False,
@@ -509,7 +509,7 @@ class TestWorkspaceResolution(unittest.TestCase):
             repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
             _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=False)
 
-            with _Env(HOME=str(home), ROCS_CI_PROFILE="branch-ci", ROCS_REPO=str(repo), ROCS_CMD="uv run python -m rocs_cli"):
+            with _Env(HOME=str(home), ROCS_CI_PROFILE="branch-ci", ROCS_REPO=str(repo), ROCS_CMD="uv run --frozen python -m rocs_cli"):
                 proc = subprocess.run(
                     ["bash", "scripts/ci/full.sh"],
                     check=False,
@@ -531,7 +531,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                 ROCS_CI_PROFILE="branch-ci",
                 ROCS_REPO=str(repo),
                 ROCS_WORKSPACE_ROOT=str(ws),
-                ROCS_CMD="uv run python -m rocs_cli",
+                ROCS_CMD="uv run --frozen python -m rocs_cli",
             ):
                 proc = subprocess.run(
                     ["bash", "scripts/ci/full.sh"],
@@ -551,7 +551,7 @@ class TestWorkspaceResolution(unittest.TestCase):
             with _Env(
                 ROCS_CI_PROFILE="local-dev",
                 ROCS_REPO=str(repo),
-                ROCS_CMD="uv run python -m rocs_cli",
+                ROCS_CMD="uv run --frozen python -m rocs_cli",
             ):
                 proc = subprocess.run(
                     ["bash", "scripts/ci/full.sh"],
@@ -579,7 +579,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                 ROCS_LOCAL_RESOLVE_REFS="1",
                 ROCS_REPO=str(repo),
                 ROCS_WORKSPACE_ROOT=str(ws),
-                ROCS_CMD="uv run python -m rocs_cli",
+                ROCS_CMD="uv run --frozen python -m rocs_cli",
             ):
                 proc = subprocess.run(
                     ["bash", "scripts/ci/full.sh"],

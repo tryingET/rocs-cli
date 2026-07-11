@@ -28,7 +28,7 @@ class TestFcosGateHelpers(unittest.TestCase):
         hook = render_pre_push_hook("advisory")
 
         self.assertIn('export ROCS_CI_PROFILE="${ROCS_CI_PROFILE:-local-dev}"', hook)
-        self.assertIn('export ROCS_CMD="${ROCS_CMD:-uv run --project ./tools/rocs-cli python -m rocs_cli}"', hook)
+        self.assertIn('export ROCS_CMD="${ROCS_CMD:-uv run --frozen --project ./tools/rocs-cli python -m rocs_cli}"', hook)
         self.assertIn("bash scripts/ci/full.sh", hook)
 
         evidence = hook_contract_evidence(hook)
