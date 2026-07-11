@@ -164,6 +164,11 @@ with `rocs contracts`: `fleet observe|plan|apply|run`, `bootstrap`, `converge`,
 `generate`. Core behavior is importable from `rocs_cli.fleet`,
 `rocs_cli.wave1`, and `rocs_cli.generator`.
 
+The emitted command contract is schema 3: the former `mutates` boolean was
+removed without a compatibility shim and replaced by closed conditional
+filesystem-effect and required-authority-artifact rules. See
+[`docs/project/wave7-effects-contract-coverage.md`](docs/project/wave7-effects-contract-coverage.md).
+
 A consumer is pinned by `VENDORED_HASHES.json` schema 2. `rocs vendor TARGET`
 publishes the complete package and lock; `rocs verify TARGET` checks identity and
 every locked byte. It does not depend on a sibling checkout or workspace PATH.

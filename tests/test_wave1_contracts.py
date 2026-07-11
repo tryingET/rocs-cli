@@ -14,7 +14,7 @@ import unittest
 from pathlib import Path
 
 from rocs_cli.cli import build_parser, cmd_contracts
-from rocs_cli.contracts import command_contract
+from rocs_cli.contracts import COMMANDS, RUNTIME_FACT_KEYS, command_contract, evaluate_effects
 
 
 class Wave1ContractTests(unittest.TestCase):
@@ -31,8 +31,11 @@ class Wave1ContractTests(unittest.TestCase):
                 operations.add(name)
         self.assertEqual(set(first["commands"]), operations)
         self.assertEqual(list(first["commands"]), sorted(first["commands"]))
-        first["commands"]["fleet.observe"]["mutates"] = True
-        self.assertFalse(command_contract()["commands"]["fleet.observe"]["mutates"])
+        first["commands"]["fleet.observe"]["effect_rules"][0]["effect"] = "ontology"
+        self.assertEqual(command_contract()["commands"]["fleet.observe"]["effect_rules"][0]["effect"], "artifact")
+        for declaration in command_contract()["commands"].values():
+            self.assertIn(2, declaration["exit_codes"])
+            self.assertNotIn("mutates", declaration)
 
     def test_contract_command_emits_verified_identity(self) -> None:
         output = io.StringIO()
@@ -41,6 +44,78 @@ class Wave1ContractTests(unittest.TestCase):
         payload = json.loads(output.getvalue())
         self.assertEqual(payload["tool"]["name"], "rocs-cli")
         self.assertRegex(payload["tool"]["version"], r"^\d+\.\d+\.\d+")
+
+    def test_schema_three_closes_effects_and_preserves_proposal_authority_separation(self) -> None:
+        contract = command_contract()
+        self.assertEqual(contract["schema_version"], 3)
+        self.assertEqual(contract["vocabulary"]["effects"],
+                         ["none", "artifact", "cache", "repository", "fleet", "ontology"])
+        for name in ("proposal.validate", "proposal.compile", "repair-market",
+                     "constitution.validate", "constitution.challenge", "constitution.differential", "constitution.mutate"):
+            effects = {rule["effect"] for rule in contract["commands"][name]["effect_rules"]}
+            self.assertNotIn("ontology", effects)
+            self.assertNotIn("repository", effects)
+        self.assertEqual({r["effect"] for r in contract["commands"]["transaction.rollback"]["effect_rules"]}, {"ontology"})
+        self.assertEqual(contract["commands"]["lint"]["effect_rules"],
+                         [{"effect": "cache", "condition": "runtime-feature",
+                           "feature": "index_cache_enabled", "enabled": True}])
+        self.assertIn({"effect": "ontology", "condition": "argument", "argument": "fix", "equals": True},
+                      contract["commands"]["check-inverses"]["effect_rules"])
+
+    def test_generic_declaration_evaluator_covers_every_condition_class(self) -> None:
+        facts = {key: False for key in RUNTIME_FACT_KEYS}
+        self.assertEqual(evaluate_effects("lint", {}, facts), ("none",))
+        self.assertEqual(evaluate_effects("proposal.compile", {}, facts), ("artifact",))
+        self.assertEqual(evaluate_effects("fleet.observe", {"json": None, "markdown": "-"}, facts), ("none",))
+        self.assertEqual(evaluate_effects("fleet.observe", {"json": "/tmp/report", "markdown": "-"}, facts), ("artifact",))
+        self.assertEqual(evaluate_effects("fleet.run", {"mode": "patch", "json": None}, facts), ("none",))
+        self.assertEqual(evaluate_effects("fleet.run", {"mode": "apply", "json": None}, facts), ("fleet",))
+        self.assertEqual(evaluate_effects("normalize", {"apply": False}, facts), ("none",))
+        self.assertEqual(evaluate_effects("normalize", {"apply": True}, facts), ("ontology",))
+        self.assertEqual(evaluate_effects("validate", {}, {**facts, "authority_receipt_enabled": True}), ("artifact",))
+        self.assertEqual(evaluate_effects("validate", {}, {**facts, "index_cache_enabled": True}), ("cache",))
+        self.assertEqual(evaluate_effects("benchmark", {}, {**facts, "index_cache_enabled": True}), ("artifact", "cache"))
+        with self.assertRaises(ValueError):
+            evaluate_effects("lint", {}, {"authority_receipt_enabled": False})
+        with self.assertRaises(TypeError):
+            COMMANDS["lint"]["effect_rules"][0]["effect"] = "ontology"
+        self.assertEqual(evaluate_effects("lint", {}, facts), ("none",))
+
+    def test_effect_rule_arguments_are_real_parser_destinations_and_modes(self) -> None:
+        parser = build_parser()
+        root = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
+        for operation, declaration in command_contract()["commands"].items():
+            parts = operation.split(".")
+            child = root.choices[parts[0]]
+            if len(parts) == 2:
+                nested = next(a for a in child._actions if isinstance(a, argparse._SubParsersAction))
+                child = nested.choices[parts[1]]
+            actions = {a.dest: a for a in child._actions}
+            for rule in declaration["effect_rules"]:
+                argument = rule.get("argument")
+                if argument:
+                    self.assertIn(argument, actions, operation)
+                if rule["condition"] == "mode":
+                    self.assertTrue(set(rule["values"]).issubset(set(actions[argument].choices)), operation)
+
+    def test_executable_resolve_conditional_effect_and_parser_exit(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        fixture = root / "tests/fixtures/standalone-consumer"
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            shutil.copytree(fixture, repo)
+            before = {p.relative_to(repo): p.read_bytes() for p in repo.rglob("*") if p.is_file()}
+            base = [sys.executable, "-m", "rocs_cli", "resolve", "--repo", str(repo), "--json"]
+            env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "ROCS_CACHE_DIR": str(Path(td) / "cache")}
+            result = subprocess.run(base, cwd=root, env=env, text=True, capture_output=True)
+            self.assertIn(result.returncode, command_contract()["commands"]["resolve"]["exit_codes"])
+            self.assertEqual(before, {p.relative_to(repo): p.read_bytes() for p in repo.rglob("*") if p.is_file()})
+            result = subprocess.run([*base, "--write-dist"], cwd=root, env=env, text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            writes = {p.relative_to(repo).as_posix() for p in repo.rglob("*") if p.is_file()} - {p.as_posix() for p in before}
+            self.assertEqual(writes, {"ontology/dist/resolve.json"})
+            rejected = subprocess.run([sys.executable, "-m", "rocs_cli", "resolve", "--bogus"], cwd=root, env=env)
+            self.assertEqual(rejected.returncode, 2)
 
     def test_fleet_protocol_rejects_unknown_operation(self) -> None:
         parser = build_parser()
