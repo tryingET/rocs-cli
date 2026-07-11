@@ -38,7 +38,7 @@ def _fsync_dir(path: Path) -> None:
 
 def _full_validate(stage: Path) -> None:
     try:
-        from rocs_cli.cli import _schema_validation_result
+        from rocs_cli.validation_service import _schema_validation_result
         from rocs_cli.repo_view import load_repo_view
         from rocs_cli.validate import validate_repo_structure
         view = load_repo_view(stage, profile=None, resolve_refs=True)

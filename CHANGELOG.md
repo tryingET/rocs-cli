@@ -21,6 +21,7 @@ read_when:
 - Schema-2 pinned self-contained consumer lock and isolated acceptance fixture.
 
 ### Changed
+- Wave 8 decomposes CLI handlers, validation support, and the monolithic CLI compatibility tests into focused size-bounded modules while preserving parser, output, exit, filesystem, console, and private-name compatibility.
 - **Breaking (Wave 7):** `rocs contracts` schema 3 removes `mutates` without a shim and declares executable, closed filesystem-effect conditions, runtime facts, required authority artifacts, and normalized global error exits for every operation.
 - **Breaking (Wave 6):** `ontology_repo` bootstrap now manages root `manifest.yaml` and `src/system4d.yaml`, never a nested `ontology/` tree. Generated gates verify the complete bundled lock before importing code and execute it with `python -S`; `local-dev` is path-only while `main-strict` and `branch-ci` resolve local refs strictly.
 - **Breaking (Wave 5):** transaction simulation and apply now reject permission-mode drift as well as byte drift, and receipt roots must be direct siblings of the ontology root so every pending journal can be reconciled under one bounded transaction lock before mutation.
