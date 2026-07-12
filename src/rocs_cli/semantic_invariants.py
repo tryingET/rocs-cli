@@ -117,7 +117,9 @@ def validate_invariants(
                 failures.append("no_candidates cardinality")
         elif not candidates:
             failures.append("nonempty retrieval cardinality")
-        if instance["retrieval"] == "ambiguous_equivalence" and (count is not None and count < 2 or len(candidates) < 2):
+        if instance["retrieval"] == "ambiguous_equivalence" and (
+            (count is not None and count < 2) or (count is None and len(candidates) < 2)
+        ):
             failures.append("ambiguous equivalence cardinality")
         if full is not None:
             ordered_full = sorted(full, key=lambda x: (-x["score"], x["ont_id"].encode(), 0 if x["kind"] == "concept" else 1))

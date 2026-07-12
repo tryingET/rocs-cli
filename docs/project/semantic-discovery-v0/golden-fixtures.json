@@ -5,7 +5,7 @@
     "corpus_snapshot_digest": "sha256:89493eb7b7fc4aa1fe78755487646c53c75503ca0603f4aeaf58a3c9d72edf10",
     "effective_execution_digest": "sha256:df567b6497e9650ac8b4a66f078fb8f17ab91833a06a7a0e1c71a4cf65e45b17",
     "pack_digest": "sha256:7b6c6faab3a21bbe1b16a4a8e5a101669c532abdab11fb39cdbe03bc8d661ef9",
-    "result_digest": "sha256:2b5beb61107add92bc0c298c67248cbdd494fceaee1f56a690d7a1d6a3998c97",
+    "result_digest": "sha256:0470ab3c71b868a7b8483ef31f03ad6e492a082ec7991bf4bb30dd4d54e70c87",
     "tool_identity_digest": "sha256:4a36256f4594bedc8a52da02fd6ab65e4042fd5d7a21f1f2f7023b5d3d97d0da"
   },
   "invalid": [
@@ -375,6 +375,11 @@
               "field": "description",
               "query_term": "authority",
               "rule": "token_exact"
+            },
+            {
+              "field": "example",
+              "query_term": "agent",
+              "rule": "token_exact"
             }
           ],
           "kind": "concept",
@@ -385,7 +390,7 @@
           ],
           "ont_id": "core.Agent",
           "rank": 1,
-          "score": 1100
+          "score": 1150
         }
       ],
       "corpus_snapshot_digest": "sha256:89493eb7b7fc4aa1fe78755487646c53c75503ca0603f4aeaf58a3c9d72edf10",
@@ -400,7 +405,7 @@
         "query_bytes": 16384,
         "result_bytes": 65536
       },
-      "result_digest": "sha256:2b5beb61107add92bc0c298c67248cbdd494fceaee1f56a690d7a1d6a3998c97",
+      "result_digest": "sha256:0470ab3c71b868a7b8483ef31f03ad6e492a082ec7991bf4bb30dd4d54e70c87",
       "retrieval": "unique_candidate",
       "schema": "semantic-discovery-result.v0",
       "tool_identity": {
