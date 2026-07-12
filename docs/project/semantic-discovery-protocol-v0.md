@@ -28,8 +28,9 @@ Lifecycle inputs:
 - [evidence note](semantic-preflight-evidence-note-v0.md)
 - [attempt-1 review synthesis requiring revision](semantic-preflight-review-synthesis-v0.md)
 - [attempt-2 review synthesis requiring revision](semantic-preflight-rereview-synthesis-v1.md)
+- [attempt-3 review synthesis requiring revision](semantic-preflight-review3-synthesis-v2.md)
 
-This revision responds to both syntheses; prior reviewed revisions remain immutable at commits `71a7fdc` and `c9591ba`.
+This revision responds to all three syntheses; prior reviewed revisions remain immutable at commits `71a7fdc`, `c9591ba`, and `71eba70`.
 
 The missing ROCS primitive is:
 
@@ -154,7 +155,7 @@ A future `semantic_release_coordinate` will point to an externally governed sema
 
 ### 3. Canonical encoding and hashes
 
-All protocol objects use RFC 8785 JSON Canonicalization Scheme with an additional closed restriction: numbers are non-negative integers only; duplicate keys, floats, invalid Unicode, and non-I-JSON values fail. UTF-8 is mandatory.
+Every schema is closed and rejects unknown or missing fields. All protocol objects use RFC 8785 JSON Canonicalization Scheme with an additional closed restriction: numbers are non-negative integers only; duplicate keys, floats, invalid Unicode, and non-I-JSON values fail. UTF-8 is mandatory.
 
 Every hash is lower-case `sha256:` plus 64 hexadecimal digits:
 
@@ -168,6 +169,7 @@ Closed domains are:
 rocs.caller-request.v0
 rocs.corpus-snapshot.v0
 rocs.document.v0
+rocs.tool-identity.v0
 rocs.effective-execution.v0
 rocs.discovery-result.v0
 rocs.pack.v0
@@ -176,11 +178,11 @@ rocs.pack.v0
 Closed digest preimages are:
 
 - caller request: the exact validated `semantic-discovery-request.v0` object;
-- corpus snapshot: `{schema, profile, roots[], resolved_refs[], entries[]}` where roots contain logical root IDs only, refs contain `{layer, locator, resolved_revision}`, and entries contain `{logical_path, layer, layer_order, kind, raw_byte_length, document_digest}`;
-- tool identity: `{kind, manifest_digest, python_version, unicode_data}` from the adapter-verified runtime;
-- effective execution: `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, algorithm, effective_limits}`;
-- result: every result field except `result_digest`;
-- pack: `{schema, corpus_snapshot_digest, root_id, root_document_digest, config, documents[]}` with each document carrying logical path and raw bytes encoded as a JSON string.
+- corpus snapshot: `{schema, profile, roots, resolved_refs, entries}`; each root is exactly `{root_id, layer, layer_order, kind}`, each ref exactly `{layer, layer_order, locator, resolved_revision}`, and each entry exactly `{logical_path, layer, layer_order, kind, raw_byte_length, document_digest}`;
+- tool identity: exactly `{kind, manifest_digest, python_version, unicode_data, digest}`, where `digest` uses `rocs.tool-identity.v0` over the first four fields;
+- effective execution: exactly `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, algorithm, effective_limits}`; `algorithm` is exactly `{id, unicode_data}` and `effective_limits` has exactly the eight request limit keys;
+- result: exactly `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, effective_execution_digest, algorithm, retrieval, candidates, effective_limits, truncated, result_digest}`; each candidate is exactly `{rank, ont_id, kind, layer, score, matched_query_tokens, evidence, document_digest}` and each evidence item exactly `{field, rule, query_token}` using closed enums;
+- pack: exactly `{schema, corpus_snapshot_digest, root_id, root_document_digest, config, documents, pack_digest}`; config is exactly `{max_depth, rel_types, include_relation_defs, max_docs, max_bytes}` and each document exactly `{ont_id, kind, logical_path, document_digest, text}`.
 
 Logical paths are NFC-normalized UTF-8 POSIX paths relative to a declared logical layer root; backslash, absolute paths, `.`/`..`, empty segments, and normalization collisions fail. Roots sort by layer order then root ID; refs sort by layer order; entries sort by logical-path UTF-8 bytes. Manifest/profile bytes are entries too. Digests always cover raw bytes; normalization is used only for retrieval.
 
@@ -208,7 +210,7 @@ A successful result contains the effective execution identity:
   "schema": "semantic-discovery-result.v0",
   "caller_request_digest": "sha256:...",
   "corpus_snapshot_digest": "sha256:...",
-  "tool_identity": {"kind": "development_runtime", "digest": "sha256:..."},
+  "tool_identity": {"kind":"development_runtime","manifest_digest":"sha256:...","python_version":"3.12.x","unicode_data":"15.0.0","digest":"sha256:..."},
   "effective_execution_digest": "sha256:...",
   "algorithm": {"id": "rocs-lexical-v0", "unicode_data": "15.0.0"},
   "retrieval": "multiple_candidates",
@@ -288,7 +290,7 @@ rocs pack <ont_id> --repo . --expected-snapshot-digest sha256:... \
 
 `discover-capabilities` is the negotiation owner and returns supported request/result/error/algorithm/Unicode/platform versions with effect `none`. Schema-3 `contracts` registers all operations and conditional effects; it does not carry protocol schemas.
 
-The bound pack mode verifies a fresh accepted snapshot and selected root digest before emitting `corpus_snapshot_digest`, `document_digest`, and `pack_digest`. A mismatch fails; adapter metadata cannot manufacture provenance. Existing unbound exact-ID pack may remain for explicit interactive use but is never valid automatic-preflight follow-up.
+The bound pack mode verifies a fresh accepted snapshot and selected root digest before emitting the closed pack envelope with `corpus_snapshot_digest`, `root_document_digest`, per-document `document_digest`, and `pack_digest`. A mismatch fails; adapter metadata cannot manufacture provenance. Existing unbound exact-ID pack may remain for explicit interactive use but is never valid automatic-preflight follow-up.
 
 Automatic production mode uses a prepared verified runtime and exact argv. The environment is exactly `HOME=<operator home>`, `PATH=/usr/bin:/bin`, `LANG=C.UTF-8`, `LC_ALL=C.UTF-8`, `PYTHONNOUSERSITE=1`, `PYTHONDONTWRITEBYTECODE=1`, `ROCS_WORKSPACE_ROOT=<explicit canonical workspace>`, `ROCS_WORKSPACE_REF_MODE=strict`, and no other inherited keys. It uses absolute interpreter/module paths, no implicit dotenv, and no ROCS cache or repository writes. Development-runtime preparation may write a disclosed external content-addressed cache during explicit TUI enablement; prompt-run discovery does not invoke `uv` or write that cache.
 
@@ -425,7 +427,7 @@ Blocked until a concrete AK decision coordinate accepts the separate semantic-re
 |---|---|---|---|---|---|
 | Pre-ADR | current behavior | none | unchanged | no implementation tasks | not applicable |
 | Development dogfood | ROCS candidate path only | development snapshot + prepared development runtime | TUI session opt-in only | post-ADR task required | disable session and remove staged cache |
-| Adopted canary | ROCS | accepted semantic coordinate + independently pinned runtime | named TUI canary only | later adoption decision + task | semantic N→N−1 and package/runtime rollback |
+| Adopted canary | ROCS | decision:53 semantic release coordinate + independently pinned runtime | named TUI canary only | decision:53 accepted + adoption receipt + named task | semantic N→N−1 when present, otherwise disable to current behavior; package/runtime rollback |
 | Explicit search default | ROCS | adopted identities | `ontology_inspect search` cutover only | evidence-gated task | restore prior package version |
 | Automatic preflight default | ROCS | adopted identities | separate decision/evidence gate | separately linked task | disable feature/package rollback |
 | Fleet | ROCS | fleet policy | separately authorized | rollout tasks | policy rollback plus pinned prior generations |

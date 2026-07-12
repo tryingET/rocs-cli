@@ -137,7 +137,7 @@ Neither rollback may rewrite historical receipts.
 
 ## Discovery relationship
 
-Decision `52` may accept development-only discovery architecture independently. Production `release_capsule`/`semantic_release_coordinate` support remains rejected until this decision reaches ADR acceptance and post-ADR planning.
+Decision `52` may accept development-only discovery architecture independently. Production `semantic_release_coordinate` support remains rejected until this decision reaches ADR acceptance and post-ADR planning.
 
 ## Options considered
 
