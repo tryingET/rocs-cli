@@ -11,6 +11,8 @@ status: "proposed"
 
 ## Evidence basis
 
+This note supports the [problem brief](semantic-preflight-problem-brief-v0.md) and [primary RFC](semantic-discovery-protocol-v0.md).
+
 The architecture was derived from targeted inspection of both owner repositories, installed Pi host documentation/runtime types, current package tests, and two independent adversarial review passes.
 
 Session JSONL reconstruction was not needed: the compacted session context plus repository and host sources contained the necessary claims, and every material architecture claim below was checked against an owner file or executable validation surface.

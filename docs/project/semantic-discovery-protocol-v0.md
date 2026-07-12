@@ -12,7 +12,7 @@ status: "proposed"
 
 ## Status and decision membrane
 
-This is a proposed ROCS product contract, not an adopted semantic release or cross-owner decision. R0–R2 may implement the independent discovery primitive. A Pi adapter may dogfood it only behind an explicit, session-scoped development gate that leaves current default behavior unchanged. Release identity, default adapter cutover, consumer adoption, fleet enablement, and mandatory enforcement remain gated by the separate **Semantic Release Capsule and Consumer Adoption Protocol v0** decision.
+This is a proposed ROCS product contract under `decision:52`, not an adopted semantic release or implementation authorization. Every R/P phase below is candidate post-ADR sequencing. No discovery implementation, Pi dogfood, task creation, default cutover, consumer adoption, fleet enablement, or mandatory enforcement is authorized until the applicable AK decision and post-ADR artifacts permit it. Production release identity and trust remain gated by a separately coordinateable Semantic Release Capsule and Consumer Adoption decision.
 
 ROCS owns deterministic retrieval, result integrity, bounded exact-ID packs, and executable command-effect contracts. It does not own ontology meaning, consumer desired state, AK task intent, Pi prompt authority, or model conclusions.
 
@@ -21,6 +21,14 @@ ROCS owns deterministic retrieval, result integrity, bounded exact-ID packs, and
 ROCS can retrieve an exact ontology ID with `pack`, but an agent beginning with ordinary task language does not know that ID. `pi-ontology-workflows` currently compensates by running `rocs build`, reading generated artifacts, and ranking documents in TypeScript. That creates two retrieval authorities, writes build artifacts during search, and cannot produce a portable, replayable discovery result.
 
 The companion Pi-side architecture is [Pi Semantic Preflight Adapter v0](../../../../softwareco/owned/pi-extensions/packages/pi-ontology-workflows/docs/project/semantic-preflight-adapter-v0.md). This RFC is the primary decision artifact; the companion is a required reviewed input for the cross-repo decision.
+
+Lifecycle inputs:
+
+- [problem brief](semantic-preflight-problem-brief-v0.md)
+- [evidence note](semantic-preflight-evidence-note-v0.md)
+- [attempt-1 review synthesis requiring revision](semantic-preflight-review-synthesis-v0.md)
+
+This revision responds to that synthesis; its prior reviewed revision remains immutable at commit `71a7fdc`.
 
 The missing ROCS primitive is:
 
@@ -57,7 +65,7 @@ Approve as the target architecture:
 2. Pi owns only session readiness, bounded invocation, state projection, and safe structural rendering.
 3. Exact-ID `pack` remains the explicit full-content retrieval step.
 4. Development dogfood is session-scoped opt-in; default cutover waits for release/adoption authority.
-5. The later Semantic Release Capsule decision supplies the production identity and tool-distribution trust root.
+5. A later, concretely referenced AK decision supplies production semantic-release identity, ROCS distribution trust, consumer adoption, and their distinct owner facts before any production cutover.
 
 ## Controlled-vocabulary preflight
 
@@ -67,10 +75,15 @@ Approve as the target architecture:
 | `semantic-discovery-result.v0` | protocol schema identifier | ROCS | proposed | code/schema contract after ADR |
 | `rocs-lexical-v0` | algorithm identifier | ROCS | proposed | executable contract after ADR |
 | `development_snapshot` | identity variant | ROCS | proposed, unreleased | no ontology promotion implied |
-| `release_capsule` | cross-owner identity reference | semantic release owner | reserved dependency | governed by the separate release-capsule decision |
+| `release_capsule` | reserved coordinate name only | future semantic-release owner decision | not implemented by this decision | semantic reference and retrieval source remain intentionally unresolved |
 | `matched`, `ambiguous`, `no_match`, `not_applicable`, `unavailable` | adapter outcome projection | Pi adapter | proposed | adapter contract, not ontology vocabulary |
 
-This preflight classifies owner and use. It does not mutate ROCS ontology, AK vocabulary, Prompt Vault, or Pi runtime authority.
+| `no_candidates`, `unique_candidate`, `multiple_candidates`, `ambiguous_equivalence`, `low_confidence` | retrieval-state enum | ROCS | proposed | executable protocol contract after ADR |
+| `ok`, `unavailable`, `timeout`, `incompatible`, `resource_exhausted` | invocation-state enum | Pi adapter | proposed | adapter projection after ADR |
+| `applicable`, `not_applicable`, `unknown` | applicability-state enum | Pi adapter | proposed | adapter projection after ADR |
+| `adopted_runtime`, `development_runtime` | runner identity kind | Pi adapter | proposed | production variant gated by later adoption decision |
+
+Retrieval source for proposed ROCS tokens is this RFC and, after acceptance, the executable protocol/capability fixtures. No ontology semantic reference is claimed for machine protocol enums. This preflight classifies owner and use; it does not mutate ROCS ontology, AK vocabulary, Prompt Vault, or Pi runtime authority.
 
 ## Non-goals
 
@@ -100,16 +113,13 @@ Protocol v0 does not:
 
 ### 1. Discovery request
 
-A caller supplies a closed request containing an identity selector rather than a circular computed identity:
+A caller supplies closed canonical JSON through `rocs discover --request-json -`. `--request-file <path>` is allowed only for explicit interactive use; stdin and file are mutually exclusive. V0 has no convenience flags, eliminating precedence ambiguity.
 
 ```json
 {
   "schema": "semantic-discovery-request.v0",
   "query": "ordinary task language",
-  "identity_selector": {
-    "kind": "release_capsule",
-    "digest": "sha256:..."
-  },
+  "identity_selector": {"kind": "development_snapshot"},
   "profile": "review",
   "algorithm": "rocs-lexical-v0",
   "limits": {
@@ -117,153 +127,161 @@ A caller supplies a closed request containing an identity selector rather than a
     "corpus_files": 5000,
     "corpus_bytes": 33554432,
     "file_bytes": 1048576,
+    "parser_depth": 32,
+    "collection_items": 10000,
     "candidates": 12,
     "result_bytes": 65536
   }
 }
 ```
 
-For development mode the selector is `{"kind":"development_snapshot"}` with no caller-supplied snapshot digest. After capture, ROCS emits an `effective_request` containing the resolved semantic identity and effective limits. `caller_request_digest` covers canonical caller-request JSON with no digest field; `effective_request_digest` covers canonical effective-request JSON with no digest field. The result digest covers the final result with `result_digest` omitted. Unknown fields and unsupported schema or algorithm versions fail explicitly.
+`release_capsule` is reserved but rejected as `unsupported_identity` until a later AK decision defines its coordinate and owner. Unknown fields and unsupported versions fail explicitly.
 
-### 2. Semantic identity
+### 2. Separate identity domains
 
-Identity is a tagged union from the first implementation slice:
+V0 never overloads one semantic digest:
+
+| Identity | Covers | Does not cover |
+|---|---|---|
+| `corpus_snapshot_digest` | canonical manifest of every considered manifest/profile/document raw byte string, logical path, layer order, and resolved ref fact | query, algorithm, tool, limits, ranking |
+| `document_digest` | one exact raw ontology-document byte string | logical path or ranking |
+| `tool_identity` | immutable ROCS executable/source generation selected by the adapter | ontology corpus |
+| `effective_execution_digest` | caller request, corpus snapshot, tool identity, algorithm/Unicode version, effective limits | result candidates |
+| `result_digest` | complete successful result | its own digest field |
+| `pack_digest` | exact returned pack envelope and bytes | discovery result |
+
+A future `release_coordinate` will point to an externally governed semantic release and expected `corpus_snapshot_digest`; it will not attest ROCS executable bytes or consumer adoption. The existing intelligence `capsule_digest` remains unrelated.
+
+### 3. Canonical encoding and hashes
+
+All protocol objects use RFC 8785 JSON Canonicalization Scheme with an additional closed restriction: numbers are non-negative integers only; duplicate keys, floats, invalid Unicode, and non-I-JSON values fail. UTF-8 is mandatory.
+
+Every hash is lower-case `sha256:` plus 64 hexadecimal digits:
 
 ```text
-release_capsule      immutable, approved capsule identity
-
-development_snapshot unreleased local corpus; explicit opt-in only
+sha256(ASCII(domain) || 0x00 || canonical_or_raw_bytes)
 ```
 
-A development snapshot must be labeled `released: false` and bind:
+Closed domains are:
 
-- the raw bytes of every eligible document considered, not only returned candidates;
-- manifest/profile bytes and effective layer order;
-- logical layer names and paths without machine-local absolute paths;
-- resolved ref revision where available plus the actual considered bytes;
-- ROCS tool build identity;
-- request schema, algorithm, normalization, and Unicode-data versions;
-- resource-limit and truncation decisions.
+```text
+rocs.caller-request.v0
+rocs.corpus-snapshot.v0
+rocs.document.v0
+rocs.effective-execution.v0
+rocs.discovery-result.v0
+rocs.pack.v0
+```
 
-Scoring, evidence, and identity must derive from one immutable in-memory byte snapshot. ROCS must not score cached parsed content and digest a later filesystem read.
+The snapshot manifest sorts entries by logical-path UTF-8 bytes and records `{logical_path, layer, layer_order, kind, raw_byte_length, document_digest}`. Manifest/profile bytes are entries too. Digests always cover raw bytes; normalization is used only for retrieval.
 
-The existing intelligence `capsule_digest` is not a Semantic Release Capsule and must not be overloaded as one.
+### 4. Snapshot capture contract
 
-### 3. Discovery result
+V0 supports Linux, Python 3.12, Unicode data 15.0.0, and local case-sensitive filesystems providing stable `lstat`/`fstat` identity. Other environments return `incompatible`.
 
-On successful invocation, ROCS emits a closed result:
+Capture is a deterministic quiescent-snapshot proof, not a transactional filesystem snapshot:
+
+1. Resolve profile/layers without implicit `.env`; record logical roots and ref revisions.
+2. Enumerate manifests, profiles, and eligible ontology documents in UTF-8-byte path order.
+3. Reject symlinks, reparse-like aliases, non-regular files, root escape, duplicate logical paths/IDs, invalid UTF-8, and exceeded limits.
+4. Open with no-follow semantics; compare device, inode, size, `mtime_ns`, and `ctime_ns` before/after the one raw-byte read.
+5. Re-enumerate and recapture the entire generation immediately.
+6. Accept only when both canonical snapshot manifests and byte digests are identical; otherwise return `snapshot_changed`.
+
+Scoring, evidence, document digests, and later snapshot-bound pack retrieval use the accepted captured bytes. Parsed-cache content is forbidden in automatic mode.
+
+### 5. Discovery result
+
+A successful result contains the effective execution identity:
 
 ```json
 {
   "schema": "semantic-discovery-result.v0",
   "caller_request_digest": "sha256:...",
-  "effective_request_digest": "sha256:...",
-  "effective_request": {},
-  "semantic_identity": {
-    "kind": "development_snapshot",
-    "released": false,
-    "digest": "sha256:..."
-  },
-  "algorithm": {
-    "id": "rocs-lexical-v0",
-    "normalization": "nfkc-casefold-v0",
-    "unicode_data": "..."
-  },
+  "corpus_snapshot_digest": "sha256:...",
+  "tool_identity": {"kind": "development_runtime", "digest": "sha256:..."},
+  "effective_execution_digest": "sha256:...",
+  "algorithm": {"id": "rocs-lexical-v0", "unicode_data": "15.0.0"},
   "retrieval": "multiple_candidates",
-  "candidates": [
-    {
-      "rank": 1,
-      "ont_id": "core.Agent",
-      "kind": "concept",
-      "layer": "core",
-      "score": 1200,
-      "evidence": [
-        {"field": "label", "rule": "token_exact", "query_token": "agent"}
-      ],
-      "document_digest": "sha256:..."
-    }
-  ],
-  "limits": {},
+  "candidates": [{
+    "rank": 1,
+    "ont_id": "core.Agent",
+    "kind": "concept",
+    "layer": "core",
+    "score": 900,
+    "matched_query_tokens": ["agent"],
+    "evidence": [{"field": "label", "rule": "token_exact", "query_token": "agent"}],
+    "document_digest": "sha256:..."
+  }],
+  "effective_limits": {},
   "truncated": false,
   "result_digest": "sha256:..."
 }
 ```
 
-Allowed retrieval states are:
+Retrieval states are `no_candidates`, `unique_candidate`, `multiple_candidates`, `ambiguous_equivalence`, and `low_confidence`. They describe candidates, never truth.
 
-- `no_candidates`
-- `unique_candidate`
-- `multiple_candidates`
-- `ambiguous_equivalence`
-- `low_confidence`
+### 6. Consumer outcome projection
 
-These describe deterministic retrieval, not semantic truth. Several independently relevant candidates are not automatically ambiguity. ROCS does not emit `not_applicable` or `unavailable`: those belong to the consumer adapter.
-
-### 4. Consumer outcome projection
-
-Adapters may project the successful ROCS result and local invocation state into the agreed operator vocabulary:
-
-```text
-matched | ambiguous | no_match | not_applicable | unavailable
-```
-
-That projection must retain separate machine fields:
+Adapters retain separate machine dimensions:
 
 ```text
 invocation: ok | unavailable | timeout | incompatible | resource_exhausted
 applicability: applicable | not_applicable | unknown
-retrieval: <ROCS retrieval state or absent>
+retrieval: <ROCS state or absent>
+projection: matched | ambiguous | no_match | not_applicable | unavailable
 ```
 
-This avoids conflating process failure, caller policy, and retrieval. `not_applicable` must come from an explicit deterministic adapter rule or operator mode, never from lexical absence. `unavailable` must never be presented as `no_match`.
+`not_applicable` is adapter policy, never lexical absence. `unavailable` and exhaustion cannot become `no_match`.
 
-## Retrieval algorithm contract
+## Normative `rocs-lexical-v0` algorithm
 
-`rocs-lexical-v0` must be fully specified in code and golden fixtures before CLI exposure:
+1. Runtime Unicode data must equal `15.0.0` or invocation is incompatible.
+2. Normalize every string by NFKC, then Unicode casefold, then map every maximal run of Unicode whitespace to one ASCII space and trim.
+3. Tokens are maximal non-empty runs whose code points have Unicode general category starting `L` or `N`. Query tokens are deduplicated in first-occurrence order. Empty normalized query is `invalid_request`.
+4. Eligible fields are exact validated values only: `ont.id`, each `ont.labels[]`, each `ont.synonyms[]`, `ont.description`, each `ont.examples[]`, each `ont.anti_examples[]`, and validated relation type/target strings. Unknown or wrong-typed fields fail ontology validation before scoring.
+5. For each unique query token and field family, add the family weight once if that token is present as a complete field token: ID 500, label 400, synonym 350, description 100, relation 80, example 50. An anti-example token subtracts 200 after positive scoring. Scores clamp at zero and must fit unsigned 32-bit integer range.
+6. Add one phrase bonus when the complete normalized query equals a complete normalized value: ID 1000, label 800, synonym 700, description 200, relation 160, example 100. Anti-example exact phrase subtracts 400.
+7. Emit evidence in field-family order from step 5, then rule (`phrase_exact` before `token_exact`), then query-token first-occurrence order. Evidence contains enums and query tokens, never ontology prose.
+8. Candidates with score below 100 are excluded. Sort by score descending, ontology-ID UTF-8 bytes ascending, then kind (`concept` before `relation`).
+9. Compute retrieval over the full eligible set before top-K projection:
+   - none: `no_candidates`;
+   - all scores below 300: `low_confidence`;
+   - one candidate: `unique_candidate`;
+   - top two have equal score and identical matched-query-token sets: `ambiguous_equivalence`;
+   - otherwise: `multiple_candidates`.
+10. Apply top-K only after classification; set `truncated=true` when eligible candidates are omitted.
 
-1. Capture eligible bytes once under pre-parse file, per-file, and corpus limits.
-2. Parse only validated ontology fields.
-3. Normalize with an explicit algorithm and bind the Unicode data version.
-4. Tokenize deterministically; define punctuation, duplicate-token, phrase, and empty-query behavior.
-5. Score with non-negative integers and closed field/rule weights.
-6. Use evidence records with closed field/rule enums; never emit arbitrary matching snippets.
-7. Sort by score descending, then ontology ID UTF-8 bytes ascending, then kind.
-8. Apply closed confidence and equivalence rules.
-9. Serialize canonical UTF-8 JSON and compute `result_digest` after all effective limits are represented.
+Metamorphic fixtures must prove enumeration-order invariance, top-K monotonicity, locale/environment invariance, one-byte mutation identity drift, equivalent canonical requests, and Python-producer/TypeScript-verifier equality.
 
-Filesystem eligibility is closed: regular files only; no symlinks or root escape; no duplicate logical paths or semantic IDs; strict UTF-8; bounded parser depth/collection sizes; and stable pre/post metadata checks around each one-read capture. Any change during capture fails the invocation rather than combining generations.
+## Limits and errors
 
-Initial scored fields may include:
+All limit fields are required with the defaults shown above; caller values may only lower them. Query bytes are measured on raw UTF-8 input. Corpus bytes include manifest/profile/document raw bytes. Result bytes measure canonical result with `result_digest` omitted; fixed-envelope overflow fails.
 
-- ontology ID;
-- labels;
-- synonyms;
-- description;
-- examples and anti-examples;
-- relation targets and types where validated.
+Query, corpus, file, parser, collection, and result excess return `resource_exhausted`; candidate count alone truncates. The machine error envelope is closed:
 
-The result may reveal that a field matched, but automatic prompt adapters must not copy arbitrary field values into a system prompt.
+```json
+{"ok":false,"error":{"schema":"rocs-error.v0","kind":"incompatible|invalid_request|invalid_ontology|resource_exhausted|snapshot_changed|unsupported_identity|internal","message":"fixed safe text","caller_request_digest":"sha256:... or null"}}
+```
 
-## Command architecture
+Errors are JSON on stdout in machine mode, diagnostics only on stderr, and exit `1`; no partial result is valid. Caller wall-clock timeout remains a Pi invocation state, not a ROCS result.
 
-Add one top-level operation:
+## Command and capability architecture
+
+Candidate post-ADR operations:
 
 ```text
-rocs discover --repo . --query <text> [resolution selectors] \
-  [--identity release|development] [--json] [closed limits]
+rocs discover-capabilities --json
+rocs discover --repo . --request-json - --json --no-index-cache --no-env-file
+rocs pack <ont_id> --repo . --expected-snapshot-digest sha256:... \
+  --expected-document-digest sha256:... --json --no-index-cache --no-env-file
 ```
 
-Properties:
+`discover-capabilities` is the negotiation owner and returns supported request/result/error/algorithm/Unicode/platform versions with effect `none`. Schema-3 `contracts` registers all operations and conditional effects; it does not carry protocol schemas.
 
-- output is JSON by default for machine adapters; human text is a deterministic projection;
-- no artifact output in v0;
-- no `build` prerequisite;
-- no model or proposal adapter;
-- exact-ID `pack` remains a separate command;
-- automatic Pi preflight invokes discovery with cache disabled;
-- interactive tools may permit the already-declared conditional cache effect.
+The bound pack mode verifies a fresh accepted snapshot and selected root digest before emitting `corpus_snapshot_digest`, `document_digest`, and `pack_digest`. A mismatch fails; adapter metadata cannot manufacture provenance. Existing unbound exact-ID pack may remain for explicit interactive use but is never valid automatic-preflight follow-up.
 
-Schema-3 `contracts` registers the operation and its conditional effects. Request/result/algorithm versions are separate protocol identifiers unless a later decision deliberately bumps the command-contract schema to advertise protocol negotiation.
+Automatic production mode uses a prepared verified runtime, `python -B`, the exact argv above, a closed environment, no implicit dotenv, and no ROCS cache or repository writes. Development-runtime preparation may write a disclosed external content-addressed cache during explicit TUI enablement; prompt-run discovery does not invoke `uv` or write that cache.
 
 ### Internal modules
 
@@ -341,7 +359,7 @@ The ROCS slice is complete only when:
 
 - parser operations and schema-3 contracts remain exactly closed;
 - request/result schemas reject unknown fields and unsupported versions;
-- golden outputs match across supported Python runtimes, locales, corpus order, and cache state;
+- golden outputs match across supported Python 3.12/Unicode 15.0.0 environments, locales, corpus order, and cache state;
 - scoring, evidence, and identity use the same captured bytes;
 - hard query, file, corpus, candidate, parser, and result limits and their reject-versus-truncate rules are proven;
 - symlink, root-escape, duplicate-path/ID, invalid-UTF-8, mid-capture-change, and parser-amplification fixtures fail closed;
@@ -349,15 +367,17 @@ The ROCS slice is complete only when:
 - ambiguity and multi-intent fixtures never auto-select an ID;
 - unavailable, incompatible, and exhausted states cannot become `no_candidates`;
 - adversarial text cannot escape into structural result fields;
-- existing exact-ID `pack`, intelligence membrane, and transaction behavior remain unchanged.
+- existing unbound exact-ID `pack`, intelligence membrane, and transaction behavior remain non-regressed while bound-pack mode is additive.
 
-## Implementation sequence
+## Candidate post-ADR implementation sequence
+
+This section is proposal detail only. It is not an AK `implementation_plan` artifact and authorizes no task or mutation before ADR and post-ADR planning.
 
 ### R0 — Contract fixtures
 
 - Freeze request/result examples and invalid fixtures.
-- Specify `rocs-lexical-v0` weights, normalization, thresholds, and byte ordering.
-- Contract the release/development identity union even though release production is deferred.
+- Encode the reviewed `rocs-lexical-v0`, canonicalization, errors, limits, and byte ordering as independent fixtures.
+- Implement only `development_snapshot`; keep the production release coordinate rejected/reserved.
 - Add adversarial corpora and cross-runtime golden test harness.
 
 ### R1 — Pure discovery core
@@ -368,26 +388,39 @@ The ROCS slice is complete only when:
 
 ### R2 — CLI and executable effects
 
-- Add `discover` parser and handler.
-- Add schema-3 command registration with truthful conditional cache behavior.
+- Add `discover-capabilities`, `discover`, and bound-pack parser/handlers.
+- Add schema-3 registrations with truthful effects.
 - Ensure automatic mode disables cache and implicit environment loading.
 - Add parser parity, JSON error, filesystem invariance, and compatibility tests.
 
 ### R3 — Opt-in Pi adapter dogfood
 
 - Publish exact protocol fixtures for the Pi port.
-- Add development discovery only behind an explicit session-scoped operator gate.
+- Add development discovery only behind explicit TUI confirmation and the session-generation gate.
 - Preserve current default search behavior and static hinting outside that gate.
-- Keep exact-ID `pack` unchanged for explicit follow-up.
+- Use ROCS bound-pack mode for discovery follow-up; preserve unbound pack only as interactive compatibility.
 - Remove the TypeScript search scorer only during the later adopted default cutover, so normal users never experience an unadopted behavior migration.
 
 ### R4 — Release/adoption binding
 
-Blocked until the cross-owner Semantic Release Capsule decision lands:
+Blocked until a concrete AK decision coordinate accepts the separate semantic-release, ROCS-tool-trust, and consumer-adoption owner contracts:
 
-- resolve adopted capsule identity;
+- resolve adopted semantic coordinate without merging executable trust into it;
 - reject unadopted or incompatible capsules in normal automatic mode;
 - emit adoption/use receipt facts for owner-surface capture;
-- prove rollback to the previous capsule.
+- prove semantic coordinate rollback and independent adapter/runtime rollback.
+
+## Default and rollout phase matrix
+
+| Phase | Ranking owner | Identity/runner | Automatic behavior | AK task posture | Rollback |
+|---|---|---|---|---|---|
+| Pre-ADR | current behavior | none | unchanged | no implementation tasks | not applicable |
+| Development dogfood | ROCS candidate path only | development snapshot + prepared development runtime | TUI session opt-in only | post-ADR task required | disable session and remove staged cache |
+| Adopted canary | ROCS | accepted semantic coordinate + independently pinned runtime | named TUI canary only | later adoption decision + task | semantic N→N−1 and package/runtime rollback |
+| Explicit search default | ROCS | adopted identities | `ontology_inspect search` cutover only | evidence-gated task | restore prior package version |
+| Automatic preflight default | ROCS | adopted identities | separate decision/evidence gate | separately linked task | disable feature/package rollback |
+| Fleet | ROCS | fleet policy | separately authorized | rollout tasks | policy rollback plus pinned prior generations |
+
+Startup orientation remains independent and may report availability only; it does not become default concept injection. One-consumer evidence can authorize a canary, not package or fleet defaults.
 
 No fleet rollout, mandatory preflight, online registry, embeddings, or model reranking belongs before R4 evidence.
