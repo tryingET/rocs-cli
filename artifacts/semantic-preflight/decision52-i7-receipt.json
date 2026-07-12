@@ -1,0 +1,47 @@
+{
+  "schema": "decision52-semantic-preflight-vertical-proof.v0",
+  "development_only": true,
+  "adopted_runtime": false,
+  "automatic_modes": [
+    "tui"
+  ],
+  "sanitized_environment": {
+    "inherited_pythonpath": false,
+    "inherited_runner_override": false,
+    "shell_invoked": false,
+    "network_required": false,
+    "sibling_runner_discovery": false
+  },
+  "implementation": {
+    "rocs_cli": "ddbfa70b29c5805c859d32abc3265278cc6ce0d2",
+    "pi_host": "5be4473cc156eb03d0069cc6770f1b95ea9eac97",
+    "pi_ontology_workflows": "5719669cf4476f5f33cc9ac082b2de3af6940dd2"
+  },
+  "runtime": {
+    "rocs_commit": "ddbfa70b29c5805c859d32abc3265278cc6ce0d2",
+    "manifest_digest": "sha256:fabf8ee81f5739a2939a0b367644337f42a451ba72f22453121d498825b3337a",
+    "file_count": 895
+  },
+  "preflight": {
+    "outcome": "matched",
+    "prompt_block_digest": "sha256:29d7a0735e2e6bbe05f7c9573a17413f9bd91c4062f388accfcf074344c6ce71",
+    "candidates_digest": "sha256:fe01dd0c7fe0f2726817b2201950cad8229c44d4d2f1a5ddcffa5d3e88183e9b",
+    "candidate_count": 1,
+    "ontology_prose_in_system_role": false
+  },
+  "pack": {
+    "bound": true,
+    "ont_id": "core.Agent",
+    "text_digest": "sha256:2a016aaef736128816cce29957d0d4b00f9820f6b3f19b640a79c81a1f80d559"
+  },
+  "consumer_tree_unchanged": true,
+  "managed_dist_absent": true,
+  "lifecycle_status_tail": [
+    "preflight=matched invocation=ok corpus=c3cb0cd8 result=d58b221e candidates=1 pack=no",
+    "preflight=matched invocation=ok corpus=c3cb0cd8 result=d58b221e candidates=1 pack=yes"
+  ],
+  "notification_levels": [
+    "info",
+    "info"
+  ]
+}
