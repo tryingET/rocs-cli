@@ -1,0 +1,576 @@
+{
+  "cases": [
+    {
+      "context": {},
+      "expected_error": "self_certification",
+      "name": "consumer_cannot_self_certify_acceptance",
+      "rule": "self_certification",
+      "schema_valid": true,
+      "subject": {
+        "acceptance_authority": {
+          "id": "rocs-cli",
+          "kind": "rocs"
+        },
+        "acceptance_revision": 4,
+        "accepted_posture": "named_canary",
+        "activation_epoch_not_after": 100,
+        "consumer_intent_digest": "sha256:5caa528df168afa9a40156fc7ffbebced368b121831f37610fdec321e8af7481",
+        "consumer_repository": {
+          "canonical_locator": "local://softwareco/pi-canary-consumer",
+          "identity_revision": 3,
+          "owner": "consumer-owner",
+          "repository_id": "pi-canary-consumer"
+        },
+        "decision": {
+          "authority": "consumer-owner",
+          "decision_id": "accept-materialization",
+          "outcome": "accepted",
+          "record_digest": "sha256:9bfa3b5f0ea503a411775f37e2afbaf658bf07d8dca9c581da73446804790ab4"
+        },
+        "governing_scope": "repository:pi-canary-consumer/canary:operator-a",
+        "owner_acceptance_digest": "sha256:a42b0369b436618bd2ac9a9904126c4487412bee4c711dd83be04a5c3bafe0a8",
+        "revoked_by_digest": null,
+        "schema": "semantic-owner-acceptance.v0",
+        "valid_through_intent_revision": 4
+      }
+    },
+    {
+      "context": {
+        "existing_coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        }
+      },
+      "expected_error": "version_conflict",
+      "name": "namespace_version_digest_reuse_conflicts",
+      "rule": "version_conflict",
+      "schema_valid": true,
+      "subject": {
+        "coordinate": {
+          "capsule_digest": "sha256:799bfecbf6e6603084cbc06da1eeb8e0f829e7fac0a893f00949495cdd20d193",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "expected_prior_revision": 1,
+        "ledger_namespace": "ai-society.core",
+        "ledger_revision": 2,
+        "owner_approval_digest": "sha256:8ff523c1a43022684153d746230a8e20486d9296f1dd2bf1871e4079d335b6b1",
+        "owner_publication_digest": "sha256:e44c56ffd8acec396287fce5994e58e20c591fb60d4651e753ea39d650fbbe01",
+        "prior_publication_digest": "sha256:d582948671a14b5271962bb4f07f9c0fc69b73b85e0e9774efc055a3af0a3d2b",
+        "schema": "semantic-owner-publication.v0",
+        "status": "published",
+        "supersedes_publication_digest": null,
+        "trust_root_digest": "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839",
+        "trust_root_id": "semantic-owner-local-root",
+        "trust_root_revision": 5
+      }
+    },
+    {
+      "context": {
+        "actual_paths": [
+          "index.json",
+          "records"
+        ],
+        "expected_paths": [
+          "index.json",
+          "records",
+          "records/core.Agent.json"
+        ]
+      },
+      "expected_error": "incomplete_tree",
+      "name": "complete_tree_digest_mismatch",
+      "rule": "incomplete_tree",
+      "schema_valid": true,
+      "subject": {
+        "actual_manifest_digest": "sha256:8e84877fb20964d7218c289cac35aca9642c17fbb65b5d74b05b0dee3170d428",
+        "commit_marker_digest": "sha256:d6ca6335d40da474452f4504e4ca649e35a33e650064804e6bfa3b44e37ac5a9",
+        "compatibility_outcome": "compatible",
+        "compatibility_report_digest": "sha256:1c7ea265c3062cc85ac797aab9be89fb9fd4b4c0b456410ce0c61f04da2b4fd5",
+        "consumer_intent_digest": "sha256:5caa528df168afa9a40156fc7ffbebced368b121831f37610fdec321e8af7481",
+        "consumer_repository": {
+          "canonical_locator": "local://softwareco/pi-canary-consumer",
+          "identity_revision": 3,
+          "owner": "consumer-owner",
+          "repository_id": "pi-canary-consumer"
+        },
+        "coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "expected_manifest_digest": "sha256:8643e4422eacb031b8eb5927695597569d8710fa603c256053e1b6cb792b9a2f",
+        "issuer": {
+          "id": "rocs-cli",
+          "kind": "rocs"
+        },
+        "journal_state": "committed",
+        "materialization_verification_receipt_digest": "sha256:ec4d44dec6d10096061f59934b43adb3e1827aa1d13d7b6e7804a8700cc11993",
+        "owner_acceptance_digest": "sha256:a260ecc81cfbf2ebc8e854b73b796b11db23e0506d9f9a76d52e246ac5787f19",
+        "owner_approval_digest": "sha256:8ff523c1a43022684153d746230a8e20486d9296f1dd2bf1871e4079d335b6b1",
+        "prior_receipt_digest": "sha256:7032987292e54767ea409204c125893342c4297e05b9b7dce0bce4c7c867b7f4",
+        "rollback_materialized": true,
+        "rollback_target": {
+          "runtime_identity": null,
+          "runtime_mode": "retain",
+          "semantic_coordinate": {
+            "capsule_digest": "sha256:d113ef175e418600be1c4cbc3554ea66900f5eb121064ca5a24a01b792cff051",
+            "namespace": "ai-society.core",
+            "schema": "semantic-release-coordinate.v0",
+            "semantic_version": "1.0.0"
+          },
+          "semantic_mode": "predecessor"
+        },
+        "runtime_identity": {
+          "distribution_digest": "sha256:6c5a383c6cdb5c18dd0a8e7b98c47f347c26c84194acd590f635ded13aed9156",
+          "protocol_version": "semantic-release-v0",
+          "tool": "rocs-cli",
+          "version": "1.4.0"
+        },
+        "schema": "semantic-materialization-verification-receipt.v0",
+        "transaction_id": "materialize-intent-4",
+        "trust_reference": {
+          "publication_digest": "sha256:ce0e78ffd229d2f522ee25e301e2c9208bc8c636136ee521ea5acdfc3c3cd561",
+          "publication_ledger_revision": 2,
+          "trust_root_digest": "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839",
+          "trust_root_id": "semantic-owner-local-root",
+          "trust_root_revision": 5
+        },
+        "verifier_contract_digest": "sha256:5c3de00f86f1289351be06c5ce8a680f12f07d7bed96ee346f905750269eeb81"
+      }
+    },
+    {
+      "context": {},
+      "expected_error": "compatibility_unknown",
+      "name": "compatibility_unknown_fails_closed",
+      "rule": "compatibility_unknown",
+      "schema_valid": true,
+      "subject": {
+        "actual_manifest_digest": "sha256:8643e4422eacb031b8eb5927695597569d8710fa603c256053e1b6cb792b9a2f",
+        "commit_marker_digest": "sha256:d6ca6335d40da474452f4504e4ca649e35a33e650064804e6bfa3b44e37ac5a9",
+        "compatibility_outcome": "unknown",
+        "compatibility_report_digest": "sha256:1c7ea265c3062cc85ac797aab9be89fb9fd4b4c0b456410ce0c61f04da2b4fd5",
+        "consumer_intent_digest": "sha256:5caa528df168afa9a40156fc7ffbebced368b121831f37610fdec321e8af7481",
+        "consumer_repository": {
+          "canonical_locator": "local://softwareco/pi-canary-consumer",
+          "identity_revision": 3,
+          "owner": "consumer-owner",
+          "repository_id": "pi-canary-consumer"
+        },
+        "coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "expected_manifest_digest": "sha256:8643e4422eacb031b8eb5927695597569d8710fa603c256053e1b6cb792b9a2f",
+        "issuer": {
+          "id": "rocs-cli",
+          "kind": "rocs"
+        },
+        "journal_state": "committed",
+        "materialization_verification_receipt_digest": "sha256:db21edd32345a28d477bf6268fc9a1d31e17ca4985374be6cd1504b7f121ca05",
+        "owner_acceptance_digest": "sha256:a260ecc81cfbf2ebc8e854b73b796b11db23e0506d9f9a76d52e246ac5787f19",
+        "owner_approval_digest": "sha256:8ff523c1a43022684153d746230a8e20486d9296f1dd2bf1871e4079d335b6b1",
+        "prior_receipt_digest": "sha256:7032987292e54767ea409204c125893342c4297e05b9b7dce0bce4c7c867b7f4",
+        "rollback_materialized": true,
+        "rollback_target": {
+          "runtime_identity": null,
+          "runtime_mode": "retain",
+          "semantic_coordinate": {
+            "capsule_digest": "sha256:d113ef175e418600be1c4cbc3554ea66900f5eb121064ca5a24a01b792cff051",
+            "namespace": "ai-society.core",
+            "schema": "semantic-release-coordinate.v0",
+            "semantic_version": "1.0.0"
+          },
+          "semantic_mode": "predecessor"
+        },
+        "runtime_identity": {
+          "distribution_digest": "sha256:6c5a383c6cdb5c18dd0a8e7b98c47f347c26c84194acd590f635ded13aed9156",
+          "protocol_version": "semantic-release-v0",
+          "tool": "rocs-cli",
+          "version": "1.4.0"
+        },
+        "schema": "semantic-materialization-verification-receipt.v0",
+        "transaction_id": "materialize-intent-4",
+        "trust_reference": {
+          "publication_digest": "sha256:ce0e78ffd229d2f522ee25e301e2c9208bc8c636136ee521ea5acdfc3c3cd561",
+          "publication_ledger_revision": 2,
+          "trust_root_digest": "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839",
+          "trust_root_id": "semantic-owner-local-root",
+          "trust_root_revision": 5
+        },
+        "verifier_contract_digest": "sha256:5c3de00f86f1289351be06c5ce8a680f12f07d7bed96ee346f905750269eeb81"
+      }
+    },
+    {
+      "context": {},
+      "expected_error": "malformed_input",
+      "name": "timestamp_forbidden_in_receipt",
+      "rule": "mutable_timestamp",
+      "schema_valid": false,
+      "subject": {
+        "actual_manifest_digest": "sha256:8643e4422eacb031b8eb5927695597569d8710fa603c256053e1b6cb792b9a2f",
+        "commit_marker_digest": "sha256:d6ca6335d40da474452f4504e4ca649e35a33e650064804e6bfa3b44e37ac5a9",
+        "compatibility_outcome": "compatible",
+        "compatibility_report_digest": "sha256:1c7ea265c3062cc85ac797aab9be89fb9fd4b4c0b456410ce0c61f04da2b4fd5",
+        "consumer_intent_digest": "sha256:5caa528df168afa9a40156fc7ffbebced368b121831f37610fdec321e8af7481",
+        "consumer_repository": {
+          "canonical_locator": "local://softwareco/pi-canary-consumer",
+          "identity_revision": 3,
+          "owner": "consumer-owner",
+          "repository_id": "pi-canary-consumer"
+        },
+        "coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "expected_manifest_digest": "sha256:8643e4422eacb031b8eb5927695597569d8710fa603c256053e1b6cb792b9a2f",
+        "issuer": {
+          "id": "rocs-cli",
+          "kind": "rocs"
+        },
+        "journal_state": "committed",
+        "materialization_verification_receipt_digest": "sha256:362fa9f8d149a7f50fdb246af0c31c46575838e1c3c12fd53290d0de7a1a0dc8",
+        "owner_acceptance_digest": "sha256:a260ecc81cfbf2ebc8e854b73b796b11db23e0506d9f9a76d52e246ac5787f19",
+        "owner_approval_digest": "sha256:8ff523c1a43022684153d746230a8e20486d9296f1dd2bf1871e4079d335b6b1",
+        "prior_receipt_digest": "sha256:7032987292e54767ea409204c125893342c4297e05b9b7dce0bce4c7c867b7f4",
+        "recorded_at": "2026-07-12T22:00:00Z",
+        "rollback_materialized": true,
+        "rollback_target": {
+          "runtime_identity": null,
+          "runtime_mode": "retain",
+          "semantic_coordinate": {
+            "capsule_digest": "sha256:d113ef175e418600be1c4cbc3554ea66900f5eb121064ca5a24a01b792cff051",
+            "namespace": "ai-society.core",
+            "schema": "semantic-release-coordinate.v0",
+            "semantic_version": "1.0.0"
+          },
+          "semantic_mode": "predecessor"
+        },
+        "runtime_identity": {
+          "distribution_digest": "sha256:6c5a383c6cdb5c18dd0a8e7b98c47f347c26c84194acd590f635ded13aed9156",
+          "protocol_version": "semantic-release-v0",
+          "tool": "rocs-cli",
+          "version": "1.4.0"
+        },
+        "schema": "semantic-materialization-verification-receipt.v0",
+        "transaction_id": "materialize-intent-4",
+        "trust_reference": {
+          "publication_digest": "sha256:ce0e78ffd229d2f522ee25e301e2c9208bc8c636136ee521ea5acdfc3c3cd561",
+          "publication_ledger_revision": 2,
+          "trust_root_digest": "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839",
+          "trust_root_id": "semantic-owner-local-root",
+          "trust_root_revision": 5
+        },
+        "verifier_contract_digest": "sha256:5c3de00f86f1289351be06c5ce8a680f12f07d7bed96ee346f905750269eeb81"
+      }
+    },
+    {
+      "context": {
+        "minimum_publication_ledger_revision": 2,
+        "minimum_trust_root_revision": 6
+      },
+      "expected_error": "trust_reference_stale",
+      "name": "trust_root_revision_stale",
+      "rule": "stale_trust",
+      "schema_valid": true,
+      "subject": {
+        "accepted_compatibility": "compatible",
+        "consumer_intent_digest": "sha256:5caa528df168afa9a40156fc7ffbebced368b121831f37610fdec321e8af7481",
+        "consumer_repository": {
+          "canonical_locator": "local://softwareco/pi-canary-consumer",
+          "identity_revision": 3,
+          "owner": "consumer-owner",
+          "repository_id": "pi-canary-consumer"
+        },
+        "desired_coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "intent_revision": 4,
+        "limits_digest": "sha256:7e95de95b3701ba9487a34d4d39a2c575827b96143f0a47ba1a53105e59ff7d5",
+        "owner_decision": {
+          "authority": "consumer-owner",
+          "decision_id": "request-named-canary",
+          "outcome": "accepted",
+          "record_digest": "sha256:9f2ac73b6a548ba6c5cbabee1a1646f0bf00a6afe363ca0550b16445f44a7cb2"
+        },
+        "requested_posture": "named_canary",
+        "rollback_target": {
+          "runtime_identity": null,
+          "runtime_mode": "retain",
+          "semantic_coordinate": {
+            "capsule_digest": "sha256:d113ef175e418600be1c4cbc3554ea66900f5eb121064ca5a24a01b792cff051",
+            "namespace": "ai-society.core",
+            "schema": "semantic-release-coordinate.v0",
+            "semantic_version": "1.0.0"
+          },
+          "semantic_mode": "predecessor"
+        },
+        "runtime_identity": {
+          "distribution_digest": "sha256:6c5a383c6cdb5c18dd0a8e7b98c47f347c26c84194acd590f635ded13aed9156",
+          "protocol_version": "semantic-release-v0",
+          "tool": "rocs-cli",
+          "version": "1.4.0"
+        },
+        "schema": "semantic-consumer-intent.v0",
+        "trust_reference": {
+          "publication_digest": "sha256:ce0e78ffd229d2f522ee25e301e2c9208bc8c636136ee521ea5acdfc3c3cd561",
+          "publication_ledger_revision": 2,
+          "trust_root_digest": "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839",
+          "trust_root_id": "semantic-owner-local-root",
+          "trust_root_revision": 5
+        },
+        "verifier_contract_digest": "sha256:5c3de00f86f1289351be06c5ce8a680f12f07d7bed96ee346f905750269eeb81"
+      }
+    },
+    {
+      "context": {
+        "minimum_publication_ledger_revision": 3,
+        "minimum_trust_root_revision": 5
+      },
+      "expected_error": "trust_reference_stale",
+      "name": "publication_ledger_revision_stale",
+      "rule": "stale_trust",
+      "schema_valid": true,
+      "subject": {
+        "accepted_compatibility": "compatible",
+        "consumer_intent_digest": "sha256:5caa528df168afa9a40156fc7ffbebced368b121831f37610fdec321e8af7481",
+        "consumer_repository": {
+          "canonical_locator": "local://softwareco/pi-canary-consumer",
+          "identity_revision": 3,
+          "owner": "consumer-owner",
+          "repository_id": "pi-canary-consumer"
+        },
+        "desired_coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "intent_revision": 4,
+        "limits_digest": "sha256:7e95de95b3701ba9487a34d4d39a2c575827b96143f0a47ba1a53105e59ff7d5",
+        "owner_decision": {
+          "authority": "consumer-owner",
+          "decision_id": "request-named-canary",
+          "outcome": "accepted",
+          "record_digest": "sha256:9f2ac73b6a548ba6c5cbabee1a1646f0bf00a6afe363ca0550b16445f44a7cb2"
+        },
+        "requested_posture": "named_canary",
+        "rollback_target": {
+          "runtime_identity": null,
+          "runtime_mode": "retain",
+          "semantic_coordinate": {
+            "capsule_digest": "sha256:d113ef175e418600be1c4cbc3554ea66900f5eb121064ca5a24a01b792cff051",
+            "namespace": "ai-society.core",
+            "schema": "semantic-release-coordinate.v0",
+            "semantic_version": "1.0.0"
+          },
+          "semantic_mode": "predecessor"
+        },
+        "runtime_identity": {
+          "distribution_digest": "sha256:6c5a383c6cdb5c18dd0a8e7b98c47f347c26c84194acd590f635ded13aed9156",
+          "protocol_version": "semantic-release-v0",
+          "tool": "rocs-cli",
+          "version": "1.4.0"
+        },
+        "schema": "semantic-consumer-intent.v0",
+        "trust_reference": {
+          "publication_digest": "sha256:ce0e78ffd229d2f522ee25e301e2c9208bc8c636136ee521ea5acdfc3c3cd561",
+          "publication_ledger_revision": 2,
+          "trust_root_digest": "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839",
+          "trust_root_id": "semantic-owner-local-root",
+          "trust_root_revision": 5
+        },
+        "verifier_contract_digest": "sha256:5c3de00f86f1289351be06c5ce8a680f12f07d7bed96ee346f905750269eeb81"
+      }
+    },
+    {
+      "context": {
+        "revoked_trust_root_digests": [
+          "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839"
+        ]
+      },
+      "expected_error": "trust_revoked",
+      "name": "trust_root_explicitly_revoked",
+      "rule": "revoked_trust",
+      "schema_valid": true,
+      "subject": {
+        "accepted_compatibility": "compatible",
+        "consumer_intent_digest": "sha256:5caa528df168afa9a40156fc7ffbebced368b121831f37610fdec321e8af7481",
+        "consumer_repository": {
+          "canonical_locator": "local://softwareco/pi-canary-consumer",
+          "identity_revision": 3,
+          "owner": "consumer-owner",
+          "repository_id": "pi-canary-consumer"
+        },
+        "desired_coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "intent_revision": 4,
+        "limits_digest": "sha256:7e95de95b3701ba9487a34d4d39a2c575827b96143f0a47ba1a53105e59ff7d5",
+        "owner_decision": {
+          "authority": "consumer-owner",
+          "decision_id": "request-named-canary",
+          "outcome": "accepted",
+          "record_digest": "sha256:9f2ac73b6a548ba6c5cbabee1a1646f0bf00a6afe363ca0550b16445f44a7cb2"
+        },
+        "requested_posture": "named_canary",
+        "rollback_target": {
+          "runtime_identity": null,
+          "runtime_mode": "retain",
+          "semantic_coordinate": {
+            "capsule_digest": "sha256:d113ef175e418600be1c4cbc3554ea66900f5eb121064ca5a24a01b792cff051",
+            "namespace": "ai-society.core",
+            "schema": "semantic-release-coordinate.v0",
+            "semantic_version": "1.0.0"
+          },
+          "semantic_mode": "predecessor"
+        },
+        "runtime_identity": {
+          "distribution_digest": "sha256:6c5a383c6cdb5c18dd0a8e7b98c47f347c26c84194acd590f635ded13aed9156",
+          "protocol_version": "semantic-release-v0",
+          "tool": "rocs-cli",
+          "version": "1.4.0"
+        },
+        "schema": "semantic-consumer-intent.v0",
+        "trust_reference": {
+          "publication_digest": "sha256:ce0e78ffd229d2f522ee25e301e2c9208bc8c636136ee521ea5acdfc3c3cd561",
+          "publication_ledger_revision": 2,
+          "trust_root_digest": "sha256:471675e4582aa43366c2c1b24c35d12a2f1a25f9bffa11695fd8d9afa60b5839",
+          "trust_root_id": "semantic-owner-local-root",
+          "trust_root_revision": 5
+        },
+        "verifier_contract_digest": "sha256:5c3de00f86f1289351be06c5ce8a680f12f07d7bed96ee346f905750269eeb81"
+      }
+    },
+    {
+      "context": {},
+      "expected_error": "rollback_unavailable",
+      "name": "semantic_rollback_target_not_materialized",
+      "rule": "rollback_unavailability",
+      "schema_valid": true,
+      "subject": {
+        "active_activation_receipt_digest": "sha256:f95457427785dcdd192c09a2cd4d7c80104d0a6495b057891df08a8d57a66185",
+        "axis": "semantic",
+        "from_coordinate": {
+          "capsule_digest": "sha256:cfd180848eb12a98088ea392e91ddd87d7904c2242caa08140c85e70af8cb9ed",
+          "namespace": "ai-society.core",
+          "schema": "semantic-release-coordinate.v0",
+          "semantic_version": "1.1.0"
+        },
+        "from_runtime_identity": {
+          "distribution_digest": "sha256:6c5a383c6cdb5c18dd0a8e7b98c47f347c26c84194acd590f635ded13aed9156",
+          "protocol_version": "semantic-release-v0",
+          "tool": "rocs-cli",
+          "version": "1.4.0"
+        },
+        "issuer": {
+          "id": "consumer-owner",
+          "kind": "consumer_owner"
+        },
+        "owner_decision": {
+          "authority": "consumer-owner",
+          "decision_id": "rollback-canary",
+          "outcome": "accepted",
+          "record_digest": "sha256:32a0a3420ac11e3c6b0e265cdd846b63ef31aa048135cb5291ba9eb63367db5f"
+        },
+        "precondition_digest": "sha256:d15beccf4ac4545b3c648930e523bab6426bb726d3ed991348cc79c0bb9da503",
+        "recovery_runtime_identity": {
+          "distribution_digest": "sha256:62ba218691bccef7d311df01ea7615b64cd086c0d7c587ad9d2376c20e9f1cc8",
+          "protocol_version": "semantic-release-v0",
+          "tool": "semantic-recovery-controller",
+          "version": "1.0.0"
+        },
+        "rollback_request_digest": "sha256:ca3ff61cb0ad37496b6c7b9c0e0d6bc09a700bc964b3f0764769aee3a59c3719",
+        "schema": "semantic-rollback-request.v0",
+        "target": {
+          "runtime_identity": null,
+          "runtime_mode": "retain",
+          "semantic_coordinate": {
+            "capsule_digest": "sha256:d113ef175e418600be1c4cbc3554ea66900f5eb121064ca5a24a01b792cff051",
+            "namespace": "ai-society.core",
+            "schema": "semantic-release-coordinate.v0",
+            "semantic_version": "1.0.0"
+          },
+          "semantic_mode": "predecessor"
+        },
+        "target_materialization_receipt_digest": null
+      }
+    },
+    {
+      "context": {},
+      "expected_error": "malformed_input",
+      "name": "manifest_entries_not_utf8_sorted",
+      "rule": "manifest_order",
+      "schema_valid": true,
+      "subject": {
+        "clean_committed": true,
+        "entries": [
+          {
+            "byte_length": 16,
+            "content_digest": "sha256:f8e52432902eebe035265c9e81c2e25f2786b2fe6a4fc3113c20be618f65f14b",
+            "kind": "file",
+            "mode": 420,
+            "path": "manifest.yaml"
+          },
+          {
+            "byte_length": 28,
+            "content_digest": "sha256:594b8f7a796152eee77d478931681c7ae4a8d953d6fc33a346ee050e03aa38f2",
+            "kind": "file",
+            "mode": 420,
+            "path": "concepts/agent.yaml"
+          },
+          {
+            "kind": "directory",
+            "mode": 493,
+            "path": "concepts"
+          }
+        ],
+        "repository": {
+          "canonical_locator": "local://core/ontology-kernel",
+          "identity_revision": 1,
+          "owner": "semantic-owner",
+          "repository_id": "ontology-kernel"
+        },
+        "schema": "semantic-source-manifest.v0",
+        "source_manifest_digest": "sha256:ed9d924ba2b5f3ea4592a0f145f89c0296439e1be2b549644a4ada9a5ebcae6f",
+        "source_revision": "0123456789abcdef0123456789abcdef01234567",
+        "source_root": "ontology"
+      }
+    },
+    {
+      "context": {},
+      "expected_error": "issuer_scope_violation",
+      "name": "pi_delivery_wrong_issuer_scope",
+      "rule": "issuer_scope",
+      "schema_valid": true,
+      "subject": {
+        "claim_scope": "delivered_to_prompt_run_only",
+        "delivered_effective_execution_digest": "sha256:916bf1a601a804e352b66e553487c317a227b3ea1dfdc755992a0186c7331c97",
+        "delivery_outcome": "delivered",
+        "issuer": {
+          "id": "rocs-cli",
+          "kind": "rocs"
+        },
+        "pi_delivery_receipt_digest": "sha256:26a218d3946d03640de3534c289136e9b9c65e258dc2c79efb9de949c34f3984",
+        "prompt_run_digest": "sha256:87ff2b71b0f70048f59a0a15465d6997452e33a3a94bd5e96dfbf1b6c747cefa",
+        "rocs_generation_receipt_digest": "sha256:f1c5b8e3ec5b707def9630135d24fcb7cb7e8ec0ed385d553e9fb97683010e6f",
+        "schema": "semantic-pi-delivery-receipt.v0"
+      }
+    }
+  ],
+  "protocol": "semantic-release-v0",
+  "rfc_revision": "semantic-release-revision-v1"
+}

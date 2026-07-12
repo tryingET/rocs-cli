@@ -1,0 +1,671 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-society.local/rocs/semantic-release-v0/protocol.schema.json",
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0",
+  "oneOf": [
+    { "$ref": "#/$defs/coordinate" },
+    { "$ref": "#/$defs/sourceManifest" },
+    { "$ref": "#/$defs/materialManifest" },
+    { "$ref": "#/$defs/compatibilityReport" },
+    { "$ref": "#/$defs/capsule" },
+    { "$ref": "#/$defs/ownerApproval" },
+    { "$ref": "#/$defs/ownerPublication" },
+    { "$ref": "#/$defs/buildReceipt" },
+    { "$ref": "#/$defs/consumerIntent" },
+    { "$ref": "#/$defs/ownerAcceptance" },
+    { "$ref": "#/$defs/materializationVerificationReceipt" },
+    { "$ref": "#/$defs/activationReceipt" },
+    { "$ref": "#/$defs/rocsGenerationReceipt" },
+    { "$ref": "#/$defs/piDeliveryReceipt" },
+    { "$ref": "#/$defs/akEvidenceLinkage" },
+    { "$ref": "#/$defs/rollbackRequest" },
+    { "$ref": "#/$defs/rollbackReceipt" },
+    { "$ref": "#/$defs/auditEnvelope" },
+    { "$ref": "#/$defs/errorEnvelope" }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)+$"
+    },
+    "semver": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 128,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?$"
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9._:+/-]+$"
+    },
+    "safeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "logicalPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000]+$"
+    },
+    "coordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "namespace", "semantic_version", "capsule_digest"],
+      "properties": {
+        "schema": { "const": "semantic-release-coordinate.v0" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "semantic_version": { "$ref": "#/$defs/semver" },
+        "capsule_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "repositoryIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "repository_id", "canonical_locator", "identity_revision"],
+      "properties": {
+        "owner": { "$ref": "#/$defs/identifier" },
+        "repository_id": { "$ref": "#/$defs/identifier" },
+        "canonical_locator": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "identity_revision": { "$ref": "#/$defs/safeInteger" }
+      }
+    },
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["semantic_owner", "consumer_owner", "rocs", "pi", "ak", "recovery_controller"] },
+        "id": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "decisionReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority", "decision_id", "outcome", "record_digest"],
+      "properties": {
+        "authority": { "$ref": "#/$defs/identifier" },
+        "decision_id": { "$ref": "#/$defs/identifier" },
+        "outcome": { "enum": ["accepted", "rejected", "revoked"] },
+        "record_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "toolIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "version", "distribution_digest", "protocol_version"],
+      "properties": {
+        "tool": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/semver" },
+        "distribution_digest": { "$ref": "#/$defs/digest" },
+        "protocol_version": { "const": "semantic-release-v0" }
+      }
+    },
+    "trustReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trust_root_id", "trust_root_revision", "trust_root_digest", "publication_ledger_revision", "publication_digest"],
+      "properties": {
+        "trust_root_id": { "$ref": "#/$defs/identifier" },
+        "trust_root_revision": { "$ref": "#/$defs/safeInteger" },
+        "trust_root_digest": { "$ref": "#/$defs/digest" },
+        "publication_ledger_revision": { "$ref": "#/$defs/safeInteger" },
+        "publication_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "fileEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "mode", "byte_length", "content_digest"],
+      "properties": {
+        "path": { "$ref": "#/$defs/logicalPath" },
+        "kind": { "const": "file" },
+        "mode": { "enum": [420, 493] },
+        "byte_length": { "$ref": "#/$defs/safeInteger" },
+        "content_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "directoryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "mode"],
+      "properties": {
+        "path": { "$ref": "#/$defs/logicalPath" },
+        "kind": { "const": "directory" },
+        "mode": { "const": 493 }
+      }
+    },
+    "symlinkEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "mode", "target", "target_byte_length", "target_digest"],
+      "properties": {
+        "path": { "$ref": "#/$defs/logicalPath" },
+        "kind": { "const": "symlink" },
+        "mode": { "const": 511 },
+        "target": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "target_byte_length": { "$ref": "#/$defs/safeInteger" },
+        "target_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "sourceEntry": {
+      "oneOf": [
+        { "$ref": "#/$defs/fileEntry" },
+        { "$ref": "#/$defs/directoryEntry" },
+        { "$ref": "#/$defs/symlinkEntry" }
+      ]
+    },
+    "materialEntry": {
+      "oneOf": [
+        { "$ref": "#/$defs/fileEntry" },
+        { "$ref": "#/$defs/directoryEntry" }
+      ]
+    },
+    "sourceManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "repository", "source_revision", "source_root", "clean_committed", "entries", "source_manifest_digest"],
+      "properties": {
+        "schema": { "const": "semantic-source-manifest.v0" },
+        "repository": { "$ref": "#/$defs/repositoryIdentity" },
+        "source_revision": { "$ref": "#/$defs/revision" },
+        "source_root": { "$ref": "#/$defs/logicalPath" },
+        "clean_committed": { "const": true },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100000,
+          "items": { "$ref": "#/$defs/sourceEntry" }
+        },
+        "source_manifest_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "materialManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "tree_role", "entries", "material_manifest_digest"],
+      "properties": {
+        "schema": { "const": "semantic-material-manifest.v0" },
+        "tree_role": { "enum": ["compiled_payload", "capsule_archive", "consumer_materialization"] },
+        "entries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100000,
+          "items": { "$ref": "#/$defs/materialEntry" }
+        },
+        "material_manifest_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "compatibilityChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "semantic_id", "effect", "condition_id"],
+      "properties": {
+        "category": { "enum": ["addition", "documentation", "compatible_refinement", "deprecation", "removal", "rename", "constraint_change", "relation_change", "identifier_reuse", "other"] },
+        "semantic_id": { "$ref": "#/$defs/identifier" },
+        "effect": { "enum": ["none", "patch", "minor", "major", "unknown"] },
+        "condition_id": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/identifier" }
+          ]
+        }
+      }
+    },
+    "compatibilityCondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_id", "predicate", "required_evidence_digest"],
+      "properties": {
+        "condition_id": { "$ref": "#/$defs/identifier" },
+        "predicate": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "required_evidence_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "compatibilityReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "namespace", "prior_coordinate", "candidate_version", "policy_revision", "policy_digest", "changes", "conditions", "classification", "required_semver_effect", "deprecations", "removals", "tombstones", "override_approval_digest", "compatibility_report_digest"],
+      "properties": {
+        "schema": { "const": "semantic-compatibility-report.v0" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "prior_coordinate": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/coordinate" }
+          ]
+        },
+        "candidate_version": { "$ref": "#/$defs/semver" },
+        "policy_revision": { "$ref": "#/$defs/safeInteger" },
+        "policy_digest": { "$ref": "#/$defs/digest" },
+        "changes": { "type": "array", "maxItems": 100000, "items": { "$ref": "#/$defs/compatibilityChange" } },
+        "conditions": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/compatibilityCondition" } },
+        "classification": { "enum": ["compatible", "conditionally_compatible", "breaking", "unknown"] },
+        "required_semver_effect": { "enum": ["patch", "minor", "major", "unknown"] },
+        "deprecations": { "type": "array", "maxItems": 100000, "items": { "$ref": "#/$defs/identifier" } },
+        "removals": { "type": "array", "maxItems": 100000, "items": { "$ref": "#/$defs/identifier" } },
+        "tombstones": { "type": "array", "maxItems": 100000, "items": { "$ref": "#/$defs/identifier" } },
+        "override_approval_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "compatibility_report_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "capsule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "namespace", "semantic_version", "source_manifest_digest", "semantic_payload_digest", "material_manifest_digest", "compatibility_report_digest", "owner_policy_revision", "owner_policy_digest", "compilation_contract_digest", "required_protocol_versions", "predecessor_coordinate", "tombstone_registry_digest", "capsule_digest"],
+      "properties": {
+        "schema": { "const": "semantic-release-capsule.v0" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "semantic_version": { "$ref": "#/$defs/semver" },
+        "source_manifest_digest": { "$ref": "#/$defs/digest" },
+        "semantic_payload_digest": { "$ref": "#/$defs/digest" },
+        "material_manifest_digest": { "$ref": "#/$defs/digest" },
+        "compatibility_report_digest": { "$ref": "#/$defs/digest" },
+        "owner_policy_revision": { "$ref": "#/$defs/safeInteger" },
+        "owner_policy_digest": { "$ref": "#/$defs/digest" },
+        "compilation_contract_digest": { "$ref": "#/$defs/digest" },
+        "required_protocol_versions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "predecessor_coordinate": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/coordinate" }
+          ]
+        },
+        "tombstone_registry_digest": { "$ref": "#/$defs/digest" },
+        "capsule_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "approvalVote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner_id", "owner_key_id", "approved_candidate_digest", "approval_proof_digest"],
+      "properties": {
+        "owner_id": { "$ref": "#/$defs/identifier" },
+        "owner_key_id": { "$ref": "#/$defs/identifier" },
+        "approved_candidate_digest": { "$ref": "#/$defs/digest" },
+        "approval_proof_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "ownerApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "namespace", "owner_policy_revision", "owner_policy_digest", "owner_set_digest", "approval_predicate", "source_manifest_digest", "candidate_capsule_digest", "compatibility_report_digest", "votes", "decision", "owner_approval_digest"],
+      "properties": {
+        "schema": { "const": "semantic-owner-approval.v0" },
+        "namespace": { "$ref": "#/$defs/namespace" },
+        "owner_policy_revision": { "$ref": "#/$defs/safeInteger" },
+        "owner_policy_digest": { "$ref": "#/$defs/digest" },
+        "owner_set_digest": { "$ref": "#/$defs/digest" },
+        "approval_predicate": { "enum": ["unanimous", "threshold"] },
+        "source_manifest_digest": { "$ref": "#/$defs/digest" },
+        "candidate_capsule_digest": { "$ref": "#/$defs/digest" },
+        "compatibility_report_digest": { "$ref": "#/$defs/digest" },
+        "votes": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/approvalVote" } },
+        "decision": { "$ref": "#/$defs/decisionReference" },
+        "owner_approval_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "ownerPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "coordinate", "owner_approval_digest", "ledger_namespace", "expected_prior_revision", "ledger_revision", "prior_publication_digest", "trust_root_id", "trust_root_revision", "trust_root_digest", "status", "supersedes_publication_digest", "owner_publication_digest"],
+      "properties": {
+        "schema": { "const": "semantic-owner-publication.v0" },
+        "coordinate": { "$ref": "#/$defs/coordinate" },
+        "owner_approval_digest": { "$ref": "#/$defs/digest" },
+        "ledger_namespace": { "$ref": "#/$defs/namespace" },
+        "expected_prior_revision": { "$ref": "#/$defs/safeInteger" },
+        "ledger_revision": { "$ref": "#/$defs/safeInteger" },
+        "prior_publication_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "trust_root_id": { "$ref": "#/$defs/identifier" },
+        "trust_root_revision": { "$ref": "#/$defs/safeInteger" },
+        "trust_root_digest": { "$ref": "#/$defs/digest" },
+        "status": { "enum": ["published", "withdrawn", "revoked"] },
+        "supersedes_publication_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "owner_publication_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "buildReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "source_manifest_digest", "compilation_contract_digest", "tool_identity", "payload_manifest_digest", "semantic_payload_digest", "compatibility_report_digest", "candidate_capsule_digest", "reproducible", "build_receipt_digest"],
+      "properties": {
+        "schema": { "const": "semantic-build-receipt.v0" },
+        "source_manifest_digest": { "$ref": "#/$defs/digest" },
+        "compilation_contract_digest": { "$ref": "#/$defs/digest" },
+        "tool_identity": { "$ref": "#/$defs/toolIdentity" },
+        "payload_manifest_digest": { "$ref": "#/$defs/digest" },
+        "semantic_payload_digest": { "$ref": "#/$defs/digest" },
+        "compatibility_report_digest": { "$ref": "#/$defs/digest" },
+        "candidate_capsule_digest": { "$ref": "#/$defs/digest" },
+        "reproducible": { "type": "boolean" },
+        "build_receipt_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "rollbackTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic_mode", "semantic_coordinate", "runtime_mode", "runtime_identity"],
+      "properties": {
+        "semantic_mode": { "enum": ["predecessor", "disable_to_current_behavior"] },
+        "semantic_coordinate": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/coordinate" }
+          ]
+        },
+        "runtime_mode": { "enum": ["retain", "rollback"] },
+        "runtime_identity": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/toolIdentity" }
+          ]
+        }
+      }
+    },
+    "consumerIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "consumer_repository", "intent_revision", "desired_coordinate", "runtime_identity", "requested_posture", "accepted_compatibility", "rollback_target", "owner_decision", "trust_reference", "verifier_contract_digest", "limits_digest", "consumer_intent_digest"],
+      "properties": {
+        "schema": { "const": "semantic-consumer-intent.v0" },
+        "consumer_repository": { "$ref": "#/$defs/repositoryIdentity" },
+        "intent_revision": { "$ref": "#/$defs/safeInteger" },
+        "desired_coordinate": { "$ref": "#/$defs/coordinate" },
+        "runtime_identity": { "$ref": "#/$defs/toolIdentity" },
+        "requested_posture": { "enum": ["materialize_only", "named_canary", "explicit_search_default", "automatic_preflight_default", "startup_orientation", "fleet"] },
+        "accepted_compatibility": { "enum": ["compatible", "conditionally_compatible"] },
+        "rollback_target": { "$ref": "#/$defs/rollbackTarget" },
+        "owner_decision": { "$ref": "#/$defs/decisionReference" },
+        "trust_reference": { "$ref": "#/$defs/trustReference" },
+        "verifier_contract_digest": { "$ref": "#/$defs/digest" },
+        "limits_digest": { "$ref": "#/$defs/digest" },
+        "consumer_intent_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "ownerAcceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "consumer_intent_digest", "consumer_repository", "acceptance_authority", "acceptance_revision", "governing_scope", "accepted_posture", "decision", "valid_through_intent_revision", "activation_epoch_not_after", "revoked_by_digest", "owner_acceptance_digest"],
+      "properties": {
+        "schema": { "const": "semantic-owner-acceptance.v0" },
+        "consumer_intent_digest": { "$ref": "#/$defs/digest" },
+        "consumer_repository": { "$ref": "#/$defs/repositoryIdentity" },
+        "acceptance_authority": { "$ref": "#/$defs/issuer" },
+        "acceptance_revision": { "$ref": "#/$defs/safeInteger" },
+        "governing_scope": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "accepted_posture": { "enum": ["materialize_only", "named_canary", "explicit_search_default", "automatic_preflight_default", "startup_orientation", "fleet"] },
+        "decision": { "$ref": "#/$defs/decisionReference" },
+        "valid_through_intent_revision": { "$ref": "#/$defs/safeInteger" },
+        "activation_epoch_not_after": { "$ref": "#/$defs/safeInteger" },
+        "revoked_by_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "owner_acceptance_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "materializationVerificationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "issuer", "consumer_intent_digest", "owner_acceptance_digest", "coordinate", "owner_approval_digest", "trust_reference", "runtime_identity", "expected_manifest_digest", "actual_manifest_digest", "consumer_repository", "compatibility_report_digest", "compatibility_outcome", "prior_receipt_digest", "rollback_target", "rollback_materialized", "verifier_contract_digest", "transaction_id", "journal_state", "commit_marker_digest", "materialization_verification_receipt_digest"],
+      "properties": {
+        "schema": { "const": "semantic-materialization-verification-receipt.v0" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "consumer_intent_digest": { "$ref": "#/$defs/digest" },
+        "owner_acceptance_digest": { "$ref": "#/$defs/digest" },
+        "coordinate": { "$ref": "#/$defs/coordinate" },
+        "owner_approval_digest": { "$ref": "#/$defs/digest" },
+        "trust_reference": { "$ref": "#/$defs/trustReference" },
+        "runtime_identity": { "$ref": "#/$defs/toolIdentity" },
+        "expected_manifest_digest": { "$ref": "#/$defs/digest" },
+        "actual_manifest_digest": { "$ref": "#/$defs/digest" },
+        "consumer_repository": { "$ref": "#/$defs/repositoryIdentity" },
+        "compatibility_report_digest": { "$ref": "#/$defs/digest" },
+        "compatibility_outcome": { "enum": ["compatible", "conditionally_compatible", "breaking", "unknown"] },
+        "prior_receipt_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "rollback_target": { "$ref": "#/$defs/rollbackTarget" },
+        "rollback_materialized": { "type": "boolean" },
+        "verifier_contract_digest": { "$ref": "#/$defs/digest" },
+        "transaction_id": { "$ref": "#/$defs/identifier" },
+        "journal_state": { "const": "committed" },
+        "commit_marker_digest": { "$ref": "#/$defs/digest" },
+        "materialization_verification_receipt_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "activationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "issuer", "owner_acceptance_digest", "materialization_verification_receipt_digest", "consumer_repository", "coordinate", "runtime_identity", "activation_scope", "activation_revision", "activation_epoch", "gate_decision", "previous_activation_receipt_digest", "status", "supersedes_activation_receipt_digest", "activation_receipt_digest"],
+      "properties": {
+        "schema": { "const": "semantic-activation-receipt.v0" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "owner_acceptance_digest": { "$ref": "#/$defs/digest" },
+        "materialization_verification_receipt_digest": { "$ref": "#/$defs/digest" },
+        "consumer_repository": { "$ref": "#/$defs/repositoryIdentity" },
+        "coordinate": { "$ref": "#/$defs/coordinate" },
+        "runtime_identity": { "$ref": "#/$defs/toolIdentity" },
+        "activation_scope": { "enum": ["named_canary", "explicit_search_default", "automatic_preflight_default", "startup_orientation", "fleet"] },
+        "activation_revision": { "$ref": "#/$defs/safeInteger" },
+        "activation_epoch": { "$ref": "#/$defs/safeInteger" },
+        "gate_decision": { "$ref": "#/$defs/decisionReference" },
+        "previous_activation_receipt_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "status": { "enum": ["activated", "deactivated", "revoked"] },
+        "supersedes_activation_receipt_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "activation_receipt_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "rocsGenerationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "issuer", "claim_scope", "activation_receipt_digest", "coordinate", "runtime_identity", "request_digest", "result_digest", "effective_execution_digest", "candidate_ids", "pack_digests", "outcome", "rocs_generation_receipt_digest"],
+      "properties": {
+        "schema": { "const": "semantic-rocs-generation-receipt.v0" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "claim_scope": { "const": "generated_output_only" },
+        "activation_receipt_digest": { "$ref": "#/$defs/digest" },
+        "coordinate": { "$ref": "#/$defs/coordinate" },
+        "runtime_identity": { "$ref": "#/$defs/toolIdentity" },
+        "request_digest": { "$ref": "#/$defs/digest" },
+        "result_digest": { "$ref": "#/$defs/digest" },
+        "effective_execution_digest": { "$ref": "#/$defs/digest" },
+        "candidate_ids": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/identifier" } },
+        "pack_digests": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/digest" } },
+        "outcome": { "enum": ["matched", "ambiguous", "no_match", "not_applicable", "unavailable"] },
+        "rocs_generation_receipt_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "piDeliveryReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "issuer", "claim_scope", "rocs_generation_receipt_digest", "prompt_run_digest", "delivered_effective_execution_digest", "delivery_outcome", "pi_delivery_receipt_digest"],
+      "properties": {
+        "schema": { "const": "semantic-pi-delivery-receipt.v0" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "claim_scope": { "const": "delivered_to_prompt_run_only" },
+        "rocs_generation_receipt_digest": { "$ref": "#/$defs/digest" },
+        "prompt_run_digest": { "$ref": "#/$defs/digest" },
+        "delivered_effective_execution_digest": { "$ref": "#/$defs/digest" },
+        "delivery_outcome": { "enum": ["delivered", "suppressed", "failed"] },
+        "pi_delivery_receipt_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "akEvidenceLinkage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "issuer", "claim_scope", "task_reference_digest", "decision_reference_digest", "evidence_record_digest", "activation_receipt_digest", "rocs_generation_receipt_digest", "pi_delivery_receipt_digest", "empirical_outcome_reference_digest", "ak_evidence_linkage_digest"],
+      "properties": {
+        "schema": { "const": "semantic-ak-evidence-linkage.v0" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "claim_scope": { "const": "lineage_linkage_only" },
+        "task_reference_digest": { "$ref": "#/$defs/digest" },
+        "decision_reference_digest": { "$ref": "#/$defs/digest" },
+        "evidence_record_digest": { "$ref": "#/$defs/digest" },
+        "activation_receipt_digest": { "$ref": "#/$defs/digest" },
+        "rocs_generation_receipt_digest": { "$ref": "#/$defs/digest" },
+        "pi_delivery_receipt_digest": { "$ref": "#/$defs/digest" },
+        "empirical_outcome_reference_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "ak_evidence_linkage_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "rollbackRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "issuer", "axis", "active_activation_receipt_digest", "from_coordinate", "from_runtime_identity", "target", "target_materialization_receipt_digest", "recovery_runtime_identity", "owner_decision", "precondition_digest", "rollback_request_digest"],
+      "properties": {
+        "schema": { "const": "semantic-rollback-request.v0" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "axis": { "enum": ["semantic", "runtime", "combined", "no_prior_disable"] },
+        "active_activation_receipt_digest": { "$ref": "#/$defs/digest" },
+        "from_coordinate": { "$ref": "#/$defs/coordinate" },
+        "from_runtime_identity": { "$ref": "#/$defs/toolIdentity" },
+        "target": { "$ref": "#/$defs/rollbackTarget" },
+        "target_materialization_receipt_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "recovery_runtime_identity": { "$ref": "#/$defs/toolIdentity" },
+        "owner_decision": { "$ref": "#/$defs/decisionReference" },
+        "precondition_digest": { "$ref": "#/$defs/digest" },
+        "rollback_request_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "rollbackReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "issuer", "rollback_request_digest", "result", "active_coordinate_after", "active_runtime_after", "availability_proof_digest", "history_head_before", "history_head_after", "error_digest", "supersedes_activation_receipt_digest", "rollback_receipt_digest"],
+      "properties": {
+        "schema": { "const": "semantic-rollback-receipt.v0" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "rollback_request_digest": { "$ref": "#/$defs/digest" },
+        "result": { "enum": ["rolled_back", "disabled", "failed"] },
+        "active_coordinate_after": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/coordinate" }
+          ]
+        },
+        "active_runtime_after": { "$ref": "#/$defs/toolIdentity" },
+        "availability_proof_digest": { "$ref": "#/$defs/digest" },
+        "history_head_before": { "$ref": "#/$defs/digest" },
+        "history_head_after": { "$ref": "#/$defs/digest" },
+        "error_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "supersedes_activation_receipt_digest": { "$ref": "#/$defs/digest" },
+        "rollback_receipt_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "auditEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "artifact_schema", "artifact_digest", "event", "recorded_at", "issuer", "audit_sequence", "previous_audit_envelope_digest", "audit_envelope_digest"],
+      "properties": {
+        "schema": { "const": "semantic-audit-envelope.v0" },
+        "artifact_schema": { "$ref": "#/$defs/identifier" },
+        "artifact_digest": { "$ref": "#/$defs/digest" },
+        "event": { "enum": ["observed", "published", "materialized", "activated", "deactivated", "rolled_back", "failed", "revoked"] },
+        "recorded_at": { "type": "string", "format": "date-time", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+        "issuer": { "$ref": "#/$defs/issuer" },
+        "audit_sequence": { "$ref": "#/$defs/safeInteger" },
+        "previous_audit_envelope_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "audit_envelope_digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "errorDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "value"],
+      "properties": {
+        "key": { "$ref": "#/$defs/identifier" },
+        "value": { "type": "string", "maxLength": 4096 }
+      }
+    },
+    "errorEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "code", "stage", "retryable", "related_artifact_digest", "details", "error_digest"],
+      "properties": {
+        "schema": { "const": "semantic-protocol-error.v0" },
+        "code": { "enum": ["malformed_input", "unsupported_protocol", "resource_exhausted", "deadline_exceeded", "network_forbidden", "trust_root_missing", "trust_reference_stale", "trust_revoked", "owner_approval_missing", "self_certification", "publication_conflict", "version_conflict", "snapshot_drift", "incomplete_tree", "compatibility_unknown", "compatibility_rejected", "atomic_activation_unavailable", "recovery_needed", "rollback_unavailable", "history_conflict", "issuer_scope_violation"] },
+        "stage": { "enum": ["decode", "validate", "build", "approve", "publish", "materialize", "activate", "generate", "deliver", "link", "rollback", "recover"] },
+        "retryable": { "type": "boolean" },
+        "related_artifact_digest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/digest" }
+          ]
+        },
+        "details": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/errorDetail" } },
+        "error_digest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}
