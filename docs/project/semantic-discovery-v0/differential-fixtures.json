@@ -153,10 +153,37 @@
     {
       "case": "pack_root_not_first",
       "expected_invariant": "root document first",
-      "patch": {
-        "path": "/valid/pack/documents/rotate_left",
-        "value": 1
-      }
+      "instance": {
+        "config": {
+          "include_relation_defs": false,
+          "max_bytes": 1048576,
+          "max_depth": 0,
+          "max_docs": 2,
+          "rel_types": []
+        },
+        "corpus_snapshot_digest": "sha256:89493eb7b7fc4aa1fe78755487646c53c75503ca0603f4aeaf58a3c9d72edf10",
+        "documents": [
+          {
+            "document_digest": "sha256:91a0b820fb261f4b8b0eb3fd83cd49e4600dcb2bc57c5190560b57a16d5fea16",
+            "kind": "concept",
+            "logical_path": "reference/concepts/core.Other.md",
+            "ont_id": "core.Other",
+            "text": "---\nont:\n  id: core.Other\n  type: concept\n  labels: [Other]\n  description: Other.\n  examples: [other]\n  anti_examples: [agent]\n---\n"
+          },
+          {
+            "document_digest": "sha256:d7624abbdf7b1cc10523b940f62368241120f2c61ae07e5efdac71ac957e1028",
+            "kind": "concept",
+            "logical_path": "reference/concepts/core.Agent.md",
+            "ont_id": "core.Agent",
+            "text": "---\nont:\n  id: core.Agent\n  type: concept\n  labels: [Agent]\n  description: Agent authority.\n  examples: [agent]\n  anti_examples: [tool]\n---\n"
+          }
+        ],
+        "pack_digest": "sha256:032016c3c2c25d267d2ab6a0916c93700c3f7de44d9c58d830141309606025d5",
+        "root_document_digest": "sha256:d7624abbdf7b1cc10523b940f62368241120f2c61ae07e5efdac71ac957e1028",
+        "root_id": "core.Agent",
+        "schema": "semantic-pack-result.v0"
+      },
+      "mutation_differs_from_valid": true
     }
   ],
   "metamorphic": [
@@ -358,8 +385,11 @@
   "schema_invalid": [
     {
       "case": "request_unknown_field",
-      "expected_instance_path": "/extra",
+      "expected_instance_path": "",
       "expected_keyword": "additionalProperties",
+      "expected_params": {
+        "additionalProperty": "extra"
+      },
       "fixture_ref": "golden-fixtures.json#/invalid/0/instance"
     },
     {
