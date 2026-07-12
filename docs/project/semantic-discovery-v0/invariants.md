@@ -104,7 +104,7 @@ It sorts/deduplicates those strings by UTF-8 bytes for prompt display only. The 
 Independent Python and TypeScript validators must agree on:
 
 - every valid fixture;
-- every invalid fixture and expected failing invariant/schema pointer;
+- every invalid fixture and expected failing invariant or portable validator tuple `(instancePath, keyword)`; validator-specific `schemaPath` values are non-normative;
 - JCS bytes and every digest preimage;
 - result and pack omission behavior;
 - error nullability;

@@ -62,6 +62,26 @@
       "jcs_utf8_hex": "7b226b696e64223a22646576656c6f706d656e745f72756e74696d65222c226d616e69666573745f646967657374223a227368613235363a34356262343236656166656635383533356235373338623836613762363334323931356135336635633661613463383661643938613337356132353965623062222c22707974686f6e5f76657273696f6e223a22332e31322e3130222c22756e69636f64655f64617461223a2231352e302e30227d"
     }
   },
+  "digest_omission": [
+    {
+      "case": "result_digest_absent",
+      "expected_digest_ref": "golden-fixtures.json#/digests/result_digest",
+      "fixture_ref": "golden-fixtures.json#/valid/result",
+      "omit_key": "result_digest"
+    },
+    {
+      "case": "pack_digest_absent",
+      "expected_digest_ref": "golden-fixtures.json#/digests/pack_digest",
+      "fixture_ref": "golden-fixtures.json#/valid/pack",
+      "omit_key": "pack_digest"
+    },
+    {
+      "case": "tool_digest_absent",
+      "expected_digest_ref": "golden-fixtures.json#/digests/tool_identity_digest",
+      "fixture_ref": "golden-fixtures.json#/valid/tool_identity",
+      "omit_key": "digest"
+    }
+  ],
   "error_hashing": [
     {
       "case": "malformed_json",
@@ -75,6 +95,21 @@
       "raw_json": {
         "schema": "unknown"
       }
+    },
+    {
+      "case": "duplicate_key",
+      "expected_caller_request_digest": null,
+      "raw_utf8_hex": "7b22736368656d61223a2261222c22736368656d61223a2262227d"
+    },
+    {
+      "case": "invalid_utf8",
+      "expected_caller_request_digest": null,
+      "raw_utf8_hex": "ff"
+    },
+    {
+      "case": "nonobject_json",
+      "expected_caller_request_digest": null,
+      "raw_utf8_hex": "5b5d"
     }
   ],
   "invariant_invalid": [
@@ -166,6 +201,71 @@
           "rule": "token_exact"
         }
       ]
+    },
+    {
+      "case": "top_k_monotonicity",
+      "expected_prefixes": [
+        [
+          "core.A"
+        ],
+        [
+          "core.A",
+          "core.B"
+        ],
+        [
+          "core.A",
+          "core.B",
+          "core.C"
+        ]
+      ],
+      "full_order": [
+        "core.A",
+        "core.B",
+        "core.C"
+      ],
+      "k_values": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "case": "locale_environment_invariance",
+      "environments": [
+        {
+          "LANG": "C.UTF-8",
+          "LC_ALL": "C.UTF-8"
+        },
+        {
+          "LANG": "de_DE.UTF-8",
+          "LC_ALL": "de_DE.UTF-8"
+        }
+      ],
+      "expected_equal_result_digest": true,
+      "expected_normalized": "strasse agent",
+      "query": "Straße Agent"
+    },
+    {
+      "case": "one_byte_identity_drift",
+      "expected_corpus_snapshot_digest_equal": false,
+      "expected_document_digest_equal": false,
+      "raw_a_hex": "61",
+      "raw_b_hex": "62"
+    },
+    {
+      "case": "equivalent_canonical_requests",
+      "expected_digest_equal": true,
+      "expected_jcs_equal": true,
+      "request_a": {
+        "schema": "unknown",
+        "x": 1,
+        "y": 2
+      },
+      "request_b": {
+        "schema": "unknown",
+        "x": 1,
+        "y": 2
+      }
     }
   ],
   "normalization": [
@@ -188,26 +288,96 @@
       "unicode_data": "15.0.0"
     }
   ],
+  "ordering_cases": [
+    {
+      "case": "candidate_total_order",
+      "expected_order": [
+        "core.A:concept",
+        "core.A:relation",
+        "core.B:concept"
+      ],
+      "input": [
+        {
+          "kind": "concept",
+          "ont_id": "core.B",
+          "score": 100
+        },
+        {
+          "kind": "relation",
+          "ont_id": "core.A",
+          "score": 100
+        },
+        {
+          "kind": "concept",
+          "ont_id": "core.A",
+          "score": 100
+        }
+      ]
+    },
+    {
+      "case": "resolved_ref_tie_break",
+      "expected_order": [
+        "a:b",
+        "a:c",
+        "z:b"
+      ],
+      "input": [
+        {
+          "layer": "z",
+          "layer_order": 1,
+          "locator": "b"
+        },
+        {
+          "layer": "a",
+          "layer_order": 1,
+          "locator": "c"
+        },
+        {
+          "layer": "a",
+          "layer_order": 1,
+          "locator": "b"
+        }
+      ]
+    },
+    {
+      "case": "pack_document_order",
+      "expected_order": [
+        "core.Agent:concept",
+        "core.B:concept",
+        "core.rel.uses:relation"
+      ],
+      "input": [
+        "core.rel.uses:relation",
+        "core.B:concept",
+        "core.Agent:concept"
+      ],
+      "root": "core.Agent"
+    }
+  ],
   "schema": "semantic-discovery-differential-fixtures.v0",
   "schema_invalid": [
     {
       "case": "request_unknown_field",
-      "expected_schema_pointer": "#/$defs/request/additionalProperties",
+      "expected_instance_path": "/extra",
+      "expected_keyword": "additionalProperties",
       "fixture_ref": "golden-fixtures.json#/invalid/0/instance"
     },
     {
       "case": "result_empty_effective_limits",
-      "expected_schema_pointer": "#/$defs/limits/required",
+      "expected_instance_path": "/effective_limits",
+      "expected_keyword": "required",
       "fixture_ref": "golden-fixtures.json#/invalid/1/instance"
     },
     {
       "case": "undotted_ontology_id",
-      "expected_schema_pointer": "#/$defs/ontId/pattern",
+      "expected_instance_path": "/candidates/0/ont_id",
+      "expected_keyword": "pattern",
       "fixture_ref": "golden-fixtures.json#/invalid/2/instance"
     },
     {
       "case": "positive_anti_rule_pair",
-      "expected_schema_pointer": "#/$defs/evidence/oneOf",
+      "expected_instance_path": "/candidates/0/evidence/0",
+      "expected_keyword": "oneOf",
       "fixture_ref": "golden-fixtures.json#/invalid/3/instance"
     }
   ]
