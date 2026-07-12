@@ -178,44 +178,26 @@ rocs.pack.v0
 Closed digest preimages are:
 
 - caller request: the exact validated `semantic-discovery-request.v0` object;
-- corpus snapshot: `{schema, profile, roots, resolved_refs, entries}`; each root is exactly `{root_id, layer, layer_order, kind}`, each ref exactly `{layer, layer_order, locator, resolved_revision}`, and each entry exactly `{logical_path, layer, layer_order, kind, raw_byte_length, document_digest}`;
-- tool identity: exactly `{kind, manifest_digest, python_version, unicode_data, digest}`, where `digest` uses `rocs.tool-identity.v0` over the first four fields;
-- effective execution: exactly `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, algorithm, effective_limits}`; `algorithm` is exactly `{id, unicode_data}` and `effective_limits` has exactly the eight request limit keys;
+- corpus snapshot: `{schema="semantic-corpus-snapshot.v0", profile, roots, resolved_refs, entries}` with `corpus_snapshot_digest` absent; each root is exactly `{root_id, layer, layer_order, kind}`, each ref exactly `{layer, layer_order, locator, resolved_revision}`, and each entry exactly `{logical_path, layer, layer_order, kind, raw_byte_length, document_digest}`;
+- tool identity preimage: exactly `{kind, manifest_digest, python_version, unicode_data}` with `digest` absent; `digest` is inserted after hashing with `rocs.tool-identity.v0`;
+- effective execution: exactly `{schema="semantic-effective-execution.v0", caller_request_digest, corpus_snapshot_digest, tool_identity, algorithm, effective_limits}` with `effective_execution_digest` absent; `algorithm` is exactly `{id, unicode_data}` and `effective_limits` has exactly the eight request limit keys;
 - result digest preimage: the exact result object `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, effective_execution_digest, algorithm, retrieval, candidates, effective_limits, truncated}` with `result_digest` absent; after hashing, `result_digest` is inserted;
 - pack digest preimage: the exact pack object `{schema, corpus_snapshot_digest, root_id, root_document_digest, config, documents}` with `pack_digest` absent; after hashing, `pack_digest` is inserted.
 
-### Normative type grammar
+### Normative machine contract
 
-No protocol field is nullable. Every object rejects unknown fields; every listed field is required. Strings are valid Unicode scalar sequences without NUL and are bounded by UTF-8 byte length. Integers are JSON integers.
+The normative structural contract is [`semantic-discovery-v0/protocol.schema.json`](semantic-discovery-v0/protocol.schema.json), JSON Schema Draft 2020-12. The normative cross-field, ordering, byte-accounting, canonical-token, error-nullability, and digest-omission rules are [`semantic-discovery-v0/invariants.md`](semantic-discovery-v0/invariants.md). The independent-language acceptance corpus is [`semantic-discovery-v0/golden-fixtures.json`](semantic-discovery-v0/golden-fixtures.json).
 
-| Type | Closed definition |
-|---|---|
-| `digest` | string matching `^sha256:[0-9a-f]{64}$` |
-| `u32` | integer `0..4294967295` |
-| `positive_u32` | integer `1..4294967295` |
-| `bounded_text` | string `1..65536` UTF-8 bytes |
-| `identifier` | string `1..256` UTF-8 bytes matching existing validated ROCS ID grammar |
-| `logical_path` | string `1..4096` UTF-8 bytes satisfying the path rules below |
-| `token` | normalized string `1..256` UTF-8 bytes containing only Unicode `L*`/`N*` code points |
+Precedence is closed:
 
-Closed objects and arrays:
+1. schema owns fields, literal schema IDs, scalar types, enums, ranges, nullability, and array bounds;
+2. invariants own relationships and canonical ordering not expressible portably in JSON Schema;
+3. golden fixtures own byte-identical JCS and digest examples;
+4. this RFC owns architecture and algorithm meaning.
 
-- request: `schema="semantic-discovery-request.v0"`, `query=bounded_text` additionally capped by `query_bytes`, `identity_selector={kind:"development_snapshot"}`, `profile=identifier`, `algorithm="rocs-lexical-v0"`, `limits=limits`;
-- limits: exactly eight `positive_u32` fields from the request example, each no greater than its RFC default;
-- root: `{root_id:identifier, layer:identifier, layer_order:u32, kind:"path"|"ref"}`; `roots` length `1..corpus_files`;
-- resolved ref: `{layer:identifier, layer_order:u32, locator:bounded_text, resolved_revision:bounded_text}`; array length `0..roots.length`;
-- snapshot entry: `{logical_path, layer:identifier, layer_order:u32, kind:"manifest"|"profile"|"concept"|"relation", raw_byte_length:u32, document_digest:digest}`; entries length `1..corpus_files`;
-- tool identity: `{kind:"development_runtime"|"adopted_runtime", manifest_digest:digest, python_version:bounded_text, unicode_data:"15.0.0", digest:digest}`;
-- algorithm: `{id:"rocs-lexical-v0", unicode_data:"15.0.0"}`;
-- evidence: `{field:"id"|"label"|"synonym"|"description"|"relation"|"example"|"anti_example", rule:"phrase_exact"|"token_exact"|"anti_phrase"|"anti_token", query_token:token}`; length `1..256` per candidate;
-- candidate: `{rank:positive_u32, ont_id:identifier, kind:"concept"|"relation", layer:identifier, score:u32, matched_query_tokens:token[1..query-token-count], evidence:evidence[1..256], document_digest:digest}`;
-- result: the exact fields shown in the result example; `retrieval` is one of the five declared states, candidates length `0..limits.candidates`, `truncated` is boolean, and all digest fields are `digest`;
-- pack config: `{max_depth:u32, rel_types:identifier[0..256], include_relation_defs:boolean, max_docs:positive_u32, max_bytes:positive_u32}`;
-- pack document: `{ont_id:identifier, kind:"concept"|"relation", logical_path, document_digest:digest, text:bounded_text}`; documents length `1..config.max_docs`;
-- pack result: `{schema:"semantic-pack-result.v0", corpus_snapshot_digest:digest, root_id:identifier, root_document_digest:digest, config, documents, pack_digest:digest}`;
-- capabilities result: `{schema:"semantic-discovery-capabilities.v0", request_schemas:["semantic-discovery-request.v0"], result_schemas:["semantic-discovery-result.v0"], pack_schemas:["semantic-pack-result.v0"], error_schemas:["rocs-error.v0"], algorithms:["rocs-lexical-v0"], unicode_data:["15.0.0"], platforms:["linux"]}` with each singleton array exactly length 1 in v0.
+A contradiction fails review/implementation; prose never silently overrides the machine contract. All objects reject unknown fields. The error request digest is the only nullable field.
 
-Logical paths are NFC-normalized UTF-8 POSIX paths relative to a declared logical layer root; backslash, absolute paths, `.`/`..`, empty segments, and normalization collisions fail. Roots sort by layer order then root ID; refs sort by layer order; entries sort by logical-path UTF-8 bytes. Manifest/profile bytes are entries too. Digests always cover raw bytes; normalization is used only for retrieval.
+Logical paths are NFC-normalized UTF-8 POSIX paths relative to a declared logical layer root; backslash, absolute paths, `.`/`..`, empty segments, and normalization collisions fail. Complete root/ref/entry order and uniqueness rules live in the invariants. Manifest/profile bytes are entries too. Digests always cover raw bytes; normalization is used only for retrieval.
 
 ### 4. Snapshot capture contract
 
@@ -252,10 +234,10 @@ A successful result contains the effective execution identity:
     "layer": "core",
     "score": 900,
     "matched_query_tokens": ["agent"],
-    "evidence": [{"field": "label", "rule": "token_exact", "query_token": "agent"}],
+    "evidence": [{"field": "label", "rule": "token_exact", "query_term": "agent"}],
     "document_digest": "sha256:..."
   }],
-  "effective_limits": {},
+  "effective_limits": {"query_bytes":16384,"corpus_files":5000,"corpus_bytes":33554432,"file_bytes":1048576,"parser_depth":32,"collection_items":10000,"candidates":12,"result_bytes":65536},
   "truncated": false,
   "result_digest": "sha256:..."
 }
@@ -284,7 +266,7 @@ projection: matched | ambiguous | no_match | not_applicable | unavailable
 4. Eligible fields are exact validated values only: `ont.id`, each `ont.labels[]`, each `ont.synonyms[]`, `ont.description`, each `ont.examples[]`, each `ont.anti_examples[]`, and validated relation type/target strings. Unknown or wrong-typed fields fail ontology validation before scoring.
 5. For each unique query token and field family, add the family weight at most once per candidate when any value in that family contains the token: ID 500, label 400, synonym 350, description 100, relation 80, example 50. Repeated values never multiply weight. If any anti-example contains the token, subtract 200 once after all positive families. Scores clamp at zero and must fit unsigned 32-bit integer range.
 6. For each family, add at most one phrase bonus per candidate when any complete normalized value equals the complete normalized query: ID 1000, label 800, synonym 700, description 200, relation 160, example 100. If any anti-example exactly equals the query, subtract 400 once.
-7. `matched_query_tokens` is the first-occurrence-ordered subset receiving any positive family match. Emit positive and anti-example evidence in field-family order, then rule (`phrase_exact`, `token_exact`, `anti_phrase`, `anti_token`), then query-token order. Evidence contains enums and query tokens, never ontology prose.
+7. `matched_query_tokens` is the first-occurrence-ordered subset receiving any positive family match. Emit positive and anti-example evidence in field-family order, then rule (`phrase_exact`, `token_exact`, `anti_phrase`, `anti_token`), then query-token order. Evidence contains schema-validated enums and `query_term`, never ontology prose.
 8. Candidates with score below 100 are excluded. Sort by score descending, ontology-ID UTF-8 bytes ascending, then kind (`concept` before `relation`).
 9. Compute retrieval over the full eligible set before top-K projection:
    - none: `no_candidates`;
@@ -298,7 +280,7 @@ Metamorphic fixtures must prove enumeration-order invariance, top-K monotonicity
 
 ## Limits and errors
 
-All limit fields are required positive integers; caller values may range from 1 through the defaults shown above. `parser_depth` counts nested YAML/JSON collection levels with the root at 1. `collection_items` is corpus-wide across parsed mapping keys and sequence elements. `corpus_files` includes manifests, profiles, and documents. Query bytes are measured on the exact raw UTF-8 request value before ROCS normalization. Corpus bytes include manifest/profile/document raw bytes. Result bytes measure the final canonical result including the 72-byte `sha256:` digest string; implementation computes the digest over the omitted-field object, inserts it, then enforces the limit. Fixed-envelope overflow fails.
+All limit fields are required positive integers; caller values may range from 1 through the defaults shown above. `parser_depth` counts nested YAML/JSON collection levels with the root at 1. `collection_items` is corpus-wide across parsed mapping keys and sequence elements. `corpus_files` includes manifests, profiles, and documents. Query bytes are measured on the exact raw UTF-8 request value before ROCS normalization. Corpus bytes include manifest/profile/document raw bytes. Result bytes measure the final canonical result including the 71-byte `sha256:` digest string; implementation computes the digest over the omitted-field object, inserts it, then enforces the limit. Fixed-envelope overflow fails.
 
 Query, corpus, file, parser, collection, and result excess return `resource_exhausted`; candidate count alone truncates. The machine error envelope is closed:
 
