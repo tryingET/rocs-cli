@@ -181,8 +181,39 @@ Closed digest preimages are:
 - corpus snapshot: `{schema, profile, roots, resolved_refs, entries}`; each root is exactly `{root_id, layer, layer_order, kind}`, each ref exactly `{layer, layer_order, locator, resolved_revision}`, and each entry exactly `{logical_path, layer, layer_order, kind, raw_byte_length, document_digest}`;
 - tool identity: exactly `{kind, manifest_digest, python_version, unicode_data, digest}`, where `digest` uses `rocs.tool-identity.v0` over the first four fields;
 - effective execution: exactly `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, algorithm, effective_limits}`; `algorithm` is exactly `{id, unicode_data}` and `effective_limits` has exactly the eight request limit keys;
-- result: exactly `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, effective_execution_digest, algorithm, retrieval, candidates, effective_limits, truncated, result_digest}`; each candidate is exactly `{rank, ont_id, kind, layer, score, matched_query_tokens, evidence, document_digest}` and each evidence item exactly `{field, rule, query_token}` using closed enums;
-- pack: exactly `{schema, corpus_snapshot_digest, root_id, root_document_digest, config, documents, pack_digest}`; config is exactly `{max_depth, rel_types, include_relation_defs, max_docs, max_bytes}` and each document exactly `{ont_id, kind, logical_path, document_digest, text}`.
+- result digest preimage: the exact result object `{schema, caller_request_digest, corpus_snapshot_digest, tool_identity, effective_execution_digest, algorithm, retrieval, candidates, effective_limits, truncated}` with `result_digest` absent; after hashing, `result_digest` is inserted;
+- pack digest preimage: the exact pack object `{schema, corpus_snapshot_digest, root_id, root_document_digest, config, documents}` with `pack_digest` absent; after hashing, `pack_digest` is inserted.
+
+### Normative type grammar
+
+No protocol field is nullable. Every object rejects unknown fields; every listed field is required. Strings are valid Unicode scalar sequences without NUL and are bounded by UTF-8 byte length. Integers are JSON integers.
+
+| Type | Closed definition |
+|---|---|
+| `digest` | string matching `^sha256:[0-9a-f]{64}$` |
+| `u32` | integer `0..4294967295` |
+| `positive_u32` | integer `1..4294967295` |
+| `bounded_text` | string `1..65536` UTF-8 bytes |
+| `identifier` | string `1..256` UTF-8 bytes matching existing validated ROCS ID grammar |
+| `logical_path` | string `1..4096` UTF-8 bytes satisfying the path rules below |
+| `token` | normalized string `1..256` UTF-8 bytes containing only Unicode `L*`/`N*` code points |
+
+Closed objects and arrays:
+
+- request: `schema="semantic-discovery-request.v0"`, `query=bounded_text` additionally capped by `query_bytes`, `identity_selector={kind:"development_snapshot"}`, `profile=identifier`, `algorithm="rocs-lexical-v0"`, `limits=limits`;
+- limits: exactly eight `positive_u32` fields from the request example, each no greater than its RFC default;
+- root: `{root_id:identifier, layer:identifier, layer_order:u32, kind:"path"|"ref"}`; `roots` length `1..corpus_files`;
+- resolved ref: `{layer:identifier, layer_order:u32, locator:bounded_text, resolved_revision:bounded_text}`; array length `0..roots.length`;
+- snapshot entry: `{logical_path, layer:identifier, layer_order:u32, kind:"manifest"|"profile"|"concept"|"relation", raw_byte_length:u32, document_digest:digest}`; entries length `1..corpus_files`;
+- tool identity: `{kind:"development_runtime"|"adopted_runtime", manifest_digest:digest, python_version:bounded_text, unicode_data:"15.0.0", digest:digest}`;
+- algorithm: `{id:"rocs-lexical-v0", unicode_data:"15.0.0"}`;
+- evidence: `{field:"id"|"label"|"synonym"|"description"|"relation"|"example"|"anti_example", rule:"phrase_exact"|"token_exact"|"anti_phrase"|"anti_token", query_token:token}`; length `1..256` per candidate;
+- candidate: `{rank:positive_u32, ont_id:identifier, kind:"concept"|"relation", layer:identifier, score:u32, matched_query_tokens:token[1..query-token-count], evidence:evidence[1..256], document_digest:digest}`;
+- result: the exact fields shown in the result example; `retrieval` is one of the five declared states, candidates length `0..limits.candidates`, `truncated` is boolean, and all digest fields are `digest`;
+- pack config: `{max_depth:u32, rel_types:identifier[0..256], include_relation_defs:boolean, max_docs:positive_u32, max_bytes:positive_u32}`;
+- pack document: `{ont_id:identifier, kind:"concept"|"relation", logical_path, document_digest:digest, text:bounded_text}`; documents length `1..config.max_docs`;
+- pack result: `{schema:"semantic-pack-result.v0", corpus_snapshot_digest:digest, root_id:identifier, root_document_digest:digest, config, documents, pack_digest:digest}`;
+- capabilities result: `{schema:"semantic-discovery-capabilities.v0", request_schemas:["semantic-discovery-request.v0"], result_schemas:["semantic-discovery-result.v0"], pack_schemas:["semantic-pack-result.v0"], error_schemas:["rocs-error.v0"], algorithms:["rocs-lexical-v0"], unicode_data:["15.0.0"], platforms:["linux"]}` with each singleton array exactly length 1 in v0.
 
 Logical paths are NFC-normalized UTF-8 POSIX paths relative to a declared logical layer root; backslash, absolute paths, `.`/`..`, empty segments, and normalization collisions fail. Roots sort by layer order then root ID; refs sort by layer order; entries sort by logical-path UTF-8 bytes. Manifest/profile bytes are entries too. Digests always cover raw bytes; normalization is used only for retrieval.
 
