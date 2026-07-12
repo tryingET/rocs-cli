@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Stdlib-only revision-2 schema, digest, link, and adversarial validator."""
-
+"""Stdlib-only revision-3 token-aware schema, digest, link, and transition validator."""
 from __future__ import annotations
 
 import copy
@@ -64,50 +63,53 @@ class ValidationError(Exception):
 def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
-        if key in result:
-            raise ValidationError(f"duplicate JSON key {key!r}")
+        if key in result: raise ValidationError(f"duplicate JSON key {key!r}")
         result[key] = value
     return result
 
 
+def parse_integer_token(token: str) -> int:
+    if re.fullmatch(r"0|[1-9][0-9]*", token) is None: raise ValidationError(f"non-canonical integer token {token!r}")
+    value = int(token)
+    if value > MAX_SAFE_INTEGER: raise ValidationError("unsafe integer token")
+    return value
+
+
+def parse_json_text(text: str) -> Any:
+    try:
+        value = json.loads(text, object_pairs_hook=reject_duplicates, parse_int=parse_integer_token,
+            parse_float=lambda token: (_ for _ in ()).throw(ValidationError(f"non-integer number token {token!r}")),
+            parse_constant=lambda token: (_ for _ in ()).throw(ValidationError(f"non-I-JSON constant {token!r}")))
+    except json.JSONDecodeError as exc:
+        raise ValidationError(str(exc)) from exc
+    validate_ijson(value)
+    return value
+
+
 def load_json(path: Path) -> Any:
     raw = path.read_bytes()
-    if raw.startswith(b"\xef\xbb\xbf"):
-        raise ValidationError(f"{path}: BOM forbidden")
-    try:
-        return json.loads(raw.decode("utf-8", "strict"), object_pairs_hook=reject_duplicates,
-                          parse_float=lambda _: (_ for _ in ()).throw(ValidationError("non-integer number")), parse_int=int)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValidationError(f"{path}: {exc}") from exc
+    if raw.startswith(b"\xef\xbb\xbf"): raise ValidationError(f"{path}: BOM forbidden")
+    try: return parse_json_text(raw.decode("utf-8", "strict"))
+    except (UnicodeDecodeError, ValidationError) as exc: raise ValidationError(f"{path}: {exc}") from exc
 
 
 def validate_ijson(value: Any, path: str = "$") -> None:
-    if value is None or isinstance(value, bool):
-        return
+    if value is None or isinstance(value, bool): return
     if isinstance(value, int):
-        if not 0 <= value <= MAX_SAFE_INTEGER:
-            raise ValidationError(f"{path}: unsafe integer")
+        if not 0 <= value <= MAX_SAFE_INTEGER: raise ValidationError(f"{path}: unsafe integer")
         return
     if isinstance(value, str):
-        if unicodedata.normalize("NFC", value) != value:
-            raise ValidationError(f"{path}: non-NFC string")
+        if unicodedata.normalize("NFC", value) != value: raise ValidationError(f"{path}: non-NFC string")
         if any(0xD800 <= ord(c) <= 0xDFFF or 0xFDD0 <= ord(c) <= 0xFDEF or (ord(c) & 0xFFFF) in (0xFFFE, 0xFFFF) for c in value):
             raise ValidationError(f"{path}: forbidden Unicode scalar")
         return
     if isinstance(value, list):
-        for index, item in enumerate(value):
-            validate_ijson(item, f"{path}/{index}")
+        for i, item in enumerate(value): validate_ijson(item, f"{path}/{i}")
         return
     if isinstance(value, dict):
-        for key, item in value.items():
-            validate_ijson(key, f"{path}/key")
-            validate_ijson(item, f"{path}/{key}")
+        for key, item in value.items(): validate_ijson(key, f"{path}/key"); validate_ijson(item, f"{path}/{key}")
         return
     raise ValidationError(f"{path}: unsupported JSON type")
-
-
-def utf16_key(value: str) -> bytes:
-    return value.encode("utf-16-be")
 
 
 def jcs(value: Any) -> str:
@@ -118,7 +120,7 @@ def jcs(value: Any) -> str:
     if isinstance(value, int): return str(value)
     if isinstance(value, str): return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
     if isinstance(value, list): return "[" + ",".join(jcs(x) for x in value) + "]"
-    if isinstance(value, dict): return "{" + ",".join(jcs(k) + ":" + jcs(value[k]) for k in sorted(value, key=utf16_key)) + "}"
+    if isinstance(value, dict): return "{" + ",".join(jcs(k) + ":" + jcs(value[k]) for k in sorted(value, key=lambda x: x.encode("utf-16-be"))) + "}"
     raise AssertionError
 
 
@@ -126,113 +128,98 @@ def domain_digest(domain: str, preimage: bytes) -> str:
     return "sha256:" + hashlib.sha256(domain.encode("ascii") + b"\0" + preimage).hexdigest()
 
 
+def typed_digest(domain: str, value: Any) -> str: return domain_digest(domain, jcs(value).encode())
+def action_digest(value: Any) -> str: return typed_digest("semantic-release.approval-action.v0", value)
+def change_digest(value: Any) -> str: return typed_digest("semantic-release.compatibility-change.v0", value)
+
+
 def object_digest(instance: dict[str, Any], domain: str, omitted: str | None) -> tuple[str, str]:
     candidate = copy.deepcopy(instance)
     if omitted is not None:
-        if omitted not in candidate:
-            raise ValidationError(f"missing self digest {omitted}")
+        if omitted not in candidate: raise ValidationError(f"missing self digest {omitted}")
         del candidate[omitted]
     canonical = jcs(candidate)
     return canonical, domain_digest(domain, canonical.encode())
 
 
 def resolve_ref(root: dict, reference: str) -> dict:
-    if not reference.startswith("#/"):
-        raise ValidationError(f"external ref forbidden: {reference}")
+    if not reference.startswith("#/"): raise ValidationError(f"external ref forbidden: {reference}")
     node: Any = root
-    for token in reference[2:].split("/"):
-        node = node[token.replace("~1", "/").replace("~0", "~")]
-    if not isinstance(node, dict):
-        raise ValidationError("schema ref is not object")
+    for token in reference[2:].split("/"): node = node[token.replace("~1", "/").replace("~0", "~")]
+    if not isinstance(node, dict): raise ValidationError("schema ref is not object")
     return node
 
 
-def schema_validate(instance: Any, schema: dict, root: dict, path: str = "$") -> None:
-    if "$ref" in schema:
-        schema_validate(instance, resolve_ref(root, schema["$ref"]), root, path); return
-    if "oneOf" in schema:
+def schema_validate(instance: Any, shape: dict, root: dict, path: str = "$") -> None:
+    if "$ref" in shape: schema_validate(instance, resolve_ref(root, shape["$ref"]), root, path); return
+    if "oneOf" in shape:
         matches = 0
-        for option in schema["oneOf"]:
+        for option in shape["oneOf"]:
             try: schema_validate(instance, option, root, path); matches += 1
             except ValidationError: pass
         if matches != 1: raise ValidationError(f"{path}: oneOf matched {matches}")
         return
-    if "const" in schema and instance != schema["const"]: raise ValidationError(f"{path}: const mismatch")
-    if "enum" in schema and instance not in schema["enum"]: raise ValidationError(f"{path}: enum mismatch")
-    expected = schema.get("type")
+    if "const" in shape and instance != shape["const"]: raise ValidationError(f"{path}: const mismatch")
+    if "enum" in shape and instance not in shape["enum"]: raise ValidationError(f"{path}: enum mismatch")
+    expected = shape.get("type")
     if expected == "object":
         if not isinstance(instance, dict): raise ValidationError(f"{path}: expected object")
-        props = schema.get("properties", {})
-        missing = [x for x in schema.get("required", []) if x not in instance]
+        props = shape.get("properties", {}); missing = [x for x in shape.get("required", []) if x not in instance]
         if missing: raise ValidationError(f"{path}: missing {missing}")
-        if schema.get("additionalProperties") is False:
-            extra = sorted(set(instance) - set(props))
-            if extra: raise ValidationError(f"{path}: unknown {extra}")
+        if shape.get("additionalProperties") is False and (extra := sorted(set(instance) - set(props))): raise ValidationError(f"{path}: unknown {extra}")
         for key, value in instance.items():
             if key in props: schema_validate(value, props[key], root, f"{path}/{key}")
     elif expected == "array":
-        if not isinstance(instance, list): raise ValidationError(f"{path}: expected array")
-        if not schema.get("minItems", 0) <= len(instance) <= schema.get("maxItems", MAX_SAFE_INTEGER): raise ValidationError(f"{path}: array length")
-        for index, item in enumerate(instance): schema_validate(item, schema["items"], root, f"{path}/{index}")
+        if not isinstance(instance, list) or not shape.get("minItems", 0) <= len(instance) <= shape.get("maxItems", MAX_SAFE_INTEGER): raise ValidationError(f"{path}: array")
+        for i, item in enumerate(instance): schema_validate(item, shape["items"], root, f"{path}/{i}")
     elif expected == "string":
-        if not isinstance(instance, str): raise ValidationError(f"{path}: expected string")
-        if not schema.get("minLength", 0) <= len(instance) <= schema.get("maxLength", MAX_SAFE_INTEGER): raise ValidationError(f"{path}: string length")
-        if "pattern" in schema and re.search(schema["pattern"], instance) is None: raise ValidationError(f"{path}: pattern")
+        if not isinstance(instance, str) or not shape.get("minLength", 0) <= len(instance) <= shape.get("maxLength", MAX_SAFE_INTEGER): raise ValidationError(f"{path}: string")
+        if "pattern" in shape and re.search(shape["pattern"], instance) is None: raise ValidationError(f"{path}: pattern")
     elif expected == "integer":
-        if isinstance(instance, bool) or not isinstance(instance, int): raise ValidationError(f"{path}: expected integer")
-        if not schema.get("minimum", -MAX_SAFE_INTEGER) <= instance <= schema.get("maximum", MAX_SAFE_INTEGER): raise ValidationError(f"{path}: integer range")
-    elif expected == "boolean":
-        if not isinstance(instance, bool): raise ValidationError(f"{path}: expected boolean")
-    elif expected == "null":
-        if instance is not None: raise ValidationError(f"{path}: expected null")
-    elif expected is not None:
-        raise ValidationError(f"{path}: unsupported schema type")
+        if isinstance(instance, bool) or not isinstance(instance, int) or not shape.get("minimum", -MAX_SAFE_INTEGER) <= instance <= shape.get("maximum", MAX_SAFE_INTEGER): raise ValidationError(f"{path}: integer")
+    elif expected == "boolean" and not isinstance(instance, bool): raise ValidationError(f"{path}: boolean")
+    elif expected == "null" and instance is not None: raise ValidationError(f"{path}: null")
 
 
 def pointer(instance: Any, path: str) -> Any:
     node = instance
-    for token in path.lstrip("/").split("/") if path else []:
-        node = node[int(token)] if isinstance(node, list) else node[token.replace("~1", "/").replace("~0", "~")]
+    for token in path.lstrip("/").split("/") if path else []: node = node[int(token)] if isinstance(node, list) else node[token.replace("~1", "/").replace("~0", "~")]
     return node
 
 
-def sorted_unique(values: list[str]) -> bool:
-    return values == sorted(values, key=lambda x: x.encode()) and len(values) == len(set(values))
+def sorted_unique(values: list[str]) -> bool: return values == sorted(values, key=lambda x: x.encode()) and len(values) == len(set(values))
 
 
 def check_order(instance: dict) -> None:
-    schema = instance["schema"]
-    if schema in {"semantic-source-manifest.v0", "semantic-material-manifest.v0"}:
-        entries = instance["entries"]
-        keys = [(x["path"].encode(), x["kind"]) for x in entries]
-        if keys != sorted(keys) or len({x["path"] for x in entries}) != len(entries): raise ValidationError("manifest order/uniqueness")
-    if schema == "semantic-owner-set.v0":
-        ids = [x["owner_id"] for x in instance["members"]]
-        if not sorted_unique(ids) or any(not sorted_unique(x["key_ids"]) for x in instance["members"]): raise ValidationError("owner set order")
-    if schema == "semantic-owner-approval.v0":
+    kind = instance["schema"]
+    if kind in {"semantic-source-manifest.v0", "semantic-material-manifest.v0"}:
+        keys = [(x["path"].encode(), x["kind"]) for x in instance["entries"]]
+        if keys != sorted(keys) or len(keys) != len({x["path"] for x in instance["entries"]}): raise ValidationError("manifest order")
+    if kind == "semantic-owner-set.v0":
+        if not sorted_unique([x["owner_id"] for x in instance["members"]]) or any(not sorted_unique(x["key_ids"]) for x in instance["members"]): raise ValidationError("owner order")
+    if kind == "semantic-owner-approval.v0":
         keys = [(x["owner_id"].encode(), x["owner_key_id"].encode()) for x in instance["votes"]]
-        if keys != sorted(keys) or len(keys) != len(set(keys)): raise ValidationError("vote order")
-        if any(x["approved_candidate_digest"] != instance["candidate_capsule_digest"] for x in instance["votes"]): raise ValidationError("vote candidate mismatch")
-    if schema == "semantic-compatibility-policy.v0":
-        if not sorted_unique([x["category"] for x in instance["category_rules"]]): raise ValidationError("category rules not exhaustive/sorted")
-    if schema == "semantic-compatibility-report.v0":
+        if keys != sorted(keys) or len(keys) != len(set(keys)) or action_digest(instance["action"]) != instance["action_digest"] or any(x["approved_action_digest"] != instance["action_digest"] for x in instance["votes"]): raise ValidationError("approval order/binding")
+    if kind == "semantic-compatibility-policy.v0" and not sorted_unique([x["category"] for x in instance["category_rules"]]): raise ValidationError("policy order")
+    if kind == "semantic-compatibility-report.v0":
         keys = [(x["semantic_id"].encode(), x["category"].encode()) for x in instance["changes"]]
-        if keys != sorted(keys) or len(keys) != len(set(keys)) or not sorted_unique([x["condition_id"] for x in instance["conditions"]]): raise ValidationError("compatibility order")
-    if schema == "semantic-tombstone-registry.v0" and not sorted_unique([x["semantic_id"] for x in instance["entries"]]): raise ValidationError("tombstone order")
-    if schema == "semantic-payload-projection.v0" and not sorted_unique([x["capsule_path"] for x in instance["entries"]]): raise ValidationError("projection order")
-    if schema == "semantic-release-capsule.v0" and not sorted_unique(instance["required_protocol_versions"]): raise ValidationError("protocol order")
-    if schema == "semantic-rocs-generation-receipt.v0":
-        if not sorted_unique(instance["candidate_ids"]) or not sorted_unique(instance["pack_digests"]): raise ValidationError("generation set order")
-    if schema == "semantic-protocol-error.v0" and not sorted_unique([x["key"] for x in instance["details"]]): raise ValidationError("error detail order")
+        if keys != sorted(keys) or len(keys) != len(set(keys)) or not sorted_unique([x["condition_id"] for x in instance["conditions"]]) or not sorted_unique(instance["override_digests"]): raise ValidationError("compatibility order")
+    if kind == "semantic-tombstone-registry.v0" and not sorted_unique([x["semantic_id"] for x in instance["entries"]]): raise ValidationError("tombstone order")
+    if kind == "semantic-payload-projection.v0":
+        src = [x["capsule_path"] for x in instance["entries"]]; dst = [x["consumer_path"] for x in instance["entries"]]
+        if not sorted_unique(src) or len(dst) != len(set(dst)): raise ValidationError("projection bijection")
+    if kind == "semantic-release-capsule.v0" and not sorted_unique(instance["required_protocol_versions"]): raise ValidationError("protocol order")
+    if kind == "semantic-rocs-generation-receipt.v0" and (not sorted_unique(instance["candidate_ids"]) or not sorted_unique(instance["pack_digests"])): raise ValidationError("generation order")
+    if kind == "semantic-rollback-receipt.v0" and len(instance["stages"]) != len({x["stage"] for x in instance["stages"]}): raise ValidationError("stage uniqueness")
+    if kind == "semantic-protocol-error.v0" and not sorted_unique([x["key"] for x in instance["details"]]): raise ValidationError("error order")
 
 
 def strict_utc(value: str) -> bool:
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", value): return False
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", value) is None or value[:4] == "0000": return False
     try:
         parsed = dt.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
-        return parsed.strftime("%Y-%m-%dT%H:%M:%SZ") == value and parsed.year >= 1
-    except ValueError:
-        return False
+        return 1 <= parsed.year <= 9999 and parsed.strftime("%Y-%m-%dT%H:%M:%SZ") == value
+    except ValueError: return False
 
 
 def semver(value: str) -> tuple[int, int, int]:
@@ -246,137 +233,193 @@ def fixture_digest_valid(subject: dict) -> bool:
     return object_digest(subject, domain, omitted)[1] == subject[omitted]
 
 
+def condition_true(value: dict) -> bool:
+    if value["kind"] == "evidence_digest_equals":
+        computed = value["expected_digest"] is not None and value["expected_digest"] == value["actual_digest"] and value["expected_integer"] is None and value["actual_integer"] is None
+    else:
+        computed = value["expected_digest"] is None and value["actual_digest"] is None and value["expected_integer"] is not None and value["actual_integer"] is not None and value["actual_integer"] >= value["expected_integer"]
+    return value["satisfied"] == computed and computed
+
+
+def decision_current(subject: dict, context: dict) -> bool:
+    head = subject["ak_store_head"]; canonical = context.get("canonical_store_head", head)
+    return subject["lifecycle_state"] == "accepted" and subject["adr_reference"]["status"] == "accepted" and subject["revocation_digest"] is None and subject["superseded_by_decision_record_digest"] is None and head == canonical and head["store_head_digest"] == canonical["store_head_digest"] and head["revocation_head_digest"] == canonical["revocation_head_digest"] and context.get("current_decision_record_digest", subject["decision_record_digest"]) == subject["decision_record_digest"]
+
+
 def evaluate(rule: str, subject: dict, context: dict) -> str | None:
     if rule == "digest": return None if fixture_digest_valid(subject) else "digest_mismatch"
     if rule == "approval_threshold":
-        members = {x["owner_id"]: x for x in context["owner_set"]["members"]}
+        members = {x["owner_id"]: x for x in context["owner_set"]["members"]}; predicate = context["predicate"]
+        active = {key for key, value in members.items() if value["status"] == "active"}
+        if action_digest(subject["action"]) != subject["action_digest"]: return "approval_threshold_unsatisfied"
         eligible: set[str] = set()
         for vote in subject["votes"]:
             member = members.get(vote["owner_id"])
-            if not member or vote["owner_key_id"] not in member["key_ids"]: return "approval_threshold_unsatisfied"
-            if member["status"] == "revoked": return "trust_revoked"
+            if member and member["status"] == "revoked": return "trust_revoked"
+            if not member or vote["owner_key_id"] not in member["key_ids"] or vote["approved_action_digest"] != subject["action_digest"] or vote["owner_id"] in eligible: return "approval_threshold_unsatisfied"
             eligible.add(vote["owner_id"])
-        predicate = context["predicate"]
-        needed = len([x for x in members.values() if x["status"] == "active"]) if predicate["mode"] == "unanimous" else predicate["threshold"]
-        return None if len(eligible) >= needed else "approval_threshold_unsatisfied"
+        if subject["approval_predicate_digest"] != predicate["approval_predicate_digest"]: return "approval_threshold_unsatisfied"
+        if predicate["mode"] == "unanimous":
+            if predicate["threshold"] != len(active): return "approval_threshold_unsatisfied"
+            needed = len(active)
+        else:
+            needed = predicate["threshold"]
+            if needed < 1 or needed > len(active): return "approval_threshold_unsatisfied"
+        approved = eligible == active if predicate["mode"] == "unanimous" else len(eligible) >= needed
+        return None if approved else "approval_threshold_unsatisfied"
     if rule == "trust_rotation":
-        if subject["old_trust_root_digest"] in context["revoked"]: return "trust_revoked"
-        return None if subject["old_trust_root_digest"] == context["current_root_digest"] else "trust_reference_stale"
+        old, new, approval, policy = context["old_root"], context["new_root"], context["approval"], context["policy"]
+        if old["trust_root_digest"] in context.get("revoked", []): return "trust_revoked"
+        action = approval["action"]
+        valid = subject["old_trust_root_digest"] == context["current_root_digest"] == old["trust_root_digest"] and subject["old_trust_root_id"] == old["trust_root_id"] and subject["old_trust_root_revision"] == old["trust_root_revision"] and subject["new_trust_root_digest"] == new["trust_root_digest"] and subject["new_trust_root_id"] == new["trust_root_id"] and subject["new_trust_root_revision"] == new["trust_root_revision"] == old["trust_root_revision"] + 1 and new["prior_trust_root_digest"] == old["trust_root_digest"] and subject["rotation_revision"] == new["trust_root_revision"] and subject["owner_policy_digest"] == policy["owner_policy_digest"] == new["owner_policy_digest"] and subject["approval_digest"] == approval["owner_approval_digest"] and approval["owner_policy_digest"] == policy["owner_policy_digest"] and action["kind"] == "trust_rotation" and action_digest(action) == approval["action_digest"] and action["old_trust_root_digest"] == subject["old_trust_root_digest"] and action["new_trust_root_digest"] == subject["new_trust_root_digest"] and action["owner_policy_digest"] == subject["owner_policy_digest"] and action["new_trust_root_revision"] == subject["new_trust_root_revision"] and action["rotation_revision"] == subject["rotation_revision"]
+        return None if valid else "trust_reference_stale"
+    if rule == "trust_revocation":
+        approval = context["approval"]; action = approval["action"]
+        expected_revision = context["prior_revision"] + 1
+        valid = subject["namespace"] == context["policy"]["namespace"] and subject["revocation_revision"] == expected_revision and subject["prior_revocation_digest"] == context["prior_head"] and subject["owner_approval_digest"] == approval["owner_approval_digest"] and approval["owner_policy_digest"] == context["policy"]["owner_policy_digest"] and action["kind"] == "trust_revocation" and action_digest(action) == approval["action_digest"] and all(subject[k] == action[k] for k in ("target_kind", "target_digest", "effective_ledger_revision", "reason_digest", "prior_revocation_digest", "revocation_revision"))
+        return None if valid else "trust_reference_stale"
     if rule == "compatibility_policy":
-        categories = [x["category"] for x in subject["category_rules"]]
-        expected = {"addition", "documentation", "compatible_refinement", "deprecation", "removal", "rename", "constraint_change", "relation_change", "identifier_reuse", "other"}
-        return None if len(categories) == 10 and set(categories) == expected else "compatibility_rejected"
+        cats = [x["category"] for x in subject["category_rules"]]; expected = {"addition", "documentation", "compatible_refinement", "deprecation", "removal", "rename", "constraint_change", "relation_change", "identifier_reuse", "other"}
+        return None if len(cats) == 10 and set(cats) == expected else "compatibility_rejected"
     if rule == "compatibility":
         policy = context["policy"]
         if subject["compatibility_policy_digest"] != policy["compatibility_policy_digest"]: return "compatibility_rejected"
-        rules = {x["category"]: x for x in policy["category_rules"]}
-        changes = subject["changes"]
-        if any(x["category"] not in rules or x["classification"] != rules[x["category"]]["classification"] or x["semver_effect"] != rules[x["category"]]["semver_effect"] or (rules[x["category"]]["condition_rule"] is None) != (x["condition_id"] is None) for x in changes): return "compatibility_rejected"
-        severity = {"patch": 0, "minor": 1, "major": 2, "unknown": 3}
-        class_severity = {"compatible": 0, "conditionally_compatible": 1, "breaking": 2, "unknown": 3}
-        if changes and (subject["required_semver_effect"] != max((x["semver_effect"] for x in changes), key=lambda x: severity[x]) or subject["classification"] != max((x["classification"] for x in changes), key=lambda x: class_severity[x])): return "compatibility_rejected"
-        if subject["classification"] == "unknown": return "compatibility_unknown"
-        required_conditions = {x["condition_id"] for x in changes if x["condition_id"] is not None}
-        conditions = {x["condition_id"]: x for x in subject["conditions"]}
-        if any(conditions.get(x["condition_id"], {}).get("kind") != rules[x["category"]]["condition_rule"]["condition_kind"] for x in changes if x["condition_id"] is not None): return "compatibility_rejected"
-        def condition_true(value: dict) -> bool:
-            if value["kind"] == "evidence_digest_equals":
-                computed = value["expected_digest"] is not None and value["expected_digest"] == value["actual_digest"] and value["expected_integer"] is None and value["actual_integer"] is None
-            else:
-                computed = value["expected_digest"] is None and value["actual_digest"] is None and value["expected_integer"] is not None and value["actual_integer"] is not None and value["actual_integer"] >= value["expected_integer"]
-            return value["satisfied"] == computed and computed
-        if any(x not in conditions or not condition_true(conditions[x]) for x in required_conditions):
-            return "compatibility_rejected"
-        old, new = semver(context["prior_version"]), semver(subject["candidate_version"])
+        rules = {x["category"]: x for x in policy["category_rules"]}; conditions = {x["condition_id"]: x for x in subject["conditions"]}
+        if len(conditions) != len(subject["conditions"]): return "compatibility_rejected"
+        override_rows = context.get("overrides", []); overrides = {x["change_digest"]: x for x in override_rows}
+        if len(overrides) != len(override_rows): return "compatibility_rejected"
+        used_conditions: set[str] = set(); used_overrides: list[str] = []; effective: list[tuple[str, str]] = []
+        for change in subject["changes"]:
+            row = rules.get(change["category"])
+            if not row or change["classification"] != row["classification"] or change["semver_effect"] != row["semver_effect"] or (row["condition_rule"] is None) != (change["condition_id"] is None): return "compatibility_rejected"
+            classification, effect = change["classification"], change["semver_effect"]
+            if change["condition_id"] is not None:
+                condition = conditions.get(change["condition_id"]); used_conditions.add(change["condition_id"])
+                if not condition or condition["kind"] != row["condition_rule"]["condition_kind"] or not condition_true(condition): return "compatibility_rejected"
+            override = overrides.get(change_digest(change))
+            if override:
+                approval = context.get("override_approvals", {}).get(override["owner_approval_digest"])
+                action = approval and approval["action"]
+                valid = row["override_allowed"] and change["category"] != "identifier_reuse" and override["namespace"] == subject["namespace"] and override["compatibility_policy_digest"] == subject["compatibility_policy_digest"] and override["change"] == change and override["change_digest"] == change_digest(change) and override["from_classification"] == classification and override["from_semver_effect"] == effect and condition_true(override["condition"]) and action and action["kind"] == "compatibility_override" and action_digest(action) == approval["action_digest"] and action["change_digest"] == override["change_digest"] and action["to_classification"] == override["to_classification"] and action["semver_effect_floor"] == override["semver_effect_floor"] and action["condition_id"] == override["condition"]["condition_id"]
+                if not valid: return "compatibility_rejected"
+                classification, effect = override["to_classification"], override["semver_effect_floor"]; used_overrides.append(override["compatibility_override_digest"])
+            effective.append((classification, effect))
+        if set(conditions) != used_conditions or sorted(used_overrides) != subject["override_digests"] or set(overrides) != {change_digest(x) for x in subject["changes"] if change_digest(x) in overrides}: return "compatibility_rejected"
+        class_rank = {"compatible": 0, "conditionally_compatible": 1, "breaking": 2, "unknown": 3}; effect_rank = {"patch": 0, "minor": 1, "major": 2, "unknown": 3}
+        classification = max((x[0] for x in effective), key=class_rank.get, default="compatible"); effect = max((x[1] for x in effective), key=effect_rank.get, default="patch")
+        if subject["classification"] != classification or subject["required_semver_effect"] != effect: return "compatibility_rejected"
+        if classification == "unknown" or effect == "unknown": return "compatibility_unknown"
+        old = semver(context["prior_version"]); new = semver(subject["candidate_version"])
         if new <= old: return "semver_violation"
-        effect = subject["required_semver_effect"]
-        valid = (effect == "patch" and new[:2] == old[:2]) or (effect == "minor" and (new[0] > old[0] or (new[0] == old[0] and new[1] > old[1]))) or (effect == "major" and new[0] > old[0])
+        valid = effect == "patch" and new[:2] == old[:2] or effect == "minor" and (new[0] > old[0] or new[0] == old[0] and new[1] > old[1]) or effect == "major" and new[0] > old[0]
         return None if valid else "semver_violation"
     if rule == "lifecycle":
-        dep = context["deprecation"]
-        valid = subject["deprecation_record_digest"] == dep["deprecation_record_digest"] and subject["removed_ledger_revision"] - dep["introduced_ledger_revision"] >= context["minimum"]
+        dep, policy, prior, resulting = context["deprecation"], context["policy"], context["prior_tombstones"], context["resulting_tombstones"]
+        entries = {x["semantic_id"]: x for x in resulting["entries"]}
+        valid = subject["namespace"] == dep["namespace"] == subject["removed_coordinate"]["namespace"] == policy["namespace"] == prior["namespace"] == resulting["namespace"] and subject["semantic_id"] == dep["semantic_id"] and subject["deprecation_record_digest"] == dep["deprecation_record_digest"] == subject["prior_lifecycle_digest"] and subject["deprecation_ledger_revision"] == dep["introduced_ledger_revision"] and subject["removed_ledger_revision"] > subject["deprecation_ledger_revision"] and subject["required_interval"] == policy["minimum_deprecation_releases"] and subject["removed_ledger_revision"] - subject["deprecation_ledger_revision"] >= subject["required_interval"] and subject["compatibility_policy_digest"] == policy["compatibility_policy_digest"] and subject["prior_tombstone_registry_digest"] == prior["tombstone_registry_digest"] and resulting["prior_registry_digest"] == prior["tombstone_registry_digest"] and resulting["registry_revision"] == prior["registry_revision"] + 1 and entries.get(subject["semantic_id"], {}).get("origin_record_digest") == subject["removal_record_digest"]
         return None if valid else "lifecycle_violation"
-    if rule == "tombstone_reuse":
-        tombstoned = {x["semantic_id"] for x in context["tombstones"]["entries"]}
-        return "lifecycle_violation" if any(x["category"] == "identifier_reuse" and x["semantic_id"] in tombstoned for x in subject["changes"]) else None
+    if rule == "tombstone_reuse": return "lifecycle_violation" if any(x["category"] == "identifier_reuse" and x["semantic_id"] in {y["semantic_id"] for y in context["tombstones"]["entries"]} for x in subject["changes"]) else None
     if rule == "publication_cas":
-        if subject["operation"] == "publish" and subject["status_reason_digest"] is not None: return "lifecycle_violation"
-        if subject["operation"] in {"withdraw", "revoke"} and subject["status_reason_digest"] is None: return "lifecycle_violation"
-        if context.get("existing_replay_key") == subject["replay_key_digest"] and context.get("existing_coordinate") == subject["coordinate"]: return None
+        if subject["operation"] == "publish" and subject["status_reason_digest"] is not None or subject["operation"] in {"withdraw", "revoke"} and subject["status_reason_digest"] is None: return "lifecycle_violation"
+        if context.get("existing_replay_key") == subject["replay_key_digest"] and context.get("existing_coordinate") == subject["coordinate"] and context.get("existing_operation", subject["operation"]) == subject["operation"]: return None
         if subject["expected_prior_revision"] != context["current_revision"]: return "publication_conflict"
-        if subject["expected_prior_head_digest"] != context["current_head"]: return "publication_fork"
-        return None
+        return None if subject["expected_prior_head_digest"] == context["current_head"] else "publication_fork"
     if rule == "version_binding":
         old, new = context["existing_coordinate"], subject["coordinate"]
         return "version_conflict" if (old["namespace"], old["semantic_version"]) == (new["namespace"], new["semantic_version"]) and old["capsule_digest"] != new["capsule_digest"] else None
+    if rule == "publication_commit":
+        tx, journal, marker = context["transaction"], context["journal"], context["marker"]; result_digest = subject["owner_publication_digest"]
+        valid = tx["operation"] == "publish" and tx["status_reason_digest"] is None and subject["transaction_digest"] == tx["publication_transaction_digest"] == journal["transaction_digest"] == marker["transaction_digest"] and subject["coordinate"] == tx["coordinate"] and subject["ledger_namespace"] == tx["namespace"] == tx["coordinate"]["namespace"] and subject["owner_approval_digest"] == tx["owner_approval_digest"] == context["approval"]["owner_approval_digest"] and subject["trust_root_digest"] == context["trust_root"]["trust_root_digest"] and subject["prior_publication_digest"] == tx["expected_prior_head_digest"] and subject["ledger_revision"] == tx["expected_prior_revision"] + 1 and journal["state"] == "committed" and journal["linearized"] and journal["recovery_action"] == "none" and journal["resulting_record_digest"] == journal["resulting_ledger_head_digest"] == result_digest and journal["resulting_ledger_revision"] == subject["ledger_revision"] and marker["journal_digest"] == journal["publication_journal_digest"] and marker["resulting_record_digest"] == marker["resulting_ledger_head_digest"] == result_digest and marker["resulting_ledger_revision"] == subject["ledger_revision"] and marker["fsync_complete"]
+        return None if valid else "lifecycle_violation"
     if rule == "publication_transition":
-        tx, journal, marker = context["transaction"], context["journal"], context["marker"]
-        expected_op = "withdraw" if subject["to_status"] == "withdrawn" else "revoke"
-        valid = subject["transaction_digest"] == tx["publication_transaction_digest"] and subject["journal_digest"] == journal["publication_journal_digest"] and subject["commit_marker_digest"] == marker["publication_commit_marker_digest"] and tx["operation"] == expected_op and tx["coordinate"] == subject["coordinate"] and tx["status_reason_digest"] == subject["reason_digest"] and journal["transaction_digest"] == tx["publication_transaction_digest"] and journal["state"] == "committed" and journal["linearized"] and marker["transaction_digest"] == tx["publication_transaction_digest"] and marker["journal_digest"] == journal["publication_journal_digest"] and marker["ledger_revision"] == subject["ledger_revision"] and marker["fsync_complete"]
+        tx, journal, marker = context["transaction"], context["journal"], context["marker"]; result_digest = subject["publication_status_transition_digest"]
+        op = "withdraw" if subject["to_status"] == "withdrawn" else "revoke"
+        valid = tx["operation"] == op and tx["publication_transaction_digest"] == subject["transaction_digest"] == journal["transaction_digest"] == marker["transaction_digest"] and tx["coordinate"] == subject["coordinate"] and tx["owner_approval_digest"] == subject["owner_approval_digest"] and tx["status_reason_digest"] == subject["reason_digest"] and tx["expected_prior_head_digest"] == subject["prior_status_record_digest"] and tx["expected_prior_revision"] + 1 == subject["ledger_revision"] and journal["state"] == "committed" and journal["linearized"] and journal["recovery_action"] == "none" and journal["resulting_record_digest"] == journal["resulting_ledger_head_digest"] == result_digest and journal["resulting_ledger_revision"] == subject["ledger_revision"] and marker["journal_digest"] == journal["publication_journal_digest"] and marker["resulting_record_digest"] == marker["resulting_ledger_head_digest"] == result_digest and marker["resulting_ledger_revision"] == subject["ledger_revision"] and marker["fsync_complete"]
         return None if valid else "lifecycle_violation"
     if rule == "publication_recovery":
         state, linear, action = subject["state"], subject["linearized"], subject["recovery_action"]
-        if state in {"prepared", "aborted"} and not linear and action == "discard_staging": return None
-        if state == "committing" and linear and action == "complete_commit": return None
-        if state == "committed" and linear and action == "none": return None
-        return "recovery_needed"
+        valid_tuple = state in {"prepared", "aborted"} and not linear and action == "discard_staging" or state == "committing" and linear and action == "complete_commit" or state == "committed" and linear and action == "none"
+        if not valid_tuple: return "recovery_needed"
+        if context:
+            before, after = context["before"], context["after"]
+            if not linear:
+                if after["revision"] != before["revision"] or after["head"] != before["head"] or after["marker_present"] or after["staging_present"]: return "recovery_needed"
+            elif after["revision"] != subject["resulting_ledger_revision"] or after["head"] != subject["resulting_ledger_head_digest"] or not after["marker_present"] or after["staging_present"]: return "recovery_needed"
+        return None
     if rule == "projection":
-        projection, capsule, archive = context["projection"], context["capsule"], context["archive_linkage"]
-        payload_entries = {x["path"]: x for x in context["payload_manifest"]["entries"]}
-        consumer_entries = {x["path"]: x for x in context["consumer_manifest"]["entries"]}
-        archive_entries = {x["path"]: x for x in context["archive_manifest"]["entries"]}
-        rows_ok = len(projection["entries"]) == len(payload_entries) == len(consumer_entries)
-        for row in projection["entries"]:
-            relative = row["capsule_path"].removeprefix(archive["payload_root"] + "/")
-            p, c, a = payload_entries.get(relative), consumer_entries.get(row["consumer_path"]), archive_entries.get(row["capsule_path"])
-            if not p or not c or not a or any(p.get(k) != c.get(k) or p.get(k) != a.get(k) for k in ("kind", "mode", "byte_length", "content_digest")) or row["mode"] != p["mode"] or row["byte_length"] != p.get("byte_length") or row["content_digest"] != p.get("content_digest"):
-                rows_ok = False
-        valid = rows_ok and archive["archive_manifest_digest"] == context["archive_manifest"]["material_manifest_digest"] and projection["payload_manifest_digest"] == context["payload_manifest"]["material_manifest_digest"] and projection["consumer_manifest_digest"] == context["consumer_manifest"]["material_manifest_digest"] and subject["payload_projection_digest"] == projection["payload_projection_digest"] == capsule["payload_projection_digest"] and subject["capsule_archive_linkage_digest"] == archive["capsule_archive_linkage_digest"] == capsule["capsule_archive_linkage_digest"] and subject["source_payload_manifest_digest"] == projection["payload_manifest_digest"] and subject["expected_consumer_manifest_digest"] == projection["consumer_manifest_digest"] == subject["actual_consumer_manifest_digest"]
+        p, capsule, archive = context["projection"], context["capsule"], context["archive_linkage"]
+        payload = {x["path"]: x for x in context["payload_manifest"]["entries"]}; consumer = {x["path"]: x for x in context["consumer_manifest"]["entries"]}; archived = {x["path"]: x for x in context["archive_manifest"]["entries"]}
+        src = [x["capsule_path"] for x in p["entries"]]; dst = [x["consumer_path"] for x in p["entries"]]
+        expected_src = {archive["payload_root"] + "/" + path for path in payload}; rows_ok = len(src) == len(set(src)) and len(dst) == len(set(dst)) and set(src) == expected_src and set(dst) == set(consumer)
+        for row in p["entries"]:
+            relative = row["capsule_path"][len(archive["payload_root"]) + 1:]; pe, ce, ae = payload.get(relative), consumer.get(row["consumer_path"]), archived.get(row["capsule_path"])
+            if not pe or not ce or not ae or any(pe.get(k) != ce.get(k) or pe.get(k) != ae.get(k) for k in ("kind", "mode", "byte_length", "content_digest")) or row["mode"] != pe["mode"] or row["byte_length"] != pe.get("byte_length") or row["content_digest"] != pe.get("content_digest"): rows_ok = False
+        meta = archive["capsule_metadata"]; meta_bytes = jcs(meta).encode(); meta_entry = archived.get(archive["capsule_metadata_path"])
+        acyclic = set(meta) == {"schema", "namespace", "semantic_version", "payload_manifest_digest", "identity_mode"} and meta["namespace"] == capsule["namespace"] and meta["semantic_version"] == capsule["semantic_version"] and meta["payload_manifest_digest"] == capsule["payload_manifest_digest"] and meta_entry and meta_entry["content_digest"] == archive["capsule_metadata_content_digest"] == domain_digest("semantic-release.raw-blob.v0", meta_bytes) and meta_entry["byte_length"] == len(meta_bytes)
+        valid = rows_ok and acyclic and archive["archive_manifest_digest"] == context["archive_manifest"]["material_manifest_digest"] and p["payload_manifest_digest"] == context["payload_manifest"]["material_manifest_digest"] and p["consumer_manifest_digest"] == context["consumer_manifest"]["material_manifest_digest"] and subject["payload_projection_digest"] == p["payload_projection_digest"] == capsule["payload_projection_digest"] and subject["capsule_archive_linkage_digest"] == archive["capsule_archive_linkage_digest"] == capsule["capsule_archive_linkage_digest"] and subject["source_payload_manifest_digest"] == p["payload_manifest_digest"] and subject["expected_consumer_manifest_digest"] == p["consumer_manifest_digest"] == subject["actual_consumer_manifest_digest"]
         return None if valid else "projection_mismatch"
     if rule == "rollback":
-        request = context["request"]
-        target, before, after = request["target"], subject["active_state_before"], subject["active_state_after"]
+        request = context["request"]; target = request["target"]; before = subject["active_state_before"]; after = subject["active_state_after"]
+        activation, decision = context["activation"], context["decision"]
+        request_valid = request["issuer"]["kind"] == "consumer_owner" and request["active_activation_receipt_digest"] == activation["activation_receipt_digest"] and request["from_state"]["enabled"] and request["from_state"]["coordinate"] == activation["coordinate"] and request["from_state"]["runtime_identity"] == activation["runtime_identity"] and request["owner_decision_reference_digest"] == decision["ak_decision_reference_digest"] and decision_current(decision, context) and request["recovery_runtime_identity"] != request["from_state"]["runtime_identity"]
+        if not request_valid: return "rollback_unavailable"
+        if subject["rollback_request_digest"] != request["rollback_request_digest"] or subject["request_target_kind"] != target["kind"] or before != request["from_state"] or not before["enabled"] or before["coordinate"] is None: return "history_conflict"
+        expected_names = {"semantic": ["semantic"], "runtime": ["runtime"], "no_prior_disable": ["disable"]}.get(target["kind"])
+        if target["kind"] == "combined": expected_names = ["semantic", "runtime"] if target["stage_order"] == "semantic_then_runtime" else ["runtime", "semantic"]
+        if [x["stage"] for x in subject["stages"]] != expected_names or subject["stage_order"] != (target.get("stage_order") if target["kind"] == "combined" else None): return "history_conflict"
+        if any((x["result"] == "failed") != (x["error_digest"] is not None) for x in subject["stages"]): return "history_conflict"
+        computed = copy.deepcopy(before)
+        for stage in subject["stages"]:
+            if stage["result"] != "completed": continue
+            if stage["stage"] == "semantic": computed["coordinate"] = target["target_coordinate"] if target["kind"] == "semantic" else target["semantic_stage"]["target_coordinate"]
+            elif stage["stage"] == "runtime": computed["runtime_identity"] = target["target_runtime_identity"] if target["kind"] == "runtime" else target["runtime_stage"]["target_runtime_identity"]
+            else: computed["enabled"] = False; computed["coordinate"] = None
+        failed = [x for x in subject["stages"] if x["result"] == "failed"]; completed = [x for x in subject["stages"] if x["result"] == "completed"]
+        if subject["result"] == "partial_failure" and (target["kind"] != "combined" or not failed or not completed): return "history_conflict"
+        runtime_proof = target.get("runtime_revalidation_receipt_digest") if target["kind"] == "runtime" else target.get("runtime_stage", {}).get("runtime_revalidation_receipt_digest")
+        if completed and any(x["stage"] == "runtime" for x in completed) and subject["runtime_revalidation_receipt_digest"] != runtime_proof: return "rollback_unavailable"
+        if not any(x["stage"] == "runtime" for x in completed) and subject["runtime_revalidation_receipt_digest"] is not None: return "history_conflict"
+        ak_digest, pi_digest = subject["ak_evidence_linkage_digest"], subject["pi_delivery_receipt_digest"]
+        if (ak_digest is None) != (pi_digest is None): return "history_conflict"
+        if ak_digest is not None:
+            ak_link, pi_receipt = context.get("ak_linkage"), context.get("pi_receipt")
+            if not ak_link or not pi_receipt or ak_digest != ak_link["ak_evidence_linkage_digest"] or pi_digest != pi_receipt["pi_delivery_receipt_digest"] or ak_link["pi_delivery_receipt_digest"] != pi_digest or ak_link["activation_receipt_digest"] != request["active_activation_receipt_digest"]: return "history_conflict"
         if subject["result"] == "failed":
-            return None if after == before and subject["history_head_after"] == subject["history_head_before"] and subject["error_digest"] else "history_conflict"
-        if target["kind"] == "semantic" and (after["runtime_identity"] != before["runtime_identity"] or after["coordinate"] != target["target_coordinate"]): return "history_conflict"
-        if target["kind"] == "runtime" and (after["coordinate"] != before["coordinate"] or after["runtime_identity"] != target["target_runtime_identity"] or not target.get("runtime_revalidation_receipt_digest")): return "rollback_unavailable"
-        if target["kind"] == "no_prior_disable" and (after["enabled"] or after["coordinate"] is not None): return "history_conflict"
-        failed_stages = [x for x in subject["stages"] if x["result"] == "failed"]
-        if subject["result"] == "partial_failure" and (not failed_stages or subject["active_state_after"] == before): return "history_conflict"
-        if subject["result"] not in {"failed", "partial_failure"} and (subject["error_digest"] is not None or subject["history_head_after"] == subject["history_head_before"]): return "history_conflict"
-        return None
+            return None if failed and not completed and after == before and subject["history_head_after"] == subject["history_head_before"] and subject["error_digest"] and subject["supersedes_activation_receipt_digest"] is None else "history_conflict"
+        if after != computed: return "history_conflict"
+        if subject["result"] == "partial_failure":
+            return None if target["kind"] == "combined" and failed and completed and subject["error_digest"] and subject["history_head_after"] != subject["history_head_before"] and subject["history_head_after"]["kind"] == "rollback" and subject["supersedes_activation_receipt_digest"] is None else "history_conflict"
+        expected_result = "disabled" if target["kind"] == "no_prior_disable" else "rolled_back"
+        expected_head = "disable" if target["kind"] == "no_prior_disable" else "rollback"
+        valid = subject["result"] == expected_result and not failed and len(completed) == len(subject["stages"]) and subject["error_digest"] is None and subject["history_head_after"] != subject["history_head_before"] and subject["history_head_after"]["kind"] == expected_head and subject["supersedes_activation_receipt_digest"] == request["active_activation_receipt_digest"]
+        if target["kind"] == "no_prior_disable": valid = valid and after["runtime_identity"] == before["runtime_identity"]
+        return None if valid else "history_conflict"
     if rule == "generation_activation":
         activation = context["activation"]
-        valid = activation["status"] == "activated" and activation["revoked_by_digest"] is None and activation["superseded_by_activation_receipt_digest"] is None and subject["activation_receipt_digest"] == context["current_activation_digest"]
+        valid = activation["status"] == "activated" and activation["revoked_by_digest"] is None and activation["superseded_by_activation_receipt_digest"] is None and subject["activation_receipt_digest"] == subject["activation_head_digest"] == context["current_activation_digest"] and subject["activation_head_revision"] == context["current_activation_revision"] == activation["activation_revision"] and subject["coordinate"] == activation["coordinate"] and subject["runtime_identity"] == activation["runtime_identity"]
         return None if valid else "activation_not_current"
     if rule == "utc": return None if strict_utc(subject["recorded_at"]) else "malformed_input"
-    if rule == "ak_decision": return None if subject["lifecycle_state"] == "accepted" and subject["adr_reference"]["status"] == "accepted" and subject["revocation_digest"] is None else "self_certification"
+    if rule == "ak_decision": return None if decision_current(subject, context) else "self_certification"
     if rule == "acceptance_binding":
         decision = context["decision"]
-        valid = subject["acceptance_authority"]["kind"] == "consumer_owner" and subject["acceptance_authority"]["id"] == subject["consumer_repository"]["owner"] and subject["decision_reference_digest"] == decision["ak_decision_reference_digest"] and subject["governing_scope_digest"] == decision["scope_digest"] and decision["lifecycle_state"] == "accepted" and decision["revocation_digest"] is None
+        valid = subject["acceptance_authority"]["kind"] == "consumer_owner" and subject["acceptance_authority"]["id"] == subject["consumer_repository"]["owner"] and subject["decision_reference_digest"] == decision["ak_decision_reference_digest"] and subject["governing_scope_digest"] == decision["scope_digest"] and decision_current(decision, context)
         return None if valid else "self_certification"
     if rule == "activation_binding":
         decision = context["decision"]
-        valid = subject["gate_decision_reference_digest"] == decision["ak_decision_reference_digest"] and all(subject[k] == decision[k] for k in ("activation_target_digest", "evidence_criteria_digest", "rollback_plan_digest", "stop_conditions_digest"))
+        valid = decision_current(decision, context) and subject["gate_decision_reference_digest"] == decision["ak_decision_reference_digest"] and all(subject[k] == decision[k] for k in ("activation_target_digest", "evidence_criteria_digest", "rollback_plan_digest", "stop_conditions_digest"))
         return None if valid else "self_certification"
-    if rule == "pi_variant": return None
-    if rule == "ak_optional_pi": return None
+    if rule in {"pi_variant", "ak_optional_pi"}: return None
     raise ValidationError(f"unknown differential rule {rule}")
 
 
 def check_claim_scope(instance: dict) -> None:
-    expected = {"semantic-owner-acceptance.v0": ("acceptance_authority", "consumer_owner"), "semantic-materialization-verification-receipt.v0": ("issuer", "rocs"),
-        "semantic-activation-receipt.v0": ("issuer", "consumer_owner"), "semantic-rocs-generation-receipt.v0": ("issuer", "rocs"), "semantic-pi-delivery-receipt.v0": ("issuer", "pi"),
-        "semantic-ak-evidence-linkage.v0": ("issuer", "ak"), "semantic-rollback-receipt.v0": ("issuer", "recovery_controller")}
-    rule = expected.get(instance["schema"])
-    if rule and instance[rule[0]]["kind"] != rule[1]: raise ValidationError("issuer_scope_violation")
+    expected = {"semantic-owner-acceptance.v0": ("acceptance_authority", "consumer_owner"), "semantic-materialization-verification-receipt.v0": ("issuer", "rocs"), "semantic-activation-receipt.v0": ("issuer", "consumer_owner"), "semantic-rocs-generation-receipt.v0": ("issuer", "rocs"), "semantic-pi-delivery-receipt.v0": ("issuer", "pi"), "semantic-ak-evidence-linkage.v0": ("issuer", "ak"), "semantic-rollback-receipt.v0": ("issuer", "recovery_controller")}
+    if (row := expected.get(instance["schema"])) and instance[row[0]]["kind"] != row[1]: raise ValidationError("issuer_scope_violation")
 
 
 def main() -> int:
     schema, golden, differential = (load_json(ROOT / name) for name in ("protocol.schema.json", "golden-fixtures.json", "differential-fixtures.json"))
-    for value in (schema, golden, differential): validate_ijson(value)
     if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema": raise ValidationError("wrong schema draft")
-    # Every object shape, including nested alternatives, is closed.
     def closed(node: Any, path: str = "$") -> None:
         if isinstance(node, dict):
             if node.get("type") == "object" and node.get("additionalProperties") is not False: raise ValidationError(f"open object at {path}")
@@ -385,49 +428,51 @@ def main() -> int:
         elif isinstance(node, list):
             for i, value in enumerate(node): closed(value, f"{path}/{i}")
     closed(schema)
-
     records: dict[str, dict] = {}
     for record in golden["records"]:
         name, instance = record["name"], record["instance"]
         if name in records: raise ValidationError(f"duplicate record {name}")
-        schema_validate(instance, schema, schema)
-        check_order(instance); check_claim_scope(instance)
+        schema_validate(instance, schema, schema); check_order(instance); check_claim_scope(instance)
         if instance["schema"] == "semantic-audit-envelope.v0" and not strict_utc(instance["recorded_at"]): raise ValidationError("invalid golden UTC")
-        canonical, digest = object_digest(instance, record["domain"], record["omitted_field"])
-        if canonical != record["canonical_preimage"] or digest != record["digest"]: raise ValidationError(f"{name}: canonical digest mismatch")
-        if record["omitted_field"] and instance[record["omitted_field"]] != digest: raise ValidationError(f"{name}: embedded digest mismatch")
+        domain, omitted = (COORDINATE_DOMAIN, None) if instance["schema"] == "semantic-release-coordinate.v0" else DIGEST_FIELDS[instance["schema"]]
+        if record["domain"] != domain or record["omitted_field"] != omitted: raise ValidationError(f"{name}: fixture digest metadata drift")
+        canonical, digest_value = object_digest(instance, domain, omitted)
+        if canonical != record["canonical_preimage"] or digest_value != record["digest"] or omitted and instance[omitted] != digest_value: raise ValidationError(f"{name}: canonical digest mismatch")
         records[name] = record
     for blob in golden["raw_preimages"]:
         if domain_digest(blob["domain"], blob["preimage_utf8"].encode()) != blob["digest"]: raise ValidationError("raw preimage mismatch")
     for assertion in golden["chain_assertions"]:
         if pointer(records[assertion["record"]]["instance"], assertion["instance_path"]) != records[assertion["equals_record"]]["digest"]: raise ValidationError(f"link mismatch {assertion}")
-
     accepted = rejected = 0
     for item in differential["cases"]:
-        subject = item["subject"]
-        validate_ijson(subject)
-        structural = True
-        try: schema_validate(subject, schema, schema)
+        subject = item["subject"]; validate_ijson(subject)
+        try: schema_validate(subject, schema, schema); structural = True
         except ValidationError: structural = False
         if structural != item["schema_valid"]: raise ValidationError(f"{item['name']}: schema_valid expected {item['schema_valid']}, got {structural}")
         if item["rule"] != "digest" and not fixture_digest_valid(subject): raise ValidationError(f"{item['name']}: counterexample digest masks rule")
-        if not structural:
-            actual = "malformed_input" if item["expected_error"] == "malformed_input" else item["expected_error"]
-        else:
-            actual = evaluate(item["rule"], subject, item["context"])
+        actual = evaluate(item["rule"], subject, item["context"]) if structural else item["expected_error"]
+        if actual is None:
+            try: check_order(subject)
+            except ValidationError: actual = "malformed_input"
         if actual != item["expected_error"]: raise ValidationError(f"{item['name']}: expected {item['expected_error']}, got {actual}")
         if actual is None: accepted += 1
         else: rejected += 1
-
-    print(f"schema: Draft 2020-12, {len(DIGEST_FIELDS) + 1} protocol types, all object shapes closed")
+    raw_accepted = raw_rejected = 0
+    for item in differential["raw_json_cases"]:
+        try: parse_json_text(item["raw_json"]); actual = None
+        except ValidationError: actual = "malformed_input"
+        if actual != item["expected_error"]: raise ValidationError(f"{item['name']}: expected {item['expected_error']}, got {actual}")
+        if actual is None: raw_accepted += 1
+        else: raw_rejected += 1
+    print(f"schema: Draft 2020-12, {len(schema['oneOf'])} protocol types, all object shapes closed")
     print(f"golden: {len(records)} object preimages and {len(golden['raw_preimages'])} raw preimages independently recomputed")
     print(f"chain: {len(golden['chain_assertions'])} exact digest links verified")
     print(f"differential: {len(differential['cases'])} cases ({accepted} accepted transitions, {rejected} expected rejections)")
-    print("result: PASS (Python stdlib validator)")
+    print(f"raw-json: {len(differential['raw_json_cases'])} lexical cases ({raw_accepted} accepted, {raw_rejected} expected rejections)")
+    print("result: PASS (Python stdlib token-aware validator)")
     return 0
 
 
 if __name__ == "__main__":
     try: raise SystemExit(main())
-    except ValidationError as exc:
-        print(f"result: FAIL: {exc}", file=sys.stderr); raise SystemExit(1)
+    except ValidationError as exc: print(f"result: FAIL: {exc}", file=sys.stderr); raise SystemExit(1)

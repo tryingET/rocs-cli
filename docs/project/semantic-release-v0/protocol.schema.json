@@ -179,8 +179,14 @@
         "ak_runtime_identity": {
           "$ref": "#/$defs/toolIdentity"
         },
+        "ak_store_head": {
+          "$ref": "#/$defs/akStoreHead"
+        },
         "decision_id": {
           "$ref": "#/$defs/identifier"
+        },
+        "decision_record_digest": {
+          "$ref": "#/$defs/digest"
         },
         "decision_revision": {
           "$ref": "#/$defs/safeInteger"
@@ -217,18 +223,31 @@
         },
         "stop_conditions_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "superseded_by_decision_record_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         }
       },
       "required": [
         "schema",
         "ak_repository",
         "ak_runtime_identity",
+        "ak_store_head",
         "decision_id",
         "decision_revision",
+        "decision_record_digest",
         "lifecycle_state",
         "adr_reference",
         "scope_digest",
         "revocation_digest",
+        "superseded_by_decision_record_digest",
         "activation_target_digest",
         "evidence_criteria_digest",
         "rollback_plan_digest",
@@ -303,6 +322,188 @@
       ],
       "type": "object"
     },
+    "akStoreHead": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_store_locator": {
+          "$ref": "#/$defs/text"
+        },
+        "revocation_head_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "store_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "store_revision": {
+          "$ref": "#/$defs/safeInteger"
+        }
+      },
+      "required": [
+        "store_id",
+        "canonical_store_locator",
+        "store_revision",
+        "store_head_digest",
+        "revocation_head_digest"
+      ],
+      "type": "object"
+    },
+    "approvalAction": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "candidate_capsule_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "compatibility_report_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "kind": {
+              "const": "release"
+            },
+            "source_manifest_digest": {
+              "$ref": "#/$defs/digest"
+            }
+          },
+          "required": [
+            "kind",
+            "source_manifest_digest",
+            "candidate_capsule_digest",
+            "compatibility_report_digest"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "trust_rotation"
+            },
+            "new_trust_root_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "new_trust_root_revision": {
+              "$ref": "#/$defs/safeInteger"
+            },
+            "old_trust_root_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "owner_policy_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "rotation_revision": {
+              "$ref": "#/$defs/safeInteger"
+            }
+          },
+          "required": [
+            "kind",
+            "old_trust_root_digest",
+            "new_trust_root_digest",
+            "owner_policy_digest",
+            "new_trust_root_revision",
+            "rotation_revision"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "effective_ledger_revision": {
+              "$ref": "#/$defs/safeInteger"
+            },
+            "kind": {
+              "const": "trust_revocation"
+            },
+            "prior_revocation_digest": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/digest"
+                }
+              ]
+            },
+            "reason_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "revocation_revision": {
+              "$ref": "#/$defs/safeInteger"
+            },
+            "target_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "target_kind": {
+              "enum": [
+                "owner_key",
+                "owner_set",
+                "owner_policy",
+                "trust_root"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "target_kind",
+            "target_digest",
+            "effective_ledger_revision",
+            "reason_digest",
+            "prior_revocation_digest",
+            "revocation_revision"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "change_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "compatibility_policy_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "condition_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "kind": {
+              "const": "compatibility_override"
+            },
+            "semver_effect_floor": {
+              "enum": [
+                "patch",
+                "minor",
+                "major"
+              ]
+            },
+            "to_classification": {
+              "enum": [
+                "conditionally_compatible",
+                "breaking"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "compatibility_policy_digest",
+            "change_digest",
+            "to_classification",
+            "semver_effect_floor",
+            "condition_id"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "approvalPredicate": {
       "additionalProperties": false,
       "properties": {
@@ -352,7 +553,7 @@
         "approval_proof_digest": {
           "$ref": "#/$defs/digest"
         },
-        "approved_candidate_digest": {
+        "approved_action_digest": {
           "$ref": "#/$defs/digest"
         },
         "owner_id": {
@@ -365,7 +566,7 @@
       "required": [
         "owner_id",
         "owner_key_id",
-        "approved_candidate_digest",
+        "approved_action_digest",
         "approval_proof_digest"
       ],
       "type": "object"
@@ -573,6 +774,12 @@
         "capsule_archive_linkage_digest": {
           "$ref": "#/$defs/digest"
         },
+        "capsule_metadata": {
+          "$ref": "#/$defs/capsuleMetadata"
+        },
+        "capsule_metadata_content_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "capsule_metadata_path": {
           "$ref": "#/$defs/logicalPath"
         },
@@ -592,8 +799,38 @@
         "payload_manifest_digest",
         "payload_root",
         "capsule_metadata_path",
+        "capsule_metadata",
+        "capsule_metadata_content_digest",
         "archive_format",
         "capsule_archive_linkage_digest"
+      ],
+      "type": "object"
+    },
+    "capsuleMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "identity_mode": {
+          "const": "no_capsule_archive_or_linkage_digest"
+        },
+        "namespace": {
+          "$ref": "#/$defs/namespace"
+        },
+        "payload_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "schema": {
+          "const": "semantic-capsule-metadata.v0"
+        },
+        "semantic_version": {
+          "$ref": "#/$defs/semver"
+        }
+      },
+      "required": [
+        "schema",
+        "namespace",
+        "semantic_version",
+        "payload_manifest_digest",
+        "identity_mode"
       ],
       "type": "object"
     },
@@ -807,6 +1044,9 @@
     "compatibilityOverride": {
       "additionalProperties": false,
       "properties": {
+        "change": {
+          "$ref": "#/$defs/compatibilityChange"
+        },
         "change_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -825,6 +1065,12 @@
             "breaking"
           ]
         },
+        "from_semver_effect": {
+          "enum": [
+            "major",
+            "unknown"
+          ]
+        },
         "namespace": {
           "$ref": "#/$defs/namespace"
         },
@@ -836,8 +1082,9 @@
         },
         "semver_effect_floor": {
           "enum": [
-            "major",
-            "unknown"
+            "patch",
+            "minor",
+            "major"
           ]
         },
         "to_classification": {
@@ -851,8 +1098,10 @@
         "schema",
         "namespace",
         "compatibility_policy_digest",
+        "change",
         "change_digest",
         "from_classification",
+        "from_semver_effect",
         "to_classification",
         "semver_effect_floor",
         "condition",
@@ -965,15 +1214,13 @@
         "namespace": {
           "$ref": "#/$defs/namespace"
         },
-        "override_digest": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/$defs/digest"
-            }
-          ]
+        "override_digests": {
+          "items": {
+            "$ref": "#/$defs/digest"
+          },
+          "maxItems": 10000,
+          "minItems": 0,
+          "type": "array"
         },
         "prior_coordinate": {
           "oneOf": [
@@ -1007,7 +1254,7 @@
         "conditions",
         "classification",
         "required_semver_effect",
-        "override_digest",
+        "override_digests",
         "compatibility_report_digest"
       ],
       "type": "object"
@@ -1645,13 +1892,13 @@
     "ownerApproval": {
       "additionalProperties": false,
       "properties": {
+        "action": {
+          "$ref": "#/$defs/approvalAction"
+        },
+        "action_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "approval_predicate_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "candidate_capsule_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "compatibility_report_digest": {
           "$ref": "#/$defs/digest"
         },
         "decision_reference_digest": {
@@ -1672,9 +1919,6 @@
         "schema": {
           "const": "semantic-owner-approval.v0"
         },
-        "source_manifest_digest": {
-          "$ref": "#/$defs/digest"
-        },
         "votes": {
           "items": {
             "$ref": "#/$defs/approvalVote"
@@ -1690,9 +1934,8 @@
         "owner_policy_digest",
         "owner_set_digest",
         "approval_predicate_digest",
-        "source_manifest_digest",
-        "candidate_capsule_digest",
-        "compatibility_report_digest",
+        "action",
+        "action_digest",
         "votes",
         "decision_reference_digest",
         "owner_approval_digest"
@@ -1835,6 +2078,9 @@
         "status": {
           "const": "published"
         },
+        "transaction_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "trust_root_digest": {
           "$ref": "#/$defs/digest"
         }
@@ -1842,6 +2088,7 @@
       "required": [
         "schema",
         "coordinate",
+        "transaction_digest",
         "owner_approval_digest",
         "ledger_namespace",
         "ledger_revision",
@@ -2107,13 +2354,16 @@
         "journal_digest": {
           "$ref": "#/$defs/digest"
         },
-        "ledger_head_digest": {
+        "publication_commit_marker_digest": {
           "$ref": "#/$defs/digest"
         },
-        "ledger_revision": {
+        "resulting_ledger_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "resulting_ledger_revision": {
           "$ref": "#/$defs/safeInteger"
         },
-        "publication_commit_marker_digest": {
+        "resulting_record_digest": {
           "$ref": "#/$defs/digest"
         },
         "schema": {
@@ -2127,8 +2377,9 @@
         "schema",
         "transaction_digest",
         "journal_digest",
-        "ledger_revision",
-        "ledger_head_digest",
+        "resulting_record_digest",
+        "resulting_ledger_revision",
+        "resulting_ledger_head_digest",
         "fsync_complete",
         "publication_commit_marker_digest"
       ],
@@ -2160,13 +2411,19 @@
             "none"
           ]
         },
+        "resulting_ledger_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "resulting_ledger_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "resulting_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "schema": {
           "const": "semantic-publication-journal.v0"
         },
         "staged_blob_set_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "staged_record_digest": {
           "$ref": "#/$defs/digest"
         },
         "state": {
@@ -2185,7 +2442,9 @@
         "schema",
         "transaction_digest",
         "state",
-        "staged_record_digest",
+        "resulting_record_digest",
+        "resulting_ledger_revision",
+        "resulting_ledger_head_digest",
         "staged_blob_set_digest",
         "linearized",
         "recovery_action",
@@ -2199,17 +2458,11 @@
         {
           "additionalProperties": false,
           "properties": {
-            "commit_marker_digest": {
-              "$ref": "#/$defs/digest"
-            },
             "coordinate": {
               "$ref": "#/$defs/coordinate"
             },
             "from_status": {
               "const": "published"
-            },
-            "journal_digest": {
-              "$ref": "#/$defs/digest"
             },
             "ledger_revision": {
               "$ref": "#/$defs/safeInteger"
@@ -2243,8 +2496,6 @@
             "coordinate",
             "prior_status_record_digest",
             "transaction_digest",
-            "journal_digest",
-            "commit_marker_digest",
             "owner_approval_digest",
             "reason_digest",
             "ledger_revision",
@@ -2255,9 +2506,6 @@
         {
           "additionalProperties": false,
           "properties": {
-            "commit_marker_digest": {
-              "$ref": "#/$defs/digest"
-            },
             "coordinate": {
               "$ref": "#/$defs/coordinate"
             },
@@ -2266,9 +2514,6 @@
                 "published",
                 "withdrawn"
               ]
-            },
-            "journal_digest": {
-              "$ref": "#/$defs/digest"
             },
             "ledger_revision": {
               "$ref": "#/$defs/safeInteger"
@@ -2302,8 +2547,6 @@
             "coordinate",
             "prior_status_record_digest",
             "transaction_digest",
-            "journal_digest",
-            "commit_marker_digest",
             "owner_approval_digest",
             "reason_digest",
             "ledger_revision",
@@ -2386,6 +2629,9 @@
     "removalRecord": {
       "additionalProperties": false,
       "properties": {
+        "compatibility_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "deprecation_ledger_revision": {
           "$ref": "#/$defs/safeInteger"
         },
@@ -2394,6 +2640,19 @@
         },
         "namespace": {
           "$ref": "#/$defs/namespace"
+        },
+        "prior_lifecycle_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "prior_tombstone_registry_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         },
         "removal_record_digest": {
           "$ref": "#/$defs/digest"
@@ -2412,9 +2671,6 @@
         },
         "semantic_id": {
           "$ref": "#/$defs/identifier"
-        },
-        "tombstone_digest": {
-          "$ref": "#/$defs/digest"
         }
       },
       "required": [
@@ -2425,8 +2681,10 @@
         "removed_ledger_revision",
         "deprecation_record_digest",
         "deprecation_ledger_revision",
+        "prior_lifecycle_digest",
+        "compatibility_policy_digest",
         "required_interval",
-        "tombstone_digest",
+        "prior_tombstone_registry_digest",
         "removal_record_digest"
       ],
       "type": "object"
@@ -2458,6 +2716,12 @@
     "rocsGenerationReceipt": {
       "additionalProperties": false,
       "properties": {
+        "activation_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "activation_head_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
         "activation_receipt_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -2519,6 +2783,8 @@
         "issuer",
         "claim_scope",
         "activation_receipt_digest",
+        "activation_head_revision",
+        "activation_head_digest",
         "coordinate",
         "runtime_identity",
         "request_digest",
@@ -2539,6 +2805,16 @@
         },
         "active_state_before": {
           "$ref": "#/$defs/activeState"
+        },
+        "ak_evidence_linkage_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         },
         "availability_proof_digest": {
           "$ref": "#/$defs/digest"
@@ -2562,6 +2838,24 @@
         "issuer": {
           "$ref": "#/$defs/issuer"
         },
+        "pi_delivery_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "request_target_kind": {
+          "enum": [
+            "semantic",
+            "runtime",
+            "no_prior_disable",
+            "combined"
+          ]
+        },
         "result": {
           "enum": [
             "rolled_back",
@@ -2576,8 +2870,31 @@
         "rollback_request_digest": {
           "$ref": "#/$defs/digest"
         },
+        "runtime_revalidation_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
         "schema": {
           "const": "semantic-rollback-receipt.v0"
+        },
+        "stage_order": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "semantic_then_runtime",
+                "runtime_then_semantic"
+              ]
+            }
+          ]
         },
         "stages": {
           "items": {
@@ -2602,15 +2919,20 @@
         "schema",
         "issuer",
         "rollback_request_digest",
+        "request_target_kind",
         "result",
+        "stage_order",
         "active_state_before",
         "active_state_after",
         "availability_proof_digest",
+        "runtime_revalidation_receipt_digest",
         "stages",
         "history_head_before",
         "history_head_after",
         "error_digest",
         "supersedes_activation_receipt_digest",
+        "ak_evidence_linkage_digest",
+        "pi_delivery_receipt_digest",
         "rollback_receipt_digest"
       ],
       "type": "object"
@@ -2976,6 +3298,9 @@
             }
           ]
         },
+        "local_revocation_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
         "publication_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -2998,6 +3323,7 @@
         "trust_root_digest",
         "publication_ledger_revision",
         "publication_digest",
+        "local_revocation_revision",
         "local_revocation_head_digest"
       ],
       "type": "object"
@@ -3027,6 +3353,9 @@
         "reason_digest": {
           "$ref": "#/$defs/digest"
         },
+        "revocation_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
         "schema": {
           "const": "semantic-trust-revocation.v0"
         },
@@ -3048,6 +3377,7 @@
       "required": [
         "schema",
         "namespace",
+        "revocation_revision",
         "target_kind",
         "target_digest",
         "effective_ledger_revision",
@@ -3134,8 +3464,20 @@
         "new_trust_root_digest": {
           "$ref": "#/$defs/digest"
         },
+        "new_trust_root_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "new_trust_root_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
         "old_trust_root_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "old_trust_root_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "old_trust_root_revision": {
+          "$ref": "#/$defs/safeInteger"
         },
         "owner_policy_digest": {
           "$ref": "#/$defs/digest"
@@ -3153,7 +3495,11 @@
       "required": [
         "schema",
         "namespace",
+        "old_trust_root_id",
+        "old_trust_root_revision",
         "old_trust_root_digest",
+        "new_trust_root_id",
+        "new_trust_root_revision",
         "new_trust_root_digest",
         "owner_policy_digest",
         "approval_digest",
@@ -3278,5 +3624,5 @@
       "$ref": "#/$defs/errorEnvelope"
     }
   ],
-  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 2"
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 3"
 }

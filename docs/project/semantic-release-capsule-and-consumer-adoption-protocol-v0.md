@@ -6,7 +6,7 @@ read_when:
 type: "rfc"
 status: "proposed"
 decision: "53"
-rfc_revision: "semantic-release-revision-v2"
+rfc_revision: "semantic-release-revision-v3"
 review_posture: "fresh_review_required"
 ---
 
@@ -14,7 +14,7 @@ review_posture: "fresh_review_required"
 
 ## 1. Status and legal effect
 
-This revision answers every blocker in the controlling rereview synthesis v1 for decision `53`. It is a proposal-stage protocol packet submitted for fresh strict review, not an ADR, owner approval, implementation plan, publication, adoption, activation, default decision, fleet decision, or ontology mutation.
+This revision answers the finite closure blockers in the controlling [`semantic-release-rereview2-synthesis-v2.md`](semantic-release-rereview2-synthesis-v2.md) for decision `53`. It is a proposal-stage protocol packet submitted for fresh strict review, not an ADR, owner approval, implementation plan, publication, adoption, activation, default decision, fleet decision, or ontology mutation.
 
 Normative machine artifacts are:
 
@@ -111,7 +111,7 @@ A build receipt claims deterministic construction only. It is not owner approval
 
 ### 5.3 Capsule
 
-`semantic-release-capsule.v0` binds namespace/version, source and semantic payload identities, compiled payload manifest, exact payload projection, capsule archive linkage, owner and compilation policies, executable compatibility report, required protocol versions, predecessor coordinate, and permanent tombstone registry. `semantic-capsule-archive-linkage.v0` binds the complete archive manifest, payload root, metadata path, archive format, and payload manifest. `semantic-payload-projection.v0` is the complete no-extra/no-missing mapping from capsule payload paths to consumer material paths, including mode, length, and content digest. The capsule digest omits only `capsule_digest` and retains every nested digest.
+`semantic-release-capsule.v0` binds namespace/version, source and semantic payload identities, compiled payload manifest, exact payload projection, capsule archive linkage, owner/compilation policies, executable compatibility report, protocol versions, predecessor, and tombstones. Archive identity is acyclic: capsule → linkage → archive manifest plus closed metadata that excludes capsule/archive/linkage digests. The metadata raw JCS digest/length equal its archive entry. Projection source and destination paths are separately unique and their sets equal all payload and consumer entries, yielding a complete no-extra/no-missing bijection with mode/length/content equality. The capsule digest omits only `capsule_digest` and retains every nested digest.
 
 The predecessor is the immediately prior accepted active coordinate in the namespace publication ledger. Genesis alone has no predecessor. A capsule is immutable; corrections require a new version and digest.
 
@@ -121,9 +121,9 @@ The predecessor is the immediately prior accepted active coordinate in the names
 
 The semantic owner MUST maintain closed, immutable `semantic-owner-policy.v0`, `semantic-owner-set.v0`, `semantic-approval-predicate.v0`, `semantic-compatibility-policy.v0`, `semantic-trust-root.v0`, `semantic-trust-rotation.v0`, `semantic-trust-revocation.v0`, and namespace-ledger records on its own surface. The policy binds governing scope, exact set/predicate/policy digests, prior policy, old-root-authorized rotation, and fail-closed revocation.
 
-The owner set pins each member's authorized key IDs and active/revoked state. `threshold` counts distinct eligible active owners and requires the exact threshold integer; `unanimous` requires every active owner. Multiple keys never multiply one owner's vote. A revoked vote fails as `trust_revoked`; an unauthorized, duplicate, or insufficient set fails as `approval_threshold_unsatisfied`.
+The owner set pins each member's keys and active/revoked state. `threshold` counts distinct eligible active owners and lies within the active count; `unanimous` requires every active owner **and** `threshold` equal that count. Multiple keys never multiply an owner. Revoked vote is `trust_revoked`; unauthorized, duplicate, insufficient, or unanimous-threshold drift is `approval_threshold_unsatisfied`.
 
-`semantic-owner-approval.v0` binds that policy/set/predicate, exact clean source manifest, candidate capsule, compatibility report, canonical AK decision reference, and unique votes. Every vote binds the same candidate digest. The predicate is recomputed rather than trusted from the artifact. ROCS, AK, Pi, and consumer votes cannot substitute for semantic-owner approval.
+`semantic-owner-approval.v0` binds policy/set/predicate, canonical AK decision, and one closed typed action (`release`, `trust_rotation`, `trust_revocation`, or `compatibility_override`). The action digest is recomputed and every vote binds it. Rotation/revocation actions repeat exact policy/root/target/prior-head/revision facts; release repeats clean source/capsule/report; override repeats exact change/effect/condition. The predicate is recomputed. ROCS, AK, Pi, and consumer votes cannot substitute for semantic-owner approval.
 
 ### 6.2 Unsigned local v0 trust chain
 
@@ -145,13 +145,13 @@ Offline verification MAY use a complete cached chain only when it meets all pins
 
 ## 7. Atomic owner publication
 
-Publication is an executable four-object protocol: `semantic-publication-transaction.v0`, `semantic-publication-journal.v0`, `semantic-owner-publication.v0`, and `semantic-publication-commit-marker.v0`. A transaction binds operation, coordinate, approval, expected prior revision/head, replay key, and status reason. Publication MUST acquire the namespace lock, verify all bindings, privately stage complete immutable blobs/record, fsync content/directories/journal, CAS one durable ledger head, and append/fsync its commit marker.
+Publication is an executable acyclic four-object protocol: transaction → resulting publication/status record → journal → commit marker. A transaction binds operation, coordinate, approval, expected prior revision/head, replay key, and status reason. Publication MUST acquire the namespace lock, verify all bindings, privately stage complete immutable blobs/record, fsync content/directories/journal, CAS one durable ledger head, and append/fsync its commit marker.
 
 The durable head CAS is the linearization point. A stale revision is `publication_conflict`; a divergent expected head is `publication_fork`; reused version/different digest is `version_conflict`. None mutates state. Same coordinate/replay key is idempotent and returns the existing publication.
 
 The closed journal combinations are prepared/not-linearized/discard, committing/linearized/complete, committed/linearized/none, and aborted/not-linearized/discard. Recovery before linearization discards staging; recovery after it completes record/marker idempotently. Impossible combinations return `recovery_needed`.
 
-`semantic-publication-status-transition.v0` admits only published→withdrawn, published→revoked, and withdrawn→revoked. Every transition binds an operation-matching transaction, committed journal, commit marker, prior status, approval, reason, and next ledger revision. Revoked is terminal; history and version bindings are never rewritten.
+`semantic-publication-status-transition.v0` admits only published→withdrawn, published→revoked, and withdrawn→revoked. A resulting record binds transaction/prior status without backward journal/marker links; journal and marker each bind that exact transition digest as resulting head/revision. Recovery validates concrete before/after revision, head, marker, and staging effects, not only journal enums. Revoked is terminal; history and version bindings are never rewritten.
 
 ## 8. Compatibility policy
 
@@ -169,7 +169,7 @@ The report classifies the release:
 compatible | conditionally_compatible | breaking | unknown
 ```
 
-`unknown` always fails publication/adoption. Conditions execute one of `evidence_digest_equals`, `consumer_protocol_at_least`, or `deprecation_interval_at_least` over typed operands; `satisfied` is recomputed. Missing, false, duplicate, or ill-typed evidence fails. Overall SemVer effect is the maximum and the candidate version MUST satisfy the exact patch/minor/major relation. `semantic-compatibility-override.v0` is separately digest/owner-approval bound and cannot legalize identifier reuse, bypass lifecycle, erase conditions, or weaken a SemVer floor.
+`unknown` always fails publication/adoption. Conditions execute one of `evidence_digest_equals`, `consumer_protocol_at_least`, or `deprecation_interval_at_least` over typed operands; `satisfied` is recomputed. Missing, false, duplicate, or ill-typed evidence fails. Overall SemVer effect is the maximum and the candidate version MUST satisfy the exact patch/minor/major relation. Condition IDs form an exact reference bijection: duplicate and surplus unreferenced conditions reject. `semantic-compatibility-override.v0` embeds and independently digests the exact change, executes a typed true condition, binds a typed owner approval, and must appear exactly once in the report's used override set; it cannot legalize identifier reuse, bypass lifecycle, erase conditions, or weaken a SemVer floor.
 
 `semantic-deprecation-record.v0` and `semantic-removal-record.v0` make lifecycle executable. Removal binds the exact prior deprecation and accepted-ledger interval. Removed and renamed IDs enter append-only `semantic-tombstone-registry.v0`; tombstoned IDs MUST NOT be reused, including after withdrawal/revocation or override. Owner policy, not ROCS or consumer preference, owns these classifications.
 
@@ -179,7 +179,7 @@ compatible | conditionally_compatible | breaking | unknown
 
 `semantic-consumer-intent.v0` is consumer-owned desired state. It binds stable repository identity/revision, exact release coordinate, independent runtime/tool identity, requested posture, accepted compatibility class, discriminated rollback target, canonical `semantic-ak-decision-reference.v0`, external trust reference, fixed verifier contract, and resource limits. The AK reference binds AK repository/runtime identity, decision ID/revision/lifecycle, accepted ADR identity/revision/digest, scope, revocation, and exact activation target/evidence criteria/rollback plan/stop conditions.
 
-A repository rename updates owner-issued identity revision without changing repository ID. A fork receives a new ID. Fleet reporting aggregates per-repository facts and never replaces them.
+The AK reference includes its canonical store locator, store revision/head, revocation head, decision record, and supersession link; all equal an independent current-store read. A repository rename updates owner-issued identity revision without changing repository ID. A fork receives a new ID. Fleet reporting aggregates per-repository facts and never replaces them.
 
 Intent is neither technical proof nor consent to activate.
 
@@ -222,13 +222,13 @@ The protocol separates four non-interchangeable records:
 | `semantic-ak-evidence-linkage.v0` | AK | canonical task/decision/evidence lineage links generation and optional Pi delivery |
 | empirical outcome reference | DSPx/Oracle owner | separately defined behavior/interpretation evidence |
 
-Generation is permitted only from the current `activated`, unrevoked, unsuperseded activation head; otherwise it fails `activation_not_current`. ROCS `matched` does not prove prompt delivery. Pi `delivered` requires prompt-run and exact effective-execution digests; `suppressed` requires a closed reason and forbids delivery fields; `failed` requires an error and forbids delivery fields. AK linkage MAY omit Pi only for generation-only lineage. No variant proves model reading, interpretation, obedience, influence, or correctness.
+Generation is permitted only when its activation digest/revision equal the current `activated`, unrevoked, unsuperseded activation head and its coordinate/runtime equal that activation byte-for-byte; otherwise it fails `activation_not_current`. ROCS `matched` does not prove prompt delivery. Pi `delivered` requires prompt-run and exact effective-execution digests; `suppressed` requires a closed reason and forbids delivery fields; `failed` requires an error and forbids delivery fields. AK linkage MAY omit Pi only for generation-only lineage. No variant proves model reading, interpretation, obedience, influence, or correctness.
 
 Issuer kind and fixed `claim_scope` are schema-bound and enforced by invariants. An out-of-scope issuer fails with `issuer_scope_violation`.
 
 ## 11. Rollback and recovery
 
-`semantic-rollback-request.v0` binds the active activation, typed before-state, a closed axis-discriminated target, independently pinned recovery controller, canonical owner decision, and preconditions. Semantic targets switch coordinate and retain runtime; runtime targets retain semantics, switch runtime, and require runtime revalidation; no-prior targets bind tested disable/rehearsal; combined targets embed ordered semantic/runtime stages. `semantic-rollback-receipt.v0` binds result, typed before/after state, per-stage results/errors, availability proof, typed history heads, overall error, and superseded activation.
+`semantic-rollback-request.v0` binds the current activation, an enabled before-state whose coordinate/runtime equal it, a closed axis target, independently pinned recovery controller distinct from active runtime, current canonical owner decision, and preconditions. Semantic targets switch coordinate and retain runtime; runtime targets retain semantics, switch runtime, and require runtime revalidation; no-prior targets bind tested disable/rehearsal; combined targets embed ordered semantic/runtime stages. `semantic-rollback-receipt.v0` binds result, typed before/after state, per-stage results/errors, availability proof, typed history heads, overall error, and superseded activation.
 
 Rollback axes are independent and MUST be rehearsed independently:
 
@@ -239,7 +239,7 @@ Rollback axes are independent and MUST be rehearsed independently:
 
 Targets MUST be locally available before activation. If the active runtime is broken, the recovery controller and target remain usable outside its root. Missing target, recovery runtime, or disable path fails before mutation with `rollback_unavailable`.
 
-Rollback uses the same lock/journal/fsync/atomic-pointer discipline as materialization. It never rewrites publications, activations, receipts, or audit history. Failure preserves byte-equal active state and exactly unchanged typed history head with a non-null error. Combined partial failure records completed and failed stages, resulting partial state, errors, and a new typed rollback head. Success appends a distinct typed rollback/disable head.
+Receipt request/target/before-state bind exactly. Complete unique stages equal target order; failed stages alone have errors; after-state is recomputed from completed stages. Failure preserves state/head and never supersedes; partial combined failure has completed+failed stages, recomputed state/new rollback head, and never supersedes; success completes all stages, has no error, appends the correct rollback/disable head, and supersedes exactly the active activation. Disable retains runtime; runtime completion binds exact revalidation. Optional AK/Pi links are jointly absent or exact and activation-bound.
 
 ## 12. History, audit, and failure behavior
 
@@ -249,7 +249,7 @@ Audit time belongs only in `semantic-audit-envelope.v0`, which binds artifact di
 
 Retention is consumer/namespace lifetime plus at least seven years. Garbage collection traces every ledger head, active and rollback target, receipt, audit envelope, revocation, and legal hold before deleting unreferenced blobs. Namespace/version bindings and tombstones are permanent.
 
-Errors use `semantic-protocol-error.v0` and deterministic precedence from `invariants.md`: decode/I-JSON, schema, `digest_mismatch`, authority/trust, compatibility/lifecycle, projection/tree, mutation, then rollback availability. Validation is offline/no-network with bounded input, manifests, nesting, and deadlines. Required failures include malformed input, digest mismatch, stale/revoked trust, threshold failure, self-certification, version/publication/fork conflict, snapshot/projection/incomplete tree, compatibility/SemVer/lifecycle rejection, unavailable atomic activation, recovery needed, stale activation, rollback unavailable, history conflict, and issuer-scope violation.
+Errors use `semantic-protocol-error.v0` and deterministic precedence from `invariants.md`. Both validators inspect raw JSON tokens before object construction: duplicate keys at any depth and any number token outside canonical nonnegative safe-integer grammar reject. UTC accepts only real years `0001..9999`. Precedence is decode/I-JSON, schema, `digest_mismatch`, authority/trust, compatibility/lifecycle, projection/tree, mutation, then rollback availability. Validation is offline/no-network with bounded input, manifests, nesting, and deadlines. Required failures include malformed input, digest mismatch, stale/revoked trust, threshold failure, self-certification, version/publication/fork conflict, snapshot/projection/incomplete tree, compatibility/SemVer/lifecycle rejection, unavailable atomic activation, recovery needed, stale activation, rollback unavailable, history conflict, and issuer-scope violation.
 
 ## 13. Decision 52/53 membrane and proof posture
 
