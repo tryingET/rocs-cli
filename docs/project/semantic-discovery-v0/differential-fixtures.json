@@ -115,6 +115,18 @@
   "invariant_invalid": [
     {
       "case": "candidate_rank_gap",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/candidates/0/rank",
+            "target": "instance",
+            "value": 2
+          }
+        ]
+      },
       "expected_invariant": "candidate ranks equal 1-based array position",
       "patch": {
         "path": "/valid/result/candidates/0/rank",
@@ -123,6 +135,11 @@
     },
     {
       "case": "result_digest_present_in_preimage",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "digest_kind": "result",
+        "kind": "digest_preimage_reject"
+      },
       "expected_invariant": "digest key absent from preimage",
       "patch": {
         "path": "/canonical_preimages/result/include_result_digest",
@@ -131,6 +148,17 @@
     },
     {
       "case": "evidence_wrong_order",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "reverse",
+            "path": "/candidates/0/evidence",
+            "target": "instance"
+          }
+        ]
+      },
       "expected_invariant": "field/rule/query order",
       "patch": {
         "path": "/valid/result/candidates/0/evidence/reverse",
@@ -139,6 +167,23 @@
     },
     {
       "case": "snapshot_ref_without_root",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/corpus_snapshot",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "append",
+            "path": "/resolved_refs",
+            "target": "instance",
+            "value": {
+              "layer": "company",
+              "layer_order": 1,
+              "locator": "repo:x@y",
+              "resolved_revision": "abc"
+            }
+          }
+        ]
+      },
       "expected_invariant": "one ref per ref root and none otherwise",
       "patch": {
         "path": "/valid/corpus_snapshot/resolved_refs/append",
@@ -152,6 +197,9 @@
     },
     {
       "case": "pack_root_not_first",
+      "execution": {
+        "kind": "validate_instance"
+      },
       "expected_invariant": "root document first",
       "instance": {
         "config": {
@@ -184,6 +232,163 @@
         "schema": "semantic-pack-result.v0"
       },
       "mutation_differs_from_valid": true
+    },
+    {
+      "case": "candidate_score_below_threshold",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/candidates/0/score",
+            "target": "instance",
+            "value": 99
+          }
+        ]
+      },
+      "expected_invariant": "candidate eligibility threshold"
+    },
+    {
+      "case": "top_k_candidate_drift",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "eligible_candidates_ref": "golden-fixtures.json#/valid/result/candidates",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/0/score",
+            "target": "eligible_candidates",
+            "value": 999
+          }
+        ]
+      },
+      "expected_invariant": "exact top-K projection"
+    },
+    {
+      "case": "negative_evidence_query_order",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/query",
+            "target": "request",
+            "value": "beta alpha"
+          },
+          {
+            "op": "append",
+            "path": "/candidates/0/evidence",
+            "target": "instance",
+            "value": {
+              "field": "anti_example",
+              "query_term": "alpha",
+              "rule": "anti_token"
+            }
+          },
+          {
+            "op": "append",
+            "path": "/candidates/0/evidence",
+            "target": "instance",
+            "value": {
+              "field": "anti_example",
+              "query_term": "beta",
+              "rule": "anti_token"
+            }
+          }
+        ],
+        "request_ref": "golden-fixtures.json#/valid/request"
+      },
+      "expected_invariant": "field/rule/query order"
+    },
+    {
+      "case": "pack_path_not_nfc",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/pack",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "replace",
+            "path": "/documents/0/logical_path",
+            "target": "instance",
+            "value": "reference/concepts/core.Ägent.md"
+          }
+        ]
+      },
+      "expected_invariant": "pack logical path NFC"
+    },
+    {
+      "case": "top_k_under_emission",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "eligible_candidates_ref": "golden-fixtures.json#/valid/result/candidates",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "append",
+            "path": "",
+            "target": "eligible_candidates",
+            "value": {
+              "document_digest": "sha256:d7624abbdf7b1cc10523b940f62368241120f2c61ae07e5efdac71ac957e1028",
+              "evidence": [
+                {
+                  "field": "id",
+                  "query_term": "agent",
+                  "rule": "token_exact"
+                },
+                {
+                  "field": "label",
+                  "query_term": "agent",
+                  "rule": "token_exact"
+                },
+                {
+                  "field": "description",
+                  "query_term": "agent",
+                  "rule": "token_exact"
+                },
+                {
+                  "field": "description",
+                  "query_term": "authority",
+                  "rule": "token_exact"
+                }
+              ],
+              "kind": "concept",
+              "layer": "core",
+              "matched_query_tokens": [
+                "agent",
+                "authority"
+              ],
+              "ont_id": "core.Other",
+              "rank": 2,
+              "score": 100
+            }
+          }
+        ]
+      },
+      "expected_invariant": "exact top-K cardinality"
+    },
+    {
+      "case": "token_evidence_absent_from_query",
+      "execution": {
+        "base_ref": "golden-fixtures.json#/valid/result",
+        "kind": "mutate_and_validate",
+        "operations": [
+          {
+            "op": "append",
+            "path": "/candidates/0/evidence",
+            "target": "instance",
+            "value": {
+              "field": "anti_example",
+              "query_term": "zzz",
+              "rule": "anti_token"
+            }
+          }
+        ],
+        "request_ref": "golden-fixtures.json#/valid/request"
+      },
+      "expected_invariant": "token evidence belongs to query"
     }
   ],
   "metamorphic": [
