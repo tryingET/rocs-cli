@@ -186,7 +186,7 @@ Closed digest preimages are:
 
 ### Normative machine contract
 
-The normative structural contract is [`semantic-discovery-v0/protocol.schema.json`](semantic-discovery-v0/protocol.schema.json), JSON Schema Draft 2020-12. The normative cross-field, ordering, byte-accounting, canonical-token, error-nullability, and digest-omission rules are [`semantic-discovery-v0/invariants.md`](semantic-discovery-v0/invariants.md). The independent-language acceptance corpus is [`semantic-discovery-v0/golden-fixtures.json`](semantic-discovery-v0/golden-fixtures.json).
+The normative structural contract is [`semantic-discovery-v0/protocol.schema.json`](semantic-discovery-v0/protocol.schema.json), JSON Schema Draft 2020-12. The normative cross-field, ordering, byte-accounting, canonical-token, error-nullability, and digest-omission rules are [`semantic-discovery-v0/invariants.md`](semantic-discovery-v0/invariants.md). The valid/schema-invalid baseline is [`semantic-discovery-v0/golden-fixtures.json`](semantic-discovery-v0/golden-fixtures.json); exact JCS bytes, invariant failures, malformed/semantic-invalid error hashing, evidence projection, normalization, ordering, metamorphic cases, and UTF-8 byte boundaries are [`semantic-discovery-v0/differential-fixtures.json`](semantic-discovery-v0/differential-fixtures.json). Together they are the independent-language acceptance corpus.
 
 Precedence is closed:
 

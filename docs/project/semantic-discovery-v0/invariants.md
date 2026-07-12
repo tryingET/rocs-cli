@@ -63,7 +63,7 @@ Prepared-runtime `manifest_digest` is computed by the Pi adapter over its separa
 - Valid field/rule pairs are enforced by the schema's four evidence variants.
 - The scoring accumulator uses signed arbitrary-precision integer arithmetic internally: add all positive token and phrase weights, subtract anti-token and anti-phrase weights, then clamp once to `0..4294967295`.
 - Evidence generation is deterministic before budget enforcement. If one candidate would require more than 256 unique evidence items, invocation fails with `resource_exhausted`; evidence is never truncated.
-- Evidence order is field family `id,label,synonym,description,relation,example,anti_example`, then rule `phrase_exact,token_exact,anti_phrase,anti_token`, then query-term UTF-8 bytes.
+- Evidence order is field family `id,label,synonym,description,relation,example,anti_example`, then rule `phrase_exact,token_exact,anti_phrase,anti_token`, then original normalized query-term order. Phrase terms use query position 0; token terms use first-occurrence query-token position. UTF-8 bytes break only impossible duplicate-position ties.
 - `matched_query_tokens` contains each positive-matched normalized query token exactly once in original query-token order. Every positive token-evidence term is present in that array; negative-only terms are not.
 
 ## Candidate and result relationships
