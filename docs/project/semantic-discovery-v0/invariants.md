@@ -4,12 +4,12 @@ read_when:
   - "Implementing or independently verifying semantic-discovery-v0 schemas."
   - "Reviewing Python/TypeScript byte-identical protocol closure."
 type: "specification"
-status: "proposed"
+status: "accepted"
 ---
 
 # Semantic Discovery Protocol v0 — Normative Invariants
 
-The sibling [`protocol.schema.json`](protocol.schema.json) owns structural validation. This document owns constraints not expressible portably in JSON Schema Draft 2020-12. Both are normative proposal inputs under decision `52`.
+The sibling [`protocol.schema.json`](protocol.schema.json) owns structural validation. This document owns constraints not expressible portably in JSON Schema Draft 2020-12. Both are accepted normative development contracts under decision `52`; production adoption remains gated by decision `53`.
 
 ## Canonical strings and byte limits
 

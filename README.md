@@ -30,6 +30,8 @@ Commands:
 - `rocs proposal` → `validate --capsule capsule.json --proposal proposal.json`
 - `rocs proposal` → `compile --capsule capsule.json --proposal proposal.json --approval approval.json --ontology-root . --artifact-root ../rocs-artifacts --out plan.json`
 - `rocs transaction` → `prepare|simulate|apply|verify|rollback` (the sole ontology-mutation path)
+- `rocs discover-capabilities --json` (closed, non-mutating protocol negotiation)
+- `rocs discover --repo . --request-json - --tool-kind development_runtime --tool-manifest-digest sha256:... --json --no-index-cache --no-env-file` (deterministic development discovery; no prose in results)
 - `rocs rules [--json]`
 - `rocs explain <rule_id> [--json]`
 - `rocs resolve --repo . [--profile <name>] [--resolve-refs] [--json]`
@@ -44,6 +46,7 @@ Commands:
 - `rocs cache dir|ls|prune|clear`
 - `rocs normalize --repo . [--apply]`
 - `rocs pack <ont_id> --repo . [--profile <name>] [--resolve-refs] [--json]` (`<ont_id>` may be a concept or relation id; fails closed if limits exclude the requested root doc)
+- Bound automatic follow-up adds `--profile <name> --expected-snapshot-digest sha256:... --expected-document-digest sha256:... --json --no-index-cache --no-env-file`; both preconditions are mandatory and mismatches fail closed.
 - `rocs build --repo . [--profile <name>] [--resolve-refs] [--clean] [--json]` (fail-closed: refuses invalid ontology content and clears stale build artifacts before each run)
 
 Scope (MVP):

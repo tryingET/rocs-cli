@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 
@@ -16,10 +18,10 @@ from rocs_cli.cli_ontology_utility import (
     cmd_graph,
     cmd_lint,
     cmd_normalize,
-    cmd_pack,
     cmd_rules,
     cmd_vendored_check,
 )
+from rocs_cli.cli_semantic_discovery import cmd_discover, cmd_discover_capabilities, cmd_pack_dispatch
 from rocs_cli.cli_platform import (
     cmd_constitution,
     cmd_context,
@@ -92,6 +94,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("contracts", help="emit the closed machine-readable command contract")
     p.set_defaults(fn=cmd_contracts)
+
+    p = sub.add_parser("discover-capabilities", help="emit semantic discovery protocol capabilities")
+    p.add_argument("--json", action="store_true", required=True, help="emit closed JSON protocol output")
+    p.set_defaults(fn=cmd_discover_capabilities)
+
+    p = sub.add_parser("discover", help="run deterministic semantic discovery")
+    p.add_argument("--repo", nargs="?", const="", default=".", help="repo root path")
+    p.add_argument("--request-json", nargs="?", const="", help="read the closed request from stdin")
+    p.add_argument("--request-file", nargs="?", const="", help="read a request file for explicit interactive use")
+    p.add_argument("--tool-kind", nargs="?", const="")
+    p.add_argument("--tool-manifest-digest", nargs="?", const="", help="Pi-verified prepared-runtime manifest digest")
+    p.add_argument("--resolve-refs", action="store_true", help="resolve local workspace refs")
+    p.add_argument("--workspace-root", nargs="?", const="")
+    p.add_argument("--workspace-ref-mode", nargs="?", const="")
+    p.add_argument("--json", action="store_true", help="emit closed JSON protocol output")
+    p.add_argument("--no-index-cache", action="store_true", help="require cache-disabled discovery")
+    p.add_argument("--no-env-file", action="store_true", help="forbid implicit dotenv loading")
+    p.set_defaults(fn=cmd_discover)
 
     p = sub.add_parser("constitution", help="validate and challenge proposal-only constitutional rules")
     constitution_sub = p.add_subparsers(dest="constitution_cmd", required=True)
@@ -393,7 +413,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-docs", type=int, help="max docs in pack (default: profile pack.max_docs)")
     p.add_argument("--max-bytes", type=int, help="max UTF-8 bytes in pack (default: profile pack.max_bytes)")
     p.add_argument("--json", action="store_true", help="emit JSON output")
-    p.set_defaults(fn=cmd_pack)
+    p.add_argument("--expected-snapshot-digest", help="require an exact fresh corpus snapshot digest")
+    p.add_argument("--expected-document-digest", help="require an exact selected root document digest")
+    p.add_argument("--no-env-file", action="store_true", help="forbid implicit dotenv loading in bound mode")
+    p.add_argument("--no-index-cache", action="store_true", help="disable parsed cache in bound mode")
+    p.set_defaults(fn=cmd_pack_dispatch)
 
     p = sub.add_parser("vendored-check")
     p.add_argument(
@@ -430,7 +454,33 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    effective_argv = list(argv) if argv is not None else __import__("sys").argv[1:]
+    command = next((token for token in effective_argv if not token.startswith("-")), None)
+    if command == "discover":
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                args, unknown = parser.parse_known_args(effective_argv)
+        except SystemExit as error:
+            if error.code == 0:
+                raise
+            from rocs_cli.discovery import DiscoveryError, error_envelope
+            from rocs_cli.semantic_protocol import caller_request_identity
+            raw: bytes | None = None
+            try:
+                if "--request-json=-" in effective_argv:
+                    raw = __import__("sys").stdin.buffer.read(262_145)
+                else:
+                    index = effective_argv.index("--request-json")
+                    if effective_argv[index + 1] == "-":
+                        raw = __import__("sys").stdin.buffer.read(262_145)
+            except (ValueError, IndexError, AttributeError):
+                raw = None
+            digest = caller_request_identity(raw)[1] if raw is not None and len(raw) <= 262_144 else None
+            print(json.dumps(error_envelope(DiscoveryError("invalid_request", caller_request_digest=digest)), separators=(",", ":")))
+            raise SystemExit(1) from None
+        setattr(args, "parser_unknown", unknown)
+    else:
+        args = parser.parse_args(effective_argv)
     debug = bool(getattr(args, "debug", False))
     if bool(getattr(args, "no_index_cache", False)):
         os.environ["ROCS_INDEX_CACHE"] = "0"

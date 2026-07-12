@@ -124,7 +124,7 @@ def _validate_tool_identity(identity: dict[str, Any], caller_digest: str) -> Non
         raise DiscoveryError("incompatible", caller_request_digest=caller_digest)
 
 
-def _validate_request(request: dict[str, Any]) -> str:
+def validate_request(request: dict[str, Any]) -> str:
     try:
         caller_digest = object_digest("caller_request", request)
     except ProtocolError as exc:
@@ -224,7 +224,7 @@ def discover(
     *,
     tool_identity: dict[str, Any],
 ) -> DiscoveryExecution:
-    caller_digest = _validate_request(request)
+    caller_digest = validate_request(request)
     _runtime_check()
     _validate_tool_identity(tool_identity, caller_digest)
     selector = request["identity_selector"]

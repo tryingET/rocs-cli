@@ -1,18 +1,18 @@
 ---
-summary: "Proposed deterministic semantic-discovery protocol owned by ROCS for task-language candidate retrieval and bounded exact-ID follow-up."
+summary: "Accepted development protocol for ROCS-owned deterministic task-language discovery and bounded exact-ID follow-up."
 read_when:
   - "Designing or implementing task-sensitive ontology discovery in ROCS."
   - "Building a consumer adapter that needs replayable semantic candidates."
   - "Reviewing semantic preflight authority, determinism, or safety boundaries."
 type: "rfc"
-status: "proposed"
+status: "accepted"
 ---
 
 # RFC — Deterministic Semantic Discovery Protocol v0
 
 ## Status and decision membrane
 
-This is a proposed ROCS product contract under `decision:52`, not an adopted semantic release or implementation authorization. Every R/P phase below is candidate post-ADR sequencing. No discovery implementation, Pi dogfood, task creation, default cutover, consumer adoption, fleet enablement, or mandatory enforcement is authorized until the applicable AK decision and post-ADR artifacts permit it. Production semantic release, ROCS tool trust, and consumer adoption remain gated by `decision:53`, whose RFC is [Semantic Release Capsule and Consumer Adoption Protocol v0](semantic-release-capsule-and-consumer-adoption-protocol-v0.md).
+This ROCS development contract was accepted by `decision:52` and its ADR. Owner-scoped post-ADR tasks authorize the bounded development implementation and evidence described by their scopes. It is not an adopted semantic release and does not authorize default cutover, consumer adoption, fleet enablement, or mandatory enforcement. Production semantic release, ROCS tool trust, and consumer adoption remain gated by `decision:53`, whose RFC is [Semantic Release Capsule and Consumer Adoption Protocol v0](semantic-release-capsule-and-consumer-adoption-protocol-v0.md).
 
 ROCS owns deterministic retrieval, result integrity, bounded exact-ID packs, and executable command-effect contracts. It does not own ontology meaning, consumer desired state, AK task intent, Pi prompt authority, or model conclusions.
 
@@ -53,15 +53,15 @@ This is locally convenient but creates a second semantic retrieval implementatio
 
 ### C. ROCS-owned deterministic discovery with thin adapters
 
-ROCS captures and ranks one bound corpus; Pi and other consumers validate and render the result without reimplementing ranking. This is the proposed direction.
+ROCS captures and ranks one bound corpus; Pi and other consumers validate and render the result without reimplementing ranking. This is the accepted development direction under decision `52`.
 
 ### D. Model or embedding retrieval as the baseline
 
 This may become advisory evidence later, but it is not replayable semantic authority and creates network/model/version dependence. Rejected for v0.
 
-## Decision requested
+## Accepted decision
 
-Approve as the target architecture:
+Decision `52` accepts this target development architecture:
 
 1. ROCS owns deterministic task-language candidate discovery and complete considered-corpus identity.
 2. Pi owns only session readiness, bounded invocation, state projection, and safe structural rendering.
@@ -73,18 +73,18 @@ Approve as the target architecture:
 
 | Term | Kind | Owner | Status in this RFC | Promotion posture |
 |---|---|---|---|---|
-| `semantic-discovery-request.v0` | protocol schema identifier | ROCS | proposed | code/schema contract after ADR |
-| `semantic-discovery-result.v0` | protocol schema identifier | ROCS | proposed | code/schema contract after ADR |
-| `rocs-lexical-v0` | algorithm identifier | ROCS | proposed | executable contract after ADR |
-| `development_snapshot` | identity variant | ROCS | proposed, unreleased | no ontology promotion implied |
+| `semantic-discovery-request.v0` | protocol schema identifier | ROCS | accepted for development | executable code/schema contract |
+| `semantic-discovery-result.v0` | protocol schema identifier | ROCS | accepted for development | executable code/schema contract |
+| `rocs-lexical-v0` | algorithm identifier | ROCS | accepted for development | executable contract |
+| `development_snapshot` | identity variant | ROCS | accepted for development, unreleased | no ontology promotion implied |
 | `semantic_release_coordinate` | reserved production coordinate | decision:53 owner split | not implemented by decision:52 | source: decision:53 RFC; no ontology promotion implied |
-| `matched`, `ambiguous`, `no_match`, `not_applicable`, `unavailable` | adapter outcome projection | Pi adapter | proposed | adapter contract, not ontology vocabulary |
-| `no_candidates`, `unique_candidate`, `multiple_candidates`, `ambiguous_equivalence`, `low_confidence` | retrieval-state enum | ROCS | proposed | executable protocol contract after ADR |
-| `ok`, `unavailable`, `timeout`, `incompatible`, `resource_exhausted` | invocation-state enum | Pi adapter | proposed | adapter projection after ADR |
-| `applicable`, `not_applicable`, `unknown` | applicability-state enum | Pi adapter | proposed | adapter projection after ADR |
-| `adopted_runtime`, `development_runtime` | runner identity kind | Pi adapter | proposed | production variant gated by later adoption decision |
+| `matched`, `ambiguous`, `no_match`, `not_applicable`, `unavailable` | adapter outcome projection | Pi adapter | accepted for development | adapter contract, not ontology vocabulary |
+| `no_candidates`, `unique_candidate`, `multiple_candidates`, `ambiguous_equivalence`, `low_confidence` | retrieval-state enum | ROCS | accepted for development | executable protocol contract |
+| `ok`, `unavailable`, `timeout`, `incompatible`, `resource_exhausted` | invocation-state enum | Pi adapter | accepted for development | adapter projection |
+| `applicable`, `not_applicable`, `unknown` | applicability-state enum | Pi adapter | accepted for development | adapter projection |
+| `adopted_runtime`, `development_runtime` | runner identity kind | Pi adapter | development variant accepted; adopted variant reserved | production variant gated by decision `53` |
 
-Retrieval source for proposed ROCS tokens is this RFC and, after acceptance, the executable protocol/capability fixtures. No ontology semantic reference is claimed for machine protocol enums. This preflight classifies owner and use; it does not mutate ROCS ontology, AK vocabulary, Prompt Vault, or Pi runtime authority.
+Retrieval source for accepted ROCS development tokens is this RFC and the executable protocol/capability fixtures. No ontology semantic reference is claimed for machine protocol enums. This preflight classifies owner and use; it does not mutate ROCS ontology, AK vocabulary, Prompt Vault, or Pi runtime authority.
 
 ## Non-goals
 
@@ -296,14 +296,19 @@ Candidate post-ADR operations:
 
 ```text
 rocs discover-capabilities --json
-rocs discover --repo . --request-json - --json --no-index-cache --no-env-file
-rocs pack <ont_id> --repo . --expected-snapshot-digest sha256:... \
-  --expected-document-digest sha256:... --json --no-index-cache --no-env-file
+rocs discover --repo . --request-json - \
+  --tool-kind development_runtime --tool-manifest-digest sha256:... \
+  --json --no-index-cache --no-env-file
+rocs pack <ont_id> --repo . --profile <effective-profile> \
+  --expected-snapshot-digest sha256:... --expected-document-digest sha256:... \
+  --json --no-index-cache --no-env-file
 ```
 
 `discover-capabilities` is the negotiation owner and returns supported request/result/error/algorithm/Unicode/platform versions with effect `none`. Schema-3 `contracts` registers all operations and conditional effects; it does not carry protocol schemas.
 
-The bound pack mode verifies a fresh accepted snapshot and selected root digest before emitting the closed pack envelope with `corpus_snapshot_digest`, `root_document_digest`, per-document `document_digest`, and `pack_digest`. A mismatch fails; adapter metadata cannot manufacture provenance. Existing unbound exact-ID pack may remain for explicit interactive use but is never valid automatic-preflight follow-up.
+The tool flags are closed invocation metadata, not request or corpus identity. Pi supplies the already-verified prepared-runtime kind and opaque manifest digest; ROCS validates their schema, binds them into `tool_identity`, and includes that identity in `effective_execution_digest` and `result_digest`. The flags are mandatory in discovery v0. No environment, path inference, repository wrapper, or post-processing may manufacture or replace them. `adopted_runtime` remains reserved behind decision `53` even though the closed parser token is recognized.
+
+The bound pack mode verifies a fresh accepted snapshot under the same explicit effective profile and selected root digest before emitting the closed pack envelope with `corpus_snapshot_digest`, `root_document_digest`, per-document `document_digest`, and `pack_digest`. A mismatch fails; adapter metadata cannot manufacture provenance. Existing unbound exact-ID pack may remain for explicit interactive use but is never valid automatic-preflight follow-up.
 
 Automatic production mode uses a prepared verified runtime and exact argv. The environment is exactly `HOME=<operator home>`, `PATH=/usr/bin:/bin`, `LANG=C.UTF-8`, `LC_ALL=C.UTF-8`, `PYTHONNOUSERSITE=1`, `PYTHONDONTWRITEBYTECODE=1`, `ROCS_WORKSPACE_ROOT=<explicit canonical workspace>`, `ROCS_WORKSPACE_REF_MODE=strict`, and no other inherited keys. It uses absolute interpreter/module paths, no implicit dotenv, and no ROCS cache or repository writes. Development-runtime preparation may write a disclosed external content-addressed cache during explicit TUI enablement; prompt-run discovery does not invoke `uv` or write that cache.
 

@@ -42,6 +42,8 @@ def _c(capability: str, *rules: dict[str, object], authority: tuple[str, ...] = 
 _CACHE = _r("cache", "runtime-feature", feature="index_cache_enabled", enabled=True)
 _RAW_COMMANDS = {
     "version": _c("introspection"), "contracts": _c("introspection"),
+    "discover-capabilities": _c("semantic-discovery"),
+    "discover": _c("semantic-discovery"),
     "constitution.validate": _c("constitutional-foundry"),
     "constitution.challenge": _c("constitutional-foundry"),
     "constitution.differential": _c("constitutional-foundry"),

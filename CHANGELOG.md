@@ -14,6 +14,7 @@ read_when:
 - **Breaking (Wave 1):** removed their script-specific tests. Scheduler assets now invoke `rocs fleet run`.
 
 ### Added
+- Decision-52 development substrate: immutable two-pass semantic corpus capture, exact `rocs-lexical-v0` discovery, `discover-capabilities`, closed `discover` invocation identity, and snapshot/document-bound exact-ID pack output. Production adoption and defaults remain blocked by decision 53.
 - Wave 4 proposal-only constitutional rule foundry with strict digest-bound candidates, a closed deterministic predicate DSL, challenge/differential/mutation evaluation, and a stable multi-objective fleet repair Pareto frontier. It cannot activate rules, certify validity, suppress findings, select/apply bids, execute generated code, or mutate ontology/fleet state.
 - Wave 3 deterministic semantic transactions with strict digest-bound prepare/simulate/apply/verify/rollback contracts, separate operator approval, owner/ref boundaries, same-filesystem staging, content-addressed receipts, and byte-exact compensation/rollback. Only `transaction apply` mutates ontology files; no shell/model/network execution is introduced.
 - Wave 2 optional intelligence membrane: deterministic content-addressed context capsules, strict proposal validation, externally approved schema-1 ontology-operation plan compilation, and an authority-free adapter protocol. No model/network is required and compilation performs no ontology mutation.
