@@ -426,8 +426,7 @@ def build_schema() -> dict[str, Any]:
     ]
     d["authorityFactValue"] = {"oneOf": fact_value_variants}
     authority_categories = ["semantic_trust", "semantic_revocation", "semantic_publication", "semantic_lifecycle", "semantic_vote",
-        "ak_store", "ak_decision", "ak_task", "rocs_task", "semantic_task", "consumer_task",
-        "consumer_acceptance", "consumer_activation", "consumer_history", "recovery_controller"]
+        "ak_store", "ak_decision", "ak_task", "consumer_acceptance", "consumer_activation", "consumer_history", "recovery_controller"]
     owner_surfaces = ["semantic_owner", "ak", "consumer_owner", "rocs", "recovery_controller", "pi"]
     d["ownerAcquisitionPin"] = protocol("semantic-owner-acquisition-capability-pin.v0", {
         "capability_pin_id": ref("identifier"), "role": ref("identifier"), "category": {"enum": authority_categories},

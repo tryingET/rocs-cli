@@ -84,9 +84,6 @@ canary_scope = {"consumer_repository": copy.deepcopy(consumer_repo), "operator_c
 ak_repo = {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}
 TASK_RECEIPT_ROLE_PROFILES = {
     "canonical_task_state:ak:": ("ak_task", "ak", "agent-kernel-owner", ak_repo, "agent-kernel.task-read.v0"),
-    "canonical_task_state:rocs:": ("rocs_task", "rocs", "rocs-cli", rocs_repo, "rocs.task-read.v0"),
-    "canonical_task_state:semantic:": ("semantic_task", "semantic_owner", "semantic-owner", owner_repo, "ontology-kernel.task-read.v0"),
-    "canonical_task_state:consumer:": ("consumer_task", "consumer_owner", "consumer-owner", consumer_repo, "consumer.task-read.v0"),
 }
 AK_LINEAGE_TASK_ROLE = "canonical_task_state:ak:semantic-release-canary-lineage"
 rocs_tool = {"tool": "rocs-cli", "version": "1.4.0", "distribution_digest": raw("rocs-1.4"), "protocol_version": "semantic-release-v0"}
@@ -191,12 +188,6 @@ coordinate = add("coordinate", {"schema": "semantic-release-coordinate.v0", "nam
 coord_digest = d("coordinate")
 ak_store_head = {"store_id": "ak-main", "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
     "store_revision": 42, "store_head_digest": raw("ak-store-head-42"), "revocation_head_digest": raw("ak-revocation-head-7")}
-rocs_task_store_head = {"store_id": "rocs-task-main", "canonical_store_locator": "local://core/rocs-cli#task-store",
-    "store_revision": 17, "store_head_digest": raw("rocs-task-store-head-17"), "revocation_head_digest": raw("rocs-task-revocation-head-2")}
-semantic_task_store_head = {"store_id": "semantic-task-main", "canonical_store_locator": "local://core/ontology-kernel#task-store",
-    "store_revision": 23, "store_head_digest": raw("semantic-task-store-head-23"), "revocation_head_digest": raw("semantic-task-revocation-head-3")}
-consumer_task_store_head = {"store_id": "consumer-task-main", "canonical_store_locator": "local://softwareco/pi-canary-consumer#task-store",
-    "store_revision": 11, "store_head_digest": raw("consumer-task-store-head-11"), "revocation_head_digest": raw("consumer-task-revocation-head-1")}
 owner_decision = add("owner_ak_decision", {"schema": "semantic-ak-decision-reference.v0", "ak_repository": ak_repo, "ak_runtime_identity": ak_tool, "ak_store_head": ak_store_head,
     "decision_id": "semantic-release-1.1.0", "decision_revision": 2, "decision_record_digest": raw("owner-decision-record-2"), "lifecycle_state": "accepted",
     "adr_reference": {"adr_id": "ADR-0053", "adr_revision": 1, "adr_digest": raw("adr-53"), "status": "accepted"}, "scope_digest": raw("semantic-owner-scope"),
@@ -1608,7 +1599,7 @@ cases += [
     case("ak_linkage_superseded_decision_rejected", "ak_optional_pi", ak_link, "self_certification", ak_linkage_context(pi_delivered, superseded_decision)),
     case("ak_linkage_stale_decision_rejected", "ak_optional_pi", ak_link, "self_certification", ak_linkage_context(pi_delivered, stale_store_decision)),
     case("ak_task_state_stale_receipt_rejected", "ak_optional_pi", ak_link, "issuer_scope_violation", ak_task_receipt_context(stale_ak_task_state)),
-    case("ak_task_state_rebound_receipt_rejected", "ak_optional_pi", ak_link, "issuer_scope_violation", ak_task_receipt_context(rebound_ak_task_state)),
+    case("ak_task_state_rebound_receipt_rejected", "ak_optional_pi", ak_link, "self_certification", ak_task_receipt_context(rebound_ak_task_state)),
     case("ak_linkage_issuer_id_must_match_pinned_adapter", "ak_optional_pi", ak_issuer_id_drift, "issuer_scope_violation", ak_linkage_context(pi_delivered)),
     case("ak_linkage_task_reference_drift_rejected", "ak_optional_pi", ak_task_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
     case("ak_linkage_decision_reference_drift_rejected", "ak_optional_pi", ak_decision_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
@@ -1780,12 +1771,9 @@ technical_coordinate_drift = variant(rollback_materialization, coordinate=coordi
 technical_runtime_drift = variant(rollback_materialization, runtime_identity=old_runtime)
 patch_prerelease_only = variant(compat_report, candidate_version="1.0.1", changes=[{"category": "compatible_refinement", "semantic_id": "core.Agent", "classification": "compatible", "semver_effect": "patch", "condition_id": None}], classification="compatible", required_semver_effect="patch")
 AK_COORD_RESOLVED_ROLE = "canonical_task_state:ak:candidate-decision-53-ak-coordination"
-ROCS_RESOLVED_ROLE = "canonical_task_state:rocs:candidate-decision-53-rocs-implementation"
-SEMANTIC_RESOLVED_ROLE = "canonical_task_state:semantic:candidate-decision-53-semantic-owner-publication"
-CONSUMER_RESOLVED_ROLE = "canonical_task_state:consumer:consent:pi-canary-consumer-owner"
-ROCS_AK_SUBSTITUTED_ROLE = "canonical_task_state:ak:candidate-decision-53-rocs-implementation"
-SEMANTIC_AK_SUBSTITUTED_ROLE = "canonical_task_state:ak:candidate-decision-53-semantic-owner-publication"
-CONSUMER_AK_SUBSTITUTED_ROLE = "canonical_task_state:ak:consent:pi-canary-consumer-owner"
+ROCS_RESOLVED_ROLE = "canonical_task_state:ak:candidate-decision-53-rocs-implementation"
+SEMANTIC_RESOLVED_ROLE = "canonical_task_state:ak:candidate-decision-53-semantic-owner-publication"
+CONSUMER_RESOLVED_ROLE = "canonical_task_state:ak:consent:pi-canary-consumer-owner"
 
 def resolve_contract_reference(base: dict, group: str, reference_id: str, store_head: dict,
         task_record_label: str, artifact_label: str, state: str) -> tuple[dict, dict]:
@@ -1804,13 +1792,13 @@ resolved_dependency_contract, resolved_dependency_state = resolve_contract_refer
     consumer_canary_contract, "dependencies", "candidate-decision-53-ak-coordination", ak_store_head,
     "observed-ak-coordination-task-record", "observed-ak-coordination-task-artifact", "completed")
 resolved_rocs_dependency_contract, resolved_rocs_dependency_state = resolve_contract_reference(
-    consumer_canary_contract, "dependencies", "candidate-decision-53-rocs-implementation", rocs_task_store_head,
+    consumer_canary_contract, "dependencies", "candidate-decision-53-rocs-implementation", ak_store_head,
     "observed-rocs-task-record", "observed-rocs-task-artifact", "completed")
 resolved_semantic_dependency_contract, resolved_semantic_dependency_state = resolve_contract_reference(
-    consumer_canary_contract, "dependencies", "candidate-decision-53-semantic-owner-publication", semantic_task_store_head,
+    consumer_canary_contract, "dependencies", "candidate-decision-53-semantic-owner-publication", ak_store_head,
     "observed-semantic-task-record", "observed-semantic-task-artifact", "completed")
 resolved_consumer_prerequisite_contract, resolved_consumer_prerequisite_state = resolve_contract_reference(
-    consumer_canary_contract, "prerequisites", "consent:pi-canary-consumer-owner", consumer_task_store_head,
+    consumer_canary_contract, "prerequisites", "consent:pi-canary-consumer-owner", ak_store_head,
     "observed-consumer-consent-task-record", "observed-consumer-consent-artifact", "accepted")
 resolved_head_drift_contract = copy.deepcopy(resolved_dependency_contract)
 resolved_head_drift_contract["dependencies"][0]["observed_canonical_state"]["ak_store_head"]["store_revision"] = 41
@@ -1836,6 +1824,7 @@ rehash(wrong_stop_repository_contract)
 cases += [
     case("canonical_ak_authority_requires_independent_store_head_fact", "publication_commit", publication, "self_certification", missing_canonical_head_context),
     case("canonical_ak_authority_requires_independent_current_record_fact", "publication_commit", publication, "self_certification", missing_current_record_context),
+    case("stale_independent_decision_receipt_rejected", "publication_commit", publication, "issuer_scope_violation", publish_commit_context),
     case("publication_trust_root_namespace_binds_authority", "publication_commit", publication, "lifecycle_violation", {**publish_commit_context, "trust_root": wrong_namespace_root}),
     case("publication_trust_root_policy_binds_authority", "publication_commit", publication, "lifecycle_violation", {**publish_commit_context, "trust_root": wrong_policy_root}),
     case("publication_trust_root_set_binds_authority", "publication_commit", publication, "lifecycle_violation", {**publish_commit_context, "trust_root": wrong_set_root}),
@@ -1859,12 +1848,12 @@ cases += [
         {"consumer_contract": resolved_semantic_dependency_contract, SEMANTIC_RESOLVED_ROLE: copy.deepcopy(resolved_semantic_dependency_state)}),
     case("resolved_consumer_reference_observation_accepts", "governance_contracts", ak_coordination_contract, None,
         {"consumer_contract": resolved_consumer_prerequisite_contract, CONSUMER_RESOLVED_ROLE: copy.deepcopy(resolved_consumer_prerequisite_state)}),
-    case("resolved_rocs_reference_ak_owner_substitution_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
-        {"consumer_contract": resolved_rocs_dependency_contract, ROCS_AK_SUBSTITUTED_ROLE: copy.deepcopy(resolved_rocs_dependency_state)}),
-    case("resolved_semantic_reference_ak_owner_substitution_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
-        {"consumer_contract": resolved_semantic_dependency_contract, SEMANTIC_AK_SUBSTITUTED_ROLE: copy.deepcopy(resolved_semantic_dependency_state)}),
-    case("resolved_consumer_reference_ak_owner_substitution_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
-        {"consumer_contract": resolved_consumer_prerequisite_contract, CONSUMER_AK_SUBSTITUTED_ROLE: copy.deepcopy(resolved_consumer_prerequisite_state)}),
+    case("resolved_rocs_reference_non_ak_issuer_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
+        {"consumer_contract": resolved_rocs_dependency_contract, ROCS_RESOLVED_ROLE: copy.deepcopy(resolved_rocs_dependency_state)}),
+    case("resolved_semantic_reference_non_ak_issuer_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
+        {"consumer_contract": resolved_semantic_dependency_contract, SEMANTIC_RESOLVED_ROLE: copy.deepcopy(resolved_semantic_dependency_state)}),
+    case("resolved_consumer_reference_non_ak_issuer_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
+        {"consumer_contract": resolved_consumer_prerequisite_contract, CONSUMER_RESOLVED_ROLE: copy.deepcopy(resolved_consumer_prerequisite_state)}),
     case("resolved_governance_reference_observed_head_is_exact", "governance_contracts", ak_coordination_contract, "issuer_scope_violation", {"consumer_contract": resolved_head_drift_contract, AK_COORD_RESOLVED_ROLE: copy.deepcopy(resolved_head_drift_contract["dependencies"][0]["observed_canonical_state"])}),
     case("resolved_governance_reference_observed_task_digest_is_exact", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": resolved_task_digest_drift_contract, AK_COORD_RESOLVED_ROLE: copy.deepcopy(resolved_task_digest_drift_contract["dependencies"][0]["observed_canonical_state"])}),
     case("resolved_governance_reference_observed_state_is_exact", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": resolved_state_drift_contract, AK_COORD_RESOLVED_ROLE: copy.deepcopy(resolved_state_drift_contract["dependencies"][0]["observed_canonical_state"])}),
@@ -1900,11 +1889,11 @@ wrong_ak_stop_owner_contract = wrong_stop_owner("stale_ak_decision_or_store", ca
 wrong_consumer_stop_owner_contract = wrong_stop_owner("stale_consumer_activation_or_history", owner_repo)
 
 cases += [
-    case("rotation_requires_independent_ak_store_observation", "trust_rotation", rotation, "trust_reference_stale", {**rotation_context, "decision": rotation_store_drift_decision}),
+    case("rotation_requires_independent_ak_store_observation", "trust_rotation", rotation, "self_certification", {**rotation_context, "decision": rotation_store_drift_decision}),
     case("rotation_requires_independent_ak_current_record", "trust_rotation", rotation, "trust_reference_stale", {**rotation_context, "current_decision_record_digest": raw("wrong-rotation-current-record")}),
-    case("revocation_requires_independent_ak_store_observation", "trust_revocation", revocation, "trust_reference_stale", {**revocation_context, "decision": revocation_store_drift_decision}),
+    case("revocation_requires_independent_ak_store_observation", "trust_revocation", revocation, "self_certification", {**revocation_context, "decision": revocation_store_drift_decision}),
     case("revocation_requires_independent_ak_current_record", "trust_revocation", revocation, "trust_reference_stale", {**revocation_context, "current_decision_record_digest": raw("wrong-revocation-current-record")}),
-    case("override_requires_independent_ak_store_observation", "compatibility", overridden_report, "compatibility_rejected", {**override_context, "decision": override_store_drift_decision}),
+    case("override_requires_independent_ak_store_observation", "compatibility", overridden_report, "self_certification", {**override_context, "decision": override_store_drift_decision}),
     case("override_requires_independent_ak_current_record", "compatibility", overridden_report, "compatibility_rejected", {**override_context, "current_decision_record_digest": raw("wrong-override-current-record")}),
     case("publication_rejects_externally_revoked_trust_root", "publication_commit", publication, "lifecycle_violation", publication_trust_revoked_context),
     case("lifecycle_current_prior_head_is_external", "lifecycle", removal, "lifecycle_violation", lifecycle_current_head_drift_context),
@@ -2026,9 +2015,6 @@ CATEGORY_PROFILE = {
     "ak_store": ("ak", "agent-kernel-owner", ak_repo, "ak-main", "agent-kernel.store-read.v0"),
     "ak_decision": ("ak", "agent-kernel-owner", ak_repo, "ak-main", "agent-kernel.decision-read.v0"),
     "ak_task": ("ak", "agent-kernel-owner", ak_repo, "ak-main", "agent-kernel.task-read.v0"),
-    "rocs_task": ("rocs", "rocs-cli", rocs_repo, "rocs-task-main", "rocs.task-read.v0"),
-    "semantic_task": ("semantic_owner", "semantic-owner", owner_repo, "semantic-task-main", "ontology-kernel.task-read.v0"),
-    "consumer_task": ("consumer_owner", "consumer-owner", consumer_repo, "consumer-task-main", "consumer.task-read.v0"),
     "consumer_acceptance": ("consumer_owner", "consumer-owner", consumer_repo, "consumer-acceptance", "consumer.acceptance-read.v0"),
     "consumer_activation": ("consumer_owner", "consumer-owner", consumer_repo, "consumer-activation", "consumer.activation-read.v0"),
     "consumer_history": ("consumer_owner", "consumer-owner", consumer_repo, "consumer-history", "consumer.history-read.v0"),
@@ -4846,22 +4832,8 @@ EXPLICIT_CASE_SOURCE_SETS = json.loads(r'''
 
 EXPLICIT_CASE_SOURCE_SETS["tombstone_origin_exact_binding"] = ["store_source_015", "vote_source_004"]
 
-# Corrected-v13 task receipt metadata is literal source authority, never inferred from a task fact.
-EXPLICIT_STORE_METADATA_TUPLES["store_tuple_rocs_task_v13"] = {
-    "owner_repository": {"owner": "rocs-owner", "repository_id": "rocs-cli", "canonical_locator": "local://core/rocs-cli", "identity_revision": 4},
-    "store_id": "rocs-task-main", "canonical_store_locator": "local://core/rocs-cli#task-store",
-    "store_head_digest": raw("rocs-task-store-head-17"), "store_revision": 17,
-    "revocation_head_digest": raw("rocs-task-revocation-head-2"), "action_epoch": 100}
-EXPLICIT_STORE_METADATA_TUPLES["store_tuple_semantic_task_v13"] = {
-    "owner_repository": {"owner": "semantic-owner", "repository_id": "ontology-kernel", "canonical_locator": "local://core/ontology-kernel", "identity_revision": 1},
-    "store_id": "semantic-task-main", "canonical_store_locator": "local://core/ontology-kernel#task-store",
-    "store_head_digest": raw("semantic-task-store-head-23"), "store_revision": 23,
-    "revocation_head_digest": raw("semantic-task-revocation-head-3"), "action_epoch": 100}
-EXPLICIT_STORE_METADATA_TUPLES["store_tuple_consumer_task_v13"] = {
-    "owner_repository": {"owner": "consumer-owner", "repository_id": "pi-canary-consumer", "canonical_locator": "local://softwareco/pi-canary-consumer", "identity_revision": 3},
-    "store_id": "consumer-task-main", "canonical_store_locator": "local://softwareco/pi-canary-consumer#task-store",
-    "store_head_digest": raw("consumer-task-store-head-11"), "store_revision": 11,
-    "revocation_head_digest": raw("consumer-task-revocation-head-1"), "action_epoch": 100}
+# Corrected-v13 task receipts are exclusively AK-issued. The embedded task fact retains its exact
+# target repository, while every enclosing receipt/pin uses the canonical AK repository and store tuple.
 EXPLICIT_STORE_METADATA_SETS["store_source_005"] = {}
 EXPLICIT_STORE_METADATA_SETS["store_source_ak_lineage_corrected_v13"] = {
     "canonical_store_head": "store_tuple_003", "current_decision_record_digest": "store_tuple_003",
@@ -4869,17 +4841,23 @@ EXPLICIT_STORE_METADATA_SETS["store_source_ak_lineage_corrected_v13"] = {
 EXPLICIT_STORE_METADATA_SETS["store_source_governance_ak_corrected_v13"] = {
     AK_COORD_RESOLVED_ROLE: "store_tuple_003"}
 EXPLICIT_STORE_METADATA_SETS["store_source_governance_rocs_corrected_v13"] = {
-    ROCS_RESOLVED_ROLE: "store_tuple_rocs_task_v13"}
+    ROCS_RESOLVED_ROLE: "store_tuple_003"}
 EXPLICIT_STORE_METADATA_SETS["store_source_governance_semantic_corrected_v13"] = {
-    SEMANTIC_RESOLVED_ROLE: "store_tuple_semantic_task_v13"}
+    SEMANTIC_RESOLVED_ROLE: "store_tuple_003"}
 EXPLICIT_STORE_METADATA_SETS["store_source_governance_consumer_corrected_v13"] = {
-    CONSUMER_RESOLVED_ROLE: "store_tuple_consumer_task_v13"}
-EXPLICIT_STORE_METADATA_SETS["store_source_governance_rocs_ak_substitution_v13"] = {
-    ROCS_AK_SUBSTITUTED_ROLE: "store_tuple_003"}
-EXPLICIT_STORE_METADATA_SETS["store_source_governance_semantic_ak_substitution_v13"] = {
-    SEMANTIC_AK_SUBSTITUTED_ROLE: "store_tuple_003"}
-EXPLICIT_STORE_METADATA_SETS["store_source_governance_consumer_ak_substitution_v13"] = {
-    CONSUMER_AK_SUBSTITUTED_ROLE: "store_tuple_003"}
+    CONSUMER_RESOLVED_ROLE: "store_tuple_003"}
+EXPLICIT_STORE_METADATA_TUPLES["store_tuple_stale_ak_decision_v13"] = {
+    "owner_repository": {"owner": "agent-kernel-owner", "repository_id": "agent-kernel",
+        "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9},
+    "store_id": "ak-main", "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+    "store_head_digest": raw("stale-independent-ak-decision-head-41"), "store_revision": 41,
+    "revocation_head_digest": raw("ak-revocation-head-7"), "action_epoch": 100}
+EXPLICIT_STORE_METADATA_SETS["store_source_stale_independent_decision_v13"] = {
+    "canonical_publication_head": "store_tuple_013", "canonical_publication_journal_head": "store_tuple_014",
+    "canonical_publication_revision": "store_tuple_013", "canonical_store_head": "store_tuple_003",
+    "canonical_trust_revocation_head": "store_tuple_004", "canonical_trust_revocation_revision": "store_tuple_004",
+    "canonical_trust_root_digest": "store_tuple_005", "current_decision_record_digest": "store_tuple_stale_ak_decision_v13",
+    "external_trust_root_pin": "store_tuple_005", "revoked_trust_digests": "store_tuple_004"}
 
 # Revision-v13 source declarations extend the static v12 inventory; every case remains named explicitly.
 EXPLICIT_STORE_METADATA_SETS["store_source_recovery_authority_v13"] = {
@@ -4997,9 +4975,10 @@ for _name in (
 EXPLICIT_CASE_SOURCE_SETS["resolved_rocs_reference_observation_accepts"] = ["store_source_governance_rocs_corrected_v13", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["resolved_semantic_reference_observation_accepts"] = ["store_source_governance_semantic_corrected_v13", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["resolved_consumer_reference_observation_accepts"] = ["store_source_governance_consumer_corrected_v13", "vote_source_000"]
-EXPLICIT_CASE_SOURCE_SETS["resolved_rocs_reference_ak_owner_substitution_rejected"] = ["store_source_governance_rocs_ak_substitution_v13", "vote_source_000"]
-EXPLICIT_CASE_SOURCE_SETS["resolved_semantic_reference_ak_owner_substitution_rejected"] = ["store_source_governance_semantic_ak_substitution_v13", "vote_source_000"]
-EXPLICIT_CASE_SOURCE_SETS["resolved_consumer_reference_ak_owner_substitution_rejected"] = ["store_source_governance_consumer_ak_substitution_v13", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["resolved_rocs_reference_non_ak_issuer_rejected"] = ["store_source_governance_rocs_corrected_v13", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["resolved_semantic_reference_non_ak_issuer_rejected"] = ["store_source_governance_semantic_corrected_v13", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["resolved_consumer_reference_non_ak_issuer_rejected"] = ["store_source_governance_consumer_corrected_v13", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["stale_independent_decision_receipt_rejected"] = ["store_source_stale_independent_decision_v13", "vote_source_003"]
 EXPLICIT_CASE_SOURCE_SETS["disable_contract_subject_must_match_rollback_plan"] = ["store_source_016", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["disable_rehearsal_subject_must_match_contract"] = ["store_source_016", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["disable_contract_coordinate_must_be_null"] = ["store_source_016", "vote_source_000"]
@@ -5661,6 +5640,8 @@ def owner_read_baseline(item: dict, context: dict) -> dict[str, object]:
     if missing != allowed_missing:
         raise ValueError(f"{item['name']}: dedicated missing-anchor fixture did not omit exactly {sorted(allowed_missing)}")
     dynamic = {role for role in context if role.startswith("canonical_task_state:")}
+    if any(not role.startswith("canonical_task_state:ak:") for role in dynamic):
+        raise ValueError(f"{item['name']}: canonical task state must use the sole AK role prefix")
     if dynamic and item["rule"] not in {"ak_optional_pi", "governance_contracts"}:
         raise ValueError(f"{item['name']}: task receipt role is not legal for {item['rule']}")
     if item["rule"] == "ak_optional_pi" and dynamic != {AK_LINEAGE_TASK_ROLE}:
@@ -6076,6 +6057,15 @@ def apply_graph_mutation(item: dict, graph: dict) -> None:
         verifier["receipt_bindings"].remove(binding); verifier["required_observation_ids"].remove(binding["observation_id"]); verifier["required_role_ids"].remove(role)
         snapshot["store_read_receipts"] = [row for row in snapshot["store_read_receipts"] if row["observation_id"] != binding["observation_id"]]
         config["pins"] = [row for row in config["pins"] if row["capability_pin_id"] != binding["capability_pin_id"]]
+    non_ak_task_issuer_cases = {
+        "resolved_rocs_reference_non_ak_issuer_rejected": (ROCS_RESOLVED_ROLE, {"kind": "rocs", "id": "rocs-cli"}),
+        "resolved_semantic_reference_non_ak_issuer_rejected": (SEMANTIC_RESOLVED_ROLE, {"kind": "semantic_owner", "id": "semantic-owner"}),
+        "resolved_consumer_reference_non_ak_issuer_rejected": (CONSUMER_RESOLVED_ROLE, {"kind": "consumer_owner", "id": "consumer-owner"}),
+    }
+    if name in non_ak_task_issuer_cases:
+        role, issuer = non_ak_task_issuer_cases[name]
+        receipt(role)["issuer"] = issuer
+        rehash_graph(graph); return
     if name in {"publication_recovery_store_snapshot_head_drift_rejected", "publication_recovery_store_snapshot_revision_drift_rejected",
             "publication_recovery_store_snapshot_action_epoch_drift_rejected", "publication_recovery_store_snapshot_repository_drift_rejected"}:
         role = "canonical_publication_status_digest"
@@ -6397,6 +6387,7 @@ authority_edge_registry = [
     edge("trust-revocation.authority-chain", "trust_revocation", "revocation action repeats complete owner authority chain", "valid_trust_revocation_transition", "trust_revocation_action_requires_full_authority_chain", "trust_reference_stale"),
     edge("publication.ak-store", "publication_commit", "publication decision store equals independent AK store anchor", "publication_result_journal_marker_bind_exactly", "canonical_ak_authority_requires_independent_store_head_fact", "self_certification"),
     edge("publication.ak-current-record", "publication_commit", "publication decision record equals independent AK current record", "publication_result_journal_marker_bind_exactly", "canonical_ak_authority_requires_independent_current_record_fact", "self_certification"),
+    edge("preflight.decision-receipt-store-coherence", "publication_commit", "current decision receipt repository and store snapshot equal the canonical AK store receipt", "publication_result_journal_marker_bind_exactly", "stale_independent_decision_receipt_rejected", "issuer_scope_violation"),
     edge("publication.trust-namespace", "publication_commit", "publication trust root namespace joins semantic authority", "publication_result_journal_marker_bind_exactly", "publication_trust_root_namespace_binds_authority", "lifecycle_violation"),
     edge("publication.trust-policy", "publication_commit", "publication trust root policy joins semantic authority", "publication_result_journal_marker_bind_exactly", "publication_trust_root_policy_binds_authority", "lifecycle_violation"),
     edge("publication.trust-owner-set", "publication_commit", "publication trust root owner set joins semantic authority", "publication_result_journal_marker_bind_exactly", "publication_trust_root_set_binds_authority", "lifecycle_violation"),
@@ -6422,11 +6413,11 @@ authority_edge_registry = [
     edge("governance.stop-condition", "governance_contracts", "stop condition identifier pairs exactly", "non_authorizing_separate_coordination_and_consumer_contracts", "stop_condition_id_pairs_exactly", "self_certification"),
     edge("governance.stop-fact", "governance_contracts", "stop fact identifier pairs exactly", "non_authorizing_separate_coordination_and_consumer_contracts", "stop_condition_fact_id_pairs_exactly", "self_certification"),
     edge("governance.stop-owner", "governance_contracts", "stop fact repository equals actual owner", "non_authorizing_separate_coordination_and_consumer_contracts", "stop_condition_repository_pairs_exactly", "self_certification"),
-    edge("trust-rotation.ak-store", "trust_rotation", "rotation approval resolves decision under external AK store head", "valid_old_to_new_root_rotation", "rotation_requires_independent_ak_store_observation", "trust_reference_stale"),
+    edge("trust-rotation.ak-store", "trust_rotation", "rotation approval resolves decision under external AK store head during preflight", "valid_old_to_new_root_rotation", "rotation_requires_independent_ak_store_observation", "self_certification"),
     edge("trust-rotation.ak-current-record", "trust_rotation", "rotation approval resolves external AK current decision record", "valid_old_to_new_root_rotation", "rotation_requires_independent_ak_current_record", "trust_reference_stale"),
-    edge("trust-revocation.ak-store", "trust_revocation", "revocation approval resolves decision under external AK store head", "valid_trust_revocation_transition", "revocation_requires_independent_ak_store_observation", "trust_reference_stale"),
+    edge("trust-revocation.ak-store", "trust_revocation", "revocation approval resolves decision under external AK store head during preflight", "valid_trust_revocation_transition", "revocation_requires_independent_ak_store_observation", "self_certification"),
     edge("trust-revocation.ak-current-record", "trust_revocation", "revocation approval resolves external AK current decision record", "valid_trust_revocation_transition", "revocation_requires_independent_ak_current_record", "trust_reference_stale"),
-    edge("compatibility-override.ak-store", "compatibility", "override approval resolves decision under external AK store head", "executable_owner_override_accepts", "override_requires_independent_ak_store_observation", "compatibility_rejected"),
+    edge("compatibility-override.ak-store", "compatibility", "override approval resolves decision under external AK store head during preflight", "executable_owner_override_accepts", "override_requires_independent_ak_store_observation", "self_certification"),
     edge("compatibility-override.ak-current-record", "compatibility", "override approval resolves external AK current decision record", "executable_owner_override_accepts", "override_requires_independent_ak_current_record", "compatibility_rejected"),
     edge("publication.trust-revocation", "publication_commit", "publication root is absent from external revocation ledger", "publication_result_journal_marker_bind_exactly", "publication_rejects_externally_revoked_trust_root", "lifecycle_violation"),
     edge("lifecycle.external-prior-head", "lifecycle", "candidate lifecycle predecessor equals external lifecycle head", "deprecation_interval_satisfied", "lifecycle_current_prior_head_is_external", "lifecycle_violation"),
@@ -6524,14 +6515,14 @@ authority_edge_registry = [
     edge("tombstone-reuse.authorization-head", "tombstone_reuse", "every removal authorization equals both exact origin and resulting lifecycle head", "non_tombstoned_identifier_accepts", "tombstone_history_coordinated_wrong_authorization_rejected", "lifecycle_violation"),
     edge("projection.tombstone-genesis-anchor", "projection", "projection history genesis equals the external semantic-owner anchor", "exact_payload_projection_accepts", "projection_tombstone_genesis_anchor_mismatch_rejected", "projection_mismatch"),
     edge("ak-lineage.task-receipt-store", "ak_optional_pi", "the exact AK lineage task carries the complete enclosing owner receipt/pin store head", "ak_delivered_linkage_requires_pi_digest", "ak_task_state_stale_receipt_rejected", "issuer_scope_violation"),
-    edge("ak-lineage.task-receipt-repository", "ak_optional_pi", "the exact AK lineage task repository equals its enclosing owner receipt/pin repository", "ak_delivered_linkage_requires_pi_digest", "ak_task_state_rebound_receipt_rejected", "issuer_scope_violation"),
+    edge("ak-lineage.task-target-repository", "ak_optional_pi", "the AK-issued lineage task fact retains the exact AK target repository", "ak_delivered_linkage_requires_pi_digest", "ak_task_state_rebound_receipt_rejected", "self_certification"),
     edge("ak-lineage.decision-accepted", "ak_optional_pi", "lineage resolves an accepted canonical AK decision", "ak_delivered_linkage_requires_pi_digest", "ak_linkage_rejected_decision_rejected", "self_certification"),
     edge("ak-lineage.decision-unrevoked", "ak_optional_pi", "lineage resolves an unrevoked canonical AK decision", "ak_delivered_linkage_requires_pi_digest", "ak_linkage_revoked_decision_rejected", "self_certification"),
     edge("ak-lineage.decision-unsuperseded", "ak_optional_pi", "lineage resolves an unsuperseded canonical AK decision", "ak_delivered_linkage_requires_pi_digest", "ak_linkage_superseded_decision_rejected", "self_certification"),
     edge("ak-lineage.decision-current", "ak_optional_pi", "lineage decision equals capability-pinned AK store head and current record", "ak_delivered_linkage_requires_pi_digest", "ak_linkage_stale_decision_rejected", "self_certification"),
-    edge("governance.rocs-task-owner", "governance_contracts", "resolved ROCS task state comes from its exact ROCS owner receipt", "resolved_rocs_reference_observation_accepts", "resolved_rocs_reference_ak_owner_substitution_rejected", "issuer_scope_violation"),
-    edge("governance.semantic-task-owner", "governance_contracts", "resolved semantic task state comes from its exact semantic-owner receipt", "resolved_semantic_reference_observation_accepts", "resolved_semantic_reference_ak_owner_substitution_rejected", "issuer_scope_violation"),
-    edge("governance.consumer-task-owner", "governance_contracts", "resolved consumer task state comes from its exact consumer-owner receipt", "resolved_consumer_reference_observation_accepts", "resolved_consumer_reference_ak_owner_substitution_rejected", "issuer_scope_violation"),
+    edge("governance.rocs-task-owner", "governance_contracts", "AK-issued canonical task state retains the exact ROCS target repository", "resolved_rocs_reference_observation_accepts", "resolved_rocs_reference_non_ak_issuer_rejected", "issuer_scope_violation"),
+    edge("governance.semantic-task-owner", "governance_contracts", "AK-issued canonical task state retains the exact semantic target repository", "resolved_semantic_reference_observation_accepts", "resolved_semantic_reference_non_ak_issuer_rejected", "issuer_scope_violation"),
+    edge("governance.consumer-task-owner", "governance_contracts", "AK-issued canonical task state retains the exact consumer target repository", "resolved_consumer_reference_observation_accepts", "resolved_consumer_reference_non_ak_issuer_rejected", "issuer_scope_violation"),
 ]
 authority_edge_registry.sort(key=lambda row: row["edge_id"].encode())
 edge_ids_by_rule: dict[str, list[str]] = {}
@@ -6649,18 +6640,28 @@ for index, (_payload, data) in enumerate(shards):
 aggregate_preimage = {"cases": cases, "raw_json_cases": raw_json_cases}
 transport_limits = {"max_total_json_bytes": MAX_TOTAL_JSON_BYTES, "max_shards": MAX_SHARDS, "deadline_ms": MAX_DEADLINE_MS}
 transport_limit_cases = [
-    {"name": "transport_accounting_identity_accepts", "limit_kind": "accounting_identity",
+    {"name": "transport_accounting_identity_accepts", "phase": "retained_rehash_accounting", "limit_kind": "accounting_identity",
         "observed_total_json_bytes": 87, "observed_shard_count": 3, "observed_elapsed_ms": 0,
-        "accounted_byte_lengths": [17, 29, 41], "expected_error": None},
-    {"name": "transport_aggregate_json_bytes_overflow_rejected", "limit_kind": "max_total_json_bytes",
-        "observed_total_json_bytes": MAX_TOTAL_JSON_BYTES + 1, "observed_shard_count": len(shards),
-        "observed_elapsed_ms": 0, "accounted_byte_lengths": [], "expected_error": "transport_limit_exceeded"},
-    {"name": "transport_deadline_overflow_rejected", "limit_kind": "deadline_ms",
+        "accounted_byte_lengths": [17, 29, 41],
+        "deadline_check_stages": ["before retained-byte rehash transport conformance probe", "after retained-byte rehash transport conformance probe"],
+        "expected_error": None},
+    {"name": "transport_actual_retained_bytes_overflow_rejected_during_acquisition", "phase": "shard_acquisition",
+        "limit_kind": "max_total_json_bytes", "observed_total_json_bytes": MAX_TOTAL_JSON_BYTES + 1,
+        "observed_shard_count": 17, "observed_elapsed_ms": 0,
+        "accounted_byte_lengths": [JSON_FILE_LIMIT - 1] * 16 + [17], "deadline_check_stages": [],
+        "expected_error": "transport_limit_exceeded"},
+    {"name": "transport_deadline_overflow_rejected", "phase": "operation_deadline", "limit_kind": "deadline_ms",
         "observed_total_json_bytes": 0, "observed_shard_count": 0,
-        "observed_elapsed_ms": MAX_DEADLINE_MS + 1, "accounted_byte_lengths": [], "expected_error": "transport_limit_exceeded"},
-    {"name": "transport_shard_count_overflow_rejected", "limit_kind": "max_shards",
+        "observed_elapsed_ms": MAX_DEADLINE_MS + 1, "accounted_byte_lengths": [], "deadline_check_stages": [],
+        "expected_error": "transport_limit_exceeded"},
+    {"name": "transport_manifest_listed_bytes_overflow_rejected_before_shard_reads", "phase": "manifest_preflight",
+        "limit_kind": "max_total_json_bytes", "observed_total_json_bytes": MAX_TOTAL_JSON_BYTES + 1,
+        "observed_shard_count": len(shards), "observed_elapsed_ms": 0, "accounted_byte_lengths": [],
+        "deadline_check_stages": [], "expected_error": "transport_limit_exceeded"},
+    {"name": "transport_shard_count_overflow_rejected", "phase": "manifest_preflight", "limit_kind": "max_shards",
         "observed_total_json_bytes": 0, "observed_shard_count": MAX_SHARDS + 1,
-        "observed_elapsed_ms": 0, "accounted_byte_lengths": [], "expected_error": "transport_limit_exceeded"},
+        "observed_elapsed_ms": 0, "accounted_byte_lengths": [], "deadline_check_stages": [],
+        "expected_error": "transport_limit_exceeded"},
 ]
 manifest = {"schema": "semantic-differential-fixture-manifest.v0", "protocol": "semantic-release-v0",
     "rfc_revision": "semantic-release-revision-v13", "limits": transport_limits,
