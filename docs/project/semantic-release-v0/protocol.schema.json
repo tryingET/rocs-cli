@@ -1288,6 +1288,22 @@
             "value"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "lifecycle_tombstone_head"
+            },
+            "value": {
+              "$ref": "#/$defs/lifecycleTombstoneHead"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -1332,9 +1348,93 @@
       ],
       "type": "object"
     },
+    "authorityRoleEdgeLink": {
+      "additionalProperties": false,
+      "properties": {
+        "edge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "edge_linkage_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_repository": {
+          "$ref": "#/$defs/repositoryIdentity"
+        },
+        "owner_surface": {
+          "enum": [
+            "semantic_owner",
+            "ak",
+            "consumer_owner",
+            "rocs",
+            "recovery_controller",
+            "pi"
+          ]
+        },
+        "role_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "edge_id",
+        "owner_surface",
+        "owner_id",
+        "owner_repository",
+        "role_ids",
+        "edge_linkage_digest"
+      ],
+      "type": "object"
+    },
     "authorityRoleMapping": {
       "additionalProperties": false,
       "properties": {
+        "acquisition_capability_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "acquisition_contract": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "acquisition_contract_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "acquisition_distribution_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
         "capability_pin_id": {
           "oneOf": [
             {
@@ -1468,6 +1568,10 @@
         "owner_repository",
         "capability_pin_id",
         "capability_pin_prefix",
+        "acquisition_contract",
+        "acquisition_contract_digest",
+        "acquisition_distribution_digest",
+        "acquisition_capability_digest",
         "expected_schemas",
         "minimum_cardinality",
         "maximum_cardinality",
@@ -1497,6 +1601,14 @@
           "minItems": 0,
           "type": "array"
         },
+        "role_edge_links": {
+          "items": {
+            "$ref": "#/$defs/authorityRoleEdgeLink"
+          },
+          "maxItems": 1000,
+          "minItems": 0,
+          "type": "array"
+        },
         "role_mappings": {
           "items": {
             "$ref": "#/$defs/authorityRoleMapping"
@@ -1514,7 +1626,8 @@
         "authority_bearing",
         "required_roles",
         "role_mappings",
-        "edge_ids"
+        "edge_ids",
+        "role_edge_links"
       ],
       "type": "object"
     },
@@ -1525,7 +1638,7 @@
           "$ref": "#/$defs/digest"
         },
         "revision": {
-          "const": "semantic-release-revision-v9"
+          "const": "semantic-release-revision-v10"
         },
         "rules": {
           "items": {
@@ -2773,6 +2886,30 @@
       ],
       "type": "object"
     },
+    "lifecycleTombstoneHead": {
+      "additionalProperties": false,
+      "properties": {
+        "lifecycle_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "namespace": {
+          "$ref": "#/$defs/namespace"
+        },
+        "tombstone_registry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "tombstone_registry_revision": {
+          "$ref": "#/$defs/safeInteger"
+        }
+      },
+      "required": [
+        "namespace",
+        "lifecycle_head_digest",
+        "tombstone_registry_digest",
+        "tombstone_registry_revision"
+      ],
+      "type": "object"
+    },
     "logicalPath": {
       "maxLength": 4096,
       "minLength": 1,
@@ -3190,6 +3327,9 @@
         "acquisition_distribution_digest": {
           "$ref": "#/$defs/digest"
         },
+        "capability_pin_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "capability_pin_id": {
           "$ref": "#/$defs/identifier"
         },
@@ -3275,7 +3415,8 @@
         "fact_value",
         "freshness_cas_token_digest",
         "required_action_epoch_floor",
-        "acquisition_capability_digest"
+        "acquisition_capability_digest",
+        "capability_pin_digest"
       ],
       "type": "object"
     },
@@ -3551,6 +3692,9 @@
         "action_epoch": {
           "$ref": "#/$defs/safeInteger"
         },
+        "capability_pin_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "capability_pin_id": {
           "$ref": "#/$defs/identifier"
         },
@@ -3626,6 +3770,7 @@
         "owner_repository",
         "capability_pin_id",
         "acquisition_capability_digest",
+        "capability_pin_digest",
         "acquisition_contract",
         "acquisition_contract_digest",
         "acquisition_distribution_digest",
@@ -4439,6 +4584,18 @@
     "receiptBinding": {
       "additionalProperties": false,
       "properties": {
+        "acquisition_capability_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acquisition_contract": {
+          "$ref": "#/$defs/identifier"
+        },
+        "acquisition_contract_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acquisition_distribution_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "capability_pin_id": {
           "$ref": "#/$defs/identifier"
         },
@@ -4461,6 +4618,22 @@
         "observation_id": {
           "$ref": "#/$defs/identifier"
         },
+        "owner_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_repository": {
+          "$ref": "#/$defs/repositoryIdentity"
+        },
+        "owner_surface": {
+          "enum": [
+            "semantic_owner",
+            "ak",
+            "consumer_owner",
+            "rocs",
+            "recovery_controller",
+            "pi"
+          ]
+        },
         "role": {
           "$ref": "#/$defs/identifier"
         }
@@ -4469,7 +4642,14 @@
         "role",
         "category",
         "observation_id",
-        "capability_pin_id"
+        "capability_pin_id",
+        "owner_surface",
+        "owner_id",
+        "owner_repository",
+        "acquisition_contract",
+        "acquisition_contract_digest",
+        "acquisition_distribution_digest",
+        "acquisition_capability_digest"
       ],
       "type": "object"
     },
@@ -6176,5 +6356,5 @@
       "$ref": "#/$defs/authorityVerifierInput"
     }
   ],
-  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 9"
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 10"
 }

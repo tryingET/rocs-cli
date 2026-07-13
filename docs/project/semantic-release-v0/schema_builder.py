@@ -347,6 +347,9 @@ def build_schema() -> dict[str, Any]:
     d["ownerVoteProofFact"] = obj({
         "owner_id": ref("identifier"), "owner_key_id": ref("identifier"), "approved_action_digest": ref("digest"),
         "approval_proof_digest": ref("digest")})
+    d["lifecycleTombstoneHead"] = obj({
+        "namespace": ref("namespace"), "lifecycle_head_digest": ref("digest"),
+        "tombstone_registry_digest": ref("digest"), "tombstone_registry_revision": ref("safeInteger")})
     fact_value_variants = [
         obj({"kind": {"const": "null"}}),
         obj({"kind": {"const": "digest"}, "value": nullable(ref("digest"))}),
@@ -367,6 +370,7 @@ def build_schema() -> dict[str, Any]:
         obj({"kind": {"const": "ak_task_state"}, "value": ref("akTaskState")}),
         obj({"kind": {"const": "ak_task_state_list"}, "value": array(ref("akTaskState"), 10000)}),
         obj({"kind": {"const": "owner_vote_proof"}, "value": ref("ownerVoteProofFact")}),
+        obj({"kind": {"const": "lifecycle_tombstone_head"}, "value": ref("lifecycleTombstoneHead")}),
     ]
     d["authorityFactValue"] = {"oneOf": fact_value_variants}
     authority_categories = ["semantic_trust", "semantic_revocation", "semantic_publication", "semantic_lifecycle", "semantic_vote",
@@ -379,7 +383,8 @@ def build_schema() -> dict[str, Any]:
         "acquisition_distribution_digest": ref("digest"), "store_id": ref("identifier"), "store_head_digest": ref("digest"),
         "store_revision": ref("safeInteger"), "fact_schema": ref("identifier"), "fact_digest": ref("digest"),
         "fact_value": ref("authorityFactValue"), "freshness_cas_token_digest": ref("digest"),
-        "required_action_epoch_floor": ref("safeInteger"), "acquisition_capability_digest": ref("digest")})
+        "required_action_epoch_floor": ref("safeInteger"), "acquisition_capability_digest": ref("digest"),
+        "capability_pin_digest": ref("digest")})
     d["authorityAcquisitionConfig"] = protocol("semantic-authority-acquisition-config.v0", {
         "verifier_identity": ref("toolIdentity"), "collator": ref("issuer"),
         "collation_scope": {"const": "transport_only_no_receipt_issuance"},
@@ -389,7 +394,8 @@ def build_schema() -> dict[str, Any]:
         "observation_id": ref("identifier"), "role": ref("identifier"), "category": {"enum": authority_categories},
         "issuer": ref("issuer"), "claim_scope": {"const": "owner_store_read_only"},
         "owner_repository": ref("repositoryIdentity"), "capability_pin_id": ref("identifier"),
-        "acquisition_capability_digest": ref("digest"), "acquisition_contract": ref("identifier"),
+        "acquisition_capability_digest": ref("digest"), "capability_pin_digest": ref("digest"),
+        "acquisition_contract": ref("identifier"),
         "acquisition_contract_digest": ref("digest"), "acquisition_distribution_digest": ref("digest"),
         "store_id": ref("identifier"), "store_head_digest": ref("digest"), "store_revision": ref("safeInteger"),
         "fact_schema": ref("identifier"), "fact_digest": ref("digest"), "fact_value": ref("authorityFactValue"),
@@ -413,7 +419,11 @@ def build_schema() -> dict[str, Any]:
         "authority_snapshot_digest": ref("digest"), "nodes": array(ref("proofNode"), 100000),
         "authority_proof_bundle_digest": ref("digest")})
     d["receiptBinding"] = obj({"role": ref("identifier"), "category": {"enum": authority_categories},
-        "observation_id": ref("identifier"), "capability_pin_id": ref("identifier")})
+        "observation_id": ref("identifier"), "capability_pin_id": ref("identifier"),
+        "owner_surface": {"enum": owner_surfaces}, "owner_id": ref("identifier"),
+        "owner_repository": ref("repositoryIdentity"), "acquisition_contract": ref("identifier"),
+        "acquisition_contract_digest": ref("digest"), "acquisition_distribution_digest": ref("digest"),
+        "acquisition_capability_digest": ref("digest")})
     d["nodeBinding"] = obj({"role": ref("identifier"), "bundle_key": ref("digest"), "expected_schema": ref("identifier"),
         "expected_issuer_kind": {"enum": ["semantic_owner", "consumer_owner", "rocs", "pi", "ak", "recovery_controller"]},
         "expected_issuer_id": ref("identifier"), "expected_owner_repository": ref("repositoryIdentity"),
@@ -425,14 +435,20 @@ def build_schema() -> dict[str, Any]:
         "category": nullable({"enum": authority_categories}), "owner_surface": nullable({"enum": owner_surfaces}),
         "owner_id": nullable(ref("identifier")), "owner_repository": nullable(ref("repositoryIdentity")),
         "capability_pin_id": nullable(ref("identifier")), "capability_pin_prefix": nullable(ref("identifier")),
+        "acquisition_contract": nullable(ref("identifier")), "acquisition_contract_digest": nullable(ref("digest")),
+        "acquisition_distribution_digest": nullable(ref("digest")), "acquisition_capability_digest": nullable(ref("digest")),
         "expected_schemas": array(ref("identifier"), 8), "minimum_cardinality": ref("safeInteger"),
         "maximum_cardinality": ref("safeInteger"), "description": ref("text")})
+    d["authorityRoleEdgeLink"] = obj({
+        "edge_id": ref("identifier"), "owner_surface": {"enum": owner_surfaces}, "owner_id": ref("identifier"),
+        "owner_repository": ref("repositoryIdentity"), "role_ids": array(ref("identifier"), 1000, 1),
+        "edge_linkage_digest": ref("digest")})
     d["authorityRuleManifestEntry"] = obj({
         "rule": ref("identifier"), "authority_bearing": {"type": "boolean"},
         "required_roles": array(ref("identifier"), 1000), "role_mappings": array(ref("authorityRoleMapping"), 1000),
-        "edge_ids": array(ref("identifier"), 1000)})
+        "edge_ids": array(ref("identifier"), 1000), "role_edge_links": array(ref("authorityRoleEdgeLink"), 1000)})
     d["authorityRuleRoleManifest"] = protocol("semantic-authority-rule-role-manifest.v0", {
-        "revision": {"const": "semantic-release-revision-v9"}, "rules": array(ref("authorityRuleManifestEntry"), 1000, 1),
+        "revision": {"const": "semantic-release-revision-v10"}, "rules": array(ref("authorityRuleManifestEntry"), 1000, 1),
         "authority_rule_role_manifest_digest": ref("digest")})
     d["authorityVerifierInput"] = protocol("semantic-authority-verifier-input.v0", {
         "rule": ref("identifier"), "subject_schema": ref("identifier"), "subject_digest": ref("digest"),
@@ -445,7 +461,7 @@ def build_schema() -> dict[str, Any]:
     top = [*artifact_top, "ownerAcquisitionPin", "authorityAcquisitionConfig", "ownerStoreReadReceipt", "authoritySnapshot",
         "authorityRuleRoleManifest", "authorityProofBundle", "authorityVerifierInput"]
     return {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://ai-society.local/rocs/semantic-release-v0/protocol.schema.json",
-            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 9", "oneOf": [ref(name) for name in top], "$defs": d}
+            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 10", "oneOf": [ref(name) for name in top], "$defs": d}
 
 
 def write_schema() -> None:
