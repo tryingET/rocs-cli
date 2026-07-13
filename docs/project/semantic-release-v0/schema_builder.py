@@ -432,8 +432,9 @@ def build_schema() -> dict[str, Any]:
         "capability_pin_id": ref("identifier"), "role": ref("identifier"), "category": {"enum": authority_categories},
         "owner_surface": {"enum": owner_surfaces}, "owner_id": ref("identifier"), "owner_repository": ref("repositoryIdentity"),
         "acquisition_contract": ref("identifier"), "acquisition_contract_digest": ref("digest"),
-        "acquisition_distribution_digest": ref("digest"), "store_id": ref("identifier"), "store_head_digest": ref("digest"),
-        "store_revision": ref("safeInteger"), "fact_schema": ref("identifier"), "fact_digest": ref("digest"),
+        "acquisition_distribution_digest": ref("digest"), "store_id": ref("identifier"),
+        "canonical_store_locator": ref("text"), "store_head_digest": ref("digest"),
+        "store_revision": ref("safeInteger"), "revocation_head_digest": nullable(ref("digest")), "fact_schema": ref("identifier"), "fact_digest": ref("digest"),
         "fact_value": ref("authorityFactValue"), "freshness_cas_token_digest": ref("digest"),
         "required_action_epoch_floor": ref("safeInteger"), "acquisition_capability_digest": ref("digest"),
         "capability_pin_digest": ref("digest")})
@@ -449,8 +450,9 @@ def build_schema() -> dict[str, Any]:
         "acquisition_capability_digest": ref("digest"), "capability_pin_digest": ref("digest"),
         "acquisition_contract": ref("identifier"),
         "acquisition_contract_digest": ref("digest"), "acquisition_distribution_digest": ref("digest"),
-        "store_id": ref("identifier"), "store_head_digest": ref("digest"), "store_revision": ref("safeInteger"),
-        "fact_schema": ref("identifier"), "fact_digest": ref("digest"), "fact_value": ref("authorityFactValue"),
+        "store_id": ref("identifier"), "canonical_store_locator": ref("text"),
+        "store_head_digest": ref("digest"), "store_revision": ref("safeInteger"),
+        "revocation_head_digest": nullable(ref("digest")), "fact_schema": ref("identifier"), "fact_digest": ref("digest"), "fact_value": ref("authorityFactValue"),
         "freshness_cas_token_digest": ref("digest"), "action_epoch": ref("safeInteger"),
         "required_action_epoch_floor": ref("safeInteger"), "owner_store_read_receipt_digest": ref("digest")})
     d["authoritySnapshot"] = protocol("semantic-authority-snapshot.v0", {

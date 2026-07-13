@@ -10,9 +10,17 @@ const fail = (message) => { throw new Error(message); };
 const maxSafe = Number.MAX_SAFE_INTEGER;
 const maxJsonFileBytes = 16 * 1024 * 1024;
 const maxJsonDepth = 64;
+const maxTotalJsonBytes = 256 * 1024 * 1024;
+const maxShards = 64;
+const maxDeadlineMs = 300000;
+const processStartedNs = process.hrtime.bigint();
+let processDeadlineNs = processStartedNs + BigInt(maxDeadlineMs) * 1000000n;
+const deadlineCheck = (stage) => { if (process.hrtime.bigint() > processDeadlineNs) fail(`transport deadline exceeded ${stage}`); };
+const configureDeadline = (deadlineMs) => { const configured = processStartedNs + BigInt(deadlineMs) * 1000000n; if (configured < processDeadlineNs) processDeadlineNs = configured; deadlineCheck("after manifest limit configuration"); };
 const shardNamePattern = /^differential-fixtures-shard-[0-9]{3}\.json$/u;
 
 function strictJson(text) {
+  deadlineCheck("before JSON parse");
   let at = 0;
   const ws = () => { while (/[\u0009\u000a\u000d\u0020]/u.test(text[at] ?? "")) at++; };
   const string = () => {
@@ -50,7 +58,7 @@ function strictJson(text) {
     if (!/^(?:0|[1-9][0-9]*)$/u.test(token)) fail(`non-canonical integer token ${token}`);
     const number = Number(token); if (!Number.isSafeInteger(number)) fail("unsafe integer token"); return number;
   };
-  const result = value(); ws(); if (at !== text.length) fail("trailing JSON data"); validateIjson(result); return result;
+  const result = value(); ws(); if (at !== text.length) fail("trailing JSON data"); validateIjson(result); deadlineCheck("after JSON parse"); return result;
 }
 
 function loadBytes(name, strictUnderLimit = false, expected = null) {
@@ -63,7 +71,7 @@ function loadBytes(name, strictUnderLimit = false, expected = null) {
     const before = fstatSync(fd, { bigint: true });
     if (!before.isFile() || before.size < 0n || before.size > BigInt(maxJsonFileBytes) || strictUnderLimit && before.size >= BigInt(maxJsonFileBytes)) fail(`${name}: JSON file is not regular or exceeds limit`);
     const bounded = Buffer.allocUnsafe(maxJsonFileBytes + 1); let length = 0;
-    while (length < bounded.length) { const count = readSync(fd, bounded, length, bounded.length - length, null); if (count === 0) break; length += count; }
+    while (length < bounded.length) { deadlineCheck(`before read ${name}`); const count = readSync(fd, bounded, length, bounded.length - length, null); deadlineCheck(`after read ${name}`); if (count === 0) break; length += count; }
     bytes = bounded.subarray(0, length);
     const after = fstatSync(fd, { bigint: true }); let current;
     try { current = lstatSync(path, { bigint: true }); } catch { fail(`${name}: JSON file replaced during read`); }
@@ -71,11 +79,14 @@ function loadBytes(name, strictUnderLimit = false, expected = null) {
     if (!after.isFile() || !current.isFile() || fields.some((key) => before[key] !== after[key] || before[key] !== current[key])
       || BigInt(bytes.length) !== before.size || bytes.length > maxJsonFileBytes || strictUnderLimit && bytes.length >= maxJsonFileBytes) fail(`${name}: JSON file replaced, grew, or changed during bounded read`);
   } finally { closeSync(fd); }
+  deadlineCheck(`before hash ${name}`);
   const rawSha256 = createHash("sha256").update(bytes).digest("hex");
+  deadlineCheck(`after hash ${name}`);
   if (expected !== null && (bytes.length !== expected.byteLength || rawSha256 !== expected.sha256)) fail(`${name}: JSON raw byte/hash mismatch`);
   if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) fail(`${name}: BOM forbidden`);
   let text; try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { fail(`${name}: malformed UTF-8`); }
-  return [strictJson(text), bytes];
+  deadlineCheck(`before decode/parse ${name}`); const value = strictJson(text); deadlineCheck(`after decode/parse ${name}`);
+  return [value, bytes];
 }
 function load(name) { return loadBytes(name)[0]; }
 
@@ -172,34 +183,79 @@ function structural(instance, shape, path = "$") {
 }
 const eq = (a, b) => jcs(a) === jcs(b);
 const exactKeys = (value, keys) => value !== null && !Array.isArray(value) && typeof value === "object" && eq(Object.keys(value).sort(), [...keys].sort());
+function stableJsonStat(name, strictUnderLimit = false) {
+  deadlineCheck(`before stat ${name}`);
+  const path = join(root, name);
+  if (constants.O_NOFOLLOW === undefined) fail(`${name}: no-follow open unavailable`);
+  let fd; try { fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | (constants.O_CLOEXEC ?? 0)); }
+  catch { fail(`${name}: unavailable, non-regular, or symlink JSON file`); }
+  let size;
+  try {
+    const before = fstatSync(fd, { bigint: true }), after = fstatSync(fd, { bigint: true }); let current;
+    try { current = lstatSync(path, { bigint: true }); } catch { fail(`${name}: JSON file replaced during stat`); }
+    const fields = ["dev", "ino", "mode", "size", "mtimeNs", "ctimeNs"];
+    if (!before.isFile() || !after.isFile() || !current.isFile() || fields.some((key) => before[key] !== after[key] || before[key] !== current[key])
+      || before.size < 0n || before.size > BigInt(maxJsonFileBytes) || strictUnderLimit && before.size >= BigInt(maxJsonFileBytes)) fail(`${name}: unstable, non-regular, or oversized JSON stat`);
+    size = Number(before.size);
+  } finally { closeSync(fd); }
+  deadlineCheck(`after stat ${name}`); return size;
+}
+function transportLimitResult(limits, totalJsonBytes, shardCount, elapsedMs) { return totalJsonBytes > limits.max_total_json_bytes || shardCount > limits.max_shards || elapsedMs > limits.deadline_ms ? "transport_limit_exceeded" : null; }
 function loadShardedDifferential(manifest) {
-  const topKeys = ["schema", "protocol", "rfc_revision", "aggregate", "source_case_explicitness_audit", "authority_rule_role_manifest", "authority_edge_registry", "shards"];
+  const topKeys = ["schema", "protocol", "rfc_revision", "limits", "transport_limit_cases", "aggregate", "source_case_explicitness_audit", "authority_rule_role_manifest", "authority_edge_registry", "shards"];
   if (!exactKeys(manifest, topKeys) || manifest.schema !== "semantic-differential-fixture-manifest.v0" || manifest.protocol !== "semantic-release-v0" || manifest.rfc_revision !== "semantic-release-revision-v13") fail("differential shard manifest identity/closure");
+  const limits = manifest.limits, limitKeys = ["max_total_json_bytes", "max_shards", "deadline_ms"];
+  if (!exactKeys(limits, limitKeys) || limitKeys.some((key) => !Number.isSafeInteger(limits[key]) || limits[key] < 1)
+    || limits.max_total_json_bytes > maxTotalJsonBytes || limits.max_shards > maxShards || limits.deadline_ms > maxDeadlineMs) fail("differential transport limits shape/bound");
+  configureDeadline(limits.deadline_ms);
+  const transportCases = manifest.transport_limit_cases, transportCaseKeys = ["name", "limit_kind", "observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms", "expected_error"];
+  const expectedTransportCases = new Map([
+    ["transport_aggregate_json_bytes_overflow_rejected", "max_total_json_bytes"],
+    ["transport_deadline_overflow_rejected", "deadline_ms"],
+    ["transport_shard_count_overflow_rejected", "max_shards"],
+  ]);
+  if (!Array.isArray(transportCases) || !eq(transportCases.map((row) => row?.name), [...expectedTransportCases.keys()].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))))) fail("transport conformance case identity/order");
+  for (const item of transportCases) {
+    deadlineCheck(`before transport case ${item?.name}`);
+    if (!exactKeys(item, transportCaseKeys) || item.limit_kind !== expectedTransportCases.get(item.name) || item.expected_error !== "transport_limit_exceeded"
+      || [item.observed_total_json_bytes, item.observed_shard_count, item.observed_elapsed_ms].some((value) => !Number.isSafeInteger(value) || value < 0)) fail("transport conformance case shape");
+    const observations = [["max_total_json_bytes", item.observed_total_json_bytes], ["max_shards", item.observed_shard_count], ["deadline_ms", item.observed_elapsed_ms]], violations = observations.filter(([key, observed]) => observed > limits[key]).map(([key]) => key);
+    const actual = transportLimitResult(limits, item.observed_total_json_bytes, item.observed_shard_count, item.observed_elapsed_ms);
+    if (!eq(violations, [item.limit_kind]) || actual !== item.expected_error) fail(`transport conformance case outcome ${item.name}`);
+    deadlineCheck(`after transport case ${item.name}`);
+  }
   const aggregate = manifest.aggregate;
   if (!exactKeys(aggregate, ["case_count", "raw_case_count", "sha256"]) || !Number.isSafeInteger(aggregate.case_count) || aggregate.case_count < 0 || !Number.isSafeInteger(aggregate.raw_case_count) || aggregate.raw_case_count < 0 || !/^[0-9a-f]{64}$/u.test(aggregate.sha256)) fail("differential aggregate metadata shape");
   const inventory = manifest.shards, rowKeys = ["path", "byte_length", "sha256", "case_count", "raw_case_count"];
-  if (!Array.isArray(inventory) || inventory.length === 0) fail("differential shard inventory missing");
+  if (!Array.isArray(inventory) || inventory.length === 0 || inventory.length > limits.max_shards || inventory.length > maxShards) fail("differential shard inventory count");
   const paths = inventory.map((row) => row?.path);
   if (paths.some((path) => typeof path !== "string")) fail("differential shard inventory order");
   const ordered = [...paths].sort((a, b) => Buffer.compare(Buffer.from(a, "utf8"), Buffer.from(b, "utf8")));
   if (!eq(paths, ordered) || new Set(paths).size !== paths.length) fail("differential shard inventory order");
-  const actual = readdirSync(root).filter((name) => name.startsWith("differential-fixtures-shard-") && name.endsWith(".json")).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
-  if (!eq(actual, paths)) fail("differential shard inventory has missing or extra files");
-  const cases = [], rawCases = [];
   for (let index = 0; index < inventory.length; index++) {
     const row = inventory[index];
     if (!exactKeys(row, rowKeys) || !shardNamePattern.test(row.path) || basename(row.path) !== row.path || row.path.includes(":") || row.path.includes("/") || row.path.includes("\\") || !Number.isSafeInteger(row.byte_length) || row.byte_length < 0 || !Number.isSafeInteger(row.case_count) || row.case_count < 0 || !Number.isSafeInteger(row.raw_case_count) || row.raw_case_count < 0 || !/^[0-9a-f]{64}$/u.test(row.sha256)) fail(`differential shard inventory row ${index}`);
     const lexicalPath = pathResolve(root, row.path); if (dirname(lexicalPath) !== pathResolve(root)) fail("differential shard path traversal");
-    const [shard, bytes] = loadBytes(row.path, true, { byteLength: row.byte_length, sha256: row.sha256 });
+  }
+  const actual = readdirSync(root).filter((name) => name.startsWith("differential-fixtures-shard-") && name.endsWith(".json")).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
+  if (!eq(actual, paths)) fail("differential shard inventory has missing or extra files");
+  const statSizes = [["protocol.schema.json", false], ["golden-fixtures.json", false], ["differential-fixtures.json", false], ...inventory.map((row) => [row.path, true])].map(([name, strict]) => stableJsonStat(name, strict));
+  if (inventory.some((row, index) => statSizes[index + 3] !== row.byte_length)) fail("differential shard stable stat byte mismatch");
+  const totalJsonBytes = statSizes.reduce((total, size) => total + size, 0);
+  if (transportLimitResult(limits, totalJsonBytes, inventory.length, 0) !== null) fail("aggregate JSON transport limit exceeded before shard parsing");
+  const cases = [], rawCases = [];
+  for (let index = 0; index < inventory.length; index++) {
+    deadlineCheck(`before shard ${index} read/hash/parse`);
+    const row = inventory[index], [shard] = loadBytes(row.path, true, { byteLength: row.byte_length, sha256: row.sha256 });
     const shardKeys = ["schema", "protocol", "rfc_revision", "shard_index", "cases", "raw_json_cases"];
     if (!exactKeys(shard, shardKeys) || shard.schema !== "semantic-differential-fixture-shard.v0" || shard.protocol !== manifest.protocol || shard.rfc_revision !== manifest.rfc_revision || shard.shard_index !== index || !Array.isArray(shard.cases) || !Array.isArray(shard.raw_json_cases) || shard.cases.length !== row.case_count || shard.raw_json_cases.length !== row.raw_case_count) fail(`differential shard shape/count ${row.path}`);
-    cases.push(...shard.cases); rawCases.push(...shard.raw_json_cases);
+    cases.push(...shard.cases); rawCases.push(...shard.raw_json_cases); deadlineCheck(`after shard ${index} read/hash/parse`);
   }
-  const aggregatePreimage = { cases, raw_json_cases: rawCases }, aggregateSha256 = createHash("sha256").update(Buffer.from(jcs(aggregatePreimage), "utf8")).digest("hex");
+  const aggregatePreimage = { cases, raw_json_cases: rawCases }; deadlineCheck("before differential aggregate hash"); const aggregateSha256 = createHash("sha256").update(Buffer.from(jcs(aggregatePreimage), "utf8")).digest("hex"); deadlineCheck("after differential aggregate hash");
   if (cases.length !== aggregate.case_count || rawCases.length !== aggregate.raw_case_count || inventory.reduce((n, row) => n + row.case_count, 0) !== cases.length || inventory.reduce((n, row) => n + row.raw_case_count, 0) !== rawCases.length || aggregateSha256 !== aggregate.sha256) fail("differential shard aggregate reconstruction mismatch");
-  return [{ protocol: manifest.protocol, rfc_revision: manifest.rfc_revision, source_case_explicitness_audit: manifest.source_case_explicitness_audit, authority_rule_role_manifest: manifest.authority_rule_role_manifest, authority_edge_registry: manifest.authority_edge_registry, cases, raw_json_cases: rawCases }, inventory, aggregateSha256];
+  return [{ protocol: manifest.protocol, rfc_revision: manifest.rfc_revision, source_case_explicitness_audit: manifest.source_case_explicitness_audit, authority_rule_role_manifest: manifest.authority_rule_role_manifest, authority_edge_registry: manifest.authority_edge_registry, cases, raw_json_cases: rawCases }, inventory, aggregateSha256, totalJsonBytes, transportCases.length];
 }
-const [differential, shardInventory, shardAggregateSha256] = loadShardedDifferential(differentialManifest);
+const [differential, shardInventory, shardAggregateSha256, totalJsonBytes, transportCaseCount] = loadShardedDifferential(differentialManifest);
 function pointer(value, path) { return path.split("/").slice(1).reduce((node, token) => { const key = token.replaceAll("~1", "/").replaceAll("~0", "~"); if (!Object.hasOwn(node, key)) fail(`missing pointer token ${key}`); return node[key]; }, value); }
 const embeddedDigestValid = (subject) => { if (subject.schema === "semantic-release-coordinate.v0") return true; const [domain, omitted] = digestFields[subject.schema]; return objectDigest(subject, domain, omitted)[1] === subject[omitted]; };
 const sortedUnique = (values) => eq(values, [...values].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)))) && new Set(values).size === values.length;
@@ -250,12 +306,12 @@ function expectedShapeContext(value, definition) {
   try { validateIjson(value); structural(value, schema.$defs[definition]); } catch { throw new ContextError("malformed_input"); }
   return value;
 }
-const authorityBearingRules = new Set(["acceptance_binding", "activation_binding", "ak_decision", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"]);
+const authorityBearingRules = new Set(["acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"]);
 const allRules = new Set(["acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"]);
-const expectedAuthorityEdgeCount = 139;
-const expectedAuthorityRegistryDigest = "sha256:a1b26aefb4c9c6746e646d8b443d24cd2ef8024123cf45cfa58adae645303130";
-const expectedAuthorityManifestDigest = "sha256:62ae94c1ed3a9e5609087fa753cd820340b7caf10cb142eeb019f9ddf42ccf28";
-const expectedSourceAuditDigest = "sha256:e8b4bc0396b01e4e55b23583dc440c60b11eb1f5a523b49fe418b10e2b170390";
+const expectedAuthorityEdgeCount = 141;
+const expectedAuthorityRegistryDigest = "sha256:d78991ce172d795de35d8fe640fe4cdb266a260980d9d72c1b29a3c0ed30b9a3";
+const expectedAuthorityManifestDigest = "sha256:687d3e6c6be239d92bc5d5663c48ac18f8a6124cb9b6a99e0b0623b643ebc476";
+const expectedSourceAuditDigest = "sha256:03644461360e9790a10d6b43830e94f694bf0003aa74b10564eb01270b0a408d";
 const pinnedAkRepository = { owner: "agent-kernel-owner", repository_id: "agent-kernel", canonical_locator: "local://softwareco/owned/agent-kernel", identity_revision: 9 };
 const pinnedRocsRepository = { owner: "rocs-owner", repository_id: "rocs-cli", canonical_locator: "local://core/rocs-cli", identity_revision: 4 };
 const pinnedPiRepository = { owner: "pi-owner", repository_id: "pi-adapter", canonical_locator: "local://softwareco/pi-adapter", identity_revision: 1 };
@@ -331,7 +387,7 @@ function proofAuthority(rule, role, artifact, schemaName) {
 }
 const authorityFactDigest = (factSchema, factValue) => typedDigest("semantic-release.authority-fact.v0", { fact_schema: factSchema, fact_value: factValue });
 function acquisitionCapabilityDigest(fields) { const keys = ["owner_surface", "owner_repository", "acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest"]; return typedDigest("semantic-release.owner-acquisition-capability.v0", Object.fromEntries(keys.map((key) => [key, fields[key]]))); }
-function freshnessToken(fields) { const keys = ["role", "category", "owner_surface", "owner_id", "owner_repository", "acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "store_id", "store_head_digest", "store_revision", "fact_schema", "fact_digest", "action_epoch", "required_action_epoch_floor"], value = Object.fromEntries(keys.map((key) => [key, fields[key]])); return typedDigest("semantic-release.owner-store-freshness-cas.v0", value); }
+function freshnessToken(fields) { const keys = ["role", "category", "owner_surface", "owner_id", "owner_repository", "acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "fact_schema", "fact_digest", "action_epoch", "required_action_epoch_floor"], value = Object.fromEntries(keys.map((key) => [key, fields[key]])); return typedDigest("semantic-release.owner-store-freshness-cas.v0", value); }
 function manifestMapping(ruleEntry, role) { const matches = ruleEntry.role_mappings.filter((row) => row.role_prefix === null ? row.role === role : role.startsWith(row.role_prefix)); if (matches.length !== 1) throw new ContextError("self_certification"); return matches[0]; }
 function expectedVoteReceipts(subject, nodeArtifacts) {
   const approvals = []; if (subject.schema === "semantic-owner-approval.v0") approvals.push(["subject", subject]);
@@ -370,21 +426,21 @@ function authorityPreflight(rule, subject, context) {
     if (row.category === "semantic_vote") { expectedSurface = "semantic_owner"; expectedId = decodeAuthorityFact(row.fact_value)?.owner_id; expectedRepo = repositories.semantic_owner; if (mapping.role_prefix !== "vote-proof:" || expectedId === undefined || mapping.owner_surface !== expectedSurface || mapping.owner_id !== null || !eq(mapping.owner_repository, expectedRepo)) throw new ContextError("issuer_scope_violation"); }
     else { const profile = categoryProfiles[row.category]; if (!profile) throw new ContextError("issuer_scope_violation"); [expectedSurface, expectedId, expectedRepo] = profile; if (mapping.role_prefix !== null || mapping.owner_surface !== expectedSurface || mapping.owner_id !== expectedId || !eq(mapping.owner_repository, expectedRepo)) throw new ContextError("issuer_scope_violation"); }
     if (!(pin.owner_surface === row.issuer.kind && row.issuer.kind === binding.owner_surface && binding.owner_surface === expectedSurface && pin.owner_id === row.issuer.id && row.issuer.id === binding.owner_id && binding.owner_id === expectedId && eq(pin.owner_repository, row.owner_repository) && eq(row.owner_repository, binding.owner_repository) && eq(binding.owner_repository, expectedRepo) && !eq(row.issuer, config.collator))) throw new ContextError("issuer_scope_violation");
-    for (const key of ["acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "store_id", "store_head_digest", "store_revision", "fact_schema", "fact_digest", "fact_value", "freshness_cas_token_digest", "required_action_epoch_floor"]) if (!eq(pin[key], row[key])) throw new ContextError("issuer_scope_violation");
+    for (const key of ["acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "fact_schema", "fact_digest", "fact_value", "freshness_cas_token_digest", "required_action_epoch_floor"]) if (!eq(pin[key], row[key])) throw new ContextError("issuer_scope_violation");
     for (const key of ["acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "acquisition_capability_digest"]) if (!eq(binding[key], row[key]) || !eq(mapping[key], row[key])) throw new ContextError("issuer_scope_violation");
     if (row.acquisition_capability_digest !== acquisitionCapabilityDigest({ owner_surface: expectedSurface, owner_repository: expectedRepo, acquisition_contract: row.acquisition_contract, acquisition_contract_digest: row.acquisition_contract_digest, acquisition_distribution_digest: row.acquisition_distribution_digest })) throw new ContextError("issuer_scope_violation");
     const expectedFactSchema = row.category === "semantic_vote" ? "semantic-owner-vote-proof-fact.v0" : `semantic-authority-${row.category.replaceAll("_", "-")}-fact.v0`;
     if (row.fact_schema !== expectedFactSchema || !eq(mapping.expected_schemas, [expectedFactSchema]) || row.fact_digest !== authorityFactDigest(row.fact_schema, row.fact_value)) throw new ContextError("issuer_scope_violation");
-    const fields = { role, category: row.category, owner_surface: row.issuer.kind, owner_id: row.issuer.id, owner_repository: row.owner_repository, acquisition_contract: row.acquisition_contract, acquisition_contract_digest: row.acquisition_contract_digest, acquisition_distribution_digest: row.acquisition_distribution_digest, store_id: row.store_id, store_head_digest: row.store_head_digest, store_revision: row.store_revision, fact_schema: row.fact_schema, fact_digest: row.fact_digest, action_epoch: row.action_epoch, required_action_epoch_floor: row.required_action_epoch_floor };
+    const fields = { role, category: row.category, owner_surface: row.issuer.kind, owner_id: row.issuer.id, owner_repository: row.owner_repository, acquisition_contract: row.acquisition_contract, acquisition_contract_digest: row.acquisition_contract_digest, acquisition_distribution_digest: row.acquisition_distribution_digest, store_id: row.store_id, canonical_store_locator: row.canonical_store_locator, store_head_digest: row.store_head_digest, store_revision: row.store_revision, revocation_head_digest: row.revocation_head_digest, fact_schema: row.fact_schema, fact_digest: row.fact_digest, action_epoch: row.action_epoch, required_action_epoch_floor: row.required_action_epoch_floor };
     if (row.freshness_cas_token_digest !== freshnessToken(fields) || row.action_epoch !== snapshot.action_epoch || row.action_epoch < row.required_action_epoch_floor || row.required_action_epoch_floor !== config.required_action_epoch_floor) throw new ContextError("issuer_scope_violation");
-    if (role === "canonical_store_head") { const value = decodeAuthorityFact(row.fact_value); if (value.store_id !== row.store_id || value.store_head_digest !== row.store_head_digest || value.store_revision !== row.store_revision) throw new ContextError("issuer_scope_violation"); }
+    if (role === "canonical_store_head") { const value = decodeAuthorityFact(row.fact_value), storeMetadata = Object.fromEntries(["store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest"].map((key) => [key, row[key]])); if (!eq(value, storeMetadata)) throw new ContextError("issuer_scope_violation"); }
     if (receiptRoles.has(role)) throw new ContextError("malformed_input"); receiptRoles.add(role); resolved[role] = decodeAuthorityFact(row.fact_value);
   }
   if (rule === "publication_recovery") {
     const coherentRoles = new Set(["canonical_publication_revision", "canonical_publication_head", "canonical_publication_status_digest", "canonical_publication_journal_head", "canonical_recovery_journal_head", "canonical_recovery_transaction_digest", "canonical_recovery_resulting_revision", "canonical_recovery_resulting_head", "canonical_recovery_resulting_status_digest"]);
     const coherentRows = [...receipts.values()].filter((row) => coherentRoles.has(row.role));
     if (!setEqual(new Set(coherentRows.map((row) => row.role)), coherentRoles)) throw new ContextError("self_certification");
-    const keys = ["owner_repository", "store_id", "store_head_digest", "store_revision", "action_epoch"];
+    const keys = ["owner_repository", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "action_epoch"];
     if (new Set(coherentRows.map((row) => jcs(Object.fromEntries(keys.map((key) => [key, row[key]]))))).size !== 1) throw new ContextError("issuer_scope_violation");
   }
   const nodes = new Map(bundle.nodes.map((row) => [row.bundle_key, row])); if (nodes.size !== bundle.nodes.length) throw new ContextError("malformed_input"); if (!setEqual(new Set(verifier.node_bindings.map((row) => row.bundle_key)), new Set(nodes.keys()))) throw new ContextError("self_certification");
@@ -406,6 +462,12 @@ function authorityPreflight(rule, subject, context) {
   const expectedReceipts = new Set(requiredReceiptRoles[rule] ?? []), voteFacts = expectedVoteReceipts(subject, nodeArtifacts); for (const role of voteFacts.keys()) expectedReceipts.add(role); if (!setEqual(receiptRoles, expectedReceipts)) throw new ContextError("self_certification"); for (const [role, fact] of voteFacts) if (!eq(resolved[role], fact)) throw new ContextError("issuer_scope_violation");
   if (Object.hasOwn(parameterValues, "overrides")) { const values = (lists.overrides ?? []).sort((a, b) => Buffer.compare(Buffer.from(a[0]), Buffer.from(b[0]))).map((x) => x[1]); if (!eq(parameterValues.overrides, values.map(authorityArtifactDigest))) throw new ContextError("self_certification"); resolved.overrides = values; }
   if (Object.hasOwn(parameterValues, "override_approvals")) { const values = maps.override_approvals ?? Object.create(null); if (!eq(parameterValues.override_approvals, Object.keys(values).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))))) throw new ContextError("self_certification"); resolved.override_approvals = values; }
+  if (Object.hasOwn(resolved, "canonical_task_states")) {
+    const taskReceipt = [...receipts.values()].find((row) => row.role === "canonical_task_states"); if (!taskReceipt) throw new ContextError("self_certification");
+    const expectedHead = Object.fromEntries(["store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest"].map((key) => [key, taskReceipt[key]]));
+    for (const taskState of resolved.canonical_task_states) if (!eq(taskState.repository, taskReceipt.owner_repository) || !eq(taskState.ak_store_head, expectedHead)) throw new ContextError("issuer_scope_violation");
+    const decision = resolved.decision; if (decision !== undefined && decision !== null && (!eq(decision.ak_repository, taskReceipt.owner_repository) || !eq(decision.ak_store_head, expectedHead))) throw new ContextError("issuer_scope_violation");
+  }
   resolved._authority_task_states = resolved.canonical_task_states ?? []; resolved._authority_snapshot_digest = snapshot.authority_snapshot_digest; return resolved;
 }
 
@@ -789,8 +851,10 @@ function receiptAuditTuple(receipt) {
     role: receipt.role,
     owner_repository: structuredClone(receipt.owner_repository),
     store_id: receipt.store_id,
+    canonical_store_locator: receipt.canonical_store_locator,
     store_head_digest: receipt.store_head_digest,
     store_revision: receipt.store_revision,
+    revocation_head_digest: receipt.revocation_head_digest,
     action_epoch: receipt.action_epoch,
     fact_schema: receipt.fact_schema,
     fact_digest: receipt.fact_digest,
@@ -800,13 +864,15 @@ function receiptAuditTuple(receipt) {
 }
 
 function validateReceiptAuditTuple(value, caseName, allowInvalidFactDigest = false) {
-  const keys = new Set(["receipt_kind", "observation_id", "role", "owner_repository", "store_id", "store_head_digest", "store_revision", "action_epoch", "fact_schema", "fact_digest", "fact_value", "vote_tuple"]);
+  const keys = new Set(["receipt_kind", "observation_id", "role", "owner_repository", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "action_epoch", "fact_schema", "fact_digest", "fact_value", "vote_tuple"]);
   if (!value || typeof value !== "object" || Array.isArray(value) || !setEqual(new Set(Object.keys(value)), keys) || !["store", "vote"].includes(value.receipt_kind)) fail(`source-case receipt tuple shape ${caseName}`);
   structural(value.owner_repository, schema.$defs.repositoryIdentity);
   structural(value.fact_value, schema.$defs.authorityFactValue);
   if (typeof value.observation_id !== "string" || value.observation_id.length === 0
     || typeof value.role !== "string" || value.role.length === 0
     || typeof value.store_id !== "string" || value.store_id.length === 0
+    || typeof value.canonical_store_locator !== "string" || value.canonical_store_locator.length === 0
+    || value.revocation_head_digest !== null && !/^sha256:[0-9a-f]{64}$/u.test(value.revocation_head_digest)
     || !/^sha256:[0-9a-f]{64}$/u.test(value.store_head_digest)
     || !Number.isSafeInteger(value.store_revision) || value.store_revision < 0
     || !Number.isSafeInteger(value.action_epoch) || value.action_epoch < 0
@@ -854,6 +920,7 @@ function validateSourceCaseExplicitnessAudit(cases, registryRows) {
   let storeCount = 0, voteCount = 0, authorityCount = 0, finalCount = 0;
   const rowKeys = new Set(["case_name", "rule", "source_receipts", "expected_final_receipts", "registered_mutation_ids"]);
   for (const row of audit.cases) {
+    deadlineCheck(`before source-audit case ${row?.case_name}`);
     if (!setEqual(new Set(Object.keys(row)), rowKeys)) fail("source-case audit row shape");
     const item = caseByName.get(row.case_name); if (!item || row.rule !== item.rule) fail(`source-case audit identity ${row.case_name}`);
     if (authorityBearingRules.has(item.rule)) authorityCount++;
@@ -893,6 +960,7 @@ function validateSourceCaseExplicitnessAudit(cases, registryRows) {
     const actualFinal = graph.authority_snapshot.store_read_receipts.map(receiptAuditTuple).sort(jcsSort);
     if (!eq(actualFinal, expectedFinal)) fail(`source-case final receipt mismatch ${item.name}`);
     storeCount += sourceStore.length; voteCount += sourceVotes.length; finalCount += actualFinal.length;
+    deadlineCheck(`after source-audit case ${item.name}`);
   }
   const usedMutations = audit.cases.flatMap((row) => row.registered_mutation_ids);
   if (usedMutations.length !== new Set(usedMutations).size || !setEqual(new Set(usedMutations), new Set(mutationById.keys()))) fail("registered source mutation bijection");
@@ -1028,15 +1096,17 @@ for (const assertion of golden.chain_assertions) if (pointer(records.get(asserti
 const [sourceStoreCount, sourceVoteCount, finalReceiptCount, sourceMutationCount] = validateSourceCaseExplicitnessAudit(differential.cases, registry);
 let accepted = 0, rejected = 0; const caseResults = new Map(), caseByName = new Map();
 for (const item of differential.cases) {
+  deadlineCheck(`before differential case ${item?.name}`);
   let valid = true; try { structural(item.subject, schema); } catch { valid = false; }
   if (valid !== item.schema_valid) fail(`${item.name}: schema_valid expected ${item.schema_valid}, got ${valid}`);
   if (item.rule !== "digest" && !embeddedDigestValid(item.subject)) fail(`${item.name}: masked by digest`);
   let actual = valid ? null : item.expected_error;
   if (valid) { try { checkClaimScope(item.subject); } catch { actual = "issuer_scope_violation"; } if (actual === null) actual = evaluate(item.rule, item.subject, item.context); }
   if (actual === null) { try { checkOrder(item.subject); } catch { actual = "malformed_input"; } }
-  if (actual !== item.expected_error) fail(`${item.name}: expected ${item.expected_error}, got ${actual}`); if (caseResults.has(item.name)) fail(`duplicate differential case ${item.name}`); caseResults.set(item.name, actual); caseByName.set(item.name, item); actual === null ? accepted++ : rejected++;
+  if (actual !== item.expected_error) fail(`${item.name}: expected ${item.expected_error}, got ${actual}`); if (caseResults.has(item.name)) fail(`duplicate differential case ${item.name}`); caseResults.set(item.name, actual); caseByName.set(item.name, item); actual === null ? accepted++ : rejected++; deadlineCheck(`after differential case ${item.name}`);
 }
 for (const row of registry) {
+  deadlineCheck(`before authority edge case ${row?.edge_id}`);
   if (caseResults.get(row.positive_fixture) !== null || caseResults.get(row.drift_fixture) !== row.expected_error) fail(`authority edge fixture outcome drift ${row.edge_id}`);
   if (!caseByName.has(row.positive_fixture) || !caseByName.has(row.drift_fixture)) fail(`authority edge fixture missing ${row.edge_id}`);
   const recomputed = semanticMutationDescriptors(caseByName.get(row.positive_fixture), caseByName.get(row.drift_fixture));
@@ -1045,9 +1115,10 @@ for (const row of registry) {
   const roleOwners = row.role_ids.map((role) => ({ role, owner: derivedEdgeRoleOwner(caseByName.get(row.positive_fixture), role) }));
   const ownersByJcs = new Map(roleOwners.map((item) => [jcs(item.owner), item.owner])), owners = [...ownersByJcs].sort((a, b) => Buffer.compare(Buffer.from(a[0]), Buffer.from(b[0]))).map((item) => item[1]), ownership = { kind: owners.length === 1 ? "single_owner" : "multi_owner", owners };
   if (!eq(row.role_owners, roleOwners) || !eq(row.ownership, ownership)) fail(`authority edge owner not derived from concrete roles ${row.edge_id}`);
+  deadlineCheck(`after authority edge case ${row.edge_id}`);
 }
 let rawAccepted = 0, rawRejected = 0;
-for (const item of differential.raw_json_cases) { let actual = null; try { const parsed = strictJson(item.raw_json); if ((item.required_own_keys ?? []).some((key) => !Object.hasOwn(parsed, key))) actual = "malformed_input"; } catch { actual = "malformed_input"; } if (actual !== item.expected_error) fail(`${item.name}: expected ${item.expected_error}, got ${actual}`); actual === null ? rawAccepted++ : rawRejected++; }
+for (const item of differential.raw_json_cases) { deadlineCheck(`before raw JSON case ${item?.name}`); let actual = null; try { const parsed = strictJson(item.raw_json); if ((item.required_own_keys ?? []).some((key) => !Object.hasOwn(parsed, key))) actual = "malformed_input"; } catch { actual = "malformed_input"; } if (actual !== item.expected_error) fail(`${item.name}: expected ${item.expected_error}, got ${actual}`); actual === null ? rawAccepted++ : rawRejected++; deadlineCheck(`after raw JSON case ${item.name}`); }
 console.log(`schema: Draft 2020-12, ${schema.oneOf.length} protocol types, all object shapes closed`);
 console.log(`golden: ${records.size} object preimages and ${golden.raw_preimages.length} raw preimages independently recomputed`);
 console.log(`chain: ${golden.chain_assertions.length} exact digest links verified`);
@@ -1055,6 +1126,7 @@ const roleCount = authorityManifest.rules.reduce((total, row) => total + row.rol
 console.log(`authority manifest: ${authorityManifest.rules.length} rules (${authorityBearingRules.size} authority-bearing), ${roleCount} role mappings; registry bijection complete`);
 console.log(`authority graph: ${registry.length} full owner/repository/linkage edges; normalized semantic-mutation descriptors independently recomputed`);
 console.log(`shards: ${shardInventory.length} files, ${shardInventory.reduce((total, row) => total + row.byte_length, 0)} bytes, aggregate sha256:${shardAggregateSha256}`);
+console.log(`transport: ${totalJsonBytes} aggregate JSON bytes; ${transportCaseCount} closed overflow cases evaluated; monotonic deadline enforced`);
 console.log(`source-case audit: ${differential.cases.length} cases, ${sourceStoreCount} explicit store tuples, ${sourceVoteCount} explicit vote facts, ${finalReceiptCount} exact final receipts, ${sourceMutationCount} registered mutations; no silent mismatch`);
 console.log(`differential: ${differential.cases.length} cases (${accepted} accepted transitions, ${rejected} expected rejections)`);
 console.log(`raw-json: ${differential.raw_json_cases.length} lexical cases (${rawAccepted} accepted, ${rawRejected} expected rejections)`);

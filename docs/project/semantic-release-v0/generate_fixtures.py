@@ -1444,6 +1444,16 @@ ak_evidence_reference_drift = variant(ak_link, evidence_record_digest=raw("other
 ak_activation_reference_drift = variant(ak_link, activation_receipt_digest=raw("other-activation"))
 ak_generation_reference_drift = variant(ak_link, rocs_generation_receipt_digest=raw("other-generation"))
 ak_pi_reference_drift = variant(ak_link, pi_delivery_receipt_digest=d("pi_delivery_suppressed"))
+stale_ak_task_state = copy.deepcopy(ak_lineage_task_state)
+stale_ak_task_state["ak_store_head"]["store_revision"] = 41
+stale_ak_task_state["ak_store_head"]["store_head_digest"] = raw("stale-ak-task-store-head")
+rebound_ak_task_state = copy.deepcopy(ak_lineage_task_state)
+rebound_ak_task_state["repository"] = copy.deepcopy(consumer_repo)
+
+def ak_task_receipt_context(task_state: dict) -> dict:
+    context = ak_linkage_context(pi_delivered)
+    context["canonical_task_states"] = [task_state]
+    return context
 activation_context = {"activation": activation, "intent": intent, "acceptance": acceptance, "materialization": materialization, "decision": consumer_decision,
     "current_activation_digest": d("activation_receipt"), "current_activation_revision": 1, "availability": semantic_availability,
     "activation_availability": semantic_availability, "previous_activation": None, **technical_context, **canonical_decision_context, **activation_authority_facts}
@@ -1577,6 +1587,8 @@ cases += [
     case("failed_without_error_rejected", "pi_variant", pi_failed_missing, "malformed_input", schema_valid=False),
     case("ak_generation_only_linkage_accepts_without_pi", "ak_optional_pi", ak_generation_only, None, ak_linkage_context(None)),
     case("ak_delivered_linkage_requires_pi_digest", "ak_optional_pi", ak_link, None, ak_linkage_context(pi_delivered)),
+    case("ak_task_state_stale_receipt_rejected", "ak_optional_pi", ak_link, "issuer_scope_violation", ak_task_receipt_context(stale_ak_task_state)),
+    case("ak_task_state_rebound_receipt_rejected", "ak_optional_pi", ak_link, "issuer_scope_violation", ak_task_receipt_context(rebound_ak_task_state)),
     case("ak_linkage_issuer_id_must_match_pinned_adapter", "ak_optional_pi", ak_issuer_id_drift, "issuer_scope_violation", ak_linkage_context(pi_delivered)),
     case("ak_linkage_task_reference_drift_rejected", "ak_optional_pi", ak_task_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
     case("ak_linkage_decision_reference_drift_rejected", "ak_optional_pi", ak_decision_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
@@ -1795,7 +1807,7 @@ cases += [
     case("semantic_rollback_target_requires_runtime_compatibility", "rollback", semantic_receipt, "rollback_unavailable", rollback_context(semantic_request, semantic_availability, semantic_history, semantic_materialization_technical=technical_runtime_drift)),
     case("patch_semver_rejects_prerelease_only_movement", "compatibility", patch_prerelease_only, "semver_violation", {**compatibility_non_override_context, "prior_version": "1.0.1-alpha"}),
     case("resolved_governance_reference_observation_accepts", "governance_contracts", ak_coordination_contract, None, {"consumer_contract": resolved_dependency_contract, "canonical_task_states": [copy.deepcopy(resolved_dependency_contract["dependencies"][0]["observed_canonical_state"])]}),
-    case("resolved_governance_reference_observed_head_is_exact", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": resolved_head_drift_contract, "canonical_task_states": [copy.deepcopy(resolved_head_drift_contract["dependencies"][0]["observed_canonical_state"])]}),
+    case("resolved_governance_reference_observed_head_is_exact", "governance_contracts", ak_coordination_contract, "issuer_scope_violation", {"consumer_contract": resolved_head_drift_contract, "canonical_task_states": [copy.deepcopy(resolved_head_drift_contract["dependencies"][0]["observed_canonical_state"])]}),
     case("resolved_governance_reference_observed_task_digest_is_exact", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": resolved_task_digest_drift_contract, "canonical_task_states": [copy.deepcopy(resolved_task_digest_drift_contract["dependencies"][0]["observed_canonical_state"])]}),
     case("resolved_governance_reference_observed_state_is_exact", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": resolved_state_drift_contract, "canonical_task_states": [copy.deepcopy(resolved_state_drift_contract["dependencies"][0]["observed_canonical_state"])]}),
     case("unresolved_dependency_binds_correct_owner_repository", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": wrong_dependency_repository_contract, "canonical_task_states": []}),
@@ -1915,7 +1927,7 @@ cases.extend([
 # Revision-v9 owner-issued store-read receipt authority graph.
 # The fixture collator transports receipts but has no receipt-issuance capability.
 AUTHORITY_BEARING_RULES = {
-    "acceptance_binding", "activation_binding", "ak_decision", "approval_threshold", "compatibility", "generation_activation",
+    "acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "generation_activation",
     "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery",
     "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding",
 }
@@ -2141,468 +2153,546 @@ EXPLICIT_STORE_METADATA_TUPLES = json.loads(r'''
 {
   "store_tuple_000": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
     "store_id": "semantic-publication-ledger",
     "store_revision": 500
   },
   "store_tuple_001": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/rocs-cli#recovery-controller",
     "owner_repository": {
       "canonical_locator": "local://core/rocs-cli",
       "identity_revision": 4,
       "owner": "rocs-owner",
       "repository_id": "rocs-cli"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:12dc0b082a4afad6243ddb38400fc20a4737ddb60a1bae91ea54ab94364c2eaa",
     "store_id": "recovery-controller",
     "store_revision": 85
   },
   "store_tuple_002": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:27897da79174f3a605d6bb3381c179abab2660b8892a56a6f08b3f7899b95371",
     "store_id": "semantic-publication-ledger",
     "store_revision": 2
   },
   "store_tuple_003": {
     "action_epoch": 100,
+    "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
     "owner_repository": {
       "canonical_locator": "local://softwareco/owned/agent-kernel",
       "identity_revision": 9,
       "owner": "agent-kernel-owner",
       "repository_id": "agent-kernel"
     },
+    "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
     "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
     "store_id": "ak-main",
     "store_revision": 42
   },
   "store_tuple_004": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-revocation-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:4786b0c13da6dc6c878a42b17b5d95af074fa1877752549938b371febdabf91f",
     "store_id": "semantic-revocation-ledger",
     "store_revision": 1
   },
   "store_tuple_005": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-trust-store",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
     "store_id": "semantic-trust-store",
     "store_revision": 5
   },
   "store_tuple_006": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-acceptance",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:36906c52e00647c6120f3105f7d962a03437786761a1177c4be8ee2ac5ddbc2c",
     "store_id": "consumer-acceptance",
     "store_revision": 4
   },
   "store_tuple_007": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:0f6d6e4eb138069bda5cad7c41cd1c09fc64fd046db26560c99c06e284067087",
     "store_id": "consumer-activation",
     "store_revision": 0
   },
   "store_tuple_008": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:3adc831115c27950bb251d9105fad726d5b51a3ce78ede0b2bcd0e842caaf56d",
     "store_id": "consumer-activation",
     "store_revision": 1
   },
   "store_tuple_009": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:0f6d6e4eb138069bda5cad7c41cd1c09fc64fd046db26560c99c06e284067087",
     "store_id": "consumer-activation",
     "store_revision": 1
   },
   "store_tuple_010": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-vote:owner-a",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:1b4a76d45e9cd4f912674f8920bfd13e859a245ca165e8ed0e1d1f1e12b876a5",
     "store_id": "semantic-vote:owner-a",
     "store_revision": 1
   },
   "store_tuple_011": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-vote:owner-b",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:613b2a19551179052f88ec5344a6154655854a76b21a7bd53fac587e5ecd79e7",
     "store_id": "semantic-vote:owner-b",
     "store_revision": 1
   },
   "store_tuple_012": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-lifecycle-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:0db1edc6a7d8392d41bb7ebbb45cfbdb06e00fdfb6884e96dc3e2b9a518c20fa",
     "store_id": "semantic-lifecycle-ledger",
     "store_revision": 4
   },
   "store_tuple_013": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:49e36b944128f9e2d23932c3ff10b01512a2ae089ab522b28abfebfea12dfeb2",
     "store_id": "semantic-publication-ledger",
     "store_revision": 1
   },
   "store_tuple_014": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:5f15430d3063cc04225637f22eb48e842564990f6aede71479d22fb4661cc90a",
     "store_id": "semantic-publication-ledger",
     "store_revision": 2
   },
   "store_tuple_015": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-history",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:e9763fada6692bdaed20c51998d14a80a25a59968d4ad519af5836009a213029",
     "store_id": "consumer-history",
     "store_revision": 1
   },
   "store_tuple_016": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-acceptance",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:022db6bd641537dbd7a0f484a7f884d5e5926b33c73ffed2f32c1ebf16b1837b",
     "store_id": "consumer-acceptance",
     "store_revision": 4
   },
   "store_tuple_017": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:e9763fada6692bdaed20c51998d14a80a25a59968d4ad519af5836009a213029",
     "store_id": "consumer-activation",
     "store_revision": 1
   },
   "store_tuple_018": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-history",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:3adc831115c27950bb251d9105fad726d5b51a3ce78ede0b2bcd0e842caaf56d",
     "store_id": "consumer-history",
     "store_revision": 1
   },
   "store_tuple_019": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-acceptance",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:85963e015d1f02deb662eb4bc2fc52473f8b57406fccbd1900a8fb63ab9bb479",
     "store_id": "consumer-acceptance",
     "store_revision": 4
   },
   "store_tuple_020": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-lifecycle-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:27897da79174f3a605d6bb3381c179abab2660b8892a56a6f08b3f7899b95371",
     "store_id": "semantic-lifecycle-ledger",
     "store_revision": 2
   },
   "store_tuple_021": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-lifecycle-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:e607d1e2bd5e268280580ef7d9425d08447b801114ec54a86f9ab651aa954aab",
     "store_id": "semantic-lifecycle-ledger",
     "store_revision": 4
   },
   "store_tuple_022": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-history",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:38ab72d53558e20614d75e287858fe86842c7e53ac5c18e58536bf8e37d41fb5",
     "store_id": "consumer-history",
     "store_revision": 1
   },
   "store_tuple_023": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-acceptance",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:a96079eda975c94adc0bc12c4689d4ba2b4e79e3bd472b67944ab36539fa2117",
     "store_id": "consumer-acceptance",
     "store_revision": 4
   },
   "store_tuple_024": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:38ab72d53558e20614d75e287858fe86842c7e53ac5c18e58536bf8e37d41fb5",
     "store_id": "consumer-activation",
     "store_revision": 1
   },
   "store_tuple_025": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:f4326eb28d738eeff90abf5415ca62b9a8470b1d3f20b3e84ce83e443ed61f7a",
     "store_id": "consumer-activation",
     "store_revision": 2
   },
   "store_tuple_026": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:72154697fa7882a1aec7dc4977b56305788a529a0f7883e11290c01a7ab51f84",
     "store_id": "consumer-activation",
     "store_revision": 2
   },
   "store_tuple_027": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:f0ddb7eacf3f603dda120a3429eea3a29b078f638c5f6d2d01dad98cfdab6e3a",
     "store_id": "semantic-publication-ledger",
     "store_revision": 2
   },
   "store_tuple_028": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-lifecycle-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:0521f3b4d16ab7baf1d62c9289f0eb92a0502788a5add4feff2ccfe15396c7c5",
     "store_id": "semantic-lifecycle-ledger",
     "store_revision": 2
   },
   "store_tuple_029": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-lifecycle-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:bea9404f8dfb36c7cf4ad25b189dc2d5a0a3802689515829566c5ceaee732fa1",
     "store_id": "semantic-lifecycle-ledger",
     "store_revision": 4
   },
   "store_tuple_030": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:49e36b944128f9e2d23932c3ff10b01512a2ae089ab522b28abfebfea12dfeb2",
     "store_id": "semantic-publication-ledger",
     "store_revision": 1
   },
   "store_tuple_031": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:b163435d7c7d94df6c411fa9c6e4101e95dbbf06a0c8e583588933e68a5b1e36",
     "store_id": "semantic-publication-ledger",
     "store_revision": 1
   },
   "store_tuple_032": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:396454158c7c36f1c5579c34bf368ec286d2f6e36c744d659756cee936f97345",
     "store_id": "semantic-publication-ledger",
     "store_revision": 2
   },
   "store_tuple_033": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:eb67d8651ccbae0eb9d0b721759dec6b17ee832376e647c8fbe5c26a0059f0d4",
     "store_id": "semantic-publication-ledger",
     "store_revision": 3
   },
   "store_tuple_034": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:29925ca0639fab5f10cb65511a964c7010dcd72c34dc9b29e887d6d2a221f5a5",
     "store_id": "semantic-publication-ledger",
     "store_revision": 2
   },
   "store_tuple_035": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-history",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:3fbf659e74dedb9fb9228de85d9dab08ec5a2221112af73ebd98223308cd83a6",
     "store_id": "consumer-history",
     "store_revision": 1
   },
   "store_tuple_036": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-acceptance",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:06ca20c5f4094172c785fa12542cda5f69506bea62a210f4ff881777f6f8a27a",
     "store_id": "consumer-acceptance",
     "store_revision": 4
   },
   "store_tuple_037": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://softwareco/pi-canary-consumer#consumer-activation",
     "owner_repository": {
       "canonical_locator": "local://softwareco/pi-canary-consumer",
       "identity_revision": 3,
       "owner": "consumer-owner",
       "repository_id": "pi-canary-consumer"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:3fbf659e74dedb9fb9228de85d9dab08ec5a2221112af73ebd98223308cd83a6",
     "store_id": "consumer-activation",
     "store_revision": 1
   },
   "store_tuple_038": {
     "action_epoch": 100,
+    "canonical_store_locator": "local://core/ontology-kernel#semantic-vote:owner-c",
     "owner_repository": {
       "canonical_locator": "local://core/ontology-kernel",
       "identity_revision": 1,
       "owner": "semantic-owner",
       "repository_id": "ontology-kernel"
     },
+    "revocation_head_digest": null,
     "store_head_digest": "sha256:139a530837150a6a28dd46c8ebf84a6dca663ce0286742604be10ac4888cc389",
     "store_id": "semantic-vote:owner-c",
     "store_revision": 1
@@ -4780,6 +4870,8 @@ EXPLICIT_CASE_SOURCE_SETS["ak_linkage_pi_reference_drift_rejected"] = list(EXPLI
 EXPLICIT_CASE_SOURCE_SETS["ak_generation_only_requires_null_resolved_pi"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
 EXPLICIT_CASE_SOURCE_SETS["ak_delivery_claim_requires_resolved_pi"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
 EXPLICIT_CASE_SOURCE_SETS["ak_generation_only_linkage_accepts_without_pi"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_task_state_stale_receipt_rejected"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_task_state_rebound_receipt_rejected"] = ["store_source_005", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"] = ["store_source_005", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["ak_linkage_issuer_id_must_match_pinned_adapter"] = ["store_source_005", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["ak_linkage_task_reference_drift_rejected"] = ["store_source_005", "vote_source_000"]
@@ -4847,6 +4939,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://softwareco/pi-canary-consumer#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -4861,6 +4954,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "pi-canary-consumer"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -4873,6 +4967,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -4887,6 +4982,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -4902,6 +4998,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 89,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -4916,6 +5013,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -4928,6 +5026,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -4942,6 +5041,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -4957,6 +5057,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -4971,6 +5072,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -4983,6 +5085,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -4997,6 +5100,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -5012,6 +5116,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://softwareco/pi-canary-consumer#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -5026,6 +5131,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "pi-canary-consumer"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -5038,6 +5144,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-trust-store",
         "fact_digest": "sha256:bb53e9a7967b27d71cdc25180496f8b9d1dccae3ada1e64486f6b644e2395fce",
         "fact_schema": "semantic-authority-semantic-trust-fact.v0",
         "fact_value": {
@@ -5052,6 +5159,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_trust_root_digest",
         "store_head_digest": "sha256:b38b6d6cc96a19fc6ff6af60ed56828f3814d5b15e3a54da8e008bda7d89d832",
         "store_id": "semantic-trust-store",
@@ -5067,6 +5175,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:4cfdd85d750f3b4b5be02101c6f9b9e62992151e2fccdaceafe3fd1056964157",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5081,6 +5190,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_head",
         "store_head_digest": "sha256:49e36b944128f9e2d23932c3ff10b01512a2ae089ab522b28abfebfea12dfeb2",
         "store_id": "semantic-publication-ledger",
@@ -5093,6 +5203,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:4a703a201fa886120b474621c305b41458da4e26de67ade3c0e254be08de6ef7",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5107,6 +5218,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_head",
         "store_head_digest": "sha256:49e36b944128f9e2d23932c3ff10b01512a2ae089ab522b28abfebfea12dfeb2",
         "store_id": "semantic-publication-ledger",
@@ -5122,6 +5234,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:4a703a201fa886120b474621c305b41458da4e26de67ade3c0e254be08de6ef7",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5136,6 +5249,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "surplus",
         "store_head_digest": "sha256:49e36b944128f9e2d23932c3ff10b01512a2ae089ab522b28abfebfea12dfeb2",
         "store_id": "semantic-publication-ledger",
@@ -5148,6 +5262,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:4a703a201fa886120b474621c305b41458da4e26de67ade3c0e254be08de6ef7",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5162,6 +5277,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_head",
         "store_head_digest": "sha256:49e36b944128f9e2d23932c3ff10b01512a2ae089ab522b28abfebfea12dfeb2",
         "store_id": "semantic-publication-ledger",
@@ -5177,6 +5293,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 101,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5191,6 +5308,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
         "store_id": "semantic-publication-ledger",
@@ -5203,6 +5321,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5217,6 +5336,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
         "store_id": "semantic-publication-ledger",
@@ -5232,6 +5352,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5246,6 +5367,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:1e858f567afb0596b019f01f7e0ad1f86da6519d45246dc7a786130c7d283e30",
         "store_id": "semantic-publication-ledger",
@@ -5258,6 +5380,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5272,6 +5395,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
         "store_id": "semantic-publication-ledger",
@@ -5287,6 +5411,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://softwareco/pi-canary-consumer#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5301,6 +5426,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "pi-canary-consumer"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
         "store_id": "semantic-publication-ledger",
@@ -5313,6 +5439,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5327,6 +5454,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
         "store_id": "semantic-publication-ledger",
@@ -5342,6 +5470,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5356,6 +5485,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
         "store_id": "semantic-publication-ledger",
@@ -5368,6 +5498,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
+        "canonical_store_locator": "local://core/ontology-kernel#semantic-publication-ledger",
         "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
@@ -5382,6 +5513,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
           "repository_id": "ontology-kernel"
         },
         "receipt_kind": "store",
+        "revocation_head_digest": null,
         "role": "canonical_publication_status_digest",
         "store_head_digest": "sha256:f7376e853e56c27f0e38186327bc7b1322f23e2c6e3ccfc147c5ee016da332fd",
         "store_id": "semantic-publication-ledger",
@@ -5426,7 +5558,7 @@ def explicit_source_authority(item: dict, reads: dict[str, object]) -> tuple[dic
     for role, tuple_id in store_ids.items():
         if tuple_id not in EXPLICIT_STORE_METADATA_TUPLES: raise ValueError(f"{name}:{role}: missing explicit store metadata tuple")
         metadata = copy.deepcopy(EXPLICIT_STORE_METADATA_TUPLES[tuple_id])
-        if set(metadata) != {"owner_repository", "store_id", "store_head_digest", "store_revision", "action_epoch"}:
+        if set(metadata) != {"owner_repository", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "action_epoch"}:
             raise ValueError(f"{name}:{role}: incomplete explicit store metadata tuple")
         if metadata["action_epoch"] != ACTION_EPOCH: raise ValueError(f"{name}:{role}: explicit action epoch disagrees with invocation")
         store_sources[role] = metadata
@@ -5447,8 +5579,8 @@ def fact_digest(fact_schema: str, fact_value: dict) -> str:
 
 def freshness_token_digest(fields: dict) -> str:
     keys = ("role", "category", "owner_surface", "owner_id", "owner_repository", "acquisition_contract", "acquisition_contract_digest",
-        "acquisition_distribution_digest", "store_id", "store_head_digest", "store_revision", "fact_schema", "fact_digest",
-        "action_epoch", "required_action_epoch_floor")
+        "acquisition_distribution_digest", "store_id", "canonical_store_locator", "store_head_digest", "store_revision",
+        "revocation_head_digest", "fact_schema", "fact_digest", "action_epoch", "required_action_epoch_floor")
     return typed_digest("semantic-release.owner-store-freshness-cas.v0", {key: fields[key] for key in keys})
 
 
@@ -5468,22 +5600,25 @@ def acquisition_pair(rule: str, role: str, value: object, source_metadata: dict,
     if category == "semantic_vote":
         owner_surface, owner_id, repository, store_id, contract = "semantic_owner", vote_owner_id, owner_repo, f"semantic-vote:{vote_owner_id}", "ontology-kernel.owner-vote-read.v0"
     else: owner_surface, owner_id, repository, store_id, contract = CATEGORY_PROFILE[category]
-    expected_metadata_keys = {"owner_repository", "store_id", "store_head_digest", "store_revision", "action_epoch"}
+    expected_metadata_keys = {"owner_repository", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "action_epoch"}
     if set(source_metadata) != expected_metadata_keys: raise ValueError(f"{rule}:{role}: incomplete explicit store metadata tuple")
     if source_metadata["owner_repository"] != repository: raise ValueError(f"{rule}:{role}: explicit store repository disagrees with role owner")
-    store_id, store_head, store_revision = (source_metadata["store_id"], source_metadata["store_head_digest"], source_metadata["store_revision"])
+    store_id, store_locator, store_head, store_revision, revocation_head = (source_metadata["store_id"], source_metadata["canonical_store_locator"],
+        source_metadata["store_head_digest"], source_metadata["store_revision"], source_metadata["revocation_head_digest"])
     action_epoch = source_metadata["action_epoch"]
     fact_schema = FACT_SCHEMA_BY_CATEGORY[category]; encoded = value_fact(value); digest_value = fact_digest(fact_schema, encoded)
     contract_digest, distribution_digest, capability_digest = acquisition_profile(owner_surface, repository, contract)
     common = {"role": role, "category": category, "owner_surface": owner_surface, "owner_id": owner_id, "owner_repository": copy.deepcopy(repository),
         "acquisition_contract": contract, "acquisition_contract_digest": contract_digest, "acquisition_distribution_digest": distribution_digest,
-        "store_id": store_id, "store_head_digest": store_head, "store_revision": store_revision, "fact_schema": fact_schema,
+        "store_id": store_id, "canonical_store_locator": store_locator, "store_head_digest": store_head,
+        "store_revision": store_revision, "revocation_head_digest": revocation_head, "fact_schema": fact_schema,
         "fact_digest": digest_value, "action_epoch": action_epoch, "required_action_epoch_floor": ACTION_EPOCH_FLOOR}
     token = freshness_token_digest(common); pin_id = f"pin:{rule}:{role}"
     pin = {"schema": "semantic-owner-acquisition-capability-pin.v0", "capability_pin_id": pin_id, "role": role, "category": category,
         "owner_surface": owner_surface, "owner_id": owner_id, "owner_repository": copy.deepcopy(repository), "acquisition_contract": contract,
         "acquisition_contract_digest": contract_digest, "acquisition_distribution_digest": distribution_digest, "store_id": store_id,
-        "store_head_digest": store_head, "store_revision": store_revision, "fact_schema": fact_schema, "fact_digest": digest_value,
+        "canonical_store_locator": store_locator, "store_head_digest": store_head, "store_revision": store_revision,
+        "revocation_head_digest": revocation_head, "fact_schema": fact_schema, "fact_digest": digest_value,
         "fact_value": encoded, "freshness_cas_token_digest": token, "required_action_epoch_floor": ACTION_EPOCH_FLOOR,
         "acquisition_capability_digest": capability_digest, "capability_pin_digest": ZERO}
     rehash(pin)
@@ -5492,7 +5627,8 @@ def acquisition_pair(rule: str, role: str, value: object, source_metadata: dict,
         "owner_repository": copy.deepcopy(repository), "capability_pin_id": pin_id, "acquisition_capability_digest": capability_digest,
         "capability_pin_digest": pin["capability_pin_digest"], "acquisition_contract": contract,
         "acquisition_contract_digest": contract_digest, "acquisition_distribution_digest": distribution_digest,
-        "store_id": store_id, "store_head_digest": store_head, "store_revision": store_revision, "fact_schema": fact_schema,
+        "store_id": store_id, "canonical_store_locator": store_locator, "store_head_digest": store_head,
+        "store_revision": store_revision, "revocation_head_digest": revocation_head, "fact_schema": fact_schema,
         "fact_digest": digest_value, "fact_value": encoded, "freshness_cas_token_digest": token, "action_epoch": action_epoch,
         "required_action_epoch_floor": ACTION_EPOCH_FLOOR, "owner_store_read_receipt_digest": ZERO}
     rehash(receipt)
@@ -5627,7 +5763,8 @@ def source_receipt_audit_tuple(receipt: dict) -> dict:
     return {"receipt_kind": "vote" if receipt["role"].startswith("vote-proof:") else "store",
         "observation_id": receipt["observation_id"], "role": receipt["role"],
         "owner_repository": copy.deepcopy(receipt["owner_repository"]), "store_id": receipt["store_id"],
-        "store_head_digest": receipt["store_head_digest"], "store_revision": receipt["store_revision"],
+        "canonical_store_locator": receipt["canonical_store_locator"], "store_head_digest": receipt["store_head_digest"],
+        "store_revision": receipt["store_revision"], "revocation_head_digest": receipt["revocation_head_digest"],
         "action_epoch": receipt["action_epoch"], "fact_schema": receipt["fact_schema"],
         "fact_digest": receipt["fact_digest"], "fact_value": fact_value,
         "vote_tuple": copy.deepcopy(fact_value.get("value")) if fact_value.get("kind") == "owner_vote_proof" else None}
@@ -5806,11 +5943,13 @@ def apply_graph_mutation(item: dict, graph: dict) -> None:
             row["action_epoch"] = row["action_epoch"] + 1
         else:
             row["owner_repository"] = copy.deepcopy(consumer_repo)
+            row["canonical_store_locator"] = consumer_repo["canonical_locator"] + "#" + row["store_id"]
         token_fields = {"role": role, "category": row["category"], "owner_surface": row["issuer"]["kind"],
             "owner_id": row["issuer"]["id"], "owner_repository": row["owner_repository"],
             "acquisition_contract": row["acquisition_contract"], "acquisition_contract_digest": row["acquisition_contract_digest"],
-            "acquisition_distribution_digest": row["acquisition_distribution_digest"], "store_id": row["store_id"],
+            "acquisition_distribution_digest": row["acquisition_distribution_digest"], "store_id": row["store_id"], "canonical_store_locator": row["canonical_store_locator"],
             "store_head_digest": row["store_head_digest"], "store_revision": row["store_revision"],
+            "revocation_head_digest": row["revocation_head_digest"],
             "fact_schema": row["fact_schema"], "fact_digest": row["fact_digest"], "action_epoch": row["action_epoch"],
             "required_action_epoch_floor": row["required_action_epoch_floor"]}
         row["freshness_cas_token_digest"] = freshness_token_digest(token_fields)
@@ -5844,7 +5983,9 @@ def apply_graph_mutation(item: dict, graph: dict) -> None:
         row = receipt("canonical_trust_root_digest"); row["category"] = "ak_store"
         next(x for x in verifier["receipt_bindings"] if x["role"] == row["role"])["category"] = "ak_store"; rehash_graph(graph); return
     if name == "authority_receipt_repository_identity_is_exact":
-        row = receipt("canonical_trust_root_digest"); row["owner_repository"] = copy.deepcopy(consumer_repo); rehash_graph(graph); return
+        row = receipt("canonical_trust_root_digest"); row["owner_repository"] = copy.deepcopy(consumer_repo)
+        row["canonical_store_locator"] = consumer_repo["canonical_locator"] + "#" + row["store_id"]
+        rehash_graph(graph); return
     if name == "authority_receipt_owner_specific_pin_is_exact":
         row = receipt("canonical_trust_root_digest"); row["capability_pin_id"] = "pin:publication_commit:canonical_store_head"; rehash_graph(graph); return
     if name == "authority_receipt_head_revision_fact_binding_is_exact":
@@ -5871,7 +6012,9 @@ def apply_graph_mutation(item: dict, graph: dict) -> None:
         if name == "authority_coherent_owner_repository_rewrite_rejected":
             substituted_repo = copy.deepcopy(consumer_repo)
             pin.update(owner_surface="consumer_owner", owner_id="consumer-owner", owner_repository=substituted_repo)
-            row.update(issuer={"kind": "consumer_owner", "id": "consumer-owner"}, owner_repository=copy.deepcopy(substituted_repo))
+            row.update(issuer={"kind": "consumer_owner", "id": "consumer-owner"}, owner_repository=copy.deepcopy(substituted_repo),
+                canonical_store_locator=substituted_repo["canonical_locator"] + "#" + row["store_id"])
+            pin["canonical_store_locator"] = row["canonical_store_locator"]
             binding.update(owner_surface="consumer_owner", owner_id="consumer-owner", owner_repository=copy.deepcopy(substituted_repo))
         pin["acquisition_contract"] = row["acquisition_contract"] = binding["acquisition_contract"] = "coherent.rewritten-owner-read.v0"
         contract_digest, distribution_digest, capability_digest = acquisition_profile(pin["owner_surface"], pin["owner_repository"], pin["acquisition_contract"])
@@ -5882,7 +6025,9 @@ def apply_graph_mutation(item: dict, graph: dict) -> None:
         token_fields = {"role": role, "category": row["category"], "owner_surface": row["issuer"]["kind"], "owner_id": row["issuer"]["id"],
             "owner_repository": row["owner_repository"], "acquisition_contract": row["acquisition_contract"],
             "acquisition_contract_digest": contract_digest, "acquisition_distribution_digest": distribution_digest,
-            "store_id": row["store_id"], "store_head_digest": row["store_head_digest"], "store_revision": row["store_revision"],
+            "store_id": row["store_id"], "canonical_store_locator": row["canonical_store_locator"],
+            "store_head_digest": row["store_head_digest"], "store_revision": row["store_revision"],
+            "revocation_head_digest": row["revocation_head_digest"],
             "fact_schema": row["fact_schema"], "fact_digest": row["fact_digest"], "action_epoch": row["action_epoch"],
             "required_action_epoch_floor": row["required_action_epoch_floor"]}
         pin["freshness_cas_token_digest"] = row["freshness_cas_token_digest"] = freshness_token_digest(token_fields)
@@ -6125,7 +6270,7 @@ authority_edge_registry = [
     edge("rollback.technical-coordinate", "rollback", "technical receipt coordinate equals rollback target", "semantic_rollback_retains_runtime", "rollback_technical_receipt_binds_exact_coordinate", "rollback_unavailable"),
     edge("rollback.technical-runtime", "rollback", "technical receipt runtime equals retained active runtime", "semantic_rollback_retains_runtime", "semantic_rollback_target_requires_runtime_compatibility", "rollback_unavailable"),
     edge("rollback.history-head", "rollback", "rollback prior history equals external consumer history head", "semantic_rollback_retains_runtime", "rollback_before_head_must_equal_canonical_head", "history_conflict"),
-    edge("governance.task-store", "governance_contracts", "resolved task store equals independent AK task observation", "resolved_governance_reference_observation_accepts", "resolved_governance_reference_observed_head_is_exact", "self_certification"),
+    edge("governance.task-store", "governance_contracts", "resolved task store equals independent AK task observation", "resolved_governance_reference_observation_accepts", "resolved_governance_reference_observed_head_is_exact", "issuer_scope_violation"),
     edge("governance.task-record", "governance_contracts", "resolved task record equals independent AK task observation", "resolved_governance_reference_observation_accepts", "resolved_governance_reference_observed_task_digest_is_exact", "self_certification"),
     edge("governance.task-state", "governance_contracts", "resolved task state equals independent AK task observation", "resolved_governance_reference_observation_accepts", "resolved_governance_reference_observed_state_is_exact", "self_certification"),
     edge("governance.reference-owner", "governance_contracts", "reference repository equals fact owner repository", "non_authorizing_separate_coordination_and_consumer_contracts", "unresolved_dependency_binds_correct_owner_repository", "self_certification"),
@@ -6233,6 +6378,8 @@ authority_edge_registry = [
     edge("tombstone-reuse.genesis-anchor", "tombstone_reuse", "internally coherent tombstone history cannot reset the external genesis anchor", "non_tombstoned_identifier_accepts", "tombstone_history_coherent_genesis_reset_rejected", "lifecycle_violation"),
     edge("tombstone-reuse.authorization-head", "tombstone_reuse", "every removal authorization equals both exact origin and resulting lifecycle head", "non_tombstoned_identifier_accepts", "tombstone_history_coordinated_wrong_authorization_rejected", "lifecycle_violation"),
     edge("projection.tombstone-genesis-anchor", "projection", "projection history genesis equals the external semantic-owner anchor", "exact_payload_projection_accepts", "projection_tombstone_genesis_anchor_mismatch_rejected", "projection_mismatch"),
+    edge("ak-lineage.task-receipt-store", "ak_optional_pi", "every canonical task state carries the complete enclosing AK receipt/pin store head and resolved decision head", "ak_delivered_linkage_requires_pi_digest", "ak_task_state_stale_receipt_rejected", "issuer_scope_violation"),
+    edge("ak-lineage.task-receipt-repository", "ak_optional_pi", "every canonical task state repository equals its enclosing AK receipt/pin repository", "ak_delivered_linkage_requires_pi_digest", "ak_task_state_rebound_receipt_rejected", "issuer_scope_violation"),
 ]
 authority_edge_registry.sort(key=lambda row: row["edge_id"].encode())
 edge_ids_by_rule: dict[str, list[str]] = {}
@@ -6296,6 +6443,9 @@ golden["chain_assertions"].extend([
 ])
 
 JSON_FILE_LIMIT = 16 * 1024 * 1024
+MAX_TOTAL_JSON_BYTES = 256 * 1024 * 1024
+MAX_SHARDS = 64
+MAX_DEADLINE_MS = 300_000
 SHARD_TARGET = 12 * 1024 * 1024
 SHARD_GLOB = "differential-fixtures-shard-*.json"
 
@@ -6327,6 +6477,7 @@ def build_shards(all_cases: list[dict], all_raw_cases: list[dict]) -> list[tuple
         current_cases, current_raw = candidate_cases, candidate_raw
     if current_cases or current_raw: partitions.append((current_cases, current_raw))
     result: list[tuple[dict, bytes]] = []
+    if len(partitions) > MAX_SHARDS: raise ValueError("differential shard count limit exceeded")
     for index, (shard_cases, shard_raw_cases) in enumerate(partitions):
         payload = shard_payload(index, shard_cases, shard_raw_cases); data = encoded_json(payload)
         if len(data) > SHARD_TARGET or len(data) >= JSON_FILE_LIMIT: raise ValueError("differential shard size limit exceeded")
@@ -6344,18 +6495,33 @@ for index, (_payload, data) in enumerate(shards):
     shard_rows.append({"path": name, "byte_length": len(data), "sha256": hashlib.sha256(data).hexdigest(),
         "case_count": len(_payload["cases"]), "raw_case_count": len(_payload["raw_json_cases"])})
 aggregate_preimage = {"cases": cases, "raw_json_cases": raw_json_cases}
+transport_limits = {"max_total_json_bytes": MAX_TOTAL_JSON_BYTES, "max_shards": MAX_SHARDS, "deadline_ms": MAX_DEADLINE_MS}
+transport_limit_cases = [
+    {"name": "transport_aggregate_json_bytes_overflow_rejected", "limit_kind": "max_total_json_bytes",
+        "observed_total_json_bytes": MAX_TOTAL_JSON_BYTES + 1, "observed_shard_count": len(shards),
+        "observed_elapsed_ms": 0, "expected_error": "transport_limit_exceeded"},
+    {"name": "transport_deadline_overflow_rejected", "limit_kind": "deadline_ms",
+        "observed_total_json_bytes": 0, "observed_shard_count": 0,
+        "observed_elapsed_ms": MAX_DEADLINE_MS + 1, "expected_error": "transport_limit_exceeded"},
+    {"name": "transport_shard_count_overflow_rejected", "limit_kind": "max_shards",
+        "observed_total_json_bytes": 0, "observed_shard_count": MAX_SHARDS + 1,
+        "observed_elapsed_ms": 0, "expected_error": "transport_limit_exceeded"},
+]
 manifest = {"schema": "semantic-differential-fixture-manifest.v0", "protocol": "semantic-release-v0",
-    "rfc_revision": "semantic-release-revision-v13",
+    "rfc_revision": "semantic-release-revision-v13", "limits": transport_limits,
+    "transport_limit_cases": transport_limit_cases,
     "aggregate": {"case_count": len(cases), "raw_case_count": len(raw_json_cases),
         "sha256": hashlib.sha256(jcs(aggregate_preimage).encode("utf-8")).hexdigest()},
     "source_case_explicitness_audit": source_case_explicitness_audit,
     "authority_rule_role_manifest": authority_manifest, "authority_edge_registry": authority_edge_registry,
     "shards": shard_rows}
-outputs = ((ROOT / "golden-fixtures.json", encoded_json(golden)),
-    (ROOT / "differential-fixtures.json", encoded_json(manifest)))
+golden_data, manifest_data = encoded_json(golden), encoded_json(manifest)
+outputs = ((ROOT / "golden-fixtures.json", golden_data), (ROOT / "differential-fixtures.json", manifest_data))
 for path, data in outputs:
     if len(data) >= JSON_FILE_LIMIT: raise ValueError(f"{path.name} exceeds the 16 MiB JSON artifact limit")
-    path.write_bytes(data)
 for path in (ROOT / "protocol.schema.json",):
     if path.stat().st_size >= JSON_FILE_LIMIT: raise ValueError(f"{path.name} exceeds the 16 MiB JSON artifact limit")
+total_json_bytes = (ROOT / "protocol.schema.json").stat().st_size + len(golden_data) + len(manifest_data) + sum(len(data) for _payload, data in shards)
+if total_json_bytes > MAX_TOTAL_JSON_BYTES: raise ValueError("aggregate JSON transport limit exceeded")
+for path, data in outputs: path.write_bytes(data)
 print(f"wrote schema, {len(records)} golden records, {len(authority_manifest['rules'])} manifest rules, {len(authority_edge_registry)} authority edges, {len(cases)} differential cases, and {len(shards)} bounded shards")

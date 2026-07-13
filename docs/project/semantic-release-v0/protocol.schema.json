@@ -3413,6 +3413,9 @@
         "acquisition_distribution_digest": {
           "$ref": "#/$defs/digest"
         },
+        "canonical_store_locator": {
+          "$ref": "#/$defs/text"
+        },
         "capability_pin_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -3466,6 +3469,16 @@
         "required_action_epoch_floor": {
           "$ref": "#/$defs/safeInteger"
         },
+        "revocation_head_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
         "role": {
           "$ref": "#/$defs/identifier"
         },
@@ -3494,8 +3507,10 @@
         "acquisition_contract_digest",
         "acquisition_distribution_digest",
         "store_id",
+        "canonical_store_locator",
         "store_head_digest",
         "store_revision",
+        "revocation_head_digest",
         "fact_schema",
         "fact_digest",
         "fact_value",
@@ -3778,6 +3793,9 @@
         "action_epoch": {
           "$ref": "#/$defs/safeInteger"
         },
+        "canonical_store_locator": {
+          "$ref": "#/$defs/text"
+        },
         "capability_pin_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -3830,6 +3848,16 @@
         "required_action_epoch_floor": {
           "$ref": "#/$defs/safeInteger"
         },
+        "revocation_head_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
         "role": {
           "$ref": "#/$defs/identifier"
         },
@@ -3861,8 +3889,10 @@
         "acquisition_contract_digest",
         "acquisition_distribution_digest",
         "store_id",
+        "canonical_store_locator",
         "store_head_digest",
         "store_revision",
+        "revocation_head_digest",
         "fact_schema",
         "fact_digest",
         "fact_value",

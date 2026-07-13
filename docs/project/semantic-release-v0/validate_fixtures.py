@@ -10,6 +10,7 @@ import os
 import re
 import stat
 import sys
+import time
 import unicodedata
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,11 @@ ROOT = Path(__file__).resolve().parent
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
 MAX_JSON_FILE_BYTES = 16 * 1024 * 1024
 MAX_JSON_DEPTH = 64
+MAX_TOTAL_JSON_BYTES = 256 * 1024 * 1024
+MAX_SHARDS = 64
+MAX_DEADLINE_MS = 300_000
+PROCESS_STARTED_NS = time.monotonic_ns()
+PROCESS_DEADLINE_NS = PROCESS_STARTED_NS + MAX_DEADLINE_MS * 1_000_000
 SHARD_NAME_RE = re.compile(r"differential-fixtures-shard-[0-9]{3}\.json")
 COORDINATE_DOMAIN = "semantic-release.coordinate.v0"
 DOMAIN_ROWS = {
@@ -78,12 +84,12 @@ DOMAIN_ROWS = {
 DIGEST_FIELDS = {schema: (f"semantic-release.{domain}.v0", field) for schema, (domain, field) in DOMAIN_ROWS.items()}
 SCHEMA_ROOT: dict[str, Any] | None = None
 
-AUTHORITY_BEARING_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"}
+AUTHORITY_BEARING_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"}
 ALL_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"}
-EXPECTED_AUTHORITY_EDGE_COUNT = 139
-EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:a1b26aefb4c9c6746e646d8b443d24cd2ef8024123cf45cfa58adae645303130"
-EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:62ae94c1ed3a9e5609087fa753cd820340b7caf10cb142eeb019f9ddf42ccf28"
-EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:e8b4bc0396b01e4e55b23583dc440c60b11eb1f5a523b49fe418b10e2b170390"
+EXPECTED_AUTHORITY_EDGE_COUNT = 141
+EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:d78991ce172d795de35d8fe640fe4cdb266a260980d9d72c1b29a3c0ed30b9a3"
+EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:687d3e6c6be239d92bc5d5663c48ac18f8a6124cb9b6a99e0b0623b643ebc476"
+EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:03644461360e9790a10d6b43830e94f694bf0003aa74b10564eb01270b0a408d"
 PINNED_AK_REPOSITORY = {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}
 PINNED_ROCS_REPOSITORY = {"owner": "rocs-owner", "repository_id": "rocs-cli", "canonical_locator": "local://core/rocs-cli", "identity_revision": 4}
 PINNED_PI_REPOSITORY = {"owner": "pi-owner", "repository_id": "pi-adapter", "canonical_locator": "local://softwareco/pi-adapter", "identity_revision": 1}
@@ -99,6 +105,17 @@ AUTHORITY_MANIFEST_BY_RULE: dict[str, dict] = {}
 
 class ValidationError(Exception):
     pass
+
+
+def enforce_deadline(stage: str) -> None:
+    if time.monotonic_ns() > PROCESS_DEADLINE_NS:
+        raise ValidationError(f"transport deadline exceeded {stage}")
+
+
+def configure_deadline(deadline_ms: int) -> None:
+    global PROCESS_DEADLINE_NS
+    PROCESS_DEADLINE_NS = min(PROCESS_DEADLINE_NS, PROCESS_STARTED_NS + deadline_ms * 1_000_000)
+    enforce_deadline("after manifest limit configuration")
 
 
 def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -117,6 +134,7 @@ def parse_integer_token(token: str) -> int:
 
 
 def parse_json_text(text: str) -> Any:
+    enforce_deadline("before JSON parse")
     try:
         value = json.loads(text, object_pairs_hook=reject_duplicates, parse_int=parse_integer_token,
             parse_float=lambda token: (_ for _ in ()).throw(ValidationError(f"non-integer number token {token!r}")),
@@ -125,7 +143,9 @@ def parse_json_text(text: str) -> Any:
         raise ValidationError(str(exc)) from exc
     except RecursionError as exc:
         raise ValidationError("JSON nesting depth exceeds 64") from exc
+    enforce_deadline("after JSON parse")
     validate_ijson(value)
+    enforce_deadline("after I-JSON validation")
     return value
 
 
@@ -146,7 +166,9 @@ def load_json_bytes(path: Path, *, strict_under_limit: bool = False,
             raise ValidationError(f"{path}: JSON file is not regular or exceeds limit")
         chunks: list[bytes] = []; remaining = MAX_JSON_FILE_BYTES + 1
         while remaining:
+            enforce_deadline(f"before read {path.name}")
             chunk = os.read(fd, min(1024 * 1024, remaining))
+            enforce_deadline(f"after read {path.name}")
             if not chunk: break
             chunks.append(chunk); remaining -= len(chunk)
         raw = b"".join(chunks)
@@ -162,12 +184,18 @@ def load_json_bytes(path: Path, *, strict_under_limit: bool = False,
             raise ValidationError(f"{path}: JSON file replaced, grew, or changed during bounded read")
     finally:
         os.close(fd)
+    enforce_deadline(f"before hash {path.name}")
     raw_sha256 = hashlib.sha256(raw).hexdigest()
+    enforce_deadline(f"after hash {path.name}")
     if ((expected_byte_length is not None and len(raw) != expected_byte_length)
         or (expected_sha256 is not None and raw_sha256 != expected_sha256)):
         raise ValidationError(f"{path}: JSON raw byte/hash mismatch")
     if raw.startswith(b"\xef\xbb\xbf"): raise ValidationError(f"{path}: BOM forbidden")
-    try: return parse_json_text(raw.decode("utf-8", "strict")), raw
+    enforce_deadline(f"before decode/parse {path.name}")
+    try:
+        value = parse_json_text(raw.decode("utf-8", "strict"))
+        enforce_deadline(f"after decode/parse {path.name}")
+        return value, raw
     except (UnicodeDecodeError, ValidationError) as exc: raise ValidationError(f"{path}: {exc}") from exc
 
 
@@ -216,17 +244,76 @@ def action_digest(value: Any) -> str: return typed_digest("semantic-release.appr
 def change_digest(value: Any) -> str: return typed_digest("semantic-release.compatibility-change.v0", value)
 
 
-def load_sharded_differential() -> tuple[dict, list[dict], str]:
-    manifest_path = ROOT / "differential-fixtures.json"
-    manifest = load_json(manifest_path)
-    top_keys = {"schema", "protocol", "rfc_revision", "aggregate", "source_case_explicitness_audit",
-        "authority_rule_role_manifest", "authority_edge_registry", "shards"}
+def stable_json_stat(path: Path, *, strict_under_limit: bool = False) -> int:
+    """No-follow stable metadata read used for aggregate transport accounting."""
+    enforce_deadline(f"before stat {path.name}")
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    if nofollow is None: raise ValidationError(f"{path}: no-follow open unavailable")
+    try: fd = os.open(path, os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0))
+    except OSError as exc: raise ValidationError(f"{path}: unavailable, non-regular, or symlink JSON file") from exc
+    try:
+        before = os.fstat(fd); after = os.fstat(fd)
+        try: current = os.stat(path, follow_symlinks=False)
+        except OSError as exc: raise ValidationError(f"{path}: JSON file replaced during stat") from exc
+        stable_fields = ("st_dev", "st_ino", "st_mode", "st_size", "st_mtime_ns", "st_ctime_ns")
+        size = before.st_size
+        if (not stat.S_ISREG(before.st_mode) or not stat.S_ISREG(after.st_mode) or not stat.S_ISREG(current.st_mode)
+            or any(getattr(before, key) != getattr(after, key) for key in stable_fields)
+            or any(getattr(before, key) != getattr(current, key) for key in stable_fields)
+            or size < 0 or size > MAX_JSON_FILE_BYTES or strict_under_limit and size >= MAX_JSON_FILE_BYTES):
+            raise ValidationError(f"{path}: unstable, non-regular, or oversized JSON stat")
+    finally:
+        os.close(fd)
+    enforce_deadline(f"after stat {path.name}")
+    return size
+
+
+def transport_limit_result(limits: dict, total_json_bytes: int, shard_count: int, elapsed_ms: int) -> str | None:
+    if (total_json_bytes > limits["max_total_json_bytes"] or shard_count > limits["max_shards"]
+        or elapsed_ms > limits["deadline_ms"]):
+        return "transport_limit_exceeded"
+    return None
+
+
+def load_sharded_differential(manifest: dict) -> tuple[dict, list[dict], str, int, int]:
+    top_keys = {"schema", "protocol", "rfc_revision", "limits", "transport_limit_cases", "aggregate",
+        "source_case_explicitness_audit", "authority_rule_role_manifest", "authority_edge_registry", "shards"}
     if not isinstance(manifest, dict) or set(manifest) != top_keys:
         raise ValidationError("differential shard manifest is not closed")
     if (manifest["schema"] != "semantic-differential-fixture-manifest.v0"
         or manifest["protocol"] != "semantic-release-v0"
         or manifest["rfc_revision"] != "semantic-release-revision-v13"):
         raise ValidationError("differential shard manifest identity drift")
+    limits = manifest["limits"]
+    limit_keys = {"max_total_json_bytes", "max_shards", "deadline_ms"}
+    if (not isinstance(limits, dict) or set(limits) != limit_keys
+        or any(isinstance(limits[key], bool) or not isinstance(limits[key], int) or limits[key] < 1 for key in limit_keys)
+        or limits["max_total_json_bytes"] > MAX_TOTAL_JSON_BYTES or limits["max_shards"] > MAX_SHARDS
+        or limits["deadline_ms"] > MAX_DEADLINE_MS):
+        raise ValidationError("differential transport limits shape/bound")
+    configure_deadline(limits["deadline_ms"])
+    transport_cases = manifest["transport_limit_cases"]
+    case_keys = {"name", "limit_kind", "observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms", "expected_error"}
+    expected_cases = {
+        "transport_aggregate_json_bytes_overflow_rejected": "max_total_json_bytes",
+        "transport_deadline_overflow_rejected": "deadline_ms",
+        "transport_shard_count_overflow_rejected": "max_shards",
+    }
+    if (not isinstance(transport_cases, list) or [row.get("name") for row in transport_cases] != sorted(expected_cases, key=str.encode)):
+        raise ValidationError("transport conformance case identity/order")
+    for item in transport_cases:
+        enforce_deadline(f"before transport case {item.get('name')}")
+        if (not isinstance(item, dict) or set(item) != case_keys or item["limit_kind"] != expected_cases.get(item["name"])
+            or item["expected_error"] != "transport_limit_exceeded"
+            or any(isinstance(item[key], bool) or not isinstance(item[key], int) or item[key] < 0
+                for key in ("observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms"))):
+            raise ValidationError("transport conformance case shape")
+        violations = [key for key, observed in (("max_total_json_bytes", item["observed_total_json_bytes"]),
+            ("max_shards", item["observed_shard_count"]), ("deadline_ms", item["observed_elapsed_ms"])) if observed > limits[key]]
+        actual = transport_limit_result(limits, item["observed_total_json_bytes"], item["observed_shard_count"], item["observed_elapsed_ms"])
+        if violations != [item["limit_kind"]] or actual != item["expected_error"]:
+            raise ValidationError(f"transport conformance case outcome {item['name']}")
+        enforce_deadline(f"after transport case {item['name']}")
     aggregate = manifest["aggregate"]
     if (not isinstance(aggregate, dict) or set(aggregate) != {"case_count", "raw_case_count", "sha256"}
         or isinstance(aggregate["case_count"], bool) or not isinstance(aggregate["case_count"], int)
@@ -235,17 +322,12 @@ def load_sharded_differential() -> tuple[dict, list[dict], str]:
         raise ValidationError("differential aggregate metadata shape")
     rows = manifest["shards"]
     row_keys = {"path", "byte_length", "sha256", "case_count", "raw_case_count"}
-    if not isinstance(rows, list) or not rows:
-        raise ValidationError("differential shard inventory missing")
+    if not isinstance(rows, list) or not rows or len(rows) > limits["max_shards"] or len(rows) > MAX_SHARDS:
+        raise ValidationError("differential shard inventory count")
     paths = [row.get("path") for row in rows if isinstance(row, dict)]
     if (len(paths) != len(rows) or any(not isinstance(path, str) for path in paths)
         or paths != sorted(paths, key=str.encode) or len(paths) != len(set(paths))):
         raise ValidationError("differential shard inventory order")
-    listed = set(paths)
-    extras = {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")} - listed
-    missing = listed - {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")}
-    if extras or missing: raise ValidationError("differential shard inventory has missing or extra files")
-    cases: list[dict] = []; raw_cases: list[dict] = []; inventory: list[dict] = []
     for index, row in enumerate(rows):
         if (set(row) != row_keys or not SHARD_NAME_RE.fullmatch(row["path"])
             or "/" in row["path"] or "\\" in row["path"] or ":" in row["path"]
@@ -253,8 +335,23 @@ def load_sharded_differential() -> tuple[dict, list[dict], str]:
                 for key in ("byte_length", "case_count", "raw_case_count"))
             or re.fullmatch(r"[0-9a-f]{64}", row["sha256"]) is None):
             raise ValidationError(f"differential shard inventory row {index}")
+    listed = set(paths)
+    extras = {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")} - listed
+    missing = listed - {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")}
+    if extras or missing: raise ValidationError("differential shard inventory has missing or extra files")
+    stat_rows = [(ROOT / "protocol.schema.json", False), (ROOT / "golden-fixtures.json", False),
+        (ROOT / "differential-fixtures.json", False)] + [(ROOT / row["path"], True) for row in rows]
+    stat_sizes = [stable_json_stat(path, strict_under_limit=strict) for path, strict in stat_rows]
+    if any(stat_sizes[index + 3] != row["byte_length"] for index, row in enumerate(rows)):
+        raise ValidationError("differential shard stable stat byte mismatch")
+    total_json_bytes = sum(stat_sizes)
+    if transport_limit_result(limits, total_json_bytes, len(rows), 0) is not None:
+        raise ValidationError("aggregate JSON transport limit exceeded before shard parsing")
+    cases: list[dict] = []; raw_cases: list[dict] = []; inventory: list[dict] = []
+    for index, row in enumerate(rows):
+        enforce_deadline(f"before shard {index} read/hash/parse")
         path = ROOT / row["path"]
-        shard, data = load_json_bytes(path, strict_under_limit=True,
+        shard, _data = load_json_bytes(path, strict_under_limit=True,
             expected_byte_length=row["byte_length"], expected_sha256=row["sha256"])
         shard_keys = {"schema", "protocol", "rfc_revision", "shard_index", "cases", "raw_json_cases"}
         if (not isinstance(shard, dict) or set(shard) != shard_keys
@@ -266,8 +363,11 @@ def load_sharded_differential() -> tuple[dict, list[dict], str]:
             or len(shard["raw_json_cases"]) != row["raw_case_count"]):
             raise ValidationError(f"differential shard shape/count {row['path']}")
         cases.extend(shard["cases"]); raw_cases.extend(shard["raw_json_cases"]); inventory.append(copy.deepcopy(row))
+        enforce_deadline(f"after shard {index} read/hash/parse")
     aggregate_preimage = {"cases": cases, "raw_json_cases": raw_cases}
+    enforce_deadline("before differential aggregate hash")
     aggregate_sha256 = hashlib.sha256(jcs(aggregate_preimage).encode("utf-8")).hexdigest()
+    enforce_deadline("after differential aggregate hash")
     if (len(cases) != aggregate["case_count"] or len(raw_cases) != aggregate["raw_case_count"]
         or sum(row["case_count"] for row in rows) != len(cases)
         or sum(row["raw_case_count"] for row in rows) != len(raw_cases)
@@ -278,7 +378,7 @@ def load_sharded_differential() -> tuple[dict, list[dict], str]:
         "authority_rule_role_manifest": manifest["authority_rule_role_manifest"],
         "authority_edge_registry": manifest["authority_edge_registry"],
         "cases": cases, "raw_json_cases": raw_cases}
-    return differential, inventory, aggregate_sha256
+    return differential, inventory, aggregate_sha256, total_json_bytes, len(transport_cases)
 
 
 def object_digest(instance: dict[str, Any], domain: str, omitted: str | None) -> tuple[str, str]:
@@ -588,8 +688,8 @@ def authority_acquisition_capability_digest(fields: dict) -> str:
 
 def authority_freshness_token(fields: dict) -> str:
     keys = ("role", "category", "owner_surface", "owner_id", "owner_repository", "acquisition_contract", "acquisition_contract_digest",
-        "acquisition_distribution_digest", "store_id", "store_head_digest", "store_revision", "fact_schema", "fact_digest",
-        "action_epoch", "required_action_epoch_floor")
+        "acquisition_distribution_digest", "store_id", "canonical_store_locator", "store_head_digest", "store_revision",
+        "revocation_head_digest", "fact_schema", "fact_digest", "action_epoch", "required_action_epoch_floor")
     return typed_digest("semantic-release.owner-store-freshness-cas.v0", {key: fields[key] for key in keys})
 
 
@@ -687,8 +787,8 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
             and pin["owner_id"] == row["issuer"]["id"] == binding["owner_id"] == expected_id
             and pin["owner_repository"] == row["owner_repository"] == binding["owner_repository"] == expected_repo
             and row["issuer"] != config["collator"]): raise ContextValidationError("issuer_scope_violation")
-        repeated = ("acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "store_id", "store_head_digest",
-            "store_revision", "fact_schema", "fact_digest", "fact_value", "freshness_cas_token_digest", "required_action_epoch_floor")
+        repeated = ("acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "store_id",
+            "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "fact_schema", "fact_digest", "fact_value", "freshness_cas_token_digest", "required_action_epoch_floor")
         if any(pin[key] != row[key] for key in repeated): raise ContextValidationError("issuer_scope_violation")
         acquisition_keys = ("acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "acquisition_capability_digest")
         if (any(binding[key] != row[key] or mapping[key] != row[key] for key in acquisition_keys)
@@ -703,15 +803,17 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
         token_fields = {"role": role, "category": row["category"], "owner_surface": row["issuer"]["kind"], "owner_id": row["issuer"]["id"],
             "owner_repository": row["owner_repository"], "acquisition_contract": row["acquisition_contract"],
             "acquisition_contract_digest": row["acquisition_contract_digest"], "acquisition_distribution_digest": row["acquisition_distribution_digest"],
-            "store_id": row["store_id"], "store_head_digest": row["store_head_digest"], "store_revision": row["store_revision"],
-            "fact_schema": row["fact_schema"], "fact_digest": row["fact_digest"], "action_epoch": row["action_epoch"],
+            "store_id": row["store_id"], "canonical_store_locator": row["canonical_store_locator"],
+            "store_head_digest": row["store_head_digest"], "store_revision": row["store_revision"],
+            "revocation_head_digest": row["revocation_head_digest"], "fact_schema": row["fact_schema"], "fact_digest": row["fact_digest"], "action_epoch": row["action_epoch"],
             "required_action_epoch_floor": row["required_action_epoch_floor"]}
         if (row["freshness_cas_token_digest"] != authority_freshness_token(token_fields) or row["action_epoch"] != snapshot["action_epoch"]
             or row["action_epoch"] < row["required_action_epoch_floor"] or row["required_action_epoch_floor"] != config["required_action_epoch_floor"]):
             raise ContextValidationError("issuer_scope_violation")
         if role == "canonical_store_head":
             value = decode_authority_fact(row["fact_value"])
-            if (value["store_id"], value["store_head_digest"], value["store_revision"]) != (row["store_id"], row["store_head_digest"], row["store_revision"]): raise ContextValidationError("issuer_scope_violation")
+            store_metadata = {key: row[key] for key in ("store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest")}
+            if value != store_metadata: raise ContextValidationError("issuer_scope_violation")
         if role in receipt_roles: raise ContextValidationError("malformed_input")
         receipt_roles.add(role); resolved[role] = decode_authority_fact(row["fact_value"])
 
@@ -721,7 +823,7 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
             "canonical_recovery_resulting_revision", "canonical_recovery_resulting_head", "canonical_recovery_resulting_status_digest"}
         coherent_rows = [row for row in receipts.values() if row["role"] in coherent_roles]
         if {row["role"] for row in coherent_rows} != coherent_roles: raise ContextValidationError("self_certification")
-        metadata_keys = ("owner_repository", "store_id", "store_head_digest", "store_revision", "action_epoch")
+        metadata_keys = ("owner_repository", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "action_epoch")
         if len({jcs({key: row[key] for key in metadata_keys}) for row in coherent_rows}) != 1:
             raise ContextValidationError("issuer_scope_violation")
 
@@ -777,6 +879,18 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
         values = grouped_maps.get("override_approvals", {})
         if parameter_values["override_approvals"] != sorted(values, key=str.encode): raise ContextValidationError("self_certification")
         resolved["override_approvals"] = values
+    if "canonical_task_states" in resolved:
+        task_receipt = next((row for row in receipts.values() if row["role"] == "canonical_task_states"), None)
+        if task_receipt is None: raise ContextValidationError("self_certification")
+        expected_head = {key: task_receipt[key] for key in
+            ("store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest")}
+        for task_state in resolved["canonical_task_states"]:
+            if task_state["repository"] != task_receipt["owner_repository"] or task_state["ak_store_head"] != expected_head:
+                raise ContextValidationError("issuer_scope_violation")
+        decision = resolved.get("decision")
+        if decision is not None and (decision["ak_repository"] != task_receipt["owner_repository"]
+            or decision["ak_store_head"] != expected_head):
+            raise ContextValidationError("issuer_scope_violation")
     resolved["_authority_task_states"] = resolved.get("canonical_task_states", [])
     resolved["_authority_snapshot_digest"] = snapshot["authority_snapshot_digest"]
     return resolved
@@ -1878,15 +1992,16 @@ def receipt_audit_tuple(receipt: dict) -> dict:
     return {"receipt_kind": "vote" if receipt["role"].startswith("vote-proof:") else "store",
         "observation_id": receipt["observation_id"], "role": receipt["role"],
         "owner_repository": copy.deepcopy(receipt["owner_repository"]), "store_id": receipt["store_id"],
-        "store_head_digest": receipt["store_head_digest"], "store_revision": receipt["store_revision"],
+        "canonical_store_locator": receipt["canonical_store_locator"], "store_head_digest": receipt["store_head_digest"],
+        "store_revision": receipt["store_revision"], "revocation_head_digest": receipt["revocation_head_digest"],
         "action_epoch": receipt["action_epoch"], "fact_schema": receipt["fact_schema"],
         "fact_digest": receipt["fact_digest"], "fact_value": fact_value,
         "vote_tuple": copy.deepcopy(fact_value.get("value")) if fact_value.get("kind") == "owner_vote_proof" else None}
 
 
 def validate_receipt_audit_tuple(value: dict, case_name: str, *, allow_invalid_fact_digest: bool = False) -> None:
-    keys = {"receipt_kind", "observation_id", "role", "owner_repository", "store_id", "store_head_digest",
-        "store_revision", "action_epoch", "fact_schema", "fact_digest", "fact_value", "vote_tuple"}
+    keys = {"receipt_kind", "observation_id", "role", "owner_repository", "store_id", "canonical_store_locator",
+        "store_head_digest", "store_revision", "revocation_head_digest", "action_epoch", "fact_schema", "fact_digest", "fact_value", "vote_tuple"}
     if set(value) != keys or value["receipt_kind"] not in {"store", "vote"}:
         raise ValidationError(f"source-case receipt tuple shape {case_name}")
     expected_shape_context(value["owner_repository"], "repositoryIdentity")
@@ -1894,6 +2009,8 @@ def validate_receipt_audit_tuple(value: dict, case_name: str, *, allow_invalid_f
     if (not isinstance(value["observation_id"], str) or not value["observation_id"]
         or not isinstance(value["role"], str) or not value["role"]
         or not isinstance(value["store_id"], str) or not value["store_id"]
+        or not isinstance(value["canonical_store_locator"], str) or not value["canonical_store_locator"]
+        or value["revocation_head_digest"] is not None and re.fullmatch(r"sha256:[0-9a-f]{64}", value["revocation_head_digest"]) is None
         or re.fullmatch(r"sha256:[0-9a-f]{64}", value["store_head_digest"]) is None
         or isinstance(value["store_revision"], bool) or not isinstance(value["store_revision"], int)
         or isinstance(value["action_epoch"], bool) or not isinstance(value["action_epoch"], int)
@@ -1948,6 +2065,7 @@ def validate_source_case_explicitness_audit(differential: dict, cases: list[dict
         mutation_by_id[mutation["mutation_id"]] = mutation
     store_count = vote_count = authority_count = final_count = 0
     for row in rows:
+        enforce_deadline(f"before source-audit case {row.get('case_name')}")
         if set(row) != {"case_name", "rule", "source_receipts", "expected_final_receipts", "registered_mutation_ids"}:
             raise ValidationError("source-case audit row shape")
         item = case_by_name.get(row["case_name"])
@@ -1995,6 +2113,7 @@ def validate_source_case_explicitness_audit(differential: dict, cases: list[dict
         if actual_final != expected_final:
             raise ValidationError(f"source-case final receipt mismatch {item['name']}")
         store_count += len(source_store); vote_count += len(source_votes); final_count += len(actual_final)
+        enforce_deadline(f"after source-audit case {item['name']}")
     used_mutations = [mid for row in rows for mid in row["registered_mutation_ids"]]
     if len(used_mutations) != len(set(used_mutations)) or set(used_mutations) != set(mutation_by_id):
         raise ValidationError("registered source mutation bijection")
@@ -2009,7 +2128,8 @@ def main() -> int:
     global SCHEMA_ROOT, AUTHORITY_MANIFEST, AUTHORITY_MANIFEST_BY_RULE
     schema = load_json(ROOT / "protocol.schema.json")
     golden = load_json(ROOT / "golden-fixtures.json")
-    differential, shard_inventory, shard_aggregate_sha256 = load_sharded_differential()
+    differential_manifest = load_json(ROOT / "differential-fixtures.json")
+    differential, shard_inventory, shard_aggregate_sha256, total_json_bytes, transport_case_count = load_sharded_differential(differential_manifest)
     SCHEMA_ROOT = schema
     if golden.get("protocol") != "semantic-release-v0" or golden.get("rfc_revision") != "semantic-release-revision-v13":
         raise ValidationError("golden fixture revision drift")
@@ -2110,6 +2230,7 @@ def main() -> int:
     accepted = rejected = 0
     case_results: dict[str, str | None] = {}
     for item in differential["cases"]:
+        enforce_deadline(f"before differential case {item.get('name')}")
         subject = item["subject"]; validate_ijson(subject)
         try: schema_validate(subject, schema, schema); structural = True
         except ValidationError: structural = False
@@ -2128,8 +2249,10 @@ def main() -> int:
         case_results[item["name"]] = actual
         if actual is None: accepted += 1
         else: rejected += 1
+        enforce_deadline(f"after differential case {item['name']}")
     case_by_name = {item["name"]: item for item in differential["cases"]}
     for row in registry:
+        enforce_deadline(f"before authority edge case {row.get('edge_id')}")
         edge_id, positive, drift, expected_error = row["edge_id"], row["positive_fixture"], row["drift_fixture"], row["expected_error"]
         if case_results.get(positive, "missing") is not None or case_results.get(drift) != expected_error: raise ValidationError(f"authority edge fixture outcome drift {edge_id}")
         if positive not in case_by_name or drift not in case_by_name: raise ValidationError(f"authority edge fixture missing {edge_id}")
@@ -2142,13 +2265,16 @@ def main() -> int:
         ownership = {"kind": "single_owner" if len(owners) == 1 else "multi_owner", "owners": owners}
         if row["role_owners"] != role_owners or row["ownership"] != ownership:
             raise ValidationError(f"authority edge owner not derived from concrete roles {edge_id}")
+        enforce_deadline(f"after authority edge case {edge_id}")
     raw_accepted = raw_rejected = 0
     for item in differential["raw_json_cases"]:
+        enforce_deadline(f"before raw JSON case {item.get('name')}")
         try: parse_json_text(item["raw_json"]); actual = None
         except ValidationError: actual = "malformed_input"
         if actual != item["expected_error"]: raise ValidationError(f"{item['name']}: expected {item['expected_error']}, got {actual}")
         if actual is None: raw_accepted += 1
         else: raw_rejected += 1
+        enforce_deadline(f"after raw JSON case {item['name']}")
     print(f"schema: Draft 2020-12, {len(schema['oneOf'])} protocol types, all object shapes closed")
     print(f"golden: {len(records)} object preimages and {len(golden['raw_preimages'])} raw preimages independently recomputed")
     print(f"chain: {len(golden['chain_assertions'])} exact digest links verified")
@@ -2156,6 +2282,7 @@ def main() -> int:
     print(f"authority manifest: {len(rules)} rules ({len(AUTHORITY_BEARING_RULES)} authority-bearing), {role_count} role mappings; registry bijection complete")
     print(f"authority graph: {len(registry)} full owner/repository/linkage edges; normalized semantic-mutation descriptors independently recomputed")
     print(f"shards: {len(shard_inventory)} files, {sum(row['byte_length'] for row in shard_inventory)} bytes, aggregate sha256:{shard_aggregate_sha256}")
+    print(f"transport: {total_json_bytes} aggregate JSON bytes; {transport_case_count} closed overflow cases evaluated; monotonic deadline enforced")
     print(f"source-case audit: {len(differential['cases'])} cases, {source_store_count} explicit store tuples, {source_vote_count} explicit vote facts, {final_receipt_count} exact final receipts, {source_mutation_count} registered mutations; no silent mismatch")
     print(f"differential: {len(differential['cases'])} cases ({accepted} accepted transitions, {rejected} expected rejections)")
     print(f"raw-json: {len(differential['raw_json_cases'])} lexical cases ({raw_accepted} accepted, {raw_rejected} expected rejections)")
