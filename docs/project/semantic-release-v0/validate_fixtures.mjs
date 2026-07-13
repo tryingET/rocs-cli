@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Independent revision-13 sharded authority-graph verifier: no Python imports, subprocesses, or shared code. */
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { closeSync, constants, fstatSync, lstatSync, openSync, readdirSync, readSync } from "node:fs";
 import { basename, dirname, join, resolve as pathResolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,12 +53,26 @@ function strictJson(text) {
   const result = value(); ws(); if (at !== text.length) fail("trailing JSON data"); validateIjson(result); return result;
 }
 
-function loadBytes(name, strictUnderLimit = false) {
-  const path = join(root, name); let size;
-  try { size = statSync(path).size; } catch { fail(`${name}: unavailable JSON file`); }
-  if (size > maxJsonFileBytes || strictUnderLimit && size >= maxJsonFileBytes) fail(`${name}: JSON file size exceeds limit`);
-  const bytes = readFileSync(path);
-  if (bytes.length !== size || bytes.length > maxJsonFileBytes || strictUnderLimit && bytes.length >= maxJsonFileBytes) fail(`${name}: JSON file size changed or exceeds limit`);
+function loadBytes(name, strictUnderLimit = false, expected = null) {
+  const path = join(root, name);
+  if (constants.O_NOFOLLOW === undefined) fail(`${name}: no-follow open unavailable`);
+  let fd; try { fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | (constants.O_CLOEXEC ?? 0)); }
+  catch { fail(`${name}: unavailable, non-regular, or symlink JSON file`); }
+  let bytes;
+  try {
+    const before = fstatSync(fd, { bigint: true });
+    if (!before.isFile() || before.size < 0n || before.size > BigInt(maxJsonFileBytes) || strictUnderLimit && before.size >= BigInt(maxJsonFileBytes)) fail(`${name}: JSON file is not regular or exceeds limit`);
+    const bounded = Buffer.allocUnsafe(maxJsonFileBytes + 1); let length = 0;
+    while (length < bounded.length) { const count = readSync(fd, bounded, length, bounded.length - length, null); if (count === 0) break; length += count; }
+    bytes = bounded.subarray(0, length);
+    const after = fstatSync(fd, { bigint: true }); let current;
+    try { current = lstatSync(path, { bigint: true }); } catch { fail(`${name}: JSON file replaced during read`); }
+    const fields = ["dev", "ino", "mode", "size", "mtimeNs", "ctimeNs"];
+    if (!after.isFile() || !current.isFile() || fields.some((key) => before[key] !== after[key] || before[key] !== current[key])
+      || BigInt(bytes.length) !== before.size || bytes.length > maxJsonFileBytes || strictUnderLimit && bytes.length >= maxJsonFileBytes) fail(`${name}: JSON file replaced, grew, or changed during bounded read`);
+  } finally { closeSync(fd); }
+  const rawSha256 = createHash("sha256").update(bytes).digest("hex");
+  if (expected !== null && (bytes.length !== expected.byteLength || rawSha256 !== expected.sha256)) fail(`${name}: JSON raw byte/hash mismatch`);
   if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) fail(`${name}: BOM forbidden`);
   let text; try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { fail(`${name}: malformed UTF-8`); }
   return [strictJson(text), bytes];
@@ -171,13 +185,12 @@ function loadShardedDifferential(manifest) {
   if (!eq(paths, ordered) || new Set(paths).size !== paths.length) fail("differential shard inventory order");
   const actual = readdirSync(root).filter((name) => name.startsWith("differential-fixtures-shard-") && name.endsWith(".json")).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
   if (!eq(actual, paths)) fail("differential shard inventory has missing or extra files");
-  const cases = [], rawCases = [], canonicalRoot = realpathSync(root);
+  const cases = [], rawCases = [];
   for (let index = 0; index < inventory.length; index++) {
     const row = inventory[index];
     if (!exactKeys(row, rowKeys) || !shardNamePattern.test(row.path) || basename(row.path) !== row.path || row.path.includes(":") || row.path.includes("/") || row.path.includes("\\") || !Number.isSafeInteger(row.byte_length) || row.byte_length < 0 || !Number.isSafeInteger(row.case_count) || row.case_count < 0 || !Number.isSafeInteger(row.raw_case_count) || row.raw_case_count < 0 || !/^[0-9a-f]{64}$/u.test(row.sha256)) fail(`differential shard inventory row ${index}`);
-    const lexicalPath = pathResolve(root, row.path); if (dirname(lexicalPath) !== pathResolve(root) || dirname(realpathSync(lexicalPath)) !== canonicalRoot) fail("differential shard path traversal");
-    const [shard, bytes] = loadBytes(row.path, true), hash = createHash("sha256").update(bytes).digest("hex");
-    if (bytes.length !== row.byte_length || hash !== row.sha256) fail(`differential shard byte/hash mismatch ${row.path}`);
+    const lexicalPath = pathResolve(root, row.path); if (dirname(lexicalPath) !== pathResolve(root)) fail("differential shard path traversal");
+    const [shard, bytes] = loadBytes(row.path, true, { byteLength: row.byte_length, sha256: row.sha256 });
     const shardKeys = ["schema", "protocol", "rfc_revision", "shard_index", "cases", "raw_json_cases"];
     if (!exactKeys(shard, shardKeys) || shard.schema !== "semantic-differential-fixture-shard.v0" || shard.protocol !== manifest.protocol || shard.rfc_revision !== manifest.rfc_revision || shard.shard_index !== index || !Array.isArray(shard.cases) || !Array.isArray(shard.raw_json_cases) || shard.cases.length !== row.case_count || shard.raw_json_cases.length !== row.raw_case_count) fail(`differential shard shape/count ${row.path}`);
     cases.push(...shard.cases); rawCases.push(...shard.raw_json_cases);
@@ -215,6 +228,7 @@ function checkOrder(instance) {
 function checkClaimScope(instance) {
   const expected = { "semantic-owner-acceptance.v0": ["acceptance_authority", "consumer_owner"], "semantic-materialization-verification-receipt.v0": ["issuer", "rocs"], "semantic-activation-receipt.v0": ["issuer", "consumer_owner"], "semantic-rocs-generation-receipt.v0": ["issuer", "rocs"], "semantic-pi-delivery-receipt.v0": ["issuer", "pi"], "semantic-ak-evidence-linkage.v0": ["issuer", "ak"], "semantic-rollback-request.v0": ["issuer", "consumer_owner"], "semantic-rollback-availability-proof.v0": ["issuer", "rocs"], "semantic-rollback-history-transition.v0": ["issuer", "consumer_owner"], "semantic-rollback-receipt.v0": ["issuer", "recovery_controller"] };
   const row = expected[instance.schema]; if (row && instance[row[0]].kind !== row[1]) fail("issuer_scope_violation");
+  const adapter = pinnedAdapterIssuers.get(instance.schema); if (adapter && !eq(instance.issuer, { kind: adapter[0], id: adapter[1] })) fail("issuer_scope_violation");
   if (instance.schema === "semantic-publication-recovery-intent-marker.v0" && instance.issuer.kind !== "recovery_controller") fail("issuer_scope_violation");
   if (instance.schema === "semantic-publication-recovery-state-receipt.v0") { const kind = instance.phase === "before" ? "semantic_owner" : "recovery_controller"; if (instance.issuer.kind !== kind) fail("issuer_scope_violation"); }
   if (instance.schema === "semantic-rollback-technical-receipt.v0") { const kind = { materialization: "rocs", runtime_revalidation: "rocs", disable_contract: "consumer_owner", rehearsal: "recovery_controller", health: "recovery_controller" }[instance.receipt_kind]; if (instance.issuer.kind !== kind) fail("issuer_scope_violation"); }
@@ -240,11 +254,20 @@ const authorityBearingRules = new Set(["acceptance_binding", "activation_binding
 const allRules = new Set(["acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"]);
 const expectedAuthorityEdgeCount = 139;
 const expectedAuthorityRegistryDigest = "sha256:a1b26aefb4c9c6746e646d8b443d24cd2ef8024123cf45cfa58adae645303130";
-const expectedAuthorityManifestDigest = "sha256:a96179f5e15b017823f7124bc8ebd8eb807fbe27cdc1367e23b0887b8a3966e8";
-const expectedSourceAuditDigest = "sha256:9259e5d167428e5573df1f389590f8e2009b7e7d353a0279beb7c23cabc13705";
+const expectedAuthorityManifestDigest = "sha256:62ae94c1ed3a9e5609087fa753cd820340b7caf10cb142eeb019f9ddf42ccf28";
+const expectedSourceAuditDigest = "sha256:e8b4bc0396b01e4e55b23583dc440c60b11eb1f5a523b49fe418b10e2b170390";
+const pinnedAkRepository = { owner: "agent-kernel-owner", repository_id: "agent-kernel", canonical_locator: "local://softwareco/owned/agent-kernel", identity_revision: 9 };
+const pinnedRocsRepository = { owner: "rocs-owner", repository_id: "rocs-cli", canonical_locator: "local://core/rocs-cli", identity_revision: 4 };
+const pinnedPiRepository = { owner: "pi-owner", repository_id: "pi-adapter", canonical_locator: "local://softwareco/pi-adapter", identity_revision: 1 };
+const pinnedAdapterIssuers = new Map([
+  ["semantic-rocs-generation-receipt.v0", ["rocs", pinnedRocsRepository.repository_id]],
+  ["semantic-pi-delivery-receipt.v0", ["pi", pinnedPiRepository.repository_id]],
+  ["semantic-ak-evidence-linkage.v0", ["ak", pinnedAkRepository.repository_id]],
+]);
 let authorityManifest = null;
 let authorityManifestByRule = new Map();
 const requiredReceiptRoles = Object.fromEntries(Object.entries({
+  ak_optional_pi: ["canonical_task_states"],
   approval_threshold: [],
   trust_rotation: ["current_root_digest", "revoked", "canonical_store_head", "current_decision_record_digest"],
   trust_revocation: ["prior_revision", "prior_head", "canonical_store_head", "current_decision_record_digest"],
@@ -400,10 +423,11 @@ function validateRuleContext(rule, subject, context) {
   else if (rule === "tombstone_reuse") { typed = [["tombstones", "semantic-tombstone-registry.v0"], ["tombstone_history", "semantic-tombstone-history-proof.v0"]]; expectedShapeContext(context.tombstone_genesis_anchor, "tombstoneGenesisAnchor"); }
   else if (rule === "publication_commit") { typed = [["transaction", "semantic-publication-transaction.v0"], ["journal", "semantic-publication-journal.v0"], ["marker", "semantic-publication-commit-marker.v0"], ["approval", "semantic-owner-approval.v0"], ["trust_root", "semantic-trust-root.v0"], ["prior_journal", "semantic-publication-journal.v0"], ["prior_status", "semantic-owner-publication.v0"], ["policy", "semantic-owner-policy.v0"], ["owner_set", "semantic-owner-set.v0"], ["predicate", "semantic-approval-predicate.v0"], ["decision", "semantic-ak-decision-reference.v0"]]; expectedShapeContext(context.external_trust_root_pin, "externalTrustRootPin"); }
   else if (rule === "publication_transition") { typed = [["transaction", "semantic-publication-transaction.v0"], ["journal", "semantic-publication-journal.v0"], ["marker", "semantic-publication-commit-marker.v0"], ["prior_status", ["semantic-owner-publication.v0", "semantic-publication-status-transition.v0"]], ["approval", "semantic-owner-approval.v0"], ["trust_root", "semantic-trust-root.v0"], ["policy", "semantic-owner-policy.v0"], ["owner_set", "semantic-owner-set.v0"], ["predicate", "semantic-approval-predicate.v0"], ["prior_journal", "semantic-publication-journal.v0"], ["decision", "semantic-ak-decision-reference.v0"]]; expectedShapeContext(context.external_trust_root_pin, "externalTrustRootPin"); }
-  else if (rule === "publication_recovery") { typed = [["transaction", "semantic-publication-transaction.v0"], ["resulting_status", ["semantic-owner-publication.v0", "semantic-publication-status-transition.v0"]], ["intent_marker", "semantic-publication-recovery-intent-marker.v0"], ["before", "semantic-publication-recovery-state-receipt.v0"], ["after", "semantic-publication-recovery-state-receipt.v0"], ["prior_status", ["semantic-owner-publication.v0", "semantic-publication-status-transition.v0"]], ["prior_journal", "semantic-publication-journal.v0"], ["approval", "semantic-owner-approval.v0"], ["policy", "semantic-owner-policy.v0"], ["owner_set", "semantic-owner-set.v0"], ["predicate", "semantic-approval-predicate.v0"], ["decision", "semantic-ak-decision-reference.v0"], ["trust_root", "semantic-trust-root.v0"]]; if (context.marker !== null) typed.push(["marker", "semantic-publication-commit-marker.v0"]); expectedShapeContext(context.before.state, "publicationRecoveryState"); expectedShapeContext(context.after.state, "publicationRecoveryState"); expectedShapeContext(context.external_trust_root_pin, "externalTrustRootPin"); }
+  else if (rule === "publication_recovery") { typed = [["transaction", "semantic-publication-transaction.v0"], ["resulting_status", ["semantic-owner-publication.v0", "semantic-publication-status-transition.v0"]], ["before", "semantic-publication-recovery-state-receipt.v0"], ["after", "semantic-publication-recovery-state-receipt.v0"], ["prior_status", ["semantic-owner-publication.v0", "semantic-publication-status-transition.v0"]], ["prior_journal", "semantic-publication-journal.v0"], ["approval", "semantic-owner-approval.v0"], ["policy", "semantic-owner-policy.v0"], ["owner_set", "semantic-owner-set.v0"], ["predicate", "semantic-approval-predicate.v0"], ["decision", "semantic-ak-decision-reference.v0"], ["trust_root", "semantic-trust-root.v0"]]; if (context.intent_marker !== null) typed.push(["intent_marker", "semantic-publication-recovery-intent-marker.v0"]); if (context.marker !== null) typed.push(["marker", "semantic-publication-commit-marker.v0"]); expectedShapeContext(context.before.state, "publicationRecoveryState"); expectedShapeContext(context.after.state, "publicationRecoveryState"); expectedShapeContext(context.external_trust_root_pin, "externalTrustRootPin"); }
   else if (rule === "projection") { expectedShapeContext(context.tombstone_genesis_anchor, "tombstoneGenesisAnchor"); typed = [["projection", "semantic-payload-projection.v0"], ["capsule", "semantic-release-capsule.v0"], ["archive_linkage", "semantic-capsule-archive-linkage.v0"], ["payload_manifest", "semantic-material-manifest.v0"], ["consumer_manifest", "semantic-material-manifest.v0"], ["archive_manifest", "semantic-material-manifest.v0"], ["tombstones", "semantic-tombstone-registry.v0"], ["tombstone_history", "semantic-tombstone-history-proof.v0"]]; }
   else if (rule === "rollback") { typed = [["request", "semantic-rollback-request.v0"], ["activation", "semantic-activation-receipt.v0"], ["decision", "semantic-ak-decision-reference.v0"], ["intent", "semantic-consumer-intent.v0"], ["acceptance", "semantic-owner-acceptance.v0"], ["materialization", "semantic-materialization-verification-receipt.v0"], ["availability", "semantic-rollback-availability-proof.v0"], ["recovery_artifact", "semantic-rollback-availability-receipt.v0"]]; const names = { semantic_artifact: "semantic-rollback-availability-receipt.v0", runtime_artifact: "semantic-rollback-availability-receipt.v0", disable_artifact: "semantic-rollback-availability-receipt.v0", history_after: "semantic-rollback-history-transition.v0", ak_linkage: "semantic-ak-evidence-linkage.v0", pi_receipt: "semantic-pi-delivery-receipt.v0" }; for (const [key, name] of Object.entries(names)) if (context[key] !== null && context[key] !== undefined) expectedContext(context[key], name); expectedShapeContext(context.canonical_history_head, "historyHead"); }
   else if (rule === "pi_delivery") typed = [["generation", "semantic-rocs-generation-receipt.v0"]];
+  else if (rule === "ak_optional_pi") { if (!eq(Object.keys(context).filter((key) => !key.startsWith("_")).sort(), ["activation", "canonical_task_states", "decision", "generation", "pi_receipt"])) throw new ContextError("self_certification"); if (!Array.isArray(context.canonical_task_states) || context.canonical_task_states.length !== 1) throw new ContextError("self_certification"); expectedShapeContext(context.canonical_task_states[0], "akTaskState"); typed = [["decision", "semantic-ak-decision-reference.v0"], ["activation", "semantic-activation-receipt.v0"], ["generation", "semantic-rocs-generation-receipt.v0"]]; if (context.pi_receipt !== null) expectedContext(context.pi_receipt, "semantic-pi-delivery-receipt.v0"); }
   else if (rule === "generation_activation") typed = [["activation", "semantic-activation-receipt.v0"], ["decision", "semantic-ak-decision-reference.v0"], ["intent", "semantic-consumer-intent.v0"], ["acceptance", "semantic-owner-acceptance.v0"], ["materialization", "semantic-materialization-verification-receipt.v0"], ["availability", "semantic-rollback-availability-proof.v0"]];
   else if (rule === "ak_decision") expectedShapeContext(context.canonical_store_head, "akStoreHead");
   else if (rule === "acceptance_binding") typed = [["decision", "semantic-ak-decision-reference.v0"], ["intent", "semantic-consumer-intent.v0"]];
@@ -515,7 +539,7 @@ function lifecyclePublicationEndpointValid(prefix, context) {
 function tombstoneHistoryValid(proof, current, genesisAnchor) {
   if (genesisAnchor.semantic_owner_id !== "semantic-owner" || genesisAnchor.namespace !== current.namespace || genesisAnchor.genesis_registry_revision !== 1 || !eq(proof.issuer, { kind: "semantic_owner", id: "semantic-owner" }) || proof.namespace !== current.namespace || proof.current_lifecycle_head_digest !== current.lifecycle_head_digest || proof.current_registry_digest !== current.tombstone_registry_digest || proof.current_registry_revision !== current.registry_revision) return false;
   const revisions = proof.revisions; if (!revisions.length || revisions.length !== current.registry_revision) return false;
-  let previous = null;
+  let previous = null; const priorSemanticIds = new Set(), priorLifecycleHeads = new Set();
   for (let index = 0; index < revisions.length; index++) {
     const expectedRevision = index + 1, { registry, authorized_delta: delta } = revisions[index];
     try { if (!embeddedDigestValid(registry)) return false; checkOrder(registry); } catch { return false; }
@@ -524,9 +548,9 @@ function tombstoneHistoryValid(proof, current, genesisAnchor) {
       if (expectedRevision !== 1 || registry.prior_registry_digest !== null || registry.tombstone_registry_digest !== genesisAnchor.genesis_registry_digest || registry.registry_revision !== genesisAnchor.genesis_registry_revision || registry.lifecycle_head_digest !== genesisAnchor.genesis_lifecycle_head_digest || registry.namespace !== genesisAnchor.namespace || delta.authorization_kind !== "genesis" || delta.prior_lifecycle_head_digest !== null || !eq(delta.added_entries, registry.entries)) return false;
     } else {
       const priorEntries = new Map(previous.entries.map((row) => [row.semantic_id, row])), currentEntries = new Map(registry.entries.map((row) => [row.semantic_id, row])), added = delta.added_entries, addedIds = new Set(added.map((row) => row.semantic_id));
-      if (registry.prior_registry_digest !== previous.tombstone_registry_digest || delta.authorization_kind !== "removal" || delta.prior_lifecycle_head_digest !== previous.lifecycle_head_digest || added.length !== 1 || addedIds.size !== added.length || delta.authorization_record_digest !== registry.lifecycle_head_digest || added.some((row) => row.origin_record_digest !== delta.authorization_record_digest) || [...priorEntries].some(([key, value]) => !currentEntries.has(key) || !eq(currentEntries.get(key), value)) || currentEntries.size !== new Set([...priorEntries.keys(), ...addedIds]).size || added.some((row) => !eq(currentEntries.get(row.semantic_id), row))) return false;
+      if (registry.prior_registry_digest !== previous.tombstone_registry_digest || delta.authorization_kind !== "removal" || delta.prior_lifecycle_head_digest !== previous.lifecycle_head_digest || added.length !== 1 || addedIds.size !== added.length || [...addedIds].some((id) => priorSemanticIds.has(id)) || registry.entries.length !== previous.entries.length + 1 || priorLifecycleHeads.has(registry.lifecycle_head_digest) || delta.authorization_record_digest !== registry.lifecycle_head_digest || added.some((row) => row.origin_record_digest !== delta.authorization_record_digest) || [...priorEntries].some(([key, value]) => !currentEntries.has(key) || !eq(currentEntries.get(key), value)) || currentEntries.size !== new Set([...priorEntries.keys(), ...addedIds]).size || added.some((row) => !eq(currentEntries.get(row.semantic_id), row))) return false;
     }
-    previous = registry;
+    registry.entries.forEach((row) => priorSemanticIds.add(row.semantic_id)); priorLifecycleHeads.add(registry.lifecycle_head_digest); previous = registry;
   }
   return eq(previous, current);
 }
@@ -634,7 +658,6 @@ function evaluate(rule, subject, context, resolved = false) {
     const observedRevision = subject.linearized ? result.ledger_revision : prior.ledger_revision, observedDigest = subject.linearized ? resultDigest : priorDigest;
     const canonicalBefore = priorDigest !== undefined && resultDigest !== undefined && before.revision === context.canonical_publication_revision && before.revision === observedRevision
       && before.head === context.canonical_publication_head && before.head === observedDigest && before.status_record_digest === context.canonical_publication_status_digest && before.status_record_digest === observedDigest
-      && before.intent_marker_digest === intent.publication_recovery_intent_marker_digest && before.durable_commit_marker_digest === null && before.staging_present
       && subject.prior_journal_digest === context.canonical_publication_journal_head && subject.prior_journal_digest === priorJournal.publication_journal_digest
       && subject.publication_journal_digest === context.canonical_recovery_journal_head && priorPublicationChainValid(tx, prior, priorJournal)
       && (subject.linearized || tx.expected_prior_revision === before.revision && tx.expected_prior_head_digest === before.head);
@@ -650,18 +673,22 @@ function evaluate(rule, subject, context, resolved = false) {
     let resultJoin;
     if (result.schema === "semantic-owner-publication.v0") resultJoin = tx.operation === "publish" && tx.status_reason_digest === null && result.status === "published" && result.ledger_namespace === tx.namespace && tx.namespace === tx.coordinate.namespace && result.prior_publication_digest === priorDigest;
     else { const operation = result.to_status === "withdrawn" ? "withdraw" : "revoke"; resultJoin = tx.operation === operation && tx.status_reason_digest === result.reason_digest && result.prior_status_record_digest === priorDigest && result.from_status === priorStatus && eq(prior.coordinate, result.coordinate) && tx.namespace === tx.coordinate.namespace; }
+    const markerJoin = marker !== null && embeddedDigestValid(marker) && marker.fsync_complete && marker.journal_digest === subject.publication_journal_digest && marker.transaction_digest === subject.transaction_digest && marker.resulting_record_digest === subject.resulting_record_digest && marker.resulting_ledger_head_digest === subject.resulting_ledger_head_digest && marker.resulting_ledger_revision === subject.resulting_ledger_revision;
+    const common = canonicalBefore && transitionExpected && commonResult && resultJoin, committedReplay = subject.state === "committed" && subject.linearized && subject.recovery_action === "none";
+    if (committedReplay) {
+      const replayState = before.revision === subject.resulting_ledger_revision && before.head === subject.resulting_ledger_head_digest && before.status_record_digest === subject.resulting_record_digest && before.intent_marker_digest === null && marker !== null && before.durable_commit_marker_digest === marker.publication_commit_marker_digest && !before.staging_present;
+      return common && intent === null && markerJoin && replayState && eq(after, before) ? null : "recovery_needed";
+    }
+    if (intent === null) return "self_certification";
     const intentJoin = eq(intent.issuer, { kind: "recovery_controller", id: subject.recovery_controller_id }) && intent.marker_semantics === "non_durable_intent_only" && !intent.fsync_complete && !intent.durable_commit_marker_present
       && intent.journal_digest === subject.publication_journal_digest && intent.transaction_digest === subject.transaction_digest
       && intent.resulting_record_digest === subject.resulting_record_digest && intent.resulting_ledger_head_digest === subject.resulting_ledger_head_digest
       && intent.resulting_ledger_revision === subject.resulting_ledger_revision;
-    if (!(canonicalBefore && transitionExpected && commonResult && resultJoin && intentJoin)) return "recovery_needed";
+    const activeBefore = before.intent_marker_digest === intent.publication_recovery_intent_marker_digest && before.durable_commit_marker_digest === null && before.staging_present;
+    if (!(common && intentJoin && activeBefore)) return "recovery_needed";
     if (!subject.linearized) {
       if (marker !== null || after.revision !== before.revision || after.head !== before.head || after.status_record_digest !== before.status_record_digest || after.intent_marker_digest !== null || after.durable_commit_marker_digest !== null || after.staging_present) return "recovery_needed";
-    } else {
-      if (marker === null) return "recovery_needed";
-      const markerJoin = embeddedDigestValid(marker) && marker.fsync_complete && marker.journal_digest === subject.publication_journal_digest && marker.transaction_digest === subject.transaction_digest && marker.resulting_record_digest === subject.resulting_record_digest && marker.resulting_ledger_head_digest === subject.resulting_ledger_head_digest && marker.resulting_ledger_revision === subject.resulting_ledger_revision;
-      if (!markerJoin || after.revision !== before.revision || after.head !== before.head || after.status_record_digest !== before.status_record_digest || after.revision !== subject.resulting_ledger_revision || after.head !== subject.resulting_ledger_head_digest || after.status_record_digest !== subject.resulting_record_digest || after.intent_marker_digest !== null || after.durable_commit_marker_digest !== marker.publication_commit_marker_digest || after.staging_present) return "recovery_needed";
-    }
+    } else if (!markerJoin || after.revision !== before.revision || after.head !== before.head || after.status_record_digest !== before.status_record_digest || after.revision !== subject.resulting_ledger_revision || after.head !== subject.resulting_ledger_head_digest || after.status_record_digest !== subject.resulting_record_digest || after.intent_marker_digest !== null || marker === null || after.durable_commit_marker_digest !== marker.publication_commit_marker_digest || after.staging_present) return "recovery_needed";
     return null;
   }
   if (rule === "projection") {
@@ -738,7 +765,19 @@ function evaluate(rule, subject, context, resolved = false) {
     return noAuthority && subject.task_contract_id !== consumer.task_contract_id && exact ? null : "self_certification";
   }
   if (rule === "pi_delivery") { const generation = context.generation; let valid = subject.rocs_generation_receipt_digest === generation.rocs_generation_receipt_digest && eq(subject.consumer_repository, generation.consumer_repository) && eq(subject.v0_canary_scope, generation.v0_canary_scope) && eq(subject.v0_canary_scope.consumer_repository, subject.consumer_repository); if (subject.delivery_outcome === "delivered") valid &&= subject.delivered_effective_execution_digest === generation.effective_execution_digest; return valid ? null : "activation_not_current"; }
-  if (["pi_variant", "ak_optional_pi"].includes(rule)) return null;
+  if (rule === "ak_optional_pi") {
+    const task = context.canonical_task_states[0], decision = context.decision, activation = context.activation, generation = context.generation, piReceipt = context.pi_receipt;
+    const exact = eq(subject.issuer, { kind: "ak", id: pinnedAkRepository.repository_id }) && eq(task.repository, pinnedAkRepository) && eq(decision.ak_repository, pinnedAkRepository)
+      && eq(task.ak_store_head, decision.ak_store_head) && task.state === "evidence_accepted" && subject.task_reference_digest === task.task_record_digest
+      && subject.decision_reference_digest === decision.ak_decision_reference_digest && subject.evidence_record_digest === task.artifact_digest
+      && subject.activation_receipt_digest === activation.activation_receipt_digest && subject.rocs_generation_receipt_digest === generation.rocs_generation_receipt_digest
+      && activation.gate_decision_reference_digest === decision.ak_decision_reference_digest && generation.activation_receipt_digest === activation.activation_receipt_digest;
+    if (!exact) return "self_certification";
+    if (subject.pi_delivery_receipt_digest === null) return piReceipt === null ? null : "self_certification";
+    if (piReceipt === null || subject.pi_delivery_receipt_digest !== piReceipt.pi_delivery_receipt_digest || evaluate("pi_delivery", piReceipt, { generation }, true) !== null) return "self_certification";
+    return null;
+  }
+  if (rule === "pi_variant") return null;
   fail(`unknown differential rule ${rule}`);
 }
 

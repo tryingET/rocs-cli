@@ -458,8 +458,15 @@ ak_link = add("ak_evidence_linkage", {"schema": "semantic-ak-evidence-linkage.v0
     "task_reference_digest": raw("ak-task"), "decision_reference_digest": d("consumer_ak_decision"), "evidence_record_digest": raw("ak-evidence"), "activation_receipt_digest": d("activation_receipt"),
     "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "pi_delivery_receipt_digest": d("pi_delivery_delivered"), "empirical_outcome_reference_digest": None})
 ak_generation_only = add("ak_generation_only_linkage", {"schema": "semantic-ak-evidence-linkage.v0", "issuer": {"kind": "ak", "id": "agent-kernel"}, "claim_scope": "lineage_linkage_only",
-    "task_reference_digest": raw("ak-task-generation"), "decision_reference_digest": d("consumer_ak_decision"), "evidence_record_digest": raw("ak-evidence-generation"), "activation_receipt_digest": d("activation_receipt"),
+    "task_reference_digest": raw("ak-task"), "decision_reference_digest": d("consumer_ak_decision"), "evidence_record_digest": raw("ak-evidence"), "activation_receipt_digest": d("activation_receipt"),
     "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "pi_delivery_receipt_digest": None, "empirical_outcome_reference_digest": None})
+ak_lineage_task_state = {"repository": ak_repo, "ak_store_head": ak_store_head,
+    "task_id": "semantic-release-canary-lineage", "task_record_digest": raw("ak-task"),
+    "artifact_digest": raw("ak-evidence"), "state": "evidence_accepted"}
+
+def ak_linkage_context(pi_receipt: dict | None) -> dict:
+    return {"canonical_task_states": [copy.deepcopy(ak_lineage_task_state)], "decision": consumer_decision,
+        "activation": activation, "generation": generation, "pi_receipt": pi_receipt}
 
 
 def history(name: str, request: dict, result: str, after: dict, stages: list[dict], failure_stage: str | None, error_digest: str | None, supersedes: str | None) -> dict:
@@ -775,6 +782,53 @@ coordinated_wrong_revisions[-1]["authorized_delta"]["added_entries"][0]["origin_
 coordinated_wrong_history = variant(resulting_tombstone_history,
     current_registry_digest=coordinated_wrong_registry["tombstone_registry_digest"],
     revisions=coordinated_wrong_revisions)
+# Fresh v13 correction probes: a non-genesis delta cannot replay an old ID, retain its
+# lifecycle head as a no-op, or roll the lifecycle head back to any historical value.
+replayed_tombstone_registry = variant(resulting_tombstones,
+    lifecycle_head_digest=old_removal_origin, entries=copy.deepcopy(tombstones["entries"]))
+replayed_tombstone_revisions = copy.deepcopy(resulting_tombstone_history["revisions"][:2]) + [{
+    "registry": replayed_tombstone_registry, "authorized_delta": {"authorization_kind": "removal",
+        "authorization_record_digest": old_removal_origin,
+        "prior_lifecycle_head_digest": tombstones["lifecycle_head_digest"],
+        "resulting_lifecycle_head_digest": old_removal_origin,
+        "added_entries": copy.deepcopy(tombstones["entries"])}}]
+replayed_tombstone_history = variant(resulting_tombstone_history,
+    current_lifecycle_head_digest=replayed_tombstone_registry["lifecycle_head_digest"],
+    current_registry_digest=replayed_tombstone_registry["tombstone_registry_digest"],
+    revisions=replayed_tombstone_revisions)
+noop_tombstone_entry = {"semantic_id": "core.Noop", "reason": "removed", "origin_record_digest": old_removal_origin}
+noop_tombstone_entries = copy.deepcopy(tombstones["entries"]) + [noop_tombstone_entry]
+noop_tombstone_entries.sort(key=lambda row: row["semantic_id"].encode())
+noop_tombstone_registry = variant(resulting_tombstones,
+    lifecycle_head_digest=old_removal_origin, entries=noop_tombstone_entries)
+noop_tombstone_revisions = copy.deepcopy(resulting_tombstone_history["revisions"][:2]) + [{
+    "registry": noop_tombstone_registry, "authorized_delta": {"authorization_kind": "removal",
+        "authorization_record_digest": old_removal_origin,
+        "prior_lifecycle_head_digest": tombstones["lifecycle_head_digest"],
+        "resulting_lifecycle_head_digest": old_removal_origin,
+        "added_entries": [copy.deepcopy(noop_tombstone_entry)]}}]
+noop_tombstone_history = variant(resulting_tombstone_history,
+    current_lifecycle_head_digest=noop_tombstone_registry["lifecycle_head_digest"],
+    current_registry_digest=noop_tombstone_registry["tombstone_registry_digest"],
+    revisions=noop_tombstone_revisions)
+rollback_tombstone_entry = {"semantic_id": "core.Rollback", "reason": "removed",
+    "origin_record_digest": prior_tombstones["lifecycle_head_digest"]}
+rollback_tombstone_entries = copy.deepcopy(resulting_tombstones["entries"]) + [rollback_tombstone_entry]
+rollback_tombstone_entries.sort(key=lambda row: row["semantic_id"].encode())
+rollback_tombstone_registry = variant(resulting_tombstones,
+    lifecycle_head_digest=prior_tombstones["lifecycle_head_digest"], registry_revision=4,
+    entries=rollback_tombstone_entries, prior_registry_digest=resulting_tombstones["tombstone_registry_digest"])
+rollback_tombstone_revisions = copy.deepcopy(resulting_tombstone_history["revisions"]) + [{
+    "registry": rollback_tombstone_registry, "authorized_delta": {"authorization_kind": "removal",
+        "authorization_record_digest": prior_tombstones["lifecycle_head_digest"],
+        "prior_lifecycle_head_digest": resulting_tombstones["lifecycle_head_digest"],
+        "resulting_lifecycle_head_digest": prior_tombstones["lifecycle_head_digest"],
+        "added_entries": [copy.deepcopy(rollback_tombstone_entry)]}}]
+rollback_tombstone_history = variant(resulting_tombstone_history,
+    current_lifecycle_head_digest=rollback_tombstone_registry["lifecycle_head_digest"],
+    current_registry_digest=rollback_tombstone_registry["tombstone_registry_digest"],
+    current_registry_revision=rollback_tombstone_registry["registry_revision"],
+    revisions=rollback_tombstone_revisions)
 tombstoned_addition = variant(compat_report, changes=[{"category": "addition", "semantic_id": "core.Legacy", "classification": "compatible", "semver_effect": "minor", "condition_id": None}])
 reuse_namespace_drift_head = {**reuse_lifecycle_tombstone_head, "namespace": "other.space"}
 reuse_lifecycle_drift_head = {**reuse_lifecycle_tombstone_head, "lifecycle_head_digest": raw("wrong-lifecycle-current-head")}
@@ -866,6 +920,18 @@ cases += [
         {"tombstones": coordinated_wrong_registry, "tombstone_history": coordinated_wrong_history, "override": None,
          "tombstone_genesis_anchor": tombstone_genesis_anchor,
          "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(coordinated_wrong_registry)}),
+    case("tombstone_history_replayed_added_id_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
+        {"tombstones": replayed_tombstone_registry, "tombstone_history": replayed_tombstone_history, "override": None,
+         "tombstone_genesis_anchor": tombstone_genesis_anchor,
+         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(replayed_tombstone_registry)}),
+    case("tombstone_history_lifecycle_head_noop_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
+        {"tombstones": noop_tombstone_registry, "tombstone_history": noop_tombstone_history, "override": None,
+         "tombstone_genesis_anchor": tombstone_genesis_anchor,
+         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(noop_tombstone_registry)}),
+    case("tombstone_history_lifecycle_head_rollback_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
+        {"tombstones": rollback_tombstone_registry, "tombstone_history": rollback_tombstone_history, "override": None,
+         "tombstone_genesis_anchor": tombstone_genesis_anchor,
+         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(rollback_tombstone_registry)}),
     case("tombstone_history_dropped_cumulative_entry_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
         {"tombstones": dropped_cumulative_registry, "tombstone_history": dropped_cumulative_history, "override": None,
          "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(dropped_cumulative_registry)}),
@@ -925,10 +991,10 @@ publish_commit_context = {"transaction": publish_tx, "journal": publish_journal,
     **trust_authority_facts, "canonical_publication_revision": prior_publication["ledger_revision"],
     "canonical_publication_head": prior_publication["owner_publication_digest"],
     "canonical_publication_journal_head": prior_publish_journal["publication_journal_digest"]}
-def recovery_state(intent_marker: dict, revision: int, head: str, status_digest: str, *, staging: bool,
+def recovery_state(intent_marker: dict | None, revision: int, head: str, status_digest: str, *, staging: bool,
         durable_marker: dict | None = None) -> dict:
     return {"revision": revision, "head": head, "status_record_digest": status_digest,
-        "intent_marker_digest": intent_marker["publication_recovery_intent_marker_digest"] if staging else None,
+        "intent_marker_digest": intent_marker["publication_recovery_intent_marker_digest"] if staging and intent_marker is not None else None,
         "durable_commit_marker_digest": None if durable_marker is None else durable_marker["publication_commit_marker_digest"],
         "staging_present": staging}
 
@@ -961,9 +1027,15 @@ revoke_before = recovery_state_receipt("revoke_before_state_receipt", "before", 
 revoke_discarded = recovery_state_receipt("revoke_after_state_receipt", "after", revoke_after_state, revoke_prepared, revoke_tx)
 aborted_before = recovery_state_receipt("aborted_before_state_receipt", "before", aborted_before_state, aborted, publish_tx)
 aborted_after = recovery_state_receipt("aborted_after_state_receipt", "after", aborted_after_state, aborted, publish_tx)
+committed_replay_state = recovery_state(None, 2, d("owner_publication"), d("owner_publication"),
+    staging=False, durable_marker=publish_marker)
+committed_replay_before = recovery_state_receipt("publish_committed_replay_before_state_receipt", "before",
+    committed_replay_state, publish_journal, publish_tx)
+committed_replay_after = recovery_state_receipt("publish_committed_replay_after_state_receipt", "after",
+    copy.deepcopy(committed_replay_state), publish_journal, publish_tx)
 
 
-def recovery_context(subject_journal: dict, before: dict, after: dict, intent_marker: dict,
+def recovery_context(subject_journal: dict, before: dict, after: dict, intent_marker: dict | None,
         marker: dict | None, transaction: dict, resulting_status: dict, prior_status: dict, prior_journal: dict,
         approval: dict, decision: dict = owner_decision) -> dict:
     prior_status_digest = prior_status.get("owner_publication_digest", prior_status.get("publication_status_transition_digest"))
@@ -997,6 +1069,21 @@ revoke_recovery_context = recovery_context(revoke_prepared, revoke_before, revok
     revoke_tx, revoked_publication, withdrawal, withdraw_journal, revoke_approval)
 aborted_recovery_context = recovery_context(aborted, aborted_before, aborted_after, aborted_intent, None,
     publish_tx, publication, prior_publication, prior_publish_journal, owner_approval)
+committed_replay_context = recovery_context(publish_journal, committed_replay_before, committed_replay_after, None,
+    publish_marker, publish_tx, publication, prior_publication, prior_publish_journal, owner_approval)
+committed_replay_wrong_marker = variant(withdraw_marker,
+    journal_digest=publish_journal["publication_journal_digest"])
+committed_replay_wrong_marker_state = recovery_state(None, 2, d("owner_publication"), d("owner_publication"),
+    staging=False, durable_marker=committed_replay_wrong_marker)
+committed_replay_wrong_marker_before = variant(committed_replay_before, state=committed_replay_wrong_marker_state)
+committed_replay_wrong_marker_after = variant(committed_replay_after, state=committed_replay_wrong_marker_state)
+committed_replay_mutated_after = variant(committed_replay_after, state={**committed_replay_state,
+    "revision": 3, "head": raw("committed-replay-mutated-head"),
+    "status_record_digest": raw("committed-replay-mutated-head")})
+committed_replay_intent = copy.deepcopy(publish_recovery_intent)
+committed_replay_staged_before = variant(committed_replay_before,
+    state=recovery_state(committed_replay_intent, 2, d("owner_publication"), d("owner_publication"),
+        staging=True, durable_marker=publish_marker))
 prepared_durable_marker = variant(publish_marker, journal_digest=prepared["publication_journal_digest"])
 fsynced_intent_descriptor = variant(prepared_intent, fsync_complete=True)
 wrong_owner_intent_descriptor = variant(prepared_intent, issuer={"kind": "semantic_owner", "id": "semantic-owner"})
@@ -1070,6 +1157,15 @@ cases += [
     case("illegal_status_self_transition", "publication_transition", illegal_transition, "lifecycle_violation", {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker, "prior_status": publication, "prior_journal_digest": d("publication_journal"), "prior_journal": publish_journal, "approval": withdraw_approval, "policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "decision": owner_decision, **owner_canonical_decision_context}, False),
     case("recovery_before_linearization_discards", "publication_recovery", prepared, None, publish_prepared_context),
     case("recovery_after_linearization_completes", "publication_recovery", committing, None, publish_recovery_context),
+    case("recovery_committed_replay_is_idempotent", "publication_recovery", publish_journal, None, committed_replay_context),
+    case("recovery_committed_replay_marker_drift_rejected", "publication_recovery", publish_journal, "recovery_needed",
+        {**committed_replay_context, "marker": committed_replay_wrong_marker,
+         "before": committed_replay_wrong_marker_before, "after": committed_replay_wrong_marker_after}),
+    case("recovery_committed_replay_mutation_rejected", "publication_recovery", publish_journal, "recovery_needed",
+        {**committed_replay_context, "after": committed_replay_mutated_after}),
+    case("recovery_committed_replay_intent_or_staging_rejected", "publication_recovery", publish_journal, "recovery_needed",
+        {**committed_replay_context, "intent_marker": committed_replay_intent,
+         "before": committed_replay_staged_before}),
     case("withdrawal_recovery_after_linearization_completes", "publication_recovery", withdraw_recovery, None, withdraw_recovery_context),
     case("revocation_recovery_before_linearization_discards", "publication_recovery", revoke_prepared, None, revoke_recovery_context),
     case("aborted_transaction_discards_staging", "publication_recovery", aborted, None, aborted_recovery_context),
@@ -1339,6 +1435,15 @@ generation_default_scope = variant(generation, v0_canary_scope={**canary_scope, 
 pi_delivered_scope_drift = variant(pi_delivered, v0_canary_scope={**canary_scope, "operator_canary_name": "operator-canary-beta"})
 pi_suppressed_scope_drift = variant(pi_suppressed, v0_canary_scope={**canary_scope, "operator_canary_name": "operator-canary-beta"})
 pi_failed_scope_drift = variant(pi_failed, v0_canary_scope={**canary_scope, "operator_canary_name": "operator-canary-beta"})
+generation_issuer_id_drift = variant(generation, issuer={"kind": "rocs", "id": "other-rocs-adapter"})
+pi_issuer_id_drift = variant(pi_delivered, issuer={"kind": "pi", "id": "other-pi-adapter"})
+ak_issuer_id_drift = variant(ak_link, issuer={"kind": "ak", "id": "other-ak-adapter"})
+ak_task_reference_drift = variant(ak_link, task_reference_digest=raw("other-ak-task"))
+ak_decision_reference_drift = variant(ak_link, decision_reference_digest=d("owner_ak_decision"))
+ak_evidence_reference_drift = variant(ak_link, evidence_record_digest=raw("other-ak-evidence"))
+ak_activation_reference_drift = variant(ak_link, activation_receipt_digest=raw("other-activation"))
+ak_generation_reference_drift = variant(ak_link, rocs_generation_receipt_digest=raw("other-generation"))
+ak_pi_reference_drift = variant(ak_link, pi_delivery_receipt_digest=d("pi_delivery_suppressed"))
 activation_context = {"activation": activation, "intent": intent, "acceptance": acceptance, "materialization": materialization, "decision": consumer_decision,
     "current_activation_digest": d("activation_receipt"), "current_activation_revision": 1, "availability": semantic_availability,
     "activation_availability": semantic_availability, "previous_activation": None, **technical_context, **canonical_decision_context, **activation_authority_facts}
@@ -1348,6 +1453,7 @@ cases += [
     case("generation_coordinate_must_equal_activation", "generation_activation", bad_generation_coordinate, "activation_not_current", activation_context),
     case("generation_runtime_must_equal_activation", "generation_activation", bad_generation_runtime, "activation_not_current", activation_context),
     case("generation_canary_scope_must_equal_activation", "generation_activation", generation_scope_drift, "activation_not_current", activation_context),
+    case("generation_issuer_id_must_match_pinned_rocs_adapter", "generation_activation", generation_issuer_id_drift, "issuer_scope_violation", activation_context),
     case("generation_second_canary_rejected", "pi_variant", generation_second_canary, "malformed_input", schema_valid=False),
     case("generation_default_scope_rejected", "pi_variant", generation_default_scope, "malformed_input", schema_valid=False),
     case("generation_from_revoked_activation_rejected", "generation_activation", generation, "activation_not_current", {**activation_context, "activation": revoked_activation}),
@@ -1462,14 +1568,24 @@ cases += [
     case("pi_delivered_variant_accepts", "pi_delivery", pi_delivered, None, {"generation": generation}),
     case("pi_suppressed_variant_accepts", "pi_delivery", pi_suppressed, None, {"generation": generation}),
     case("pi_failed_variant_accepts", "pi_delivery", pi_failed, None, {"generation": generation}),
+    case("pi_issuer_id_must_match_pinned_delivery_adapter", "pi_delivery", pi_issuer_id_drift, "issuer_scope_violation", {"generation": generation}),
     case("pi_delivered_canary_scope_drift_rejected", "pi_delivery", pi_delivered_scope_drift, "activation_not_current", {"generation": generation}),
     case("pi_suppressed_canary_scope_drift_rejected", "pi_delivery", pi_suppressed_scope_drift, "activation_not_current", {"generation": generation}),
     case("pi_failed_canary_scope_drift_rejected", "pi_delivery", pi_failed_scope_drift, "activation_not_current", {"generation": generation}),
     case("delivered_without_prompt_run_rejected", "pi_variant", pi_delivered_missing, "malformed_input", schema_valid=False),
     case("suppressed_cannot_claim_prompt_delivery", "pi_variant", pi_suppressed_leak, "malformed_input", schema_valid=False),
     case("failed_without_error_rejected", "pi_variant", pi_failed_missing, "malformed_input", schema_valid=False),
-    case("ak_generation_only_linkage_accepts_without_pi", "ak_optional_pi", ak_generation_only, None),
-    case("ak_delivered_linkage_requires_pi_digest", "ak_optional_pi", ak_link, None)]
+    case("ak_generation_only_linkage_accepts_without_pi", "ak_optional_pi", ak_generation_only, None, ak_linkage_context(None)),
+    case("ak_delivered_linkage_requires_pi_digest", "ak_optional_pi", ak_link, None, ak_linkage_context(pi_delivered)),
+    case("ak_linkage_issuer_id_must_match_pinned_adapter", "ak_optional_pi", ak_issuer_id_drift, "issuer_scope_violation", ak_linkage_context(pi_delivered)),
+    case("ak_linkage_task_reference_drift_rejected", "ak_optional_pi", ak_task_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
+    case("ak_linkage_decision_reference_drift_rejected", "ak_optional_pi", ak_decision_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
+    case("ak_linkage_evidence_reference_drift_rejected", "ak_optional_pi", ak_evidence_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
+    case("ak_linkage_activation_reference_drift_rejected", "ak_optional_pi", ak_activation_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
+    case("ak_linkage_generation_reference_drift_rejected", "ak_optional_pi", ak_generation_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
+    case("ak_linkage_pi_reference_drift_rejected", "ak_optional_pi", ak_pi_reference_drift, "self_certification", ak_linkage_context(pi_delivered)),
+    case("ak_generation_only_requires_null_resolved_pi", "ak_optional_pi", ak_generation_only, "self_certification", ak_linkage_context(pi_delivered)),
+    case("ak_delivery_claim_requires_resolved_pi", "ak_optional_pi", ak_link, "self_certification", ak_linkage_context(None))]
 
 # Revision-v6 adversarial closure: one direct negative for every revision-v5 false accept/finding.
 def publication_chain_for(approval_value: dict, decision_value: dict, transaction_action: dict) -> tuple[dict, dict]:
@@ -1869,6 +1985,8 @@ RULE_SCHEMA_ROLES = {
     "projection": {"projection": "semantic-payload-projection.v0", "capsule": "semantic-release-capsule.v0", "archive_linkage": "semantic-capsule-archive-linkage.v0", "payload_manifest": "semantic-material-manifest.v0", "consumer_manifest": "semantic-material-manifest.v0", "archive_manifest": "semantic-material-manifest.v0", "tombstones": "semantic-tombstone-registry.v0", "tombstone_history": "semantic-tombstone-history-proof.v0"},
     "rollback": {"request": "semantic-rollback-request.v0", "activation": "semantic-activation-receipt.v0", "decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0", "acceptance": "semantic-owner-acceptance.v0", "materialization": "semantic-materialization-verification-receipt.v0", "availability": "semantic-rollback-availability-proof.v0", "activation_availability": "semantic-rollback-availability-proof.v0", "recovery_artifact": "semantic-rollback-availability-receipt.v0", "semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0", "history_after": "semantic-rollback-history-transition.v0", "ak_linkage": "semantic-ak-evidence-linkage.v0", "pi_receipt": "semantic-pi-delivery-receipt.v0", "previous_activation": "semantic-activation-receipt.v0", "semantic_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_revalidation_technical": "semantic-rollback-technical-receipt.v0", "disable_contract_technical": "semantic-rollback-technical-receipt.v0", "disable_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_health_technical": "semantic-rollback-technical-receipt.v0"},
     "pi_delivery": {"generation": "semantic-rocs-generation-receipt.v0"},
+    "ak_optional_pi": {"decision": "semantic-ak-decision-reference.v0", "activation": "semantic-activation-receipt.v0",
+        "generation": "semantic-rocs-generation-receipt.v0", "pi_receipt": "semantic-pi-delivery-receipt.v0"},
     "generation_activation": {"activation": "semantic-activation-receipt.v0", "decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0", "acceptance": "semantic-owner-acceptance.v0", "materialization": "semantic-materialization-verification-receipt.v0", "availability": "semantic-rollback-availability-proof.v0", "activation_availability": "semantic-rollback-availability-proof.v0", "semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0", "recovery_artifact": "semantic-rollback-availability-receipt.v0", "semantic_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_revalidation_technical": "semantic-rollback-technical-receipt.v0", "disable_contract_technical": "semantic-rollback-technical-receipt.v0", "disable_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_health_technical": "semantic-rollback-technical-receipt.v0", "previous_activation": "semantic-activation-receipt.v0"},
     "acceptance_binding": {"decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0"},
     "activation_binding": {"decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0", "acceptance": "semantic-owner-acceptance.v0", "materialization": "semantic-materialization-verification-receipt.v0", "availability": "semantic-rollback-availability-proof.v0", "activation_availability": "semantic-rollback-availability-proof.v0", "previous_activation": "semantic-activation-receipt.v0", "semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0", "recovery_artifact": "semantic-rollback-availability-receipt.v0", "semantic_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_revalidation_technical": "semantic-rollback-technical-receipt.v0", "disable_contract_technical": "semantic-rollback-technical-receipt.v0", "disable_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_health_technical": "semantic-rollback-technical-receipt.v0"},
@@ -1884,6 +2002,7 @@ AK_SCHEMAS = {"semantic-ak-decision-reference.v0", "semantic-ak-evidence-linkage
 RECOVERY_SCHEMAS = {"semantic-rollback-receipt.v0", "semantic-publication-recovery-intent-marker.v0", "semantic-publication-recovery-state-receipt.v0"}
 
 REQUIRED_RECEIPT_ROLES = {
+    "ak_optional_pi": {"canonical_task_states"},
     "approval_threshold": set(),
     "trust_rotation": {"current_root_digest", "revoked", "canonical_store_head", "current_decision_record_digest"},
     "trust_revocation": {"prior_revision", "prior_head", "canonical_store_head", "current_decision_record_digest"},
@@ -1915,7 +2034,7 @@ RULE_PARAMETER_ROLES = {
     "publication_transition": {"prior_journal_digest"},
     "publication_recovery": set(),
 }
-NULLABLE_ARTIFACT_ROLES = {"override", "marker", "previous_activation", "history_after", "ak_linkage", "pi_receipt",
+NULLABLE_ARTIFACT_ROLES = {"override", "marker", "intent_marker", "previous_activation", "history_after", "ak_linkage", "pi_receipt",
     "decision", "owner_policy", "owner_set", "predicate", "semantic_artifact", "runtime_artifact", "disable_artifact", "recovery_artifact",
     "semantic_materialization_technical", "runtime_materialization_technical", "runtime_revalidation_technical", "disable_contract_technical",
     "disable_rehearsal_technical", "recovery_rehearsal_technical", "recovery_health_technical", "request", "activation", "intent", "acceptance",
@@ -4591,6 +4710,10 @@ EXPLICIT_STORE_METADATA_SETS["store_source_recovery_authority_v13"] = {
 }
 EXPLICIT_CASE_SOURCE_SETS["recovery_before_linearization_discards"] = ["store_source_recovery_authority_v13", "vote_source_003"]
 EXPLICIT_CASE_SOURCE_SETS["recovery_after_linearization_completes"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_committed_replay_is_idempotent"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_committed_replay_marker_drift_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_committed_replay_mutation_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_committed_replay_intent_or_staging_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
 EXPLICIT_CASE_SOURCE_SETS["aborted_transaction_discards_staging"] = ["store_source_recovery_authority_v13", "vote_source_003"]
 EXPLICIT_CASE_SOURCE_SETS["recovery_before_linearization_must_not_move_head"] = ["store_source_recovery_authority_v13", "vote_source_003"]
 EXPLICIT_CASE_SOURCE_SETS["recovery_after_linearization_requires_marker"] = ["store_source_recovery_authority_v13", "vote_source_003"]
@@ -4640,6 +4763,33 @@ EXPLICIT_CASE_SOURCE_SETS["tombstone_history_dropped_revision_rejected"] = ["sto
 EXPLICIT_CASE_SOURCE_SETS["tombstone_history_exact_digest_links_required"] = ["store_source_008", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["tombstone_history_authorized_delta_required"] = ["store_source_008", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["tombstone_history_changed_cumulative_entry_rejected"] = ["store_source_008", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["tombstone_history_replayed_added_id_rejected"] = ["store_source_008", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["tombstone_history_lifecycle_head_noop_rejected"] = ["store_source_008", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["tombstone_history_lifecycle_head_rollback_rejected"] = ["store_source_008", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["generation_issuer_id_must_match_pinned_rocs_adapter"] = list(
+    EXPLICIT_CASE_SOURCE_SETS["generation_from_current_activation_accepts"])
+EXPLICIT_CASE_SOURCE_SETS["pi_issuer_id_must_match_pinned_delivery_adapter"] = list(
+    EXPLICIT_CASE_SOURCE_SETS["pi_delivered_variant_accepts"])
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_issuer_id_must_match_pinned_adapter"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_task_reference_drift_rejected"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_decision_reference_drift_rejected"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_evidence_reference_drift_rejected"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_activation_reference_drift_rejected"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_generation_reference_drift_rejected"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_pi_reference_drift_rejected"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_generation_only_requires_null_resolved_pi"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_delivery_claim_requires_resolved_pi"] = list(EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"])
+EXPLICIT_CASE_SOURCE_SETS["ak_generation_only_linkage_accepts_without_pi"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_delivered_linkage_requires_pi_digest"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_issuer_id_must_match_pinned_adapter"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_task_reference_drift_rejected"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_decision_reference_drift_rejected"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_evidence_reference_drift_rejected"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_activation_reference_drift_rejected"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_generation_reference_drift_rejected"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_linkage_pi_reference_drift_rejected"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_generation_only_requires_null_resolved_pi"] = ["store_source_005", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["ak_delivery_claim_requires_resolved_pi"] = ["store_source_005", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["disable_contract_subject_must_match_rollback_plan"] = ["store_source_016", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["disable_rehearsal_subject_must_match_contract"] = ["store_source_016", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["disable_contract_coordinate_must_be_null"] = ["store_source_016", "vote_source_000"]

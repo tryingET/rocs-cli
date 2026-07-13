@@ -6,7 +6,9 @@ import copy
 import datetime as dt
 import hashlib
 import json
+import os
 import re
+import stat
 import sys
 import unicodedata
 from pathlib import Path
@@ -80,8 +82,16 @@ AUTHORITY_BEARING_RULES = {"acceptance_binding", "activation_binding", "ak_decis
 ALL_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"}
 EXPECTED_AUTHORITY_EDGE_COUNT = 139
 EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:a1b26aefb4c9c6746e646d8b443d24cd2ef8024123cf45cfa58adae645303130"
-EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:a96179f5e15b017823f7124bc8ebd8eb807fbe27cdc1367e23b0887b8a3966e8"
-EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:9259e5d167428e5573df1f389590f8e2009b7e7d353a0279beb7c23cabc13705"
+EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:62ae94c1ed3a9e5609087fa753cd820340b7caf10cb142eeb019f9ddf42ccf28"
+EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:e8b4bc0396b01e4e55b23583dc440c60b11eb1f5a523b49fe418b10e2b170390"
+PINNED_AK_REPOSITORY = {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}
+PINNED_ROCS_REPOSITORY = {"owner": "rocs-owner", "repository_id": "rocs-cli", "canonical_locator": "local://core/rocs-cli", "identity_revision": 4}
+PINNED_PI_REPOSITORY = {"owner": "pi-owner", "repository_id": "pi-adapter", "canonical_locator": "local://softwareco/pi-adapter", "identity_revision": 1}
+PINNED_ADAPTER_ISSUERS = {
+    "semantic-rocs-generation-receipt.v0": ("rocs", PINNED_ROCS_REPOSITORY["repository_id"]),
+    "semantic-pi-delivery-receipt.v0": ("pi", PINNED_PI_REPOSITORY["repository_id"]),
+    "semantic-ak-evidence-linkage.v0": ("ak", PINNED_AK_REPOSITORY["repository_id"]),
+}
 AUTHORITY_MANIFEST: dict[str, Any] | None = None
 AUTHORITY_MANIFEST_BY_RULE: dict[str, dict] = {}
 
@@ -119,14 +129,43 @@ def parse_json_text(text: str) -> Any:
     return value
 
 
-def load_json_bytes(path: Path, *, strict_under_limit: bool = False) -> tuple[Any, bytes]:
-    try: byte_length = path.stat().st_size
-    except OSError as exc: raise ValidationError(f"{path}: unavailable JSON file") from exc
-    if byte_length > MAX_JSON_FILE_BYTES or strict_under_limit and byte_length >= MAX_JSON_FILE_BYTES:
-        raise ValidationError(f"{path}: JSON file size exceeds limit")
-    raw = path.read_bytes()
-    if len(raw) != byte_length or len(raw) > MAX_JSON_FILE_BYTES or strict_under_limit and len(raw) >= MAX_JSON_FILE_BYTES:
-        raise ValidationError(f"{path}: JSON file size changed or exceeds limit")
+def load_json_bytes(path: Path, *, strict_under_limit: bool = False,
+        expected_byte_length: int | None = None, expected_sha256: str | None = None) -> tuple[Any, bytes]:
+    """No-follow, bounded, stable read; authenticate raw bytes before JSON parsing."""
+    nofollow = getattr(os, "O_NOFOLLOW", None)
+    if nofollow is None: raise ValidationError(f"{path}: no-follow open unavailable")
+    flags = os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0)
+    try: fd = os.open(path, flags)
+    except OSError as exc: raise ValidationError(f"{path}: unavailable, non-regular, or symlink JSON file") from exc
+    try:
+        before = os.fstat(fd)
+        byte_length = before.st_size
+        if (not stat.S_ISREG(before.st_mode) or byte_length < 0
+            or byte_length > MAX_JSON_FILE_BYTES
+            or strict_under_limit and byte_length >= MAX_JSON_FILE_BYTES):
+            raise ValidationError(f"{path}: JSON file is not regular or exceeds limit")
+        chunks: list[bytes] = []; remaining = MAX_JSON_FILE_BYTES + 1
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
+            if not chunk: break
+            chunks.append(chunk); remaining -= len(chunk)
+        raw = b"".join(chunks)
+        after = os.fstat(fd)
+        try: current = os.stat(path, follow_symlinks=False)
+        except OSError as exc: raise ValidationError(f"{path}: JSON file replaced during read") from exc
+        stable_fields = ("st_dev", "st_ino", "st_mode", "st_size", "st_mtime_ns", "st_ctime_ns")
+        if (not stat.S_ISREG(after.st_mode) or not stat.S_ISREG(current.st_mode)
+            or any(getattr(before, key) != getattr(after, key) for key in stable_fields)
+            or any(getattr(before, key) != getattr(current, key) for key in stable_fields)
+            or len(raw) != byte_length or len(raw) > MAX_JSON_FILE_BYTES
+            or strict_under_limit and len(raw) >= MAX_JSON_FILE_BYTES):
+            raise ValidationError(f"{path}: JSON file replaced, grew, or changed during bounded read")
+    finally:
+        os.close(fd)
+    raw_sha256 = hashlib.sha256(raw).hexdigest()
+    if ((expected_byte_length is not None and len(raw) != expected_byte_length)
+        or (expected_sha256 is not None and raw_sha256 != expected_sha256)):
+        raise ValidationError(f"{path}: JSON raw byte/hash mismatch")
     if raw.startswith(b"\xef\xbb\xbf"): raise ValidationError(f"{path}: BOM forbidden")
     try: return parse_json_text(raw.decode("utf-8", "strict")), raw
     except (UnicodeDecodeError, ValidationError) as exc: raise ValidationError(f"{path}: {exc}") from exc
@@ -215,10 +254,8 @@ def load_sharded_differential() -> tuple[dict, list[dict], str]:
             or re.fullmatch(r"[0-9a-f]{64}", row["sha256"]) is None):
             raise ValidationError(f"differential shard inventory row {index}")
         path = ROOT / row["path"]
-        if path.resolve().parent != ROOT.resolve(): raise ValidationError("differential shard path traversal")
-        shard, data = load_json_bytes(path, strict_under_limit=True)
-        if len(data) != row["byte_length"] or hashlib.sha256(data).hexdigest() != row["sha256"]:
-            raise ValidationError(f"differential shard byte/hash mismatch {row['path']}")
+        shard, data = load_json_bytes(path, strict_under_limit=True,
+            expected_byte_length=row["byte_length"], expected_sha256=row["sha256"])
         shard_keys = {"schema", "protocol", "rfc_revision", "shard_index", "cases", "raw_json_cases"}
         if (not isinstance(shard, dict) or set(shard) != shard_keys
             or shard["schema"] != "semantic-differential-fixture-shard.v0"
@@ -433,6 +470,7 @@ def expected_shape_context(value: Any, definition: str) -> Any:
 
 
 REQUIRED_RECEIPT_ROLES = {
+    "ak_optional_pi": {"canonical_task_states"},
     "approval_threshold": set(),
     "trust_rotation": {"current_root_digest", "revoked", "canonical_store_head", "current_decision_record_digest"},
     "trust_revocation": {"prior_revision", "prior_head", "canonical_store_head", "current_decision_record_digest"},
@@ -779,13 +817,13 @@ def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
         expected_shape_context(context["external_trust_root_pin"], "externalTrustRootPin")
     elif rule == "publication_recovery":
         typed = [("transaction", "semantic-publication-transaction.v0"), ("resulting_status", ("semantic-owner-publication.v0", "semantic-publication-status-transition.v0")),
-            ("intent_marker", "semantic-publication-recovery-intent-marker.v0"),
             ("before", "semantic-publication-recovery-state-receipt.v0"), ("after", "semantic-publication-recovery-state-receipt.v0"),
             ("prior_status", ("semantic-owner-publication.v0", "semantic-publication-status-transition.v0")),
             ("prior_journal", "semantic-publication-journal.v0"), ("approval", "semantic-owner-approval.v0"),
             ("policy", "semantic-owner-policy.v0"), ("owner_set", "semantic-owner-set.v0"),
             ("predicate", "semantic-approval-predicate.v0"), ("decision", "semantic-ak-decision-reference.v0"),
             ("trust_root", "semantic-trust-root.v0")]
+        if context["intent_marker"] is not None: typed.append(("intent_marker", "semantic-publication-recovery-intent-marker.v0"))
         if context["marker"] is not None: typed.append(("marker", "semantic-publication-commit-marker.v0"))
         expected_shape_context(context["before"]["state"], "publicationRecoveryState")
         expected_shape_context(context["after"]["state"], "publicationRecoveryState")
@@ -801,6 +839,16 @@ def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
                 expected_context(context[key], schema_name)
         expected_shape_context(context["canonical_history_head"], "historyHead")
     elif rule == "pi_delivery": typed = [("generation", "semantic-rocs-generation-receipt.v0")]
+    elif rule == "ak_optional_pi":
+        if {key for key in context if not key.startswith("_")} != {"canonical_task_states", "decision", "activation", "generation", "pi_receipt"}:
+            raise ContextValidationError("self_certification")
+        if (not isinstance(context["canonical_task_states"], list) or len(context["canonical_task_states"]) != 1):
+            raise ContextValidationError("self_certification")
+        expected_shape_context(context["canonical_task_states"][0], "akTaskState")
+        typed = [("decision", "semantic-ak-decision-reference.v0"),
+            ("activation", "semantic-activation-receipt.v0"),
+            ("generation", "semantic-rocs-generation-receipt.v0")]
+        if context["pi_receipt"] is not None: expected_context(context["pi_receipt"], "semantic-pi-delivery-receipt.v0")
     elif rule == "generation_activation": typed = [("activation", "semantic-activation-receipt.v0"), ("decision", "semantic-ak-decision-reference.v0"), ("intent", "semantic-consumer-intent.v0"), ("acceptance", "semantic-owner-acceptance.v0"), ("materialization", "semantic-materialization-verification-receipt.v0"), ("availability", "semantic-rollback-availability-proof.v0")]
     elif rule == "ak_decision": expected_shape_context(context["canonical_store_head"], "akStoreHead")
     elif rule == "acceptance_binding": typed = [("decision", "semantic-ak-decision-reference.v0"), ("intent", "semantic-consumer-intent.v0")]
@@ -1108,6 +1156,8 @@ def tombstone_history_valid(proof: dict, current: dict, genesis_anchor: dict) ->
     if len(revisions) != current["registry_revision"] or not revisions:
         return False
     previous: dict | None = None
+    prior_semantic_ids: set[str] = set()
+    prior_lifecycle_heads: set[str] = set()
     for expected_revision, step in enumerate(revisions, 1):
         registry, delta = step["registry"], step["authorized_delta"]
         try:
@@ -1136,12 +1186,17 @@ def tombstone_history_valid(proof: dict, current: dict, genesis_anchor: dict) ->
                 or delta["authorization_kind"] != "removal"
                 or delta["prior_lifecycle_head_digest"] != previous["lifecycle_head_digest"]
                 or len(added) != 1 or len(added_ids) != len(added)
+                or not added_ids.isdisjoint(prior_semantic_ids)
+                or len(registry["entries"]) != len(previous["entries"]) + 1
+                or registry["lifecycle_head_digest"] in prior_lifecycle_heads
                 or delta["authorization_record_digest"] != registry["lifecycle_head_digest"]
                 or any(row["origin_record_digest"] != delta["authorization_record_digest"] for row in added)
                 or any(current_entries.get(key) != value for key, value in prior_entries.items())
                 or set(current_entries) != set(prior_entries) | added_ids
                 or any(current_entries.get(row["semantic_id"]) != row for row in added)):
                 return False
+        prior_semantic_ids.update(row["semantic_id"] for row in registry["entries"])
+        prior_lifecycle_heads.add(registry["lifecycle_head_digest"])
         previous = registry
     return previous == current
 
@@ -1346,8 +1401,6 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
             and before["revision"] == context["canonical_publication_revision"] == observed_revision
             and before["head"] == context["canonical_publication_head"] == observed_digest
             and before["status_record_digest"] == context["canonical_publication_status_digest"] == observed_digest
-            and before["intent_marker_digest"] == intent["publication_recovery_intent_marker_digest"]
-            and before["durable_commit_marker_digest"] is None and before["staging_present"]
             and subject["prior_journal_digest"] == context["canonical_publication_journal_head"] == prior_journal["publication_journal_digest"]
             and subject["publication_journal_digest"] == context["canonical_recovery_journal_head"]
             and prior_publication_chain_valid(tx, prior, prior_journal)
@@ -1372,6 +1425,24 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
             result_join = (tx["operation"] == operation and tx["status_reason_digest"] == result["reason_digest"]
                 and result["prior_status_record_digest"] == prior_digest and result["from_status"] == prior_status
                 and prior["coordinate"] == result["coordinate"] and tx["namespace"] == tx["coordinate"]["namespace"])
+        marker_join = (marker is not None and fixture_digest_valid(marker) and marker["fsync_complete"]
+            and marker["journal_digest"] == subject["publication_journal_digest"]
+            and marker["transaction_digest"] == subject["transaction_digest"]
+            and marker["resulting_record_digest"] == subject["resulting_record_digest"]
+            and marker["resulting_ledger_head_digest"] == subject["resulting_ledger_head_digest"]
+            and marker["resulting_ledger_revision"] == subject["resulting_ledger_revision"])
+        common = canonical_before and transition_expected and common_result and result_join
+        committed_replay = state == "committed" and linear and action == "none"
+        if committed_replay:
+            replay_state = (before["revision"] == subject["resulting_ledger_revision"]
+                and before["head"] == subject["resulting_ledger_head_digest"]
+                and before["status_record_digest"] == subject["resulting_record_digest"]
+                and before["intent_marker_digest"] is None
+                and marker is not None
+                and before["durable_commit_marker_digest"] == marker["publication_commit_marker_digest"]
+                and not before["staging_present"])
+            return None if (common and intent is None and marker_join and replay_state and after == before) else "recovery_needed"
+        if intent is None: return "self_certification"
         intent_join = (intent["issuer"] == {"kind": "recovery_controller", "id": subject["recovery_controller_id"]}
             and intent["marker_semantics"] == "non_durable_intent_only" and not intent["fsync_complete"]
             and not intent["durable_commit_marker_present"] and intent["journal_digest"] == subject["publication_journal_digest"]
@@ -1379,25 +1450,20 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
             and intent["resulting_record_digest"] == subject["resulting_record_digest"]
             and intent["resulting_ledger_head_digest"] == subject["resulting_ledger_head_digest"]
             and intent["resulting_ledger_revision"] == subject["resulting_ledger_revision"])
-        if not (canonical_before and transition_expected and common_result and result_join and intent_join): return "recovery_needed"
+        active_before = (before["intent_marker_digest"] == intent["publication_recovery_intent_marker_digest"]
+            and before["durable_commit_marker_digest"] is None and before["staging_present"])
+        if not (common and intent_join and active_before): return "recovery_needed"
         if not linear:
             if (marker is not None or after["revision"] != before["revision"] or after["head"] != before["head"]
                 or after["status_record_digest"] != before["status_record_digest"] or after["intent_marker_digest"] is not None
                 or after["durable_commit_marker_digest"] is not None or after["staging_present"]): return "recovery_needed"
         else:
-            if marker is None: return "recovery_needed"
-            marker_join = (fixture_digest_valid(marker) and marker["fsync_complete"]
-                and marker["journal_digest"] == subject["publication_journal_digest"]
-                and marker["transaction_digest"] == subject["transaction_digest"]
-                and marker["resulting_record_digest"] == subject["resulting_record_digest"]
-                and marker["resulting_ledger_head_digest"] == subject["resulting_ledger_head_digest"]
-                and marker["resulting_ledger_revision"] == subject["resulting_ledger_revision"])
             if (not marker_join or after["revision"] != before["revision"] or after["head"] != before["head"]
                 or after["status_record_digest"] != before["status_record_digest"]
                 or after["revision"] != subject["resulting_ledger_revision"]
                 or after["head"] != subject["resulting_ledger_head_digest"]
                 or after["status_record_digest"] != subject["resulting_record_digest"] or after["intent_marker_digest"] is not None
-                or after["durable_commit_marker_digest"] != marker["publication_commit_marker_digest"]
+                or marker is None or after["durable_commit_marker_digest"] != marker["publication_commit_marker_digest"]
                 or after["staging_present"]): return "recovery_needed"
         return None
     if rule == "projection":
@@ -1612,7 +1678,28 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
         if subject["delivery_outcome"] == "delivered":
             valid = valid and subject["delivered_effective_execution_digest"] == generation["effective_execution_digest"]
         return None if valid else "activation_not_current"
-    if rule in {"pi_variant", "ak_optional_pi"}: return None
+    if rule == "ak_optional_pi":
+        task = context["canonical_task_states"][0]
+        decision, activation, generation, pi_receipt = (context[key] for key in
+            ("decision", "activation", "generation", "pi_receipt"))
+        exact = (subject["issuer"] == {"kind": "ak", "id": PINNED_AK_REPOSITORY["repository_id"]}
+            and task["repository"] == decision["ak_repository"] == PINNED_AK_REPOSITORY
+            and task["ak_store_head"] == decision["ak_store_head"] and task["state"] == "evidence_accepted"
+            and subject["task_reference_digest"] == task["task_record_digest"]
+            and subject["decision_reference_digest"] == decision["ak_decision_reference_digest"]
+            and subject["evidence_record_digest"] == task["artifact_digest"]
+            and subject["activation_receipt_digest"] == activation["activation_receipt_digest"]
+            and subject["rocs_generation_receipt_digest"] == generation["rocs_generation_receipt_digest"]
+            and activation["gate_decision_reference_digest"] == decision["ak_decision_reference_digest"]
+            and generation["activation_receipt_digest"] == activation["activation_receipt_digest"])
+        if not exact: return "self_certification"
+        if subject["pi_delivery_receipt_digest"] is None:
+            return None if pi_receipt is None else "self_certification"
+        if (pi_receipt is None or subject["pi_delivery_receipt_digest"] != pi_receipt["pi_delivery_receipt_digest"]
+            or evaluate("pi_delivery", pi_receipt, {"generation": generation}, _resolved=True) is not None):
+            return "self_certification"
+        return None
+    if rule == "pi_variant": return None
     raise ValidationError(f"unknown differential rule {rule}")
 
 
@@ -1771,6 +1858,8 @@ def derived_edge_role_owner(item: dict, role: str) -> dict:
 def check_claim_scope(instance: dict) -> None:
     expected = {"semantic-owner-acceptance.v0": ("acceptance_authority", "consumer_owner"), "semantic-materialization-verification-receipt.v0": ("issuer", "rocs"), "semantic-activation-receipt.v0": ("issuer", "consumer_owner"), "semantic-rocs-generation-receipt.v0": ("issuer", "rocs"), "semantic-pi-delivery-receipt.v0": ("issuer", "pi"), "semantic-ak-evidence-linkage.v0": ("issuer", "ak"), "semantic-rollback-request.v0": ("issuer", "consumer_owner"), "semantic-rollback-availability-proof.v0": ("issuer", "rocs"), "semantic-rollback-history-transition.v0": ("issuer", "consumer_owner"), "semantic-rollback-receipt.v0": ("issuer", "recovery_controller")}
     if (row := expected.get(instance["schema"])) and instance[row[0]]["kind"] != row[1]: raise ValidationError("issuer_scope_violation")
+    if (adapter := PINNED_ADAPTER_ISSUERS.get(instance["schema"])) and instance["issuer"] != {"kind": adapter[0], "id": adapter[1]}:
+        raise ValidationError("issuer_scope_violation")
     if instance["schema"] == "semantic-publication-recovery-intent-marker.v0" and instance["issuer"]["kind"] != "recovery_controller":
         raise ValidationError("issuer_scope_violation")
     if instance["schema"] == "semantic-publication-recovery-state-receipt.v0":
