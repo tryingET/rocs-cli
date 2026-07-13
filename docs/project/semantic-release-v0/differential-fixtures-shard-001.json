@@ -553,9 +553,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:069d7b5d4d6bb3487e3d1b7eb39c4de34813bf1bab79120b27d373720d4094dc",
           "authority_proof_bundle_digest": "sha256:0207b1b2c06bb2a26c8cdfdd4a0be4113a828d0ee892164da20155d03bf75116",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:944530b7b9a648dd7680df4ac590ee9926dbb7e1b756df42c625509a129946db",
-          "authority_verifier_input_digest": "sha256:559a389e73cc4ab581680131e608327134fc2e57d3d5c8214f96bf43749455e8",
+          "authority_verifier_input_digest": "sha256:c83c1324ab895bcab964b0cc5237953b7812a812105ab003f6e59d5c4c6d40ad",
           "node_bindings": [
             {
               "bundle_key": "sha256:828cf793c888e0fd9e0553f5c41571ea8073dafedb420602c7eac451baf8c6ac",
@@ -1397,9 +1397,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:069d7b5d4d6bb3487e3d1b7eb39c4de34813bf1bab79120b27d373720d4094dc",
           "authority_proof_bundle_digest": "sha256:f8ee6c5c03f99e05bf45b87fd39efec544a64f5d5def471f72c23f789fbfd30d",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:944530b7b9a648dd7680df4ac590ee9926dbb7e1b756df42c625509a129946db",
-          "authority_verifier_input_digest": "sha256:1cacd0ea1300f7843a413c800893720c2c906ebf1d2f17159f5fa3996d7e9b63",
+          "authority_verifier_input_digest": "sha256:da508b4d8d12571e17a837b85dd05cba8ec53769ee19721fb948726c38067ae0",
           "node_bindings": [
             {
               "bundle_key": "sha256:828cf793c888e0fd9e0553f5c41571ea8073dafedb420602c7eac451baf8c6ac",
@@ -2241,9 +2241,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:069d7b5d4d6bb3487e3d1b7eb39c4de34813bf1bab79120b27d373720d4094dc",
           "authority_proof_bundle_digest": "sha256:e43462ad4bdafdd0a1b2455423046955687d4b4fb8bb01e6b7ec480018504fae",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:944530b7b9a648dd7680df4ac590ee9926dbb7e1b756df42c625509a129946db",
-          "authority_verifier_input_digest": "sha256:5763fe22835762bb20a5f8e65686292d7c205c7cf023f004802530713e84400f",
+          "authority_verifier_input_digest": "sha256:09fc587dd9512cb5a2f7c80cde52cb6bc74cc62f3d3646632efa09e170f54a87",
           "node_bindings": [
             {
               "bundle_key": "sha256:828cf793c888e0fd9e0553f5c41571ea8073dafedb420602c7eac451baf8c6ac",
@@ -2559,9 +2559,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:e0b667069734de71ba3801b197e57055ff7cf9863a0bd22e226a86db9a9b25fc",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:d3cc1dd6d5e6cf2892cbba8171bb6802a070ee5d412806faeb652867ed584f57",
+          "authority_verifier_input_digest": "sha256:1fe85e796b3fcfc90cd122a9fb453d33c410a3e30038998c4bcd9ebe0f3d1c81",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -4817,9 +4817,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:f874678c04a2e94ddf211cfdad474766529cbcf68daec838c2b71a0b3a964b24",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:ac83ab31fb045e4c357e67e540da3523f45279dd80ef5ccc9c22d0a1f5bc3b1f",
+          "authority_verifier_input_digest": "sha256:36e8f02299062092fd78e253596f3ade2900df95372d9de23f939f996b1f7ab9",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -7710,9 +7710,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6a7ea118f714d95a7fc96b1ac2e2bf3f764cc8a297003e50702547df40c1df17",
           "authority_proof_bundle_digest": "sha256:6e7ae8cbe8ce8c12ecbecdf6e254a37d62c24e94f6dc7471ba7df6c65ea4c6f8",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:40b66b97383567f500565f8189049ae6697ea451c59a3903bd50b118a0ed3d16",
-          "authority_verifier_input_digest": "sha256:f2e119d4dd63f169abf82ec930339b78982c2048026216b22190f3d7ca1b9a36",
+          "authority_verifier_input_digest": "sha256:581c909dcc54fd6c3b3e668011b1443831d28ad2293e7ded942e427c1efacd64",
           "node_bindings": [
             {
               "bundle_key": "sha256:dae410439859ae5d23881682a3ffc05f2feb8ad8116f5b8c9e2a898b09389b77",
@@ -10568,9 +10568,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:694cf08cd2e5330b8e85c8f4bbf794785a769911f072e4af265003b61692c5db",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:bfbf0b2129f7a90b6dd5364fb2e5dda4048c57ad298024a8afc9a44051df887c",
+          "authority_verifier_input_digest": "sha256:fe26579ce2ce5b9089ae4b540da6a8b02023b10c231ea9027f72303897a32301",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -13389,9 +13389,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:f6ea83cdc6206075191a71ff26a5f7428298a722c41902341ff3776e830a294c",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:d2146377737d0dad6a9dec2a389244756e60655396d29a55c22ff77f0233ea4e",
+          "authority_verifier_input_digest": "sha256:f59b760c7ed1c502c3dfb1a782ae28a327f2907e8311a144e1bd86f6c6b73d82",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -16233,9 +16233,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:978586fb5c387dd761a43271d27290d34554f18002bc9a7e69e8c55fd48a9b93",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:06a76d546e8921a1bb2cf316054ce50206b4c590d1c5ff72b20d7e31dc856526",
+          "authority_verifier_input_digest": "sha256:a57e1506271e6079e85ac2ea222d1ed3a0a1df83b7e746bb518713b1ba229099",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -19077,9 +19077,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:c67e7a77dc32c5c77fb6b547b65253fe4c6946bfb0cd20dfb863cff10b5af899",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:8c521a39468aeddfb3fe134c1dd31181cafd1ebae64acd0538dc6502e58332f4",
+          "authority_verifier_input_digest": "sha256:7e0ef26a6f3db26d277e101c17a99d260d3f5e32b74adc3b26f9ba3bd95607c8",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -21926,9 +21926,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:29f2bee0406317e35c703d633d3f7d6ae11096d1914b2a68da877f483838f184",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:22a77f3eff127280a07b73a57c099570628aeb1c5207315050c8631343a40bd8",
+          "authority_verifier_input_digest": "sha256:f38b7208b430686416202e4d08b2174e9f57e45dc7c9bbb22be14de72dd66049",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -24775,9 +24775,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:71d65a380b74662971771cf93c9b8eeb420cb046d3a4b271991bd71fd6b3cf30",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:692ffbf21158018baa508e5c292829cb4652969ce3b5892b56511f60c070651f",
+          "authority_verifier_input_digest": "sha256:86c18404832b81ee9e1176d30521472509bfc77f0e4af25f36b307d0312c8a46",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -27619,9 +27619,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:1c655f93f13fa7313a4932fde42285fd28b8bce9fea10787c20dc83e98008383",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:90b44ab5bb0c6c8dbe8a6278360ef65c5212999727d18f98034e478a44bdb90d",
+          "authority_verifier_input_digest": "sha256:8b30f571c5208b642c2ad69b857e3d797e43d14f2513379b4892eb5e96655473",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -30463,9 +30463,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:0c5ced1621607492d53a4ea98917cb6fa3b3eabc6916bcf542b5805d78182d8e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:f0fac8852489acd9019bc79fe249d9ab4890724985a3c2b303e1b5b98fc61618",
+          "authority_verifier_input_digest": "sha256:a3e966e8d9a6a23154101056873481d94807f785863f818c2dd3842e795d703f",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -33307,9 +33307,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:a73fbcc99e13595cd91f22dba749298a04bba200317c3dba3e561971450788e9",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:b689ef73d5f70b8780ec4e7b1bd01b089784d3389d413a4a766d8f9fa5d50a86",
+          "authority_verifier_input_digest": "sha256:f0cf1944c3fb8cf4080f11fd3d2fb7bc6135d16795a2d67967320e3a28f15c9c",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -36242,9 +36242,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:c8bfc74a4aac09ae7358378af97e7fbebd1a431658d6da87514bc347b2bb01fb",
           "authority_proof_bundle_digest": "sha256:8e672d6166f8050f0d43f87cfeedbd20c10303059056956b6d4ed84a68e1ff7f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1bbb130e513c2de71a02c5e31e5d9e43d3e17f4d19653b61afc3bb583b39cc17",
-          "authority_verifier_input_digest": "sha256:f905e74775f15af14068b63f90a61c3899567bfacc62a47a337e27a19c8cb640",
+          "authority_verifier_input_digest": "sha256:a921f8056c456efb50e171cf28b3b6a1e2bff76ba32096b3341514938bcd1282",
           "node_bindings": [
             {
               "bundle_key": "sha256:1381f7c38120da22f8eb882bcb717d3fd03785462d6de2ed09aecf5cef3cef35",
@@ -39182,9 +39182,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:c8bfc74a4aac09ae7358378af97e7fbebd1a431658d6da87514bc347b2bb01fb",
           "authority_proof_bundle_digest": "sha256:1ec669f960adb10308f821f6bb8a728fe48c33c9bf1cae0aef10e6fa4693abbd",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1bbb130e513c2de71a02c5e31e5d9e43d3e17f4d19653b61afc3bb583b39cc17",
-          "authority_verifier_input_digest": "sha256:8c562ae7ad2b78c67a6b1ae563c8c122a7974427e9c7cf45185a83419cd1047a",
+          "authority_verifier_input_digest": "sha256:65a647d1e7452385a6477004c0946ba8db3067e4e149f26e5c43a0a1361049fc",
           "node_bindings": [
             {
               "bundle_key": "sha256:1381f7c38120da22f8eb882bcb717d3fd03785462d6de2ed09aecf5cef3cef35",
@@ -42122,9 +42122,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:c8bfc74a4aac09ae7358378af97e7fbebd1a431658d6da87514bc347b2bb01fb",
           "authority_proof_bundle_digest": "sha256:f6f6f184966864c6526f020fcf34d10e32f744cfb0b4ee9a02a6dd93bc74df45",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1bbb130e513c2de71a02c5e31e5d9e43d3e17f4d19653b61afc3bb583b39cc17",
-          "authority_verifier_input_digest": "sha256:74efcdb6a67b2ce36668fb10ccdf3cc49db1e17f2d38a758ac3b756d05fdc59b",
+          "authority_verifier_input_digest": "sha256:0e0d1f530df521161a864eb2ea078459717820ea8809e8c78cb80d7ea5d57269",
           "node_bindings": [
             {
               "bundle_key": "sha256:1381f7c38120da22f8eb882bcb717d3fd03785462d6de2ed09aecf5cef3cef35",
@@ -45079,9 +45079,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:ba3441316aee96e5c54e50bb52af91e1213f7a82a3f19a861098e32ba7940e3e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:1643c20700e8a02e161cadd4081cb96f0060e71beac6449c6cd4c3fd592f4b26",
+          "authority_verifier_input_digest": "sha256:dc39acf2e2509e6eee63d73bec9372a91b62410d1b190d3ecca169e0bb0c3b55",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -47969,9 +47969,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:3c0ca5879795d069492342eeb3ece300ac75a11b52388ac1e21963e3b82dcea2",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:e8636726929e5e62afbe6521163c52ef42fee6ac1965a7cc112f7b0fb453b9ec",
+          "authority_verifier_input_digest": "sha256:4791123c96ac70436778147fea0a222dfea3c1de2c27e91ba8cbde49c5b7c9f6",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -50843,9 +50843,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:d4f0bde1941c5fe5c60cd08f67f13c62d27056b10b08a517db40cf04bb6de724",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:b41c4dc5be1478ab2858138a37dd8a5cd08631efe3c30b76e2cd309302b69614",
+          "authority_verifier_input_digest": "sha256:27d78022efa82fd0abc20d5e8db5dae68c93fcd2f75b8b05542f69b0f6d66e95",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -53717,9 +53717,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:20322057a06e023f0fa96f9e4431681642e82b3bc55e99b31d9bd8a1e586f49b",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:b289141ff644bd4e896aba862d5bdc11dfdfa80b9a3733bd57ad167837571022",
+          "authority_verifier_input_digest": "sha256:b0a00f35baa7c26cb5f959c503d549bfdc4816df00a408949e8dd9c540c1d770",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -56566,9 +56566,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:acca2832f3abce6950ea47392e497ec50883fc35d5f220854e122a1875d6fa5f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:f63350e8aa8883e70e5d4c308c5d7aa69385dd9a9f68eb6552ebe13df74ed220",
+          "authority_verifier_input_digest": "sha256:1ba330d872fa623d5977654327055b5d94eed3b88a9169b6448ea9330f3e37d2",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -59496,9 +59496,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:c8bfc74a4aac09ae7358378af97e7fbebd1a431658d6da87514bc347b2bb01fb",
           "authority_proof_bundle_digest": "sha256:ee8eb989e06f13ea4b7e4777421a2fbbbc806ac73defbc19806c7e74b8f3eb1f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1bbb130e513c2de71a02c5e31e5d9e43d3e17f4d19653b61afc3bb583b39cc17",
-          "authority_verifier_input_digest": "sha256:646f248d0facbdf3d0d74b6342ee65fe70f8f3c6decef21eb7cdfd03ca37b2e3",
+          "authority_verifier_input_digest": "sha256:e516b92817812dd7cb827ac6b5e61a6cafacb8c30bbaaf9dd0bda32b53d8c446",
           "node_bindings": [
             {
               "bundle_key": "sha256:1381f7c38120da22f8eb882bcb717d3fd03785462d6de2ed09aecf5cef3cef35",
@@ -62375,9 +62375,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:3ab805939110bc989d81b0cec11d2718966b41e284ccd4fc0e8fb21574beca87",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:82466ff55f388564e63e5bc717456d1d3a07abece69bb0d5b1efac66711dc290",
+          "authority_verifier_input_digest": "sha256:74eba9d4db4a89aa4dbf009f068ad9b295097ae24493efb572dcad236a875f76",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -65224,9 +65224,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2a6edca8b15a056690ac3506809376ddc0953f8702a99bb100e9655fb0797651",
           "authority_proof_bundle_digest": "sha256:eb71e4162456126f1f9bd883ae1fd61597141ce42bdd67e06967a01425dbfe32",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:954d84ed4e94720886351c91eef066774730a03881c81d4072d41705d3358f5f",
-          "authority_verifier_input_digest": "sha256:3a47ec2dd530ab35f18e967785e0780fcb05fe97e868869b80e0ee17d7ab30b5",
+          "authority_verifier_input_digest": "sha256:f7b6ebcf9b5da3813ad42342cbe9068f32e4e899ea971916700631db9000315a",
           "node_bindings": [
             {
               "bundle_key": "sha256:13564f275522c90afb391fc1b9bc70d792243eed61ce106b3c2525cb3d296037",
@@ -68096,9 +68096,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6a7ea118f714d95a7fc96b1ac2e2bf3f764cc8a297003e50702547df40c1df17",
           "authority_proof_bundle_digest": "sha256:a9a6a4d002634174c2b82f19a29ff4acb8fb54c40ab11db248294fa75e0b8636",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:40b66b97383567f500565f8189049ae6697ea451c59a3903bd50b118a0ed3d16",
-          "authority_verifier_input_digest": "sha256:60aab7b6bebadd187bac75799325774c1986064dbb08b0c4347a94add421da35",
+          "authority_verifier_input_digest": "sha256:2906b69d6b68e268bef7b0d32013f39cf15f44ed62813e8311daba8f14f3fb9f",
           "node_bindings": [
             {
               "bundle_key": "sha256:dae410439859ae5d23881682a3ffc05f2feb8ad8116f5b8c9e2a898b09389b77",
@@ -71031,9 +71031,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:c8bfc74a4aac09ae7358378af97e7fbebd1a431658d6da87514bc347b2bb01fb",
           "authority_proof_bundle_digest": "sha256:8fc958779cad435fc3f1e62e86ceac269177b3b30490237f51baed9b2466b186",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1bbb130e513c2de71a02c5e31e5d9e43d3e17f4d19653b61afc3bb583b39cc17",
-          "authority_verifier_input_digest": "sha256:18022f84f5c300b5a5183f1b05dfe1f6cb50714bf3968240af69f2397e587268",
+          "authority_verifier_input_digest": "sha256:120c45c1bf497d9d45432f140d276f64e941b17b6fe7786e9e605032ba936aa6",
           "node_bindings": [
             {
               "bundle_key": "sha256:1381f7c38120da22f8eb882bcb717d3fd03785462d6de2ed09aecf5cef3cef35",
@@ -73841,9 +73841,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:fa7a434af11c96762a25de661af26259c12ab26ec62bfdfd4f0acc2f33f3e1ec",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:e8cc14a501d4dfa34ec6ab0f78ba7b7c9a8d3ef40fb0ad34053b77625cc80f50",
+          "authority_verifier_input_digest": "sha256:8d797cbf4b4d60537f7a423dd1067e2526d2c02039fe07d1b3f14369b2ad6a90",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -76638,9 +76638,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:74da27a6fc48ddd2cd9951f445639af1c72744efe3d6ede1d0843b730ac8fd62",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:e6ba08e7b63b6ecb740cf024fc7d9e7f1d8f644ade67d57677e7753a9705e8c1",
+          "authority_verifier_input_digest": "sha256:e02b2430e172c78da3551ceaca882ea21d33627ae5ff2f1fd986e6c94dd50a2e",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -79435,9 +79435,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:0ec6001d433c8d18bc09be2d9e59fafc3f22effdd19755a7f84a3e4c03b12f67",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:51a782899b7e7132dd4c78fa84a554b483dc766c6da7756a2ac18aae0955d78f",
+          "authority_verifier_input_digest": "sha256:f652c1e35f9169725a7c7e14b80341ed6dea6c8a6efd77d8c552b59f55197f3e",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -82232,9 +82232,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:652edd555fd346d7386ffd16b26c49659a1e53528b6abece8fab5d5e58e9f411",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:8d3f6b327ff0e7cd57c23750f688dae84fdb7862d05af63353ea876fe6b331cb",
+          "authority_verifier_input_digest": "sha256:fd30caf6f3f817eda4e303363ac732e98a4f22750adbc8ac11c0a182ab6a2724",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -85176,9 +85176,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:45133c25291e03c8c4e86c4b7dabb47f8185cc26f50751e6a70ea09f7378cf7f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:553f2427230d43dd4e4212142dd7f8012c25d64e099ffe44ac8114f2af80cfd3",
+          "authority_verifier_input_digest": "sha256:b34a7764e821f10bc4783057ada0e5ec171252f8107995f5a7fe132e1585ee1e",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -88066,9 +88066,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:d4c5d57921f98bcc7986ac6b02b891e8ad6de4974c4f48c3540460b496516928",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:7db154a1ec02f2fa2cc87e25e521101b7fc74f451ec988c415e7daf2a5cdbf7c",
+          "authority_verifier_input_digest": "sha256:ada7a4e87b6c69071293b619f8915aad3493afd5b7f9ffefc96c31f966dc2327",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -90940,9 +90940,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:2650f54916a8491e25a7fab78f4bce3d60d57534e31d380bd5adf4bd72453f07",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:01c09c643f580241264ea57deb3f5604bdff212ee5ee6999718c4ea079b365b6",
+          "authority_verifier_input_digest": "sha256:04264f783ab01e8863b31f7be3711ed05fe0fcfe7e166db13c19afa176aa4694",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -93814,9 +93814,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:460d793daf2797ed500363ca8ba58f4124894b12de2a757eb9a4568d0a845c78",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:5b4cb80248ec798c8779ec071ceb7a810b1a127324ea163c341698f60740b737",
+          "authority_verifier_input_digest": "sha256:3cd66ff3cca29998b5758b94520b7c1e11e64763aa7a819dec4528453690c4fb",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -96688,9 +96688,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:303ec2ec69605fcd0cf7f6a4f7814bfbd267492aad7aa2a896d0774ac863ee75",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:72bc7288493bfb9860d5e227fde4bed1c10b1c293f0f1e7fbb8cd0108be67183",
+          "authority_verifier_input_digest": "sha256:2955717a6604cc9c3f5894ea7473985ebd0b78174e55251328500cc6b0e4972e",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -99623,9 +99623,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:c8bfc74a4aac09ae7358378af97e7fbebd1a431658d6da87514bc347b2bb01fb",
           "authority_proof_bundle_digest": "sha256:424250bafcd35343ebad7a0914f180ae24c6b2b2baf75af5e1c50bee75e29a57",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1bbb130e513c2de71a02c5e31e5d9e43d3e17f4d19653b61afc3bb583b39cc17",
-          "authority_verifier_input_digest": "sha256:6060a454d70747151676c7996f110525c846702374ca0f1faa0dcbda78391269",
+          "authority_verifier_input_digest": "sha256:ed7794419781785fc0eb0a1854570661e50c7651ccf713a344a4ef4f68f3fdbf",
           "node_bindings": [
             {
               "bundle_key": "sha256:1381f7c38120da22f8eb882bcb717d3fd03785462d6de2ed09aecf5cef3cef35",
@@ -102563,9 +102563,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:c8bfc74a4aac09ae7358378af97e7fbebd1a431658d6da87514bc347b2bb01fb",
           "authority_proof_bundle_digest": "sha256:2828c53dc108c12ed9a88a7a1c5afc0a5595509628b393a624e8dd1026daef4b",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1bbb130e513c2de71a02c5e31e5d9e43d3e17f4d19653b61afc3bb583b39cc17",
-          "authority_verifier_input_digest": "sha256:897b40490dadca1198c62a08042ca7a296f41935227cc0d06ae3cebffd951de1",
+          "authority_verifier_input_digest": "sha256:ac0e539483c04dd50f6e98e49b75cd305ba4b1d71cbf72e122a875529926ca01",
           "node_bindings": [
             {
               "bundle_key": "sha256:1381f7c38120da22f8eb882bcb717d3fd03785462d6de2ed09aecf5cef3cef35",
@@ -105442,9 +105442,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:fdb4a4c565d2e8165403d7988179a0eb56b707c43ed7fc0afb679a79be246593",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:ef6bc8b5005069eb09ade6b5d7e2b396f30d9640af796a6fd067e1bee7ab12ad",
+          "authority_verifier_input_digest": "sha256:7ccbafb1b26fc888bb421d6049f52a9451864316434e088617544341837e4321",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -108247,9 +108247,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:097d72ecb028faff2f35a76f05d2a72438ed20b9c5e0f418ef2ce4c0cb032c58",
           "authority_proof_bundle_digest": "sha256:213bc989841f14a6f29878cce7a58cb6ac683807ab18aaebe6c2d4f9f89fae64",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2897a615dad16a772255d18d4581d1da4cfe9b8acfe51909efb1ab2a5f8573b6",
-          "authority_verifier_input_digest": "sha256:404dbb15da3163a5302266c066a1d5418145126ee17a11e1601b18e8ecee3afa",
+          "authority_verifier_input_digest": "sha256:3be825c264cbc621a3dabb0382efb91f0c76cfec1dac8c7f16d9e74c95ca4f92",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -110907,9 +110907,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:dc6f1fb18a45b3c47ec89a8abea796f9aef197016247a9e11d8048e5770596f2",
           "authority_proof_bundle_digest": "sha256:07d236b3459e8b269f485871242555c1296bdcd748386d02396913599619fd93",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a6f19f07f6291a214dd4fdcea8639cb99415097d4b6763a394b37113e618d203",
-          "authority_verifier_input_digest": "sha256:4c0622db072416c4cd21bb8ea5e43066cd0afdcefea4a135fc8a446c24c7fbb3",
+          "authority_verifier_input_digest": "sha256:4f8950bb8a1b91960f57608cc9b4ca948664c543eee9831a78f9cd65d82280d0",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -113490,9 +113490,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:dc6f1fb18a45b3c47ec89a8abea796f9aef197016247a9e11d8048e5770596f2",
           "authority_proof_bundle_digest": "sha256:5d3eb67548c08c9ecfacd3e205ce4afcebfe06f9d2275e740be60ed3aebb3a98",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a6f19f07f6291a214dd4fdcea8639cb99415097d4b6763a394b37113e618d203",
-          "authority_verifier_input_digest": "sha256:c6f577b51c7632d1615b99a743b0a99e055f469b158f09f5817485fefd85680c",
+          "authority_verifier_input_digest": "sha256:df199de9ab0552b5ddff5380415f20636f863c269197b4edd615e34a4bc22146",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -116073,9 +116073,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:dc6f1fb18a45b3c47ec89a8abea796f9aef197016247a9e11d8048e5770596f2",
           "authority_proof_bundle_digest": "sha256:8b97ea8638163e6dfe6c3d188b0394a02ff449b2ba166e1f2467ee29c17009a9",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a6f19f07f6291a214dd4fdcea8639cb99415097d4b6763a394b37113e618d203",
-          "authority_verifier_input_digest": "sha256:ae23362ec3d09042800fcf59ee7d15ee5f5e85bd2706f1457f5accfc307fedc2",
+          "authority_verifier_input_digest": "sha256:2a1379d2012eb3355b15ebffe459caa97bf2e4382a11010a919c14cd14c2631e",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -118656,9 +118656,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:dc6f1fb18a45b3c47ec89a8abea796f9aef197016247a9e11d8048e5770596f2",
           "authority_proof_bundle_digest": "sha256:d9abf798a69423ce83b9334fc2ae30fcb9a63de95eddf7c821633d91c7549d7f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a6f19f07f6291a214dd4fdcea8639cb99415097d4b6763a394b37113e618d203",
-          "authority_verifier_input_digest": "sha256:4d568baefb70cb6edd2a998682d7d653a87664b04cc685fa8e400ec6e7c5e88e",
+          "authority_verifier_input_digest": "sha256:6c0cf1f1ee5f19f1f2687155fec63df2e3c47431a98423342247832ca46cd8a4",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -121239,9 +121239,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:dc6f1fb18a45b3c47ec89a8abea796f9aef197016247a9e11d8048e5770596f2",
           "authority_proof_bundle_digest": "sha256:716e8dbcd7b2a46253eee2e3e5005ca54421ba84cb2276fba78e7f1406505439",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a6f19f07f6291a214dd4fdcea8639cb99415097d4b6763a394b37113e618d203",
-          "authority_verifier_input_digest": "sha256:83dbd728d74fd02621fb4a0adaf078536a043a1cea1e7386d62197cca006d6bb",
+          "authority_verifier_input_digest": "sha256:84ed39b6f16310a97b23795320f87a3b5318e23629bab77b392018e4a4b8a024",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -121943,9 +121943,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:506ba540c218dc418e65d3d1711434c9d8ca6ffe06692a7d9d6a3c304d7ed988",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:2b3bc5e74a3cb0059f2d169fc2ef0d13156eb4b788ad9b1d3e12a61c6f5b51cc",
+          "authority_verifier_input_digest": "sha256:8520163328690c765d4b40892fc15870b5816dd7e6decc0d00958e48c269e6bb",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -122063,9 +122063,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:b6d643b798324c3abd9ac838c9c925a7c63b238e8dc8fef471de3ddc77b9ed9c",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:d0a8cbeffa6512bb2f09a0d42b9e8ad0af18f21698ac1fb4f7d1207c7588a3b4",
+          "authority_verifier_input_digest": "sha256:e82ae80b63eb0325d0e496a136e4f87aa04c7943ebbe389bfa821edce360219c",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -124061,9 +124061,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:dc6f1fb18a45b3c47ec89a8abea796f9aef197016247a9e11d8048e5770596f2",
           "authority_proof_bundle_digest": "sha256:7b696a3f15acc8b19bc71e700695d11037ea5615aca94b914c0d573e084fac41",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a6f19f07f6291a214dd4fdcea8639cb99415097d4b6763a394b37113e618d203",
-          "authority_verifier_input_digest": "sha256:d03e8e1fc4482ea4643594c77e948e8e201a87632df11e12e6854fb96dd3aeb2",
+          "authority_verifier_input_digest": "sha256:6a4fc2ac31bada48cac77d2d5bd56b7cfa52b2a68d62c61cb1d9df085a35bf5e",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -126644,9 +126644,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:3046a6b8cd70707c33e1bdce9ad90c9bc962ac65c8be0d160652e33d35f0885a",
           "authority_proof_bundle_digest": "sha256:28b998f2cf8089006ad0fc8ede19daeb1c9a32e5a41571ab784c057fe90bdfe8",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:6fb2761af63e52958ed2d0bb328b340c1b2974293a31a8ec2b78e73797750026",
-          "authority_verifier_input_digest": "sha256:c75073d8328782f0c1c2fefe446b03ecf14593c54f96ddd633589869590326f2",
+          "authority_verifier_input_digest": "sha256:2260ddde85c8f720e81e00e991cee1bab8f270afba1f04c1de7b9764af71e7ad",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -129227,9 +129227,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:604306b30f72a87387ed89fa5fd1fbd1c57c86ba59a8e96038f34c0605b3122a",
           "authority_proof_bundle_digest": "sha256:a628569be6fef130934af23deb9a4f3518a8db0de06aef428c82fa2ad5549f50",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:89a0e36c17df70a02047d8a90dca76530550b3513c9ee2fcd5223bc0e34eb1d7",
-          "authority_verifier_input_digest": "sha256:bf67c8fe1318f972d9deaeec10f31ac95baf7a06ad292afb012f0334d01f4251",
+          "authority_verifier_input_digest": "sha256:f8e4c32d26d7b6b1f151448a96c119af58e841797a19038781244462bba48600",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -131810,9 +131810,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:dc6f1fb18a45b3c47ec89a8abea796f9aef197016247a9e11d8048e5770596f2",
           "authority_proof_bundle_digest": "sha256:b0d04ccfa01bf6bcff4672078da25fd0e281db07986ec87a0ad8998e8a489a83",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a6f19f07f6291a214dd4fdcea8639cb99415097d4b6763a394b37113e618d203",
-          "authority_verifier_input_digest": "sha256:261474cd2e259d11f9464e1f3c4d2db15546e4af72bb699327af80c6e58c3bcc",
+          "authority_verifier_input_digest": "sha256:8f7a21cd3b7ac9b5a50542a7adb6ef6db971f1ce2b7090404c2a636ba3186607",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -133052,9 +133052,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:1defb4bbcd01d8e3be4e0426f9fbae1f24f8881dae7985f83d81802b4aab334d",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:5944a2edcb1906fdb129b873bab5474b2a42cbe9cce5cb609b1fc514a1802ba3",
+          "authority_verifier_input_digest": "sha256:bb1e6424a8d44cb96bbbf5c1d304b6261f265b87d0973a8d773a9a6b7dc16e0f",
           "node_bindings": [
             {
               "bundle_key": "sha256:e97b0768c198adbe73e7f75cfc2ee06f511df8774351d56840f45c6a8e78be6f",
@@ -133081,6 +133081,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -134035,9 +134036,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:b69c4d5f1e6e22deea024d5ac70de414c8222650ab806ff6f3f815694bfeae44",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:45675c03b7a3f06625497b26d0fa6e293e493c78aa29095e7a9d879c7f082717",
+          "authority_verifier_input_digest": "sha256:de1eb547b97ca019aa49a2644cfcd81b4f2f9b575e1e9b8e7d005f24b2da17e0",
           "node_bindings": [
             {
               "bundle_key": "sha256:e97b0768c198adbe73e7f75cfc2ee06f511df8774351d56840f45c6a8e78be6f",
@@ -134064,6 +134065,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -135018,9 +135020,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:d4c1a6158724ff056559d557049ceee64064ad513c3e81c715a38dac1c3b916b",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:ad8ec3553d8dba10c6443ba3a0c56e69243696d57f5ff41fe4f88f7fa8c3ad31",
+          "authority_verifier_input_digest": "sha256:a2ac7681dc1f6c053d52ed3db6c1df9e497a1491ace880c367141a639816bd9d",
           "node_bindings": [
             {
               "bundle_key": "sha256:5b5e141a047b5420e3f62812e7d623fe5d7d2aa1d1381868b3bbbbe0024b1f8f",
@@ -135047,6 +135049,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -136000,9 +136003,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:9e1aa1cbdeac7a6265b8774dfe7fc214ceda1f97839024b8f87a4e8386ef8354",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:cbb8606b7b77103b41362ff523f8b68c52f8b4dd7c54287b8294ae2a75dbb3c8",
+          "authority_verifier_input_digest": "sha256:29f68c1a5230a49634c76cfda28fa9aef112eb6b8e8d93cecd9a14933e7d7c54",
           "node_bindings": [
             {
               "bundle_key": "sha256:3f3e3662a788ad35a64b935f1e0c5fe3a257a7dae8a4ee2d54df84965cfd3628",
@@ -136029,6 +136032,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -136983,9 +136987,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:de2365defe63a000df37ea9966a8f49d9be470ccc560308317489fbc056bef04",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:61b3eb6cc15c1c6a3a9573107f03d31cff7a892be4b5f301a2cd96ed17f40549",
+          "authority_verifier_input_digest": "sha256:970f177f8626adb1ef8a694e55014ddeebee656d70d2ecba50a37fd8b43647a7",
           "node_bindings": [
             {
               "bundle_key": "sha256:2540be055651f98650967ef00b9bdbfb8ea504ccbe9856d6863660f78b629010",
@@ -137012,6 +137016,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -137966,9 +137971,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:f089b3c8ff6ff9c8d1b633def2f087aa24c4b12dd4140f2f564ac3559ad77cf9",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:3fcaf0353ea6873eb38a710f317fe01b6f2fc25604e297b92ab039e1d7c2e233",
+          "authority_verifier_input_digest": "sha256:5f410ba6863b99dc85b1686ad63cc157b7123389185d6163e4b805f369606b89",
           "node_bindings": [
             {
               "bundle_key": "sha256:0128dffe2927e307c9394e0e454ae763907c653276717c6eb1393947c1c299be",
@@ -137995,6 +138000,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -138949,9 +138955,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:6d3e1e9ee6616762c5409b395c45c9a2f24ea0edea13256850a85f02d49e4c88",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:ce2e74873406d0a67923b371be71ed3d3e3e2e0fc55eaa7ff1cab7f4b45eef9e",
+          "authority_verifier_input_digest": "sha256:83bb344d8a1cb689f7d02044f70470218469285101abbb71b710d3eb59427471",
           "node_bindings": [
             {
               "bundle_key": "sha256:9a4751fc8d190ce69e9ce2d54fabd002fbd6a5ec987ecf48db236e3f78192fac",
@@ -138978,6 +138984,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -139916,9 +139923,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:f8c986836135db4a183f6018d9d4bb88f3223da203ba4be0cf01afd3db6b14a9",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:499d3aca491459ec5c570c2113a44609db1ae87b9a240b03466632525fbf6ac0",
+          "authority_verifier_input_digest": "sha256:664d3d66e31c7aae31555579053aec87c2f6c38fcaf85ea4b45645364add270b",
           "node_bindings": [
             {
               "bundle_key": "sha256:f7c02b36fab2a49ede301175f41f51ac7840ce74af8eaa8900e07ce8a37e3d53",
@@ -139945,6 +139952,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -140876,9 +140884,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:448812041be02e6cd3bfcbcd66ffbde782e4de9011c658e3c47e7679303d6596",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:b6f890e491f4e8077516eced7bbbd3d81a3c5f578d970fc5d000497a494fb5e2",
+          "authority_verifier_input_digest": "sha256:ee89deb52f2a90f5d9d1f681f755ad2f5b779242354aab6d81dfef38e8de56a0",
           "node_bindings": [
             {
               "bundle_key": "sha256:042120e70452c0f9e7c4313d0c98fa4990eafc8ed5dc6d84943927006dc2bb5d",
@@ -140905,6 +140913,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -141843,9 +141852,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:b9ae28e73f65ae32b85a2511c63673551ccfbde8bc8833658b58a664f445745b",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:d531ecd7d1cd44fcfcf7c57744854dbd6f988547f2005d6466afcdadb30f5a0a",
+          "authority_verifier_input_digest": "sha256:f9ff8761d2ad9695a1d50eff4791b6e68c12e1da54f9ad8581b0865d8d300818",
           "node_bindings": [
             {
               "bundle_key": "sha256:51c4b980d48a6b3ea3016f4747e212e87f75e1762208f54c1cd30e130b81b897",
@@ -141872,6 +141881,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -142810,9 +142820,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:7690482d67068d82ee418cd407f853a55d3593a7254aebf4958e7a611d9f9497",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:39a3cd11c91424edb3ef6c12abf21d4e222953902938389b506fa135768025dd",
+          "authority_verifier_input_digest": "sha256:0ed19fd30b9bf64341dcdb6ba9ad4ba6261f80a903911596eb81f339e8ed9568",
           "node_bindings": [
             {
               "bundle_key": "sha256:995242243311de7aa105ced60e3363805c963d8a426029d72af91716f6b47736",
@@ -142839,6 +142849,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -143793,9 +143804,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:639b5d9a59f5031db75cc59265180342a9b00c97b2f4d2002c81984b4923214d",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:4b869c366dfb7d80839955357ba0fd9ab7d1ae794f2d9a48ed9dc80546937fe3",
+          "authority_verifier_input_digest": "sha256:74eeaa069f242e69407a5c6aa77eb048ffd6a359b0bd74bc8eb63f02e26dd582",
           "node_bindings": [
             {
               "bundle_key": "sha256:567ae5a2d55694f4c33ddf72efab9c4cdf140665686d09195066c17326918f04",
@@ -143822,6 +143833,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -144776,9 +144788,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:22cc23e3e6df50bd4201a38c8b0aebf1fdab799c69956c472a3a7dd33b2bf322",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:2768791c6ad785c5c79e864df5ed2478c69e0fc899596714760931854ca3ad94",
+          "authority_verifier_input_digest": "sha256:18a87aadefcdfd1f05fde7568bb49322e404fda25dab0c4ae356e038b10affb2",
           "node_bindings": [
             {
               "bundle_key": "sha256:3f797c21ffd73808a1e991db045e78a84bbe89a23b49118adf1e7a2e6170ae4d",
@@ -144805,6 +144817,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -145759,9 +145772,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:40d21f0b7165fb66a29371211933666eb2fa8dcc3c580514c78b0c354f4347b6",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:c410c07feb23cf59e920f038bfc3e3e3b00b989460c631b7c1f29d018aa3ff16",
+          "authority_verifier_input_digest": "sha256:303cc0f2de09389cdf9d439df834e83ef126dc5c08121ad8cb1a017494a99b21",
           "node_bindings": [
             {
               "bundle_key": "sha256:01cc2cecc1c0ef1ddd11fa586694c5973ca0aad04cf3c5eebde7cbed08a67d78",
@@ -145788,6 +145801,7 @@
             "governance.evidence-owner",
             "governance.independent-task-snapshot",
             "governance.reference-owner",
+            "governance.reference-task-id",
             "governance.rocs-task-owner",
             "governance.rollback-owner-kind",
             "governance.semantic-stop-owner",
@@ -146204,9 +146218,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:f15dcdad5689b0bd4eb0d91004374e0f662e574723c2035d79420be77a1e5d33",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:6aebeeb5e9dff12c1ad5bd676d20f9a7205ffd5b7938e54c0830cfca90fcc947",
+          "authority_verifier_input_digest": "sha256:874154c02f476ad4faa81f622822112a894abd588d37d0476c76dfd618420a16",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -146304,9 +146318,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:612d0e0933e3c993642f77b2e951db1fb0fb64359fe7301d3f6b9eec5fa167fd",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:9210ebb36100147f18ed789bb13d71a0f53d350cfa47a3863cc17b51ca567e8e",
+          "authority_verifier_input_digest": "sha256:42d3db6a44e76aa95f300bb9a2486d5083ba2c55565230ccc3b3c0c28caffa57",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -146663,9 +146677,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:74c83ad94f691f90fd2273ed717dbd3e76d01abafd9576b4c769225c2fa82a5b",
           "authority_proof_bundle_digest": "sha256:4d6a048878737c4e79159934999673be7e198c2007f1085118595d2e331b64cc",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:6a4bfa37037671e2f9cd8ab1ba8cc0594cd4a1dba39a64b78d9ef09dadad570d",
-          "authority_verifier_input_digest": "sha256:681af07ab2916957d03303ad18a1940862a98d65e95d722cdabcce8ca8e5da9b",
+          "authority_verifier_input_digest": "sha256:2b7d66056433680d777df6cedc26473a27e6cf0c846df8e17dd4f698238fb305",
           "node_bindings": [
             {
               "bundle_key": "sha256:e662d43ac7a72df6d35688513e07800127275beabc04177b904f052d79b32a14",
@@ -146880,9 +146894,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:9795d84461d5b23da25f0b37f1c1d7303a5ba63641664f77d337af22a54ca9ae",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:f1dc868ee44e08d80b1faf135a1f1ed5f2d4768f6e87e767408d5397c2292da7",
+          "authority_verifier_input_digest": "sha256:40e9697c4eaa4a40851e59ce30d2d5c7690cd8d8a06023fa93dae82d08612d91",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -146973,9 +146987,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:a991a05b370359e510b8cdd7a8db71b4629f15be60cb84a7cb90ede1de24ca4e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:575c6080ac4b0fd401e4a8cda31973f40e0d82b005e5b340e4931a6fe1124434",
+          "authority_verifier_input_digest": "sha256:da5ce93e6db71c1d9beeb8346647cb87489f40d9e4666708929d4ce94585f7e3",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -147053,9 +147067,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:8c4d55a6168885356cf75bcb0db15b95b5eeae04416bfa3b3482c7a277900eff",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:fa8140d9787ffae71fb0ae8b171de36deb6b78b5ed628368b7121f1ee3b0f407",
+          "authority_verifier_input_digest": "sha256:309aed18b873daf924598b62988a907556c1aba856db14cbdf858a0c25c62c9b",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -147133,9 +147147,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:78f9efc4b0d4fac2a43086a15c6ad4c8040ea4eda8fd6f6c5ad49cc4cfb68d38",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:c6650ff7a46857af21830634c07792720c1d627e501f09f15746cd8d13c45b2b",
+          "authority_verifier_input_digest": "sha256:6616d6649c1ce775da103a59a05d41811e99c570ad85245a5260b2ebeed26f99",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -147213,9 +147227,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:062d16fe9e573a5a146440e6d14bbe23e66e5ed627c781b82ef1b2da28a9281b",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:3503ff157fe4478d424eff767de67c58c1f7774a241ca33d17778b0ef7cfec78",
+          "authority_verifier_input_digest": "sha256:aca119e7f3c9a9aa9eb4a8b4056e757d13c70d6c0863198331d7ff31b8584bd3",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -147447,9 +147461,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:cbd7141111a3a06e4e3bc5b4a8351c3f115c8013b0940e372818782acac04e17",
           "authority_proof_bundle_digest": "sha256:fc405b8f51eae78365527516ee8ca57fa83e533eb1b4ddf3a89eece2dd4dd71d",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9b541c63a96159933f4fe4638c381082f31a42aa166f329075e8de302b8a0617",
-          "authority_verifier_input_digest": "sha256:57798f6e8140f464b9eafb1d895694d40b90df14c787a0f77b54e39769ffd8e5",
+          "authority_verifier_input_digest": "sha256:5ca0eceace70bd5a1d0785407ea830cdf1a550595ab0f343c344a5e67c046b9c",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [
@@ -147752,9 +147766,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:cbd7141111a3a06e4e3bc5b4a8351c3f115c8013b0940e372818782acac04e17",
           "authority_proof_bundle_digest": "sha256:2f90057838bb46bc46b6b4209e2a9700029086c0d4328f348db2267316fe2e4e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9b541c63a96159933f4fe4638c381082f31a42aa166f329075e8de302b8a0617",
-          "authority_verifier_input_digest": "sha256:184cb273bb21642fe1ef24d16cb0c1920fe537ef7b6dfab3b9b0ef0dd04e3913",
+          "authority_verifier_input_digest": "sha256:a78903c734e80e5c6bb5bbfe77eb278abbb306322faa87865d083283ee2e7d99",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [
@@ -148057,9 +148071,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:cbd7141111a3a06e4e3bc5b4a8351c3f115c8013b0940e372818782acac04e17",
           "authority_proof_bundle_digest": "sha256:64ba976246167b6509769128ffc26069d99672f9ccc631f92bcfd11d84e59253",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9b541c63a96159933f4fe4638c381082f31a42aa166f329075e8de302b8a0617",
-          "authority_verifier_input_digest": "sha256:d25feb0aa43639e4b0eecc50a970d889a50543683bb1cafa40eddd294e380523",
+          "authority_verifier_input_digest": "sha256:be6d2bbd799211d6898124a16f2c6363198a0abd52a95597431973917f09fc47",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [
@@ -148362,9 +148376,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:cbd7141111a3a06e4e3bc5b4a8351c3f115c8013b0940e372818782acac04e17",
           "authority_proof_bundle_digest": "sha256:860ce49cbab0d14323202551ac9bce38b30c6073ead6d0782093299d71a3c607",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9b541c63a96159933f4fe4638c381082f31a42aa166f329075e8de302b8a0617",
-          "authority_verifier_input_digest": "sha256:e5521f51f6bf21e2bcf127b90abf0e10a702aae63e8fa876bf4c84159e6796b9",
+          "authority_verifier_input_digest": "sha256:de33448cb3bd9d867f393e9ac008ba23e130d8c0227378fe15e50ea613d09bff",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [
@@ -148667,9 +148681,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:cbd7141111a3a06e4e3bc5b4a8351c3f115c8013b0940e372818782acac04e17",
           "authority_proof_bundle_digest": "sha256:63f8ef0982da2347019559b5728bf7659a6d667b7434d98e70010dc235982082",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9b541c63a96159933f4fe4638c381082f31a42aa166f329075e8de302b8a0617",
-          "authority_verifier_input_digest": "sha256:948c9654f15cf07d5fed1955fe153ff64c6ca2a68fa6f7d981bc4564da1c3497",
+          "authority_verifier_input_digest": "sha256:793dc16047f33b430c67fa520e02369d6bba4f9e34de3215b1d97c293516903c",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [
@@ -148972,9 +148986,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:cbd7141111a3a06e4e3bc5b4a8351c3f115c8013b0940e372818782acac04e17",
           "authority_proof_bundle_digest": "sha256:670eaeeafcbd605810606023172e03f14df074ff69ebf30a725c56ca4b354830",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9b541c63a96159933f4fe4638c381082f31a42aa166f329075e8de302b8a0617",
-          "authority_verifier_input_digest": "sha256:eea835f135193ac0773d18e6cae83463e61507905a2f947ed51e510c1a4b5d26",
+          "authority_verifier_input_digest": "sha256:a8c5e3ba74990c72de6977d50ba98af60a1b0725f8cf0ec5f69139587755d377",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [
@@ -149970,9 +149984,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:dba85fd4ba319f11bb77709b5e5f553248ca4b80f1018289b0c50d9ed9ad14ed",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:c513956c142205a418b4212eff5244b69efb2c5147504e252a001c78d3f8763b",
+          "authority_verifier_input_digest": "sha256:1ded54b6bf937ebdc927a3e5b77eb35df7bfa16f66286df8ed3fb5d443e177c9",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -151154,9 +151168,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:1e477b27dc5633ceaeeeb0368dc51871d7935b135a308322b1e0cd7a14885188",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:a8e20888774a8cd8b3822a09e4219ab91eec7012e949be3a9e4ace65376f81c6",
+          "authority_verifier_input_digest": "sha256:d7e158ea4781b3316f8fd9ff3de9c816ad363961f408c4afba5bd2f247edb9ee",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -152338,9 +152352,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:3a1845202f652847a70b69be6a999382f840b0f3302dc3e0b2bebb7dc1307185",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:57550e60a979e566838c442e1d9aee55812657805f9729aa25f755e58bd55f6c",
+          "authority_verifier_input_digest": "sha256:4e69aa0506c6386e8ef82450756f67e4948b7924bc73b54f23f3eb7e5112b64a",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -153522,9 +153536,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:8bc7ccefcafb47961d87d94fb3e9c088903eaafca3541d1e00fe3c8b785969a5",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:5fc685ec7314693e448840da18a06d5c01d7e20a79e85a38498ce4dae83cc13f",
+          "authority_verifier_input_digest": "sha256:af307ad6b2cd035cfda58a10be16c733483745baf68f32dcf65b4172dd8d865e",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -154706,9 +154720,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:13b434c0302c1434ea34a4822d12ada63d83e9967f1b461b2bc77fa266c1eaab",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:6c70473aaf0d408157069a989c16241bacda2bddde6e1ff112c15e624e6580b1",
+          "authority_verifier_input_digest": "sha256:5253dd9ed6297824ec80ee463735900d6f653ef6721f4d683e8bcfddc4a7718f",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -155890,9 +155904,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:0c47aa66cc61a34d605ee4745cb6fbbf744b0c17e9a9dfae2079afa9395433bf",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:d384a7e1f61a95145b112c68b7a8d52c378dc58a431abe5cfb92d32f8b9d0e6c",
+          "authority_verifier_input_digest": "sha256:bc49b5a6d0b58b19d5ca77a75514084714272596f96480c6ff86fe97f6d986ff",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -157074,9 +157088,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:f3c5d8d74ec28718ae0d816423e0a26f2d3226e326c11449db28e0c344cac67a",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:07e4d7cb1ff6174c2092e4f8f93a8706b2fe9f126550ebf7ebf2667f6f8b5b85",
+          "authority_verifier_input_digest": "sha256:55038788b6cb107fc3001970c2f72bda736bcd3fba798bbd6d695139b636d3bb",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -158258,9 +158272,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:8f658d164e5b45ae70e65a1a233f86ffa59ccb4fbc535f7fc292850124030366",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:fa9a2514cafb7eb0a7ae1d34363e1f93f703ea6368209e44a40bbd1a2f273866",
+          "authority_verifier_input_digest": "sha256:7c8dcb9be777214ccc27fbeee825788d779b8a9a4686be1e1a810f494ccfe622",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -159442,9 +159456,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:4bfe990d5d0f2e08c9909f97a43727d88193b857083811fc30a93b932ea4e6fe",
           "authority_proof_bundle_digest": "sha256:f7bc16751971f89cbe3a500024ed54eca3309e7245783cf612d718ad6428fd2c",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:a06840488075c368850eb8be0bb26ee4622b5f00062099e21b0fe04692f03b3c",
-          "authority_verifier_input_digest": "sha256:d39fda23f92070fe0c1699f04e15c6e0d7c75168378e844648cb5da94802df72",
+          "authority_verifier_input_digest": "sha256:fbf149e3847cb806fedbb2e2dfd50a17071557c445c0a124abf93a980e493630",
           "node_bindings": [
             {
               "bundle_key": "sha256:ba08d9e836168d20e38c1ed8f904b3fb42817ef7dfc9fd91cb601aa087e5b290",
@@ -161581,9 +161595,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:52bacceb6a9fc25f3118d7f16764be406a9857e0e407e82e3ca5938411b4829f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:0c9e1e8e10b9b951297a200c533054e9ad86541bf4a65f973d305a6baf1c3dde",
+          "authority_verifier_input_digest": "sha256:96111e703397feee8c55065ff24cdf56ab9277439bbb888080dd7836dbd3b5eb",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -164080,9 +164094,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:e0b9e19609a04c9269e2d1ccf2d744a64b693d4d4da97052a9ee1a4b9032ed56",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:4eb40583a6fb572eed01a2244738db905f63d255d9e95ad6a7dbca46433441f8",
+          "authority_verifier_input_digest": "sha256:234567748b8d71c3d497ec6b460563e87e72127e6aa3cbfda0a0fe303bce89fe",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -166579,9 +166593,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:c8cc5018c25a41face88ae460a9d533f53d0bb3f76b6a68a3a4cc3b7ee88908e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:f54961da11b1c71bd89c5dc04e9694101746691bd176d8947084378aa32384b5",
+          "authority_verifier_input_digest": "sha256:bb249c83658f11c119a70c3d9bd37ff31a5d61dd4e77a07a8dfbfd0449f131f2",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -169078,9 +169092,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:fdb4fd950d7637de2949a00c751e51ece35df6e44fac4f60098d1da6379737b2",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:31fb253213eccf5508f7928c68b09b8ed88997f9d2530dc80adeed148c4ba646",
+          "authority_verifier_input_digest": "sha256:908cf4b08fb90a2a55ad33d8a2bba111be93d0049c3f747cf8d3d8bae4308e37",
           "node_bindings": [
             {
               "bundle_key": "sha256:eea8785c138cf42e50e18e6d5b524cae574b1f6985c178f489d2d539cb146fde",
@@ -171577,9 +171591,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:f8513499568ec9c5d55d6897564d5ff14e52befb154c5df6b3f63a9ed7db2e3f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:341514fbf0cc9f17ebbcaccbdf653fc1527488c72f8f9bf9a2f8da69e2f4e8de",
+          "authority_verifier_input_digest": "sha256:0d9d7efa58a3cf414fd96b5f4a303755b60e491478ef0d7baa4667ea0efedd86",
           "node_bindings": [
             {
               "bundle_key": "sha256:ec6a738d61037fd0077d314850c4449d47f74dacf16955744bcfdeed2b4d6ab6",
@@ -174076,9 +174090,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:99745ad6d130081f0fa6f6d9ef5cef9ab0d3b8a996274817d9bd4a2545fd9c6e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:6b81ec3483336938abff9b1de91ec2958d8b2e4f9786f7fca1d26a96b51dbd25",
+          "authority_verifier_input_digest": "sha256:c01e01b835dad309eb3ca5366890d08aa62cc623531140374e90cd36a1cd2391",
           "node_bindings": [
             {
               "bundle_key": "sha256:ef19eb1b612b09315d634f8ec5dcee5907d3a24f3c92eb3d02149519eacefebf",
@@ -176575,9 +176589,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:9b3d0639555b9e663b96bb23b4c01ff10d40b3af4c050c6f9e5b385346d088d1",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:1416056e66f33003f1577b91dcf084ffd5cb21fe783ea75b7dc25b13a13a1a0f",
+          "authority_verifier_input_digest": "sha256:189fb88d2281740821b395e2d735fec67367584b3428c8896d4194c7e80b49bb",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -179074,9 +179088,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:c0d8dc4b7970f6505d76f429b5840b4ff2ad233c10ad02a04d3386462a9c5d03",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:cbbbce62738818dfa6c7448b2ab2bbb1008ac7d60904124fbcfbb0d2ec2fc081",
+          "authority_verifier_input_digest": "sha256:3e2a133e424ed1ed4372473e188687db681d66d413f2927ba1517e2a52dbe520",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -181573,9 +181587,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:61ae191cdcd76e96dd766db553151d4d14b313bbd7cd97ae7b8b2718508ee07d",
           "authority_proof_bundle_digest": "sha256:dca466ba422bd40e55aa975850559418aa1640c4687e18c460b57ecc04d22e28",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:9d0186a7d72f32ee10f26a979c7c08a0efe9a9a625a86a00baaae9238286ce7a",
-          "authority_verifier_input_digest": "sha256:ce69ec4b25082582913ddb2cd00872d6088fc4cda907f18dca2d7eca63d07bf5",
+          "authority_verifier_input_digest": "sha256:839b4f4b646110bd0040855a8ac156723a96c46ff6c2ef73d7f346d44d1a9430",
           "node_bindings": [
             {
               "bundle_key": "sha256:14f70522d2d8205e63a23560602c2659e17f29a30ddcd7b5c1b307e9a98cf648",
@@ -182339,9 +182353,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:1abad91f75701b9a037a0c13a51f108fc85a6a9fb4b981f7ec6fb721166ac3be",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:5c108bb0756b5a7c5cb641d13f5c1ce1ae1c0877aff5f513eabfb8db8c8da0eb",
+          "authority_verifier_input_digest": "sha256:d3bd10a1f463dd73a4dc3f6a3cb587387f7caf0833a1aa99ee195b243eb28909",
           "node_bindings": [
             {
               "bundle_key": "sha256:96e2e93196abbd9b0c98a8c5a70753530778602fdc857b5b5002716427fbd584",
@@ -182523,9 +182537,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:e4fc506dd2642da6b5498f0bcdea5b4d9a83ccc2cfd1c8948690244804c65fbb",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:5dccb4b23daab21d853ffc9359e459627030d1e1567a81237991df5d49261191",
+          "authority_verifier_input_digest": "sha256:4a5f830c510a1d90a7a6ab83f3676247403d4f69b7afd89f643a71cdc0870764",
           "node_bindings": [
             {
               "bundle_key": "sha256:96e2e93196abbd9b0c98a8c5a70753530778602fdc857b5b5002716427fbd584",
@@ -182706,9 +182720,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:7b7895e8656cedb8dacd970032b0bbf5797c527e779e972f979e8c7e51b304ce",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:b4d70ae9316e2d715bc9422c03e2863ea3416b672b533fb43c73a2acddc22619",
+          "authority_verifier_input_digest": "sha256:c4e6e38f1f896c2480c24de7a5ca9115544be36b0af50b912d447f627488065d",
           "node_bindings": [
             {
               "bundle_key": "sha256:96e2e93196abbd9b0c98a8c5a70753530778602fdc857b5b5002716427fbd584",
@@ -182889,9 +182903,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:effc85f3ad6e719be4ef9437f2253cbe6250e27abc27528b88e2557a2dfae56c",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:b35f5a6930140f36b540bd805d668fa978e11defe9b8aa1a1408325a32ee5cda",
+          "authority_verifier_input_digest": "sha256:ff146889683a4f118840337c47e303fbcd1ad8713382ca4d25fa76b542e3b6c2",
           "node_bindings": [
             {
               "bundle_key": "sha256:96e2e93196abbd9b0c98a8c5a70753530778602fdc857b5b5002716427fbd584",
@@ -183073,9 +183087,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:8533284bdd86ef1e58d41adf9abf522b440541c800a83782dffb9e7d75a02429",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:ef507c39855a08340f9c4385618fa7a5f790f2202e4c2445231ecc13f97f3b26",
+          "authority_verifier_input_digest": "sha256:c7db41c80eb007f23249f36e8c9c582c227fbc08acbda0cd864a69f45143d866",
           "node_bindings": [
             {
               "bundle_key": "sha256:96e2e93196abbd9b0c98a8c5a70753530778602fdc857b5b5002716427fbd584",
@@ -183257,9 +183271,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:abb08bce4a9a912877c72814854f9e060815eee5b49e55e9804383f2e65b8ad9",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:c59a693e940b73b2a77a2095294eddd6397459fb2907aa5e44f0d9bedef035f8",
+          "authority_verifier_input_digest": "sha256:00204b4cd4943782a4940940e0462355290ba4231b8659edbc912bdd1aef6a47",
           "node_bindings": [
             {
               "bundle_key": "sha256:96e2e93196abbd9b0c98a8c5a70753530778602fdc857b5b5002716427fbd584",
@@ -183440,9 +183454,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:86793d13da4a7bb94923ba15a9e68bd9d534a9cd0f737082a37589bc86e92cfc",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:6736eaac42f92a93646d63fe39d50c7a17fbba9ebf6da86d2e27e8524b7dc985",
+          "authority_verifier_input_digest": "sha256:e9fdb63003491b94c4c5ab89b03ed3c3d82cde2c19d19a9dfb27cb043f03802f",
           "node_bindings": [
             {
               "bundle_key": "sha256:96e2e93196abbd9b0c98a8c5a70753530778602fdc857b5b5002716427fbd584",
@@ -183554,9 +183568,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:c916f3323fc8e16f82cef145ee191c41e139ba84acf9b7fd40f42b395bd41994",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:af30d07d9c35a6be23400938540fd3d1af86976c81b0e14ded472eb295afe7b2",
+          "authority_verifier_input_digest": "sha256:17537cecdb5b3094e3502cbc43067e32205246e6f011648ec5ca0e4c38d5b527",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -183651,9 +183665,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:03caa95dca3923bca611849e77b8045b122a8f6bbc66ab324b86a0cdfab2250d",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:3cd404fb547de11e86e96a959c6465d4afc1537dd094768002c5b7f29b6c91c5",
+          "authority_verifier_input_digest": "sha256:7a6915c3e83c2b5f713b1c0ebb133aa44326521d5287739bd1023678e4b987c2",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -183749,9 +183763,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:6c1f570ab5f47754a8681d82f39fbff109f7569d6f62a178cca236675bd5a7be",
           "authority_proof_bundle_digest": "sha256:2bb13171f0c23ba4d71340d586edb9a5b30a333d8a14be0e1dc59f10feaea708",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:48dcf4d12330024478fffecdcdfa7508969468f0bbc05024693ddcd988554590",
-          "authority_verifier_input_digest": "sha256:d7a7f4b58459a441cb52d252cc70997b18d8058be752783983d2e0b3d4c9dc9e",
+          "authority_verifier_input_digest": "sha256:059ca894e6dab13f32a7e5ddf0c0392a20e4ad783cf8791f8b42c84b81de12b1",
           "node_bindings": [],
           "parameter_bindings": [],
           "receipt_bindings": [],
@@ -184302,9 +184316,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:7c9d51c4a384aa0725c26b258c91eb68650a0743c0e7a5e654302a84d5609e23",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:9ab2f426570dcd35a634b005fa0d0fa742a0b0d80cc444f829918acf25c4b991",
+          "authority_verifier_input_digest": "sha256:105e95453aa5f7b1675b63ff238c574ac29de25eee2b0ebb31a517e77a6acb40",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -185012,9 +185026,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:57e2229368786d4cc493d026ac90bc966a50973f1bf5e798e2fddd325a462a35",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:7bf29d072a351b1b1f44c85ac281386bb2b9ce86744c6ae3548e82354d16e177",
+          "authority_verifier_input_digest": "sha256:aeefecc9e9de97e7d22e31dbf98baf076e6bcf8851ae2c96943bee6b88aff057",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -185729,9 +185743,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:22af6079d408af03a419e1898870fd8a4afd156ad7db22b63a3f651ed283bedf",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:46d2b91d8c99d43a30de07148b1ff9d650b63cf1436eee2109bf8d5b9e5c67d5",
+          "authority_verifier_input_digest": "sha256:a232cb96897d3de18470bb0599948afd917e9d0aabb78420418b4787eab6cf39",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -186446,9 +186460,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:2f143bdb70dd2616382542510d25a08d868fcf20792990af622dc9031d23f21e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:40455865035bc9b285cdbd2513631a676d59849c8f1c6aa0efd614cc72d6ea65",
+          "authority_verifier_input_digest": "sha256:762edbf91ee566fd62a16c8b50f499d200d5f0d09dc05784d87dd384a993ee8a",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -187163,9 +187177,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:01a73a330667a85e92976a193eb7878ccd69d24fbdf1a5656265f9d7cd6a413b",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:5a73dda9c8ed332084c538c9c8d3dd982800c60358f575b63f0a6f59708974a1",
+          "authority_verifier_input_digest": "sha256:8ce82b28ed33ed6c344ef770f09014312afaee2d64d2eeeb2d0c6b6810d4ee7d",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -187880,9 +187894,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:675310fb016308430e95d2e826fa4b062923b23dda93b9f7b615c0feae95d403",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:0676e7a1959d9717ecdfe7a6b53ce88de3789fc9e6bf423e12b89729fc9e42ec",
+          "authority_verifier_input_digest": "sha256:fe1d1028d80d43cd7fdb5b3e1af17d8d99e06bbaa5bef0eac32ac8dd5c409c5e",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -188597,9 +188611,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:19e68cf64be274e11d09c27673a9505cae2485252cfc281172c039afe3f02a4b",
           "authority_proof_bundle_digest": "sha256:a3e0b8d5ffd3f8dacdbda829a25e6bece1abc7268358a9f2990b490f7264847a",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:c7e48bb28d87bf654504e6e01ad9b66585ac6feadf1c6058ef1e0eb83c39b4b0",
-          "authority_verifier_input_digest": "sha256:cbf2bf65021561bb19dc46f0e2ee2befd32038293a544395e03bf18c7e0a4cfd",
+          "authority_verifier_input_digest": "sha256:2ad8b86bac34cab0dd59e04400332eab3b35a15c51e565f26d5638d37301073d",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -189314,9 +189328,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:0e34d70e6366ce6cc6fdc81cd8085cb51ffde6b8e213022d966192841dd34df2",
           "authority_proof_bundle_digest": "sha256:170e1bf98dd6fdcbbd5107cea0006901d2b05f9cb4a07e764db0cda2e800262f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:68797932a133dcf723d634b1a64e4f34d22a5d8c787d1381091dc89baf00a114",
-          "authority_verifier_input_digest": "sha256:7ae3bd7b7910c543f4bff05d388eeca1d6b84d02d11f9be39c60f45cc32c3597",
+          "authority_verifier_input_digest": "sha256:0f952a7382f429c4c9ab0b87f2bde00896b486f63176a6afb91b54935f67b4f6",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -190031,9 +190045,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:e5b39563d980077179f93b1b167db27b571037226ac4a10303b16ac47dcf260e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:b45e8f3e5a405e7fb93e84646af583857e4f51550d3d2efa76ec3f20e41252cf",
+          "authority_verifier_input_digest": "sha256:ab249090e569108ab458a463977fb4fe335dbb25652bf2b10fa45203e3ad4b81",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -190748,9 +190762,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:ab76673c92bf37f6c0177dc58b59cb119aff8363334780b25df7fc99700dcc9f",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:bc74d5292f02f2b60f0011922afafc1640b258c4ace37536b21e097a6668bf66",
+          "authority_verifier_input_digest": "sha256:345626df233a4020ddf796da8c4a5cabd46e417063d851981ba4f7ba256e063e",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -191465,9 +191479,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:5152f3f20ecb40f6521736dbda56cb618ac9cc9372817e621e90e0d893595bff",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:82ba22077a1b6f1107df1dc98249f8f852d3a017e228209d8ec1e5660ea55445",
+          "authority_verifier_input_digest": "sha256:a5c03ef2b8a057a276b041f40c3b26385ce92db7d8681d8c8a76c80272174837",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -192182,9 +192196,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:d863755b9c43285d114399703d69014db5369119a8ae7d84dd776e8aed0e2a32",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:34edbd6ba8ced87e0ab1e19183c3202cbcc46da4af6e1407c4366aa8f6ba762f",
+          "authority_verifier_input_digest": "sha256:ac6c0df0874146479188dd28a39f63348f345c37844af8953fe0ace6e28c016b",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -192899,9 +192913,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:d8b5570f783a23345abb5d2e59ac2c1830d2f888b6755474e3bffb76ca060882",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:6f772e0e3932b86e340bb0739503b82a37750f60515aa508a1d091da4f8d88a1",
+          "authority_verifier_input_digest": "sha256:7ff4b2c7dc23b88f3a73316b4931c7afbf8a4031ba76acac7f46336c25726215",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -193616,9 +193630,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:9f0b9addb3988b1d73c1b20b2a0adf36b27871246118ea8df2f917e0e2a3a210",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:e81da3f7dc114b5752dadd9229daab983053e8d2e6e1ceb90dbc3ff7a05507a4",
+          "authority_verifier_input_digest": "sha256:1321d761813693133a6ff3a17e14928d15b3bb4c9bc055c29afb6d2c044d38e8",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -194333,9 +194347,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:01d80b9e49f9f3c29b872f638fac9eedfca67888cebd02a9b23f6db256ea3033",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:cf00dc57fb799f20b3397c57d11112eefc3588fa599bf37c8bb67c496a3af6df",
+          "authority_verifier_input_digest": "sha256:3d189d422fe36ee0af18b17b8097db0d73e74e095f71269f132e4afcf174c6b8",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -195050,9 +195064,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:dbf7cbbbc53cea17be35833a1848baddc5f0194962239cd9269109f5c91717ed",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:02b19f45c8c086de896ddee215f55c6264a8a6df5cfc6aa7ebbf2cc3545c1772",
+          "authority_verifier_input_digest": "sha256:a9b9c95d3975e6f24bda72e9e7e351781ab7504d2b89e87454dca9006f09ad6d",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -195720,9 +195734,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:8af916534c691e9fe91a00c56bea909dcd80584fdc6ce84f2e51f0286bbd9349",
           "authority_proof_bundle_digest": "sha256:2f1ceb55dd64b75c9112446ae6ef550705b0bcf2e263a2211433e319130d940b",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:1df9ce975d0e57879800886481b61ba044f07793dac10b855ea48f2613858d3b",
-          "authority_verifier_input_digest": "sha256:684008bf08d67975ca52c09fdc2b1d8d7aa8fda5ae58c9ed99888c2d569a799f",
+          "authority_verifier_input_digest": "sha256:015144f543d289828427ed8bbb161734cae248fb75d59493f91d33d334e0aaec",
           "node_bindings": [
             {
               "bundle_key": "sha256:12da4597a9abfc7ba6e50cb270f04a32003e4e5a06898d4ca01a748f494c4aa2",
@@ -197147,9 +197161,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:2f39167e0d5c8824ce7941f8ddafd56f33111d18c923ac272e9921aeba2104bd",
           "authority_proof_bundle_digest": "sha256:94ecf4dbaa7c8d9cd3298cb30416bf33547e1c31e5b5ebc6ca2c513a4a813e96",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:af5fbefa245b64c5a18a80d7ff26c7bc85d16867fb6f18d8b91388f852b5cad7",
-          "authority_verifier_input_digest": "sha256:aa5d178b524d01782b49f03c08c8e884fbe4a8d88d0a5fd8ab1b64b6bad5b49e",
+          "authority_verifier_input_digest": "sha256:6ecba19f60091adbc8b59a582b2919b59c5ed308603e079f71138cb11ed63f2a",
           "node_bindings": [
             {
               "bundle_key": "sha256:cbeeef2e5615df42611f41b2dec77ce95cb59b7fb88879972b80e95ef539855b",
@@ -198964,9 +198978,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:45ef85698b8dd3ce251469f20fc9edd5bebaa3773d4b18c13e4c574c0714894e",
           "authority_proof_bundle_digest": "sha256:3d514be8ee8b1b4e01a8de8f1c20ac47c1a7cd61df4230ec7b4d4434974bec1e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:f1c370a491d4f1049530ca4ce9906a48da036612526db82114986a87324439cf",
-          "authority_verifier_input_digest": "sha256:c823d9894b7e791204df14df57c519a2d96031c86b82cb6c14359fb335c53c68",
+          "authority_verifier_input_digest": "sha256:8ae40136cb2355c3a77f44f5d207601f6b5adcf68b0e04b077b4d053b96dae3a",
           "node_bindings": [
             {
               "bundle_key": "sha256:dbbdf6a7ec5232b537833cb8aeb39bd6a66530d15cb4c18ead70c6d205ab214c",
@@ -200801,9 +200815,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:bfaf7038f54c716cdda48156fa4af75f6999fbaa1eb3421bd7e2237e0a55e371",
           "authority_proof_bundle_digest": "sha256:c8b2632018cd0a9b383c86fc6b37048fa1ed0f36dc4e6f5b2a39b247665356b1",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:14ae43d2a6431debd4ff7aff4c8da6496e299e2dd2bace2464485ceef246d208",
-          "authority_verifier_input_digest": "sha256:29a029d55d345e2e292a1a22085ffdd2666bef5d399d46856a32ddedf6758231",
+          "authority_verifier_input_digest": "sha256:d55258bde7df414b0cf5c37dcebe3355d9bb5af6b80436eadf3eb10e46885fa2",
           "node_bindings": [
             {
               "bundle_key": "sha256:fd32cf06a5be2740c50183c08162cb9dc5d36f1f9edcd250b7a9b8f95c1e22cd",
@@ -202652,9 +202666,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:35e62095e730cf2baa010a5f373237691201a183a43dad76f333865491bb7752",
           "authority_proof_bundle_digest": "sha256:9866ef4dd3b255c72bb756e6499c2cc7672738b406fb71a277b31a8595b3ed75",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:e3604c40d234abe57eac20150eb3206494aa17b97a16f91892eecee165ef7e5e",
-          "authority_verifier_input_digest": "sha256:f3313c84454a1d2d2a8bb336fa7236af6db822f0c66eb717238716586457b45a",
+          "authority_verifier_input_digest": "sha256:ba8f1c5a41bddc9942e33e77057f71fa6ec8c583382695b2ff222434bf281e8e",
           "node_bindings": [
             {
               "bundle_key": "sha256:247812a7d9f3804aa0ff41bb093e78a96b69c16aaeea74f501fe1402526b5f4a",
@@ -204463,9 +204477,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:bfaf7038f54c716cdda48156fa4af75f6999fbaa1eb3421bd7e2237e0a55e371",
           "authority_proof_bundle_digest": "sha256:7aa10ead445841897d76a6ddbf4ed2f02525cd149f07c249849a0e8d38ae000e",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:14ae43d2a6431debd4ff7aff4c8da6496e299e2dd2bace2464485ceef246d208",
-          "authority_verifier_input_digest": "sha256:548b319d4360128e6218a89208160b6eebb57c51f1409db36d0c5866f32b1e53",
+          "authority_verifier_input_digest": "sha256:9e6475d75914d5f5c75e818e6f0855586b02ce18019a04b58fad7cf1a2bcfc63",
           "node_bindings": [
             {
               "bundle_key": "sha256:7a835420d315e7dd04e39c06ae3dd074a23a0864e585ab14e06459e03b604b35",
@@ -207043,9 +207057,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:5eea50dd13aa09da280e2871063a38f9534fb795eecf04a7a80a5f59af30be3e",
           "authority_proof_bundle_digest": "sha256:ff2689b6ec4b28882fc9d26175c7e310bd048226e69b6d4cdffe127bef8bfac6",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:6ce8d88a84e21de24238feecccf90b10abde59f3e650a14db78a7e8c39d59ff0",
-          "authority_verifier_input_digest": "sha256:de374ebf1bf386c1c2597d5742446cba9c8a558c9a2320991306e11bac62fff0",
+          "authority_verifier_input_digest": "sha256:c4ae226aa4dadf154ce6d34e49182ec47d4d252c03cb1d657c72cb9447fecdc2",
           "node_bindings": [
             {
               "bundle_key": "sha256:d98134bd021b521d229a1f198c4d9f507a600b386c9b9a54568df02b3bc325f8",
@@ -209847,9 +209861,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:d69902d73b6f8b277048579dd44d1dc3f9dfff9b70877e140779b407fe81a1ac",
           "authority_proof_bundle_digest": "sha256:d111c5d238bb6c6ff544368d931d42f2960ae39985f3a31a8ce4b559edeb1c68",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:2e152a3d34d41e897b7243bea07cb2063dbdb2fca52d8a4818461fd56443d77d",
-          "authority_verifier_input_digest": "sha256:56684318e287547a227701e713e89f7106837352b38df7796bc36aded4650c7f",
+          "authority_verifier_input_digest": "sha256:6bafc3cd059d3e479029769e54ebddcc9023939081a27b6c8a2f5bdd17e39329",
           "node_bindings": [
             {
               "bundle_key": "sha256:9cf7af9cd1ca91eab9a7b97fd92b713ae2247af6d1fd338510cd21ee459b6296",
@@ -212651,9 +212665,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:3bc57af83b00aa3bc7645d6479874fe209409f0249f57170fc68b7fe14659c42",
           "authority_proof_bundle_digest": "sha256:724be408d649e56dfdc9d43b772514102816d0840a21aba2d98a688771d04233",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:02651869c840dae13b7eade43ba2ec968d0659aa8a9d8d0dffdf9c761dde9b06",
-          "authority_verifier_input_digest": "sha256:9609ba1f7fc81d46754b03cfc42be524b620ccfe7a01ef4ef264e1f2184a5032",
+          "authority_verifier_input_digest": "sha256:d2fb2d569ddc44a9184681ef516e93588818b6010ad55b3f799c8ef5ebd126a7",
           "node_bindings": [
             {
               "bundle_key": "sha256:54fa091d5d318ab352960738c586656df74ab1911d41f2da18bdfbb2e82ff038",
@@ -215455,9 +215469,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:fde6cc373368af5604f8fbc2727cbdd7d26b84a14066b31a3edaf98c14b88b50",
           "authority_proof_bundle_digest": "sha256:87aeeca7351102d285dd279464a81accff3f5ce2e5a802f23cea6da271ddeaa5",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:8e32f2f0aafa18eb21277d44a083cfe8c7ad0f6bf0c8ba525dafefbdb6b4d7a3",
-          "authority_verifier_input_digest": "sha256:853f751560ca9b11b360d4a1a38124c786944da11baffc4ff7591db0dbe92b5c",
+          "authority_verifier_input_digest": "sha256:3c436627cd7303c290e5c8176d9e54ecfa40c09c5caa13ac0ec1f0770f5c7a71",
           "node_bindings": [
             {
               "bundle_key": "sha256:95cf4196de6b597c6a96e7a5f33b2d92a7758ea027fee642187a36971f037fdf",
@@ -218213,9 +218227,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:3bc57af83b00aa3bc7645d6479874fe209409f0249f57170fc68b7fe14659c42",
           "authority_proof_bundle_digest": "sha256:89bd5b1d23f58ac757ddc85b4ffa7b16af339450c9fb0ad5fde1e92ce4bc9444",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:02651869c840dae13b7eade43ba2ec968d0659aa8a9d8d0dffdf9c761dde9b06",
-          "authority_verifier_input_digest": "sha256:cf43005a89c38d3f72df0e7e9f967f955c804c24d0161a346835c15d3c376bfb",
+          "authority_verifier_input_digest": "sha256:86180c824e92d7fb7b5fc4508815e05c163e98d176a8118b0e8d5f1299f6b175",
           "node_bindings": [
             {
               "bundle_key": "sha256:54fa091d5d318ab352960738c586656df74ab1911d41f2da18bdfbb2e82ff038",
@@ -220978,9 +220992,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:3bc57af83b00aa3bc7645d6479874fe209409f0249f57170fc68b7fe14659c42",
           "authority_proof_bundle_digest": "sha256:04e5a2dfc08fbf2ef9d9bccc7abfd75b23107feb4660b2c1c3b84693774672db",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:02651869c840dae13b7eade43ba2ec968d0659aa8a9d8d0dffdf9c761dde9b06",
-          "authority_verifier_input_digest": "sha256:8c494514dd60b4ac68353232956eab8c96a47d6593766c8dcc9cb38684e5f461",
+          "authority_verifier_input_digest": "sha256:a75997b541848404bd99ff589209586ea6865201239e9a5cc48025c1cfd71008",
           "node_bindings": [
             {
               "bundle_key": "sha256:54fa091d5d318ab352960738c586656df74ab1911d41f2da18bdfbb2e82ff038",
@@ -223750,9 +223764,9 @@
         "verifier_input": {
           "authority_acquisition_config_digest": "sha256:3bc57af83b00aa3bc7645d6479874fe209409f0249f57170fc68b7fe14659c42",
           "authority_proof_bundle_digest": "sha256:6ad61d5d4c90f14ba524b7427af1095f225f5e692b47ddf4f2224af41860872c",
-          "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+          "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
           "authority_snapshot_digest": "sha256:02651869c840dae13b7eade43ba2ec968d0659aa8a9d8d0dffdf9c761dde9b06",
-          "authority_verifier_input_digest": "sha256:368bdc0c1350c3ca422afcf0a8c07584054ef0fe014d225fbafc8beba95957e5",
+          "authority_verifier_input_digest": "sha256:b1f3c6cea769fbbfeae2d59857248016962a1ba3139b7d70b586401f442adb86",
           "node_bindings": [
             {
               "bundle_key": "sha256:54fa091d5d318ab352960738c586656df74ab1911d41f2da18bdfbb2e82ff038",

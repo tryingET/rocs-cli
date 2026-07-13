@@ -1,8 +1,8 @@
 {
   "aggregate": {
-    "case_count": 388,
+    "case_count": 390,
     "raw_case_count": 10,
-    "sha256": "2d651129475386858a471b31eec3a4e6ea055891587c980a6562a625303242cc"
+    "sha256": "a364e8c3d964641adf5d445d9bc7782a35fb2cc38c0d8223e176292508496767"
   },
   "authority_edge_registry": [
     {
@@ -1569,6 +1569,108 @@
           "new_semantic_hash": "sha256:f0441d25908dd22e26ab8f926db7aad4f88a1eb159e02c73deb8e4a54a862a8d",
           "old_semantic_hash": "sha256:d6aaceb9171181225f960f9a1dca5d3247f9f4e378e7a854dc2be46961b9cacc",
           "path": "/context/nodes/consumer_contract/node_candidates/0/artifact/dependencies/0/repository/repository_id"
+        }
+      ]
+    },
+    {
+      "description": "named reference ID equals claimed, observed, and capability-pinned AK receipt task ID",
+      "drift_fixture": "named_dependency_rejects_unrelated_completed_task_substitution",
+      "edge_id": "governance.reference-task-id",
+      "edge_linkage_digest": "sha256:44871159db426c386da20fec86cf30c318a76a8db1e2818769a8f0fc7b324a12",
+      "expected_error": "self_certification",
+      "ownership": {
+        "kind": "multi_owner",
+        "owners": [
+          {
+            "owner_id": "agent-kernel-owner",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/owned/agent-kernel",
+              "identity_revision": 9,
+              "owner": "agent-kernel-owner",
+              "repository_id": "agent-kernel"
+            },
+            "owner_surface": "ak"
+          },
+          {
+            "owner_id": "consumer-owner",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/pi-canary-consumer",
+              "identity_revision": 3,
+              "owner": "consumer-owner",
+              "repository_id": "pi-canary-consumer"
+            },
+            "owner_surface": "consumer_owner"
+          }
+        ]
+      },
+      "positive_fixture": "resolved_governance_reference_observation_accepts",
+      "role_ids": [
+        "canonical_task_state:ak:candidate-decision-53-ak-coordination",
+        "canonical_task_state:ak:candidate-unrelated-completed-task",
+        "consumer_contract"
+      ],
+      "role_owners": [
+        {
+          "owner": {
+            "owner_id": "agent-kernel-owner",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/owned/agent-kernel",
+              "identity_revision": 9,
+              "owner": "agent-kernel-owner",
+              "repository_id": "agent-kernel"
+            },
+            "owner_surface": "ak"
+          },
+          "role": "canonical_task_state:ak:candidate-decision-53-ak-coordination"
+        },
+        {
+          "owner": {
+            "owner_id": "agent-kernel-owner",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/owned/agent-kernel",
+              "identity_revision": 9,
+              "owner": "agent-kernel-owner",
+              "repository_id": "agent-kernel"
+            },
+            "owner_surface": "ak"
+          },
+          "role": "canonical_task_state:ak:candidate-unrelated-completed-task"
+        },
+        {
+          "owner": {
+            "owner_id": "consumer-owner",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/pi-canary-consumer",
+              "identity_revision": 3,
+              "owner": "consumer-owner",
+              "repository_id": "pi-canary-consumer"
+            },
+            "owner_surface": "consumer_owner"
+          },
+          "role": "consumer_contract"
+        }
+      ],
+      "rule": "governance_contracts",
+      "semantic_mutations": [
+        {
+          "new_semantic_hash": "sha256:57e91b2a62cc38d969bbba4da5a0b67911659e843201e8e7dc668d640e420554",
+          "old_semantic_hash": "sha256:4bd6f0fcfc0d70518349c6b97562d7efd47082778acab4f5862423a060a978df",
+          "path": "/context/nodes/consumer_contract/node_candidates/0/artifact/dependencies/0/observed_canonical_state/task_id"
+        },
+        {
+          "new_semantic_hash": "sha256:57e91b2a62cc38d969bbba4da5a0b67911659e843201e8e7dc668d640e420554",
+          "old_semantic_hash": "sha256:4bd6f0fcfc0d70518349c6b97562d7efd47082778acab4f5862423a060a978df",
+          "path": "/context/nodes/consumer_contract/node_candidates/0/artifact/dependencies/0/task_id"
+        },
+        {
+          "new_semantic_hash": "sha256:49ea32b46008b08ec88d2ac5b27bf8f1cc205fe2427765a53854c8fbb9d2e684",
+          "old_semantic_hash": "sha256:8fe0dad61be0ff44103ef45f742e059ce55e93b010ffd066ee1580dbb2f437be",
+          "path": "/context/receipts/canonical_task_state:ak:candidate-decision-53-ak-coordination"
+        },
+        {
+          "new_semantic_hash": "sha256:47df7c0e51a1b1d18e33e597d5336ca399d5232f396283ddc38c769fdfc710a8",
+          "old_semantic_hash": "sha256:49ea32b46008b08ec88d2ac5b27bf8f1cc205fe2427765a53854c8fbb9d2e684",
+          "path": "/context/receipts/canonical_task_state:ak:candidate-unrelated-completed-task"
         }
       ]
     },
@@ -10665,7 +10767,7 @@
     }
   ],
   "authority_rule_role_manifest": {
-    "authority_rule_role_manifest_digest": "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5",
+    "authority_rule_role_manifest_digest": "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab",
     "revision": "semantic-release-revision-v13",
     "rules": [
       {
@@ -14977,6 +15079,7 @@
           "governance.evidence-owner",
           "governance.independent-task-snapshot",
           "governance.reference-owner",
+          "governance.reference-task-id",
           "governance.rocs-task-owner",
           "governance.rollback-owner-kind",
           "governance.semantic-stop-owner",
@@ -15199,6 +15302,81 @@
               "consumer_contract"
             ],
             "role_owners": [
+              {
+                "owner": {
+                  "owner_id": "consumer-owner",
+                  "owner_repository": {
+                    "canonical_locator": "local://softwareco/pi-canary-consumer",
+                    "identity_revision": 3,
+                    "owner": "consumer-owner",
+                    "repository_id": "pi-canary-consumer"
+                  },
+                  "owner_surface": "consumer_owner"
+                },
+                "role": "consumer_contract"
+              }
+            ]
+          },
+          {
+            "edge_id": "governance.reference-task-id",
+            "edge_linkage_digest": "sha256:44871159db426c386da20fec86cf30c318a76a8db1e2818769a8f0fc7b324a12",
+            "ownership": {
+              "kind": "multi_owner",
+              "owners": [
+                {
+                  "owner_id": "agent-kernel-owner",
+                  "owner_repository": {
+                    "canonical_locator": "local://softwareco/owned/agent-kernel",
+                    "identity_revision": 9,
+                    "owner": "agent-kernel-owner",
+                    "repository_id": "agent-kernel"
+                  },
+                  "owner_surface": "ak"
+                },
+                {
+                  "owner_id": "consumer-owner",
+                  "owner_repository": {
+                    "canonical_locator": "local://softwareco/pi-canary-consumer",
+                    "identity_revision": 3,
+                    "owner": "consumer-owner",
+                    "repository_id": "pi-canary-consumer"
+                  },
+                  "owner_surface": "consumer_owner"
+                }
+              ]
+            },
+            "role_ids": [
+              "canonical_task_state:ak:candidate-decision-53-ak-coordination",
+              "canonical_task_state:ak:candidate-unrelated-completed-task",
+              "consumer_contract"
+            ],
+            "role_owners": [
+              {
+                "owner": {
+                  "owner_id": "agent-kernel-owner",
+                  "owner_repository": {
+                    "canonical_locator": "local://softwareco/owned/agent-kernel",
+                    "identity_revision": 9,
+                    "owner": "agent-kernel-owner",
+                    "repository_id": "agent-kernel"
+                  },
+                  "owner_surface": "ak"
+                },
+                "role": "canonical_task_state:ak:candidate-decision-53-ak-coordination"
+              },
+              {
+                "owner": {
+                  "owner_id": "agent-kernel-owner",
+                  "owner_repository": {
+                    "canonical_locator": "local://softwareco/owned/agent-kernel",
+                    "identity_revision": 9,
+                    "owner": "agent-kernel-owner",
+                    "repository_id": "agent-kernel"
+                  },
+                  "owner_surface": "ak"
+                },
+                "role": "canonical_task_state:ak:candidate-unrelated-completed-task"
+              },
               {
                 "owner": {
                   "owner_id": "consumer-owner",
@@ -27804,25 +27982,25 @@
       "case_count": 152,
       "path": "differential-fixtures-shard-000.json",
       "raw_case_count": 0,
-      "sha256": "00664328381e1331c62281f1c4de8b55589d68841a8b67dd1af150c92b535fbb"
+      "sha256": "6cf525f9b0af77de45fd4d131eb72badc7539f502a0f1f2d72779a1a6b5e761d"
     },
     {
-      "byte_length": 12566206,
+      "byte_length": 12566822,
       "case_count": 137,
       "path": "differential-fixtures-shard-001.json",
       "raw_case_count": 0,
-      "sha256": "f8a5032ca0dad142064c5b820cdc2ceaa27369a620467759afe52e682d2b09ee"
+      "sha256": "85f3e7cc1db84267fd17487803f3e1fe43f67f6d15cf776d36fd1fa51758bb6a"
     },
     {
-      "byte_length": 10223085,
-      "case_count": 99,
+      "byte_length": 10332064,
+      "case_count": 101,
       "path": "differential-fixtures-shard-002.json",
       "raw_case_count": 10,
-      "sha256": "42bfde24954662fbeffe06e9b06332e159b44bf5863e5673838d0c903dc7292d"
+      "sha256": "ea3f10d4a45b970ea41299dd6753e85db77c294a310da5ce17288c4745f317ba"
     }
   ],
   "source_case_explicitness_audit": {
-    "authority_case_count": 360,
+    "authority_case_count": 362,
     "cases": [
       {
         "case_name": "aborted_transaction_discards_staging",
@@ -98618,6 +98796,99 @@
         ]
       },
       {
+        "case_name": "named_dependency_rejects_unrelated_completed_task_substitution",
+        "expected_final_receipts": [
+          {
+            "action_epoch": 100,
+            "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+            "fact_digest": "sha256:317104dc8d53e638d332f2541cc34523497aebfc6608e921e96072a6cc206a1d",
+            "fact_schema": "semantic-authority-ak-task-fact.v0",
+            "fact_value": {
+              "kind": "ak_task_state",
+              "value": {
+                "ak_store_head": {
+                  "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+                  "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+                  "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+                  "store_id": "ak-main",
+                  "store_revision": 42
+                },
+                "artifact_digest": "sha256:6e6cbf2ea19a5b7494bb410b91ec4f419999b54ec7e055373e780b7cef3b81c1",
+                "repository": {
+                  "canonical_locator": "local://softwareco/owned/agent-kernel",
+                  "identity_revision": 9,
+                  "owner": "agent-kernel-owner",
+                  "repository_id": "agent-kernel"
+                },
+                "state": "completed",
+                "task_id": "candidate-unrelated-completed-task",
+                "task_record_digest": "sha256:3c62796870d07cc172e9477a292725b4dca642f7f3f9897d16c6e32eb35bec4d"
+              }
+            },
+            "observation_id": "receipt:governance_contracts:canonical_task_state:ak:candidate-unrelated-completed-task",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/owned/agent-kernel",
+              "identity_revision": 9,
+              "owner": "agent-kernel-owner",
+              "repository_id": "agent-kernel"
+            },
+            "receipt_kind": "store",
+            "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+            "role": "canonical_task_state:ak:candidate-unrelated-completed-task",
+            "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+            "store_id": "ak-main",
+            "store_revision": 42,
+            "vote_tuple": null
+          }
+        ],
+        "registered_mutation_ids": [],
+        "rule": "governance_contracts",
+        "source_receipts": [
+          {
+            "action_epoch": 100,
+            "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+            "fact_digest": "sha256:317104dc8d53e638d332f2541cc34523497aebfc6608e921e96072a6cc206a1d",
+            "fact_schema": "semantic-authority-ak-task-fact.v0",
+            "fact_value": {
+              "kind": "ak_task_state",
+              "value": {
+                "ak_store_head": {
+                  "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+                  "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+                  "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+                  "store_id": "ak-main",
+                  "store_revision": 42
+                },
+                "artifact_digest": "sha256:6e6cbf2ea19a5b7494bb410b91ec4f419999b54ec7e055373e780b7cef3b81c1",
+                "repository": {
+                  "canonical_locator": "local://softwareco/owned/agent-kernel",
+                  "identity_revision": 9,
+                  "owner": "agent-kernel-owner",
+                  "repository_id": "agent-kernel"
+                },
+                "state": "completed",
+                "task_id": "candidate-unrelated-completed-task",
+                "task_record_digest": "sha256:3c62796870d07cc172e9477a292725b4dca642f7f3f9897d16c6e32eb35bec4d"
+              }
+            },
+            "observation_id": "receipt:governance_contracts:canonical_task_state:ak:candidate-unrelated-completed-task",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/owned/agent-kernel",
+              "identity_revision": 9,
+              "owner": "agent-kernel-owner",
+              "repository_id": "agent-kernel"
+            },
+            "receipt_kind": "store",
+            "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+            "role": "canonical_task_state:ak:candidate-unrelated-completed-task",
+            "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+            "store_id": "ak-main",
+            "store_revision": 42,
+            "vote_tuple": null
+          }
+        ]
+      },
+      {
         "case_name": "namespace_version_digest_reuse_conflicts",
         "expected_final_receipts": [
           {
@@ -169078,6 +169349,99 @@
         ]
       },
       {
+        "case_name": "resolved_evidence_reference_observation_accepts",
+        "expected_final_receipts": [
+          {
+            "action_epoch": 100,
+            "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+            "fact_digest": "sha256:0b7012a3c958b68994e6df23479b23e00b77a65435f35f2bb8f8a4ba5dc05e7b",
+            "fact_schema": "semantic-authority-ak-task-fact.v0",
+            "fact_value": {
+              "kind": "ak_task_state",
+              "value": {
+                "ak_store_head": {
+                  "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+                  "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+                  "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+                  "store_id": "ak-main",
+                  "store_revision": 42
+                },
+                "artifact_digest": "sha256:7d9662075a74e5a8ab63e7bb49d08a1f3424be5496e280dae41843f8d57ccba1",
+                "repository": {
+                  "canonical_locator": "local://core/rocs-cli",
+                  "identity_revision": 4,
+                  "owner": "rocs-owner",
+                  "repository_id": "rocs-cli"
+                },
+                "state": "evidence_accepted",
+                "task_id": "exact-materialization-receipt",
+                "task_record_digest": "sha256:4f506d0265d7761930a236470a5f2737289be2b9016b03e64a20311ceb75080c"
+              }
+            },
+            "observation_id": "receipt:governance_contracts:canonical_task_state:ak:exact-materialization-receipt",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/owned/agent-kernel",
+              "identity_revision": 9,
+              "owner": "agent-kernel-owner",
+              "repository_id": "agent-kernel"
+            },
+            "receipt_kind": "store",
+            "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+            "role": "canonical_task_state:ak:exact-materialization-receipt",
+            "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+            "store_id": "ak-main",
+            "store_revision": 42,
+            "vote_tuple": null
+          }
+        ],
+        "registered_mutation_ids": [],
+        "rule": "governance_contracts",
+        "source_receipts": [
+          {
+            "action_epoch": 100,
+            "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+            "fact_digest": "sha256:0b7012a3c958b68994e6df23479b23e00b77a65435f35f2bb8f8a4ba5dc05e7b",
+            "fact_schema": "semantic-authority-ak-task-fact.v0",
+            "fact_value": {
+              "kind": "ak_task_state",
+              "value": {
+                "ak_store_head": {
+                  "canonical_store_locator": "sqlite://agent-kernel/.ak/agent-kernel.db#decision-head",
+                  "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+                  "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+                  "store_id": "ak-main",
+                  "store_revision": 42
+                },
+                "artifact_digest": "sha256:7d9662075a74e5a8ab63e7bb49d08a1f3424be5496e280dae41843f8d57ccba1",
+                "repository": {
+                  "canonical_locator": "local://core/rocs-cli",
+                  "identity_revision": 4,
+                  "owner": "rocs-owner",
+                  "repository_id": "rocs-cli"
+                },
+                "state": "evidence_accepted",
+                "task_id": "exact-materialization-receipt",
+                "task_record_digest": "sha256:4f506d0265d7761930a236470a5f2737289be2b9016b03e64a20311ceb75080c"
+              }
+            },
+            "observation_id": "receipt:governance_contracts:canonical_task_state:ak:exact-materialization-receipt",
+            "owner_repository": {
+              "canonical_locator": "local://softwareco/owned/agent-kernel",
+              "identity_revision": 9,
+              "owner": "agent-kernel-owner",
+              "repository_id": "agent-kernel"
+            },
+            "receipt_kind": "store",
+            "revocation_head_digest": "sha256:7678f3bf42c8199022438b917fb87498a3e5c8be14d6554bda83c9ca7ca6e49b",
+            "role": "canonical_task_state:ak:exact-materialization-receipt",
+            "store_head_digest": "sha256:e824159bfb0e4253a35b3c2abc5467554d89b0c60e370d5272f606904da25ad9",
+            "store_id": "ak-main",
+            "store_revision": 42,
+            "vote_tuple": null
+          }
+        ]
+      },
+      {
         "case_name": "resolved_governance_reference_compares_independent_snapshot",
         "expected_final_receipts": [
           {
@@ -218801,7 +219165,7 @@
         ]
       }
     ],
-    "final_receipt_count": 3590,
+    "final_receipt_count": 3592,
     "inference_policy": "explicit_source_and_expected_final_receipts_no_silent_mismatch",
     "registered_mutation_count": 10,
     "registered_receipt_mutations": [
@@ -219408,9 +219772,9 @@
     ],
     "revision": "semantic-release-revision-v13",
     "schema": "semantic-release-source-case-explicitness-audit.v13",
-    "source_case_count": 388,
-    "source_case_explicitness_audit_digest": "sha256:9746fbd11e24fc5d7fa5a4a0bce01dd1831e5e0b83f089fe583c07bd42a5584e",
-    "store_metadata_tuple_count": 3257,
+    "source_case_count": 390,
+    "source_case_explicitness_audit_digest": "sha256:e504c0fc866063a36acf0988b73a0e2f19b4b1fde747e81389868a40e4c0d01b",
+    "store_metadata_tuple_count": 3259,
     "vote_proof_fact_count": 331
   },
   "transport_limit_cases": [

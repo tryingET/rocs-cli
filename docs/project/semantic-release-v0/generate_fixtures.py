@@ -1774,6 +1774,8 @@ AK_COORD_RESOLVED_ROLE = "canonical_task_state:ak:candidate-decision-53-ak-coord
 ROCS_RESOLVED_ROLE = "canonical_task_state:ak:candidate-decision-53-rocs-implementation"
 SEMANTIC_RESOLVED_ROLE = "canonical_task_state:ak:candidate-decision-53-semantic-owner-publication"
 CONSUMER_RESOLVED_ROLE = "canonical_task_state:ak:consent:pi-canary-consumer-owner"
+EVIDENCE_RESOLVED_ROLE = "canonical_task_state:ak:exact-materialization-receipt"
+UNRELATED_COMPLETED_ROLE = "canonical_task_state:ak:candidate-unrelated-completed-task"
 
 def resolve_contract_reference(base: dict, group: str, reference_id: str, store_head: dict,
         task_record_label: str, artifact_label: str, state: str) -> tuple[dict, dict]:
@@ -1800,6 +1802,15 @@ resolved_semantic_dependency_contract, resolved_semantic_dependency_state = reso
 resolved_consumer_prerequisite_contract, resolved_consumer_prerequisite_state = resolve_contract_reference(
     consumer_canary_contract, "prerequisites", "consent:pi-canary-consumer-owner", ak_store_head,
     "observed-consumer-consent-task-record", "observed-consumer-consent-artifact", "accepted")
+resolved_evidence_contract, resolved_evidence_state = resolve_contract_reference(
+    consumer_canary_contract, "required_evidence", "exact-materialization-receipt", ak_store_head,
+    "observed-materialization-evidence-task-record", "observed-materialization-evidence-artifact", "evidence_accepted")
+unrelated_completed_contract = copy.deepcopy(resolved_dependency_contract)
+unrelated_completed_reference = unrelated_completed_contract["dependencies"][0]
+unrelated_completed_reference["task_id"] = "candidate-unrelated-completed-task"
+unrelated_completed_reference["observed_canonical_state"]["task_id"] = "candidate-unrelated-completed-task"
+unrelated_completed_state = copy.deepcopy(unrelated_completed_reference["observed_canonical_state"])
+rehash(unrelated_completed_contract)
 resolved_head_drift_contract = copy.deepcopy(resolved_dependency_contract)
 resolved_head_drift_contract["dependencies"][0]["observed_canonical_state"]["ak_store_head"]["store_revision"] = 41
 rehash(resolved_head_drift_contract)
@@ -1848,6 +1859,10 @@ cases += [
         {"consumer_contract": resolved_semantic_dependency_contract, SEMANTIC_RESOLVED_ROLE: copy.deepcopy(resolved_semantic_dependency_state)}),
     case("resolved_consumer_reference_observation_accepts", "governance_contracts", ak_coordination_contract, None,
         {"consumer_contract": resolved_consumer_prerequisite_contract, CONSUMER_RESOLVED_ROLE: copy.deepcopy(resolved_consumer_prerequisite_state)}),
+    case("resolved_evidence_reference_observation_accepts", "governance_contracts", ak_coordination_contract, None,
+        {"consumer_contract": resolved_evidence_contract, EVIDENCE_RESOLVED_ROLE: copy.deepcopy(resolved_evidence_state)}),
+    case("named_dependency_rejects_unrelated_completed_task_substitution", "governance_contracts", ak_coordination_contract, "self_certification",
+        {"consumer_contract": unrelated_completed_contract, UNRELATED_COMPLETED_ROLE: copy.deepcopy(unrelated_completed_state)}),
     case("resolved_rocs_reference_non_ak_issuer_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
         {"consumer_contract": resolved_rocs_dependency_contract, ROCS_RESOLVED_ROLE: copy.deepcopy(resolved_rocs_dependency_state)}),
     case("resolved_semantic_reference_non_ak_issuer_rejected", "governance_contracts", ak_coordination_contract, "issuer_scope_violation",
@@ -4846,6 +4861,10 @@ EXPLICIT_STORE_METADATA_SETS["store_source_governance_semantic_corrected_v13"] =
     SEMANTIC_RESOLVED_ROLE: "store_tuple_003"}
 EXPLICIT_STORE_METADATA_SETS["store_source_governance_consumer_corrected_v13"] = {
     CONSUMER_RESOLVED_ROLE: "store_tuple_003"}
+EXPLICIT_STORE_METADATA_SETS["store_source_governance_evidence_id_bound_v13"] = {
+    EVIDENCE_RESOLVED_ROLE: "store_tuple_003"}
+EXPLICIT_STORE_METADATA_SETS["store_source_governance_unrelated_task_v13"] = {
+    UNRELATED_COMPLETED_ROLE: "store_tuple_003"}
 EXPLICIT_STORE_METADATA_TUPLES["store_tuple_stale_ak_decision_v13"] = {
     "owner_repository": {"owner": "agent-kernel-owner", "repository_id": "agent-kernel",
         "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9},
@@ -4975,6 +4994,8 @@ for _name in (
 EXPLICIT_CASE_SOURCE_SETS["resolved_rocs_reference_observation_accepts"] = ["store_source_governance_rocs_corrected_v13", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["resolved_semantic_reference_observation_accepts"] = ["store_source_governance_semantic_corrected_v13", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["resolved_consumer_reference_observation_accepts"] = ["store_source_governance_consumer_corrected_v13", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["resolved_evidence_reference_observation_accepts"] = ["store_source_governance_evidence_id_bound_v13", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["named_dependency_rejects_unrelated_completed_task_substitution"] = ["store_source_governance_unrelated_task_v13", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["resolved_rocs_reference_non_ak_issuer_rejected"] = ["store_source_governance_rocs_corrected_v13", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["resolved_semantic_reference_non_ak_issuer_rejected"] = ["store_source_governance_semantic_corrected_v13", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["resolved_consumer_reference_non_ak_issuer_rejected"] = ["store_source_governance_consumer_corrected_v13", "vote_source_000"]
@@ -6409,6 +6430,7 @@ authority_edge_registry = [
     edge("governance.task-store", "governance_contracts", "resolved task store equals independent AK task observation", "resolved_governance_reference_observation_accepts", "resolved_governance_reference_observed_head_is_exact", "issuer_scope_violation"),
     edge("governance.task-record", "governance_contracts", "resolved task record equals independent AK task observation", "resolved_governance_reference_observation_accepts", "resolved_governance_reference_observed_task_digest_is_exact", "self_certification"),
     edge("governance.task-state", "governance_contracts", "resolved task state equals independent AK task observation", "resolved_governance_reference_observation_accepts", "resolved_governance_reference_observed_state_is_exact", "self_certification"),
+    edge("governance.reference-task-id", "governance_contracts", "named reference ID equals claimed, observed, and capability-pinned AK receipt task ID", "resolved_governance_reference_observation_accepts", "named_dependency_rejects_unrelated_completed_task_substitution", "self_certification"),
     edge("governance.reference-owner", "governance_contracts", "reference repository equals fact owner repository", "non_authorizing_separate_coordination_and_consumer_contracts", "unresolved_dependency_binds_correct_owner_repository", "self_certification"),
     edge("governance.stop-condition", "governance_contracts", "stop condition identifier pairs exactly", "non_authorizing_separate_coordination_and_consumer_contracts", "stop_condition_id_pairs_exactly", "self_certification"),
     edge("governance.stop-fact", "governance_contracts", "stop fact identifier pairs exactly", "non_authorizing_separate_coordination_and_consumer_contracts", "stop_condition_fact_id_pairs_exactly", "self_certification"),

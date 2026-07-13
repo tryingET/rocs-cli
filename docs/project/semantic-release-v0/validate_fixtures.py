@@ -87,10 +87,10 @@ SCHEMA_ROOT: dict[str, Any] | None = None
 
 AUTHORITY_BEARING_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"}
 ALL_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"}
-EXPECTED_AUTHORITY_EDGE_COUNT = 149
-EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:639db97c3707b75470aceba0d9534d01f2624c50fc3d722b262c2033f3eb1a81"
-EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:d8ce4592efbac65f59fdf9f0fde75cb418be5ca7ab10822d44622c0ed48e2bb5"
-EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:9746fbd11e24fc5d7fa5a4a0bce01dd1831e5e0b83f089fe583c07bd42a5584e"
+EXPECTED_AUTHORITY_EDGE_COUNT = 150
+EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:08a4b1212a2aab35269935191a427f819ea7692f62d1b8f09016dd56295c0cd7"
+EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:40de542fd8f75d5d5e05d342e2d10f7011505328f3793519c20cf45944c6e0ab"
+EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:e504c0fc866063a36acf0988b73a0e2f19b4b1fde747e81389868a40e4c0d01b"
 PINNED_AK_REPOSITORY = {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}
 PINNED_ROCS_REPOSITORY = {"owner": "rocs-owner", "repository_id": "rocs-cli", "canonical_locator": "local://core/rocs-cli", "identity_revision": 4}
 PINNED_SEMANTIC_REPOSITORY = {"owner": "semantic-owner", "repository_id": "ontology-kernel", "canonical_locator": "local://core/ontology-kernel", "identity_revision": 1}
@@ -910,7 +910,9 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
         if is_task_receipt:
             expected_head = {key: row[key] for key in
                 ("store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest")}
-            if (not isinstance(decoded_fact, dict)
+            role_task_id = role[len(task_prefix):]
+            if (not isinstance(decoded_fact, dict) or not role_task_id
+                or decoded_fact.get("task_id") != role_task_id
                 or not any(decoded_fact.get("repository") == repository for repository in TASK_TARGET_REPOSITORIES)
                 or decoded_fact.get("ak_store_head") != expected_head):
                 raise ContextValidationError("issuer_scope_violation")
@@ -1001,6 +1003,8 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
             for reference in references:
                 if reference["resolution"] != "resolved": continue
                 observed = reference["observed_canonical_state"]
+                if not (reference["reference_id"] == reference["task_id"] == observed["task_id"]):
+                    raise ContextValidationError("self_certification")
                 if not any(observed["repository"] == repository for repository in TASK_TARGET_REPOSITORIES):
                     raise ContextValidationError("issuer_scope_violation")
                 task_role = "canonical_task_state:ak:" + observed["task_id"]
@@ -1857,8 +1861,9 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
                 elif row["resolution"] == "resolved":
                     observed = row["observed_canonical_state"]
                     anchors = [anchor for anchor in context["_authority_task_states"] if anchor == observed]
-                    if (len(anchors) != 1 or observed["repository"] != row["repository"] or observed["ak_store_head"] != row["ak_store_head"]
-                        or observed["task_id"] != row["task_id"] or observed["task_record_digest"] != row["task_record_digest"]
+                    if (len(anchors) != 1 or row["reference_id"] != row["task_id"] or observed["task_id"] != row["reference_id"]
+                        or observed["repository"] != row["repository"] or observed["ak_store_head"] != row["ak_store_head"]
+                        or observed["task_record_digest"] != row["task_record_digest"]
                         or observed["artifact_digest"] != row["artifact_digest"] or observed["state"] != state_map[state]): return False
                 else: return False
             return True
