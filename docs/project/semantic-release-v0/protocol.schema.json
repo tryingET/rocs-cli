@@ -83,11 +83,11 @@
         "activation_revision": {
           "$ref": "#/$defs/safeInteger"
         },
-        "activation_scope": {
-          "$ref": "#/$defs/identifier"
-        },
         "activation_target_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "canary_scope": {
+          "$ref": "#/$defs/v0CanaryScope"
         },
         "consumer_intent_digest": {
           "$ref": "#/$defs/digest"
@@ -96,7 +96,7 @@
           "$ref": "#/$defs/identifier"
         },
         "consumer_repository": {
-          "$ref": "#/$defs/repositoryIdentity"
+          "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
         },
         "coordinate": {
           "$ref": "#/$defs/coordinate"
@@ -194,9 +194,9 @@
         "materialization_verification_receipt_digest",
         "rollback_availability_proof_digest",
         "consumer_repository",
+        "canary_scope",
         "coordinate",
         "runtime_identity",
-        "activation_scope",
         "activation_revision",
         "prior_activation_revision",
         "activation_epoch",
@@ -1701,7 +1701,7 @@
           "$ref": "#/$defs/digest"
         },
         "revision": {
-          "const": "semantic-release-revision-v11"
+          "const": "semantic-release-revision-v12"
         },
         "rules": {
           "items": {
@@ -2099,7 +2099,6 @@
             "compatible_refinement",
             "deprecation",
             "removal",
-            "rename",
             "constraint_change",
             "relation_change",
             "identifier_reuse",
@@ -2182,7 +2181,6 @@
             "compatible_refinement",
             "deprecation",
             "removal",
-            "rename",
             "constraint_change",
             "relation_change",
             "identifier_reuse",
@@ -2372,8 +2370,8 @@
           "items": {
             "$ref": "#/$defs/categoryRule"
           },
-          "maxItems": 10,
-          "minItems": 10,
+          "maxItems": 9,
+          "minItems": 9,
           "type": "array"
         },
         "compatibility_policy_digest": {
@@ -2543,11 +2541,14 @@
             "conditionally_compatible"
           ]
         },
+        "canary_scope": {
+          "$ref": "#/$defs/v0CanaryScope"
+        },
         "consumer_intent_digest": {
           "$ref": "#/$defs/digest"
         },
         "consumer_repository": {
-          "$ref": "#/$defs/repositoryIdentity"
+          "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
         },
         "decision_reference_digest": {
           "$ref": "#/$defs/digest"
@@ -2560,16 +2561,6 @@
         },
         "limits_digest": {
           "$ref": "#/$defs/digest"
-        },
-        "requested_posture": {
-          "enum": [
-            "materialize_only",
-            "named_canary",
-            "explicit_search_default",
-            "automatic_preflight_default",
-            "startup_orientation",
-            "fleet"
-          ]
         },
         "rollback_target": {
           "$ref": "#/$defs/rollbackTarget"
@@ -2590,10 +2581,10 @@
       "required": [
         "schema",
         "consumer_repository",
+        "canary_scope",
         "intent_revision",
         "desired_coordinate",
         "runtime_identity",
-        "requested_posture",
         "accepted_compatibility",
         "rollback_target",
         "decision_reference_digest",
@@ -3036,6 +3027,9 @@
         "actual_consumer_manifest_digest": {
           "$ref": "#/$defs/digest"
         },
+        "canary_scope": {
+          "$ref": "#/$defs/v0CanaryScope"
+        },
         "capsule_archive_linkage_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -3057,7 +3051,7 @@
           "$ref": "#/$defs/digest"
         },
         "consumer_repository": {
-          "$ref": "#/$defs/repositoryIdentity"
+          "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
         },
         "coordinate": {
           "$ref": "#/$defs/coordinate"
@@ -3133,6 +3127,7 @@
         "expected_consumer_manifest_digest",
         "actual_consumer_manifest_digest",
         "consumer_repository",
+        "canary_scope",
         "compatibility_report_digest",
         "compatibility_outcome",
         "prior_receipt_digest",
@@ -3287,7 +3282,7 @@
         "task_kind": {
           "enum": [
             "ak_coordination",
-            "first_consumer"
+            "single_canary_consumer"
           ]
         },
         "task_owner_id": {
@@ -3328,17 +3323,17 @@
         "acceptance_revision": {
           "$ref": "#/$defs/safeInteger"
         },
-        "accepted_posture": {
-          "$ref": "#/$defs/identifier"
-        },
         "activation_epoch_not_after": {
           "$ref": "#/$defs/safeInteger"
+        },
+        "canary_scope": {
+          "$ref": "#/$defs/v0CanaryScope"
         },
         "consumer_intent_digest": {
           "$ref": "#/$defs/digest"
         },
         "consumer_repository": {
-          "$ref": "#/$defs/repositoryIdentity"
+          "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
         },
         "decision_reference_digest": {
           "$ref": "#/$defs/digest"
@@ -3370,11 +3365,11 @@
         "schema",
         "consumer_intent_digest",
         "consumer_repository",
+        "canary_scope",
         "acceptance_authority",
         "acceptance_revision",
         "acceptance_epoch",
         "governing_scope_digest",
-        "accepted_posture",
         "decision_reference_digest",
         "valid_through_intent_revision",
         "activation_epoch_not_after",
@@ -4130,6 +4125,9 @@
         },
         {
           "$ref": "#/$defs/tombstoneRegistry"
+        },
+        {
+          "$ref": "#/$defs/tombstoneHistoryProof"
         },
         {
           "$ref": "#/$defs/publicationLedgerHead"
@@ -5982,8 +5980,7 @@
             "validator_failure",
             "compatibility_failure",
             "missing_rollback_rehearsal",
-            "canary_scope_exceeded",
-            "default_or_fleet_request"
+            "protocol_scope_expansion"
           ]
         },
         "fact_reference": {
@@ -6153,10 +6150,7 @@
           "$ref": "#/$defs/digest"
         },
         "reason": {
-          "enum": [
-            "removed",
-            "renamed"
-          ]
+          "const": "removed"
         },
         "semantic_id": {
           "$ref": "#/$defs/identifier"
@@ -6166,6 +6160,123 @@
         "semantic_id",
         "reason",
         "origin_record_digest"
+      ],
+      "type": "object"
+    },
+    "tombstoneHistoryDelta": {
+      "additionalProperties": false,
+      "properties": {
+        "added_entries": {
+          "items": {
+            "$ref": "#/$defs/tombstoneEntry"
+          },
+          "maxItems": 1,
+          "minItems": 0,
+          "type": "array"
+        },
+        "authorization_kind": {
+          "enum": [
+            "genesis",
+            "removal"
+          ]
+        },
+        "authorization_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "prior_lifecycle_head_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "resulting_lifecycle_head_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "authorization_kind",
+        "authorization_record_digest",
+        "prior_lifecycle_head_digest",
+        "resulting_lifecycle_head_digest",
+        "added_entries"
+      ],
+      "type": "object"
+    },
+    "tombstoneHistoryProof": {
+      "additionalProperties": false,
+      "properties": {
+        "current_lifecycle_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "current_registry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "current_registry_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "issuer": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "const": "semantic-owner"
+            },
+            "kind": {
+              "const": "semantic_owner"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ],
+          "type": "object"
+        },
+        "namespace": {
+          "$ref": "#/$defs/namespace"
+        },
+        "revisions": {
+          "items": {
+            "$ref": "#/$defs/tombstoneHistoryRevision"
+          },
+          "maxItems": 100000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "schema": {
+          "const": "semantic-tombstone-history-proof.v0"
+        },
+        "semantic_tombstone_history_proof_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "schema",
+        "issuer",
+        "namespace",
+        "current_lifecycle_head_digest",
+        "current_registry_digest",
+        "current_registry_revision",
+        "revisions",
+        "semantic_tombstone_history_proof_digest"
+      ],
+      "type": "object"
+    },
+    "tombstoneHistoryRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "authorized_delta": {
+          "$ref": "#/$defs/tombstoneHistoryDelta"
+        },
+        "registry": {
+          "$ref": "#/$defs/tombstoneRegistry"
+        }
+      },
+      "required": [
+        "registry",
+        "authorized_delta"
       ],
       "type": "object"
     },
@@ -6475,6 +6586,62 @@
         "trust_rotation_digest"
       ],
       "type": "object"
+    },
+    "v0CanaryScope": {
+      "additionalProperties": false,
+      "properties": {
+        "adoption_mode": {
+          "const": "single_operator_named_canary"
+        },
+        "canary_cardinality": {
+          "const": 1
+        },
+        "consumer_repository": {
+          "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
+        },
+        "expansion_authority": {
+          "const": "new_protocol_and_decision_required"
+        },
+        "naming_authority": {
+          "const": "operator"
+        },
+        "operator_canary_name": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "consumer_repository",
+        "operator_canary_name",
+        "naming_authority",
+        "canary_cardinality",
+        "adoption_mode",
+        "expansion_authority"
+      ],
+      "type": "object"
+    },
+    "v0ConsumerRepositoryIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_locator": {
+          "const": "local://softwareco/pi-canary-consumer"
+        },
+        "identity_revision": {
+          "const": 3
+        },
+        "owner": {
+          "const": "consumer-owner"
+        },
+        "repository_id": {
+          "const": "pi-canary-consumer"
+        }
+      },
+      "required": [
+        "owner",
+        "repository_id",
+        "canonical_locator",
+        "identity_revision"
+      ],
+      "type": "object"
     }
   },
   "$id": "https://ai-society.local/rocs/semantic-release-v0/protocol.schema.json",
@@ -6524,6 +6691,9 @@
     },
     {
       "$ref": "#/$defs/tombstoneRegistry"
+    },
+    {
+      "$ref": "#/$defs/tombstoneHistoryProof"
     },
     {
       "$ref": "#/$defs/publicationLedgerHead"
@@ -6640,5 +6810,5 @@
       "$ref": "#/$defs/authorityVerifierInput"
     }
   ],
-  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 11"
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 12"
 }
