@@ -12,6 +12,7 @@ import stat
 import sys
 import time
 import unicodedata
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -86,12 +87,21 @@ SCHEMA_ROOT: dict[str, Any] | None = None
 
 AUTHORITY_BEARING_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"}
 ALL_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"}
-EXPECTED_AUTHORITY_EDGE_COUNT = 141
-EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:d78991ce172d795de35d8fe640fe4cdb266a260980d9d72c1b29a3c0ed30b9a3"
-EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:687d3e6c6be239d92bc5d5663c48ac18f8a6124cb9b6a99e0b0623b643ebc476"
-EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:03644461360e9790a10d6b43830e94f694bf0003aa74b10564eb01270b0a408d"
+EXPECTED_AUTHORITY_EDGE_COUNT = 148
+EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:7dc77eb408c83196425df115d5828868f1b995eee0ff5f53ff4d287536dbecd9"
+EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:6844f7852e5561c9a95b9fb59596ea74661ea68fde2a537588f3cc9007d4f6fc"
+EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:3899e20b07c2b1f0ae09c7e1d311b99cc9f37a3e12409427e39147de93c4d9af"
 PINNED_AK_REPOSITORY = {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}
 PINNED_ROCS_REPOSITORY = {"owner": "rocs-owner", "repository_id": "rocs-cli", "canonical_locator": "local://core/rocs-cli", "identity_revision": 4}
+PINNED_SEMANTIC_REPOSITORY = {"owner": "semantic-owner", "repository_id": "ontology-kernel", "canonical_locator": "local://core/ontology-kernel", "identity_revision": 1}
+PINNED_CONSUMER_REPOSITORY = {"owner": "consumer-owner", "repository_id": "pi-canary-consumer", "canonical_locator": "local://softwareco/pi-canary-consumer", "identity_revision": 3}
+TASK_RECEIPT_ROLE_PROFILES = {
+    "canonical_task_state:ak:": ("ak_task", "ak", "agent-kernel-owner", PINNED_AK_REPOSITORY),
+    "canonical_task_state:rocs:": ("rocs_task", "rocs", "rocs-cli", PINNED_ROCS_REPOSITORY),
+    "canonical_task_state:semantic:": ("semantic_task", "semantic_owner", "semantic-owner", PINNED_SEMANTIC_REPOSITORY),
+    "canonical_task_state:consumer:": ("consumer_task", "consumer_owner", "consumer-owner", PINNED_CONSUMER_REPOSITORY),
+}
+AK_LINEAGE_TASK_ROLE = "canonical_task_state:ak:semantic-release-canary-lineage"
 PINNED_PI_REPOSITORY = {"owner": "pi-owner", "repository_id": "pi-adapter", "canonical_locator": "local://softwareco/pi-adapter", "identity_revision": 1}
 PINNED_ADAPTER_ISSUERS = {
     "semantic-rocs-generation-receipt.v0": ("rocs", PINNED_ROCS_REPOSITORY["repository_id"]),
@@ -105,6 +115,25 @@ AUTHORITY_MANIFEST_BY_RULE: dict[str, dict] = {}
 
 class ValidationError(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class FileFingerprint:
+    device: int
+    inode: int
+    mode: int
+    size: int
+    mtime_ns: int
+    ctime_ns: int
+
+
+@dataclass
+class StableJsonRead:
+    path: Path
+    raw: bytes
+    raw_sha256: str
+    fingerprint: FileFingerprint
+    value: Any | None = None
 
 
 def enforce_deadline(stage: str) -> None:
@@ -149,9 +178,9 @@ def parse_json_text(text: str) -> Any:
     return value
 
 
-def load_json_bytes(path: Path, *, strict_under_limit: bool = False,
-        expected_byte_length: int | None = None, expected_sha256: str | None = None) -> tuple[Any, bytes]:
-    """No-follow, bounded, stable read; authenticate raw bytes before JSON parsing."""
+def stable_bounded_json_read(path: Path, *, strict_under_limit: bool = False,
+        expected_byte_length: int | None = None, expected_sha256: str | None = None) -> StableJsonRead:
+    """No-follow bounded read returning the exact bytes and stable descriptor/path fingerprint."""
     nofollow = getattr(os, "O_NOFOLLOW", None)
     if nofollow is None: raise ValidationError(f"{path}: no-follow open unavailable")
     flags = os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0)
@@ -182,6 +211,8 @@ def load_json_bytes(path: Path, *, strict_under_limit: bool = False,
             or len(raw) != byte_length or len(raw) > MAX_JSON_FILE_BYTES
             or strict_under_limit and len(raw) >= MAX_JSON_FILE_BYTES):
             raise ValidationError(f"{path}: JSON file replaced, grew, or changed during bounded read")
+        fingerprint = FileFingerprint(before.st_dev, before.st_ino, before.st_mode, before.st_size,
+            before.st_mtime_ns, before.st_ctime_ns)
     finally:
         os.close(fd)
     enforce_deadline(f"before hash {path.name}")
@@ -191,17 +222,43 @@ def load_json_bytes(path: Path, *, strict_under_limit: bool = False,
         or (expected_sha256 is not None and raw_sha256 != expected_sha256)):
         raise ValidationError(f"{path}: JSON raw byte/hash mismatch")
     if raw.startswith(b"\xef\xbb\xbf"): raise ValidationError(f"{path}: BOM forbidden")
-    enforce_deadline(f"before decode/parse {path.name}")
-    try:
-        value = parse_json_text(raw.decode("utf-8", "strict"))
-        enforce_deadline(f"after decode/parse {path.name}")
-        return value, raw
-    except (UnicodeDecodeError, ValidationError) as exc: raise ValidationError(f"{path}: {exc}") from exc
+    return StableJsonRead(path=path, raw=raw, raw_sha256=raw_sha256, fingerprint=fingerprint)
+
+
+def parse_stable_json_read(read: StableJsonRead) -> Any:
+    """Parse only the authenticated bytes retained by one stable bounded read."""
+    enforce_deadline(f"before decode/parse {read.path.name}")
+    try: value = parse_json_text(read.raw.decode("utf-8", "strict"))
+    except (UnicodeDecodeError, ValidationError) as exc: raise ValidationError(f"{read.path}: {exc}") from exc
+    enforce_deadline(f"after decode/parse {read.path.name}")
+    return value
+
+
+def load_json_bytes(path: Path, *, strict_under_limit: bool = False,
+        expected_byte_length: int | None = None, expected_sha256: str | None = None) -> StableJsonRead:
+    read = stable_bounded_json_read(path, strict_under_limit=strict_under_limit,
+        expected_byte_length=expected_byte_length, expected_sha256=expected_sha256)
+    read.value = parse_stable_json_read(read)
+    return read
 
 
 def load_json(path: Path) -> Any:
-    return load_json_bytes(path)[0]
+    return load_json_bytes(path).value
 
+
+def accounted_json_bytes(reads: list[StableJsonRead], expected_total: int | None = None) -> int:
+    """Assert that accounting, fingerprint, hash, and parser inputs are one retained byte identity."""
+    total = 0
+    seen: set[tuple[int, int, str]] = set()
+    for read in reads:
+        identity = (read.fingerprint.device, read.fingerprint.inode, read.path.name)
+        if (identity in seen or read.fingerprint.size != len(read.raw)
+            or read.raw_sha256 != hashlib.sha256(read.raw).hexdigest()):
+            raise ValidationError(f"{read.path}: aggregate accounting identity mismatch")
+        seen.add(identity); total += len(read.raw)
+    if expected_total is not None and total != expected_total:
+        raise ValidationError("aggregate accounting sum mismatch")
+    return total
 
 def validate_ijson(value: Any, path: str = "$", depth: int = 1) -> None:
     if depth > MAX_JSON_DEPTH: raise ValidationError(f"{path}: JSON nesting depth exceeds 64")
@@ -244,30 +301,6 @@ def action_digest(value: Any) -> str: return typed_digest("semantic-release.appr
 def change_digest(value: Any) -> str: return typed_digest("semantic-release.compatibility-change.v0", value)
 
 
-def stable_json_stat(path: Path, *, strict_under_limit: bool = False) -> int:
-    """No-follow stable metadata read used for aggregate transport accounting."""
-    enforce_deadline(f"before stat {path.name}")
-    nofollow = getattr(os, "O_NOFOLLOW", None)
-    if nofollow is None: raise ValidationError(f"{path}: no-follow open unavailable")
-    try: fd = os.open(path, os.O_RDONLY | nofollow | getattr(os, "O_CLOEXEC", 0))
-    except OSError as exc: raise ValidationError(f"{path}: unavailable, non-regular, or symlink JSON file") from exc
-    try:
-        before = os.fstat(fd); after = os.fstat(fd)
-        try: current = os.stat(path, follow_symlinks=False)
-        except OSError as exc: raise ValidationError(f"{path}: JSON file replaced during stat") from exc
-        stable_fields = ("st_dev", "st_ino", "st_mode", "st_size", "st_mtime_ns", "st_ctime_ns")
-        size = before.st_size
-        if (not stat.S_ISREG(before.st_mode) or not stat.S_ISREG(after.st_mode) or not stat.S_ISREG(current.st_mode)
-            or any(getattr(before, key) != getattr(after, key) for key in stable_fields)
-            or any(getattr(before, key) != getattr(current, key) for key in stable_fields)
-            or size < 0 or size > MAX_JSON_FILE_BYTES or strict_under_limit and size >= MAX_JSON_FILE_BYTES):
-            raise ValidationError(f"{path}: unstable, non-regular, or oversized JSON stat")
-    finally:
-        os.close(fd)
-    enforce_deadline(f"after stat {path.name}")
-    return size
-
-
 def transport_limit_result(limits: dict, total_json_bytes: int, shard_count: int, elapsed_ms: int) -> str | None:
     if (total_json_bytes > limits["max_total_json_bytes"] or shard_count > limits["max_shards"]
         or elapsed_ms > limits["deadline_ms"]):
@@ -275,7 +308,9 @@ def transport_limit_result(limits: dict, total_json_bytes: int, shard_count: int
     return None
 
 
-def load_sharded_differential(manifest: dict) -> tuple[dict, list[dict], str, int, int]:
+def load_sharded_differential(schema_read: StableJsonRead, golden_read: StableJsonRead,
+        manifest_read: StableJsonRead) -> tuple[dict, list[dict], str, int, int]:
+    manifest = manifest_read.value
     top_keys = {"schema", "protocol", "rfc_revision", "limits", "transport_limit_cases", "aggregate",
         "source_case_explicitness_audit", "authority_rule_role_manifest", "authority_edge_registry", "shards"}
     if not isinstance(manifest, dict) or set(manifest) != top_keys:
@@ -293,8 +328,9 @@ def load_sharded_differential(manifest: dict) -> tuple[dict, list[dict], str, in
         raise ValidationError("differential transport limits shape/bound")
     configure_deadline(limits["deadline_ms"])
     transport_cases = manifest["transport_limit_cases"]
-    case_keys = {"name", "limit_kind", "observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms", "expected_error"}
+    case_keys = {"name", "limit_kind", "observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms", "accounted_byte_lengths", "expected_error"}
     expected_cases = {
+        "transport_accounting_identity_accepts": "accounting_identity",
         "transport_aggregate_json_bytes_overflow_rejected": "max_total_json_bytes",
         "transport_deadline_overflow_rejected": "deadline_ms",
         "transport_shard_count_overflow_rejected": "max_shards",
@@ -304,14 +340,20 @@ def load_sharded_differential(manifest: dict) -> tuple[dict, list[dict], str, in
     for item in transport_cases:
         enforce_deadline(f"before transport case {item.get('name')}")
         if (not isinstance(item, dict) or set(item) != case_keys or item["limit_kind"] != expected_cases.get(item["name"])
-            or item["expected_error"] != "transport_limit_exceeded"
             or any(isinstance(item[key], bool) or not isinstance(item[key], int) or item[key] < 0
-                for key in ("observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms"))):
+                for key in ("observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms"))
+            or not isinstance(item["accounted_byte_lengths"], list)
+            or any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in item["accounted_byte_lengths"])):
             raise ValidationError("transport conformance case shape")
         violations = [key for key, observed in (("max_total_json_bytes", item["observed_total_json_bytes"]),
             ("max_shards", item["observed_shard_count"]), ("deadline_ms", item["observed_elapsed_ms"])) if observed > limits[key]]
         actual = transport_limit_result(limits, item["observed_total_json_bytes"], item["observed_shard_count"], item["observed_elapsed_ms"])
-        if violations != [item["limit_kind"]] or actual != item["expected_error"]:
+        if item["limit_kind"] == "accounting_identity":
+            if (item["expected_error"] is not None or violations or actual is not None
+                or sum(item["accounted_byte_lengths"]) != item["observed_total_json_bytes"]):
+                raise ValidationError(f"transport conformance case outcome {item['name']}")
+        elif (item["expected_error"] != "transport_limit_exceeded" or item["accounted_byte_lengths"]
+            or violations != [item["limit_kind"]] or actual != item["expected_error"]):
             raise ValidationError(f"transport conformance case outcome {item['name']}")
         enforce_deadline(f"after transport case {item['name']}")
     aggregate = manifest["aggregate"]
@@ -339,20 +381,25 @@ def load_sharded_differential(manifest: dict) -> tuple[dict, list[dict], str, in
     extras = {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")} - listed
     missing = listed - {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")}
     if extras or missing: raise ValidationError("differential shard inventory has missing or extra files")
-    stat_rows = [(ROOT / "protocol.schema.json", False), (ROOT / "golden-fixtures.json", False),
-        (ROOT / "differential-fixtures.json", False)] + [(ROOT / row["path"], True) for row in rows]
-    stat_sizes = [stable_json_stat(path, strict_under_limit=strict) for path, strict in stat_rows]
-    if any(stat_sizes[index + 3] != row["byte_length"] for index, row in enumerate(rows)):
-        raise ValidationError("differential shard stable stat byte mismatch")
-    total_json_bytes = sum(stat_sizes)
+    top_reads = [schema_read, golden_read, manifest_read]
+    if ([read.path.name for read in top_reads] != ["protocol.schema.json", "golden-fixtures.json", "differential-fixtures.json"]
+        or any(read.value is None for read in top_reads)):
+        raise ValidationError("aggregate accounting top-level read identity")
+    shard_reads: list[StableJsonRead] = []
+    for index, row in enumerate(rows):
+        enforce_deadline(f"before shard {index} stable bounded read/hash")
+        shard_reads.append(stable_bounded_json_read(ROOT / row["path"], strict_under_limit=True,
+            expected_byte_length=row["byte_length"], expected_sha256=row["sha256"]))
+        enforce_deadline(f"after shard {index} stable bounded read/hash")
+    total_json_bytes = accounted_json_bytes(top_reads + shard_reads)
+    if total_json_bytes != sum(len(read.raw) for read in top_reads + shard_reads):
+        raise ValidationError("aggregate accounting internal sum identity")
     if transport_limit_result(limits, total_json_bytes, len(rows), 0) is not None:
         raise ValidationError("aggregate JSON transport limit exceeded before shard parsing")
     cases: list[dict] = []; raw_cases: list[dict] = []; inventory: list[dict] = []
-    for index, row in enumerate(rows):
-        enforce_deadline(f"before shard {index} read/hash/parse")
-        path = ROOT / row["path"]
-        shard, _data = load_json_bytes(path, strict_under_limit=True,
-            expected_byte_length=row["byte_length"], expected_sha256=row["sha256"])
+    for index, (row, shard_read) in enumerate(zip(rows, shard_reads)):
+        enforce_deadline(f"before shard {index} retained-byte parse")
+        shard = parse_stable_json_read(shard_read)
         shard_keys = {"schema", "protocol", "rfc_revision", "shard_index", "cases", "raw_json_cases"}
         if (not isinstance(shard, dict) or set(shard) != shard_keys
             or shard["schema"] != "semantic-differential-fixture-shard.v0"
@@ -363,7 +410,7 @@ def load_sharded_differential(manifest: dict) -> tuple[dict, list[dict], str, in
             or len(shard["raw_json_cases"]) != row["raw_case_count"]):
             raise ValidationError(f"differential shard shape/count {row['path']}")
         cases.extend(shard["cases"]); raw_cases.extend(shard["raw_json_cases"]); inventory.append(copy.deepcopy(row))
-        enforce_deadline(f"after shard {index} read/hash/parse")
+        enforce_deadline(f"after shard {index} retained-byte parse")
     aggregate_preimage = {"cases": cases, "raw_json_cases": raw_cases}
     enforce_deadline("before differential aggregate hash")
     aggregate_sha256 = hashlib.sha256(jcs(aggregate_preimage).encode("utf-8")).hexdigest()
@@ -570,7 +617,7 @@ def expected_shape_context(value: Any, definition: str) -> Any:
 
 
 REQUIRED_RECEIPT_ROLES = {
-    "ak_optional_pi": {"canonical_task_states"},
+    "ak_optional_pi": {"canonical_store_head", "current_decision_record_digest"},
     "approval_threshold": set(),
     "trust_rotation": {"current_root_digest", "revoked", "canonical_store_head", "current_decision_record_digest"},
     "trust_revocation": {"prior_revision", "prior_head", "canonical_store_head", "current_decision_record_digest"},
@@ -593,7 +640,7 @@ REQUIRED_RECEIPT_ROLES = {
     "activation_binding": {"canonical_store_head", "current_decision_record_digest", "current_acceptance_digest", "current_acceptance_revision", "current_activation_digest", "current_activation_revision", "canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head"},
     "generation_activation": {"canonical_store_head", "current_decision_record_digest", "current_acceptance_digest", "current_acceptance_revision", "current_activation_digest", "current_activation_revision", "canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head"},
     "rollback": {"canonical_store_head", "current_decision_record_digest", "current_acceptance_digest", "current_acceptance_revision", "current_activation_digest", "current_activation_revision", "canonical_history_head", "canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head"},
-    "governance_contracts": {"canonical_task_states"},
+    "governance_contracts": set(),
 }
 MISSING_ANCHOR_NEGATIVES = {
     "authority_required_anchor_is_mandatory": {"canonical_store_head"},
@@ -743,7 +790,7 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
         or set(pins) != binding_pins or len(verifier["receipt_bindings"]) != len(binding_observations)):
         raise ContextValidationError("self_certification")
     if snapshot["action_epoch"] < config["required_action_epoch_floor"]: raise ContextValidationError("issuer_scope_violation")
-    resolved: dict[str, Any] = {}; receipt_roles: set[str] = set()
+    resolved: dict[str, Any] = {}; receipt_roles: set[str] = set(); task_receipts: dict[str, Any] = {}
     category_profiles = {
         "semantic_trust": ("semantic_owner", "semantic-owner", {"owner": "semantic-owner", "repository_id": "ontology-kernel", "canonical_locator": "local://core/ontology-kernel", "identity_revision": 1}),
         "semantic_revocation": ("semantic_owner", "semantic-owner", {"owner": "semantic-owner", "repository_id": "ontology-kernel", "canonical_locator": "local://core/ontology-kernel", "identity_revision": 1}),
@@ -752,6 +799,9 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
         "ak_store": ("ak", "agent-kernel-owner", {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}),
         "ak_decision": ("ak", "agent-kernel-owner", {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}),
         "ak_task": ("ak", "agent-kernel-owner", {"owner": "agent-kernel-owner", "repository_id": "agent-kernel", "canonical_locator": "local://softwareco/owned/agent-kernel", "identity_revision": 9}),
+        "rocs_task": ("rocs", "rocs-cli", {"owner": "rocs-owner", "repository_id": "rocs-cli", "canonical_locator": "local://core/rocs-cli", "identity_revision": 4}),
+        "semantic_task": ("semantic_owner", "semantic-owner", {"owner": "semantic-owner", "repository_id": "ontology-kernel", "canonical_locator": "local://core/ontology-kernel", "identity_revision": 1}),
+        "consumer_task": ("consumer_owner", "consumer-owner", {"owner": "consumer-owner", "repository_id": "pi-canary-consumer", "canonical_locator": "local://softwareco/pi-canary-consumer", "identity_revision": 3}),
         "consumer_acceptance": ("consumer_owner", "consumer-owner", {"owner": "consumer-owner", "repository_id": "pi-canary-consumer", "canonical_locator": "local://softwareco/pi-canary-consumer", "identity_revision": 3}),
         "consumer_activation": ("consumer_owner", "consumer-owner", {"owner": "consumer-owner", "repository_id": "pi-canary-consumer", "canonical_locator": "local://softwareco/pi-canary-consumer", "identity_revision": 3}),
         "consumer_history": ("consumer_owner", "consumer-owner", {"owner": "consumer-owner", "repository_id": "pi-canary-consumer", "canonical_locator": "local://softwareco/pi-canary-consumer", "identity_revision": 3}),
@@ -775,10 +825,20 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
             if binding["capability_pin_id"] != mapping["capability_pin_id"] or mapping["capability_pin_prefix"] is not None: raise ContextValidationError("issuer_scope_violation")
         elif mapping["capability_pin_prefix"] is None or not binding["capability_pin_id"].startswith(mapping["capability_pin_prefix"]):
             raise ContextValidationError("issuer_scope_violation")
+        task_prefixes = [prefix for prefix in TASK_RECEIPT_ROLE_PROFILES if role.startswith(prefix)]
+        is_task_receipt = bool(task_prefixes)
         if row["category"] == "semantic_vote":
-            expected_surface, expected_id, expected_repo = "semantic_owner", row["fact_value"].get("value", {}).get("owner_id"), {"owner": "semantic-owner", "repository_id": "ontology-kernel", "canonical_locator": "local://core/ontology-kernel", "identity_revision": 1}
+            expected_surface, expected_id, expected_repo = "semantic_owner", row["fact_value"].get("value", {}).get("owner_id"), PINNED_SEMANTIC_REPOSITORY
             if (mapping["role_prefix"] != "vote-proof:" or expected_id is None or mapping["owner_surface"] != expected_surface
                 or mapping["owner_id"] is not None or mapping["owner_repository"] != expected_repo): raise ContextValidationError("issuer_scope_violation")
+        elif is_task_receipt:
+            if len(task_prefixes) != 1: raise ContextValidationError("issuer_scope_violation")
+            task_prefix = task_prefixes[0]
+            expected_category, expected_surface, expected_id, expected_repo = TASK_RECEIPT_ROLE_PROFILES[task_prefix]
+            if (row["category"] != expected_category or mapping["role_prefix"] != task_prefix
+                or mapping["owner_surface"] != expected_surface or mapping["owner_id"] != expected_id
+                or mapping["owner_repository"] != expected_repo):
+                raise ContextValidationError("issuer_scope_violation")
         else:
             expected_surface, expected_id, expected_repo = category_profiles[row["category"]]
             if mapping["role_prefix"] is not None or mapping["owner_surface"] != expected_surface or mapping["owner_id"] != expected_id or mapping["owner_repository"] != expected_repo:
@@ -814,8 +874,17 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
             value = decode_authority_fact(row["fact_value"])
             store_metadata = {key: row[key] for key in ("store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest")}
             if value != store_metadata: raise ContextValidationError("issuer_scope_violation")
+        decoded_fact = decode_authority_fact(row["fact_value"])
+        if is_task_receipt:
+            expected_head = {key: row[key] for key in
+                ("store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest")}
+            if (not isinstance(decoded_fact, dict) or decoded_fact.get("repository") != expected_repo
+                or decoded_fact.get("ak_store_head") != expected_head):
+                raise ContextValidationError("issuer_scope_violation")
+            task_receipts[role] = decoded_fact
         if role in receipt_roles: raise ContextValidationError("malformed_input")
-        receipt_roles.add(role); resolved[role] = decode_authority_fact(row["fact_value"])
+        receipt_roles.add(role)
+        if not is_task_receipt: resolved[role] = decoded_fact
 
     if rule == "publication_recovery":
         coherent_roles = {"canonical_publication_revision", "canonical_publication_head", "canonical_publication_status_digest",
@@ -868,9 +937,32 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
     expected_receipts = set(REQUIRED_RECEIPT_ROLES.get(rule, set()))
     vote_facts = expected_vote_receipts(subject, node_artifacts)
     expected_receipts |= set(vote_facts)
+    expected_task_facts: dict[str, dict | None] = {}
+    if rule == "ak_optional_pi":
+        expected_task_facts[AK_LINEAGE_TASK_ROLE] = None
+    elif rule == "governance_contracts":
+        contracts = [subject, node_artifacts.get("consumer_contract")]
+        for contract in contracts:
+            if not isinstance(contract, dict): continue
+            references = [row for group in ("dependencies", "prerequisites", "required_evidence") for row in contract[group]]
+            references += [row["fact_reference"] for row in contract["stop_conditions"]]
+            for reference in references:
+                if reference["resolution"] != "resolved": continue
+                observed = reference["observed_canonical_state"]
+                prefixes = [prefix for prefix, profile in TASK_RECEIPT_ROLE_PROFILES.items()
+                    if observed["repository"] == profile[3]]
+                if len(prefixes) != 1: raise ContextValidationError("issuer_scope_violation")
+                task_role = prefixes[0] + observed["task_id"]
+                prior = expected_task_facts.get(task_role)
+                if prior is not None and prior != observed: raise ContextValidationError("self_certification")
+                expected_task_facts[task_role] = observed
+    expected_receipts |= set(expected_task_facts)
     if receipt_roles != expected_receipts: raise ContextValidationError("self_certification")
     for role, fact in vote_facts.items():
         if resolved.get(role) != fact: raise ContextValidationError("issuer_scope_violation")
+    for role, fact in expected_task_facts.items():
+        if role not in task_receipts or fact is not None and task_receipts[role] != fact:
+            raise ContextValidationError("self_certification")
     if "overrides" in parameter_values:
         rows = [artifact for _, artifact in sorted(grouped_lists.get("overrides", []))]
         if parameter_values["overrides"] != [authority_artifact_digest(row) for row in rows]: raise ContextValidationError("self_certification")
@@ -879,26 +971,15 @@ def authority_preflight(rule: str, subject: dict, context: dict) -> dict:
         values = grouped_maps.get("override_approvals", {})
         if parameter_values["override_approvals"] != sorted(values, key=str.encode): raise ContextValidationError("self_certification")
         resolved["override_approvals"] = values
-    if "canonical_task_states" in resolved:
-        task_receipt = next((row for row in receipts.values() if row["role"] == "canonical_task_states"), None)
-        if task_receipt is None: raise ContextValidationError("self_certification")
-        expected_head = {key: task_receipt[key] for key in
-            ("store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest")}
-        for task_state in resolved["canonical_task_states"]:
-            if task_state["repository"] != task_receipt["owner_repository"] or task_state["ak_store_head"] != expected_head:
-                raise ContextValidationError("issuer_scope_violation")
-        decision = resolved.get("decision")
-        if decision is not None and (decision["ak_repository"] != task_receipt["owner_repository"]
-            or decision["ak_store_head"] != expected_head):
-            raise ContextValidationError("issuer_scope_violation")
-    resolved["_authority_task_states"] = resolved.get("canonical_task_states", [])
+    resolved["canonical_task_states"] = [copy.deepcopy(task_receipts[role]) for role in sorted(task_receipts, key=str.encode)]
+    resolved["_authority_task_states"] = copy.deepcopy(resolved["canonical_task_states"])
     resolved["_authority_snapshot_digest"] = snapshot["authority_snapshot_digest"]
     return resolved
 
 
 def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
     typed: list[tuple[str, str | tuple[str, ...]]] = []
-    canonical_rules = {"trust_rotation", "trust_revocation", "publication_commit", "publication_transition", "publication_recovery", "rollback", "generation_activation", "ak_decision", "acceptance_binding", "activation_binding"}
+    canonical_rules = {"trust_rotation", "trust_revocation", "publication_commit", "publication_transition", "publication_recovery", "rollback", "generation_activation", "ak_decision", "ak_optional_pi", "acceptance_binding", "activation_binding"}
     if rule in canonical_rules and ("canonical_store_head" not in context or "current_decision_record_digest" not in context):
         raise ContextValidationError("self_certification")
     if rule == "lifecycle" and ("canonical_store_head" not in context or "current_deprecation_decision_record_digest" not in context or "current_removal_decision_record_digest" not in context):
@@ -954,10 +1035,11 @@ def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
         expected_shape_context(context["canonical_history_head"], "historyHead")
     elif rule == "pi_delivery": typed = [("generation", "semantic-rocs-generation-receipt.v0")]
     elif rule == "ak_optional_pi":
-        if {key for key in context if not key.startswith("_")} != {"canonical_task_states", "decision", "activation", "generation", "pi_receipt"}:
+        if {key for key in context if not key.startswith("_")} != {"canonical_task_states", "canonical_store_head", "current_decision_record_digest", "decision", "activation", "generation", "pi_receipt"}:
             raise ContextValidationError("self_certification")
         if (not isinstance(context["canonical_task_states"], list) or len(context["canonical_task_states"]) != 1):
             raise ContextValidationError("self_certification")
+        expected_shape_context(context["canonical_store_head"], "akStoreHead")
         expected_shape_context(context["canonical_task_states"][0], "akTaskState")
         typed = [("decision", "semantic-ak-decision-reference.v0"),
             ("activation", "semantic-activation-receipt.v0"),
@@ -1796,9 +1878,11 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
         task = context["canonical_task_states"][0]
         decision, activation, generation, pi_receipt = (context[key] for key in
             ("decision", "activation", "generation", "pi_receipt"))
+        if not decision_current(decision, context): return "self_certification"
         exact = (subject["issuer"] == {"kind": "ak", "id": PINNED_AK_REPOSITORY["repository_id"]}
             and task["repository"] == decision["ak_repository"] == PINNED_AK_REPOSITORY
-            and task["ak_store_head"] == decision["ak_store_head"] and task["state"] == "evidence_accepted"
+            and task["task_id"] == "semantic-release-canary-lineage"
+            and task["ak_store_head"] == decision["ak_store_head"] == context["canonical_store_head"] and task["state"] == "evidence_accepted"
             and subject["task_reference_digest"] == task["task_record_digest"]
             and subject["decision_reference_digest"] == decision["ak_decision_reference_digest"]
             and subject["evidence_record_digest"] == task["artifact_digest"]
@@ -2082,6 +2166,13 @@ def validate_source_case_explicitness_audit(differential: dict, cases: list[dict
         node_artifacts = {binding["role"]: nodes[binding["bundle_key"]] for binding in verifier["node_bindings"] if binding["bundle_key"] in nodes}
         expected_votes = expected_vote_receipts(item["subject"], node_artifacts) if item["rule"] in {"approval_threshold", "trust_rotation", "trust_revocation", "compatibility", "lifecycle", "publication_commit", "publication_recovery", "publication_transition"} else {}
         expected_store_roles = set(REQUIRED_RECEIPT_ROLES.get(item["rule"], set())) - MISSING_ANCHOR_NEGATIVES.get(item["name"], set())
+        declared_task_roles = {value["role"] for value in source_receipts
+            if value["receipt_kind"] == "store" and value["role"].startswith("canonical_task_state:")}
+        if declared_task_roles and item["rule"] not in {"ak_optional_pi", "governance_contracts"}:
+            raise ValidationError(f"source-case task role rule {item['name']}")
+        if item["rule"] == "ak_optional_pi" and declared_task_roles != {AK_LINEAGE_TASK_ROLE}:
+            raise ValidationError(f"source-case exact AK lineage task role {item['name']}")
+        expected_store_roles |= declared_task_roles
         source_store = [value for value in source_receipts if value["receipt_kind"] == "store"]
         source_votes = [value for value in source_receipts if value["receipt_kind"] == "vote"]
         if ({value["role"] for value in source_store} != expected_store_roles or len(source_store) != len(expected_store_roles)
@@ -2126,10 +2217,12 @@ def validate_source_case_explicitness_audit(differential: dict, cases: list[dict
 
 def main() -> int:
     global SCHEMA_ROOT, AUTHORITY_MANIFEST, AUTHORITY_MANIFEST_BY_RULE
-    schema = load_json(ROOT / "protocol.schema.json")
-    golden = load_json(ROOT / "golden-fixtures.json")
-    differential_manifest = load_json(ROOT / "differential-fixtures.json")
-    differential, shard_inventory, shard_aggregate_sha256, total_json_bytes, transport_case_count = load_sharded_differential(differential_manifest)
+    schema_read = load_json_bytes(ROOT / "protocol.schema.json")
+    golden_read = load_json_bytes(ROOT / "golden-fixtures.json")
+    manifest_read = load_json_bytes(ROOT / "differential-fixtures.json")
+    schema, golden = schema_read.value, golden_read.value
+    differential, shard_inventory, shard_aggregate_sha256, total_json_bytes, transport_case_count = load_sharded_differential(
+        schema_read, golden_read, manifest_read)
     SCHEMA_ROOT = schema
     if golden.get("protocol") != "semantic-release-v0" or golden.get("rfc_revision") != "semantic-release-revision-v13":
         raise ValidationError("golden fixture revision drift")
@@ -2282,7 +2375,7 @@ def main() -> int:
     print(f"authority manifest: {len(rules)} rules ({len(AUTHORITY_BEARING_RULES)} authority-bearing), {role_count} role mappings; registry bijection complete")
     print(f"authority graph: {len(registry)} full owner/repository/linkage edges; normalized semantic-mutation descriptors independently recomputed")
     print(f"shards: {len(shard_inventory)} files, {sum(row['byte_length'] for row in shard_inventory)} bytes, aggregate sha256:{shard_aggregate_sha256}")
-    print(f"transport: {total_json_bytes} aggregate JSON bytes; {transport_case_count} closed overflow cases evaluated; monotonic deadline enforced")
+    print(f"transport: {total_json_bytes} aggregate JSON bytes; {transport_case_count} closed transport conformance cases evaluated; monotonic deadline enforced")
     print(f"source-case audit: {len(differential['cases'])} cases, {source_store_count} explicit store tuples, {source_vote_count} explicit vote facts, {final_receipt_count} exact final receipts, {source_mutation_count} registered mutations; no silent mismatch")
     print(f"differential: {len(differential['cases'])} cases ({accepted} accepted transitions, {rejected} expected rejections)")
     print(f"raw-json: {len(differential['raw_json_cases'])} lexical cases ({raw_accepted} accepted, {raw_rejected} expected rejections)")

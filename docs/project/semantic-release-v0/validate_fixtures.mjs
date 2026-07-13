@@ -61,38 +61,55 @@ function strictJson(text) {
   const result = value(); ws(); if (at !== text.length) fail("trailing JSON data"); validateIjson(result); deadlineCheck("after JSON parse"); return result;
 }
 
-function loadBytes(name, strictUnderLimit = false, expected = null) {
+function stableBoundedJsonRead(name, strictUnderLimit = false, expected = null) {
   const path = join(root, name);
   if (constants.O_NOFOLLOW === undefined) fail(`${name}: no-follow open unavailable`);
   let fd; try { fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | (constants.O_CLOEXEC ?? 0)); }
   catch { fail(`${name}: unavailable, non-regular, or symlink JSON file`); }
-  let bytes;
+  let bytes, fingerprint;
   try {
     const before = fstatSync(fd, { bigint: true });
     if (!before.isFile() || before.size < 0n || before.size > BigInt(maxJsonFileBytes) || strictUnderLimit && before.size >= BigInt(maxJsonFileBytes)) fail(`${name}: JSON file is not regular or exceeds limit`);
     const bounded = Buffer.allocUnsafe(maxJsonFileBytes + 1); let length = 0;
     while (length < bounded.length) { deadlineCheck(`before read ${name}`); const count = readSync(fd, bounded, length, bounded.length - length, null); deadlineCheck(`after read ${name}`); if (count === 0) break; length += count; }
-    bytes = bounded.subarray(0, length);
+    bytes = Buffer.from(bounded.subarray(0, length));
     const after = fstatSync(fd, { bigint: true }); let current;
     try { current = lstatSync(path, { bigint: true }); } catch { fail(`${name}: JSON file replaced during read`); }
     const fields = ["dev", "ino", "mode", "size", "mtimeNs", "ctimeNs"];
     if (!after.isFile() || !current.isFile() || fields.some((key) => before[key] !== after[key] || before[key] !== current[key])
       || BigInt(bytes.length) !== before.size || bytes.length > maxJsonFileBytes || strictUnderLimit && bytes.length >= maxJsonFileBytes) fail(`${name}: JSON file replaced, grew, or changed during bounded read`);
+    fingerprint = Object.freeze({ device: before.dev, inode: before.ino, mode: before.mode, size: before.size, mtimeNs: before.mtimeNs, ctimeNs: before.ctimeNs });
   } finally { closeSync(fd); }
   deadlineCheck(`before hash ${name}`);
   const rawSha256 = createHash("sha256").update(bytes).digest("hex");
   deadlineCheck(`after hash ${name}`);
   if (expected !== null && (bytes.length !== expected.byteLength || rawSha256 !== expected.sha256)) fail(`${name}: JSON raw byte/hash mismatch`);
   if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) fail(`${name}: BOM forbidden`);
-  let text; try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { fail(`${name}: malformed UTF-8`); }
-  deadlineCheck(`before decode/parse ${name}`); const value = strictJson(text); deadlineCheck(`after decode/parse ${name}`);
-  return [value, bytes];
+  return { name, path, bytes, rawSha256, fingerprint, value: null };
 }
-function load(name) { return loadBytes(name)[0]; }
+function parseStableJsonRead(read) {
+  let text; try { text = new TextDecoder("utf-8", { fatal: true }).decode(read.bytes); } catch { fail(`${read.name}: malformed UTF-8`); }
+  deadlineCheck(`before decode/parse ${read.name}`); const value = strictJson(text); deadlineCheck(`after decode/parse ${read.name}`); return value;
+}
+function loadBytes(name, strictUnderLimit = false, expected = null) { const read = stableBoundedJsonRead(name, strictUnderLimit, expected); read.value = parseStableJsonRead(read); return read; }
+function load(name) { return loadBytes(name).value; }
+function accountedJsonBytes(reads, expectedTotal = null) {
+  let total = 0; const seen = new Set();
+  for (const read of reads) {
+    const identity = `${read.fingerprint.device}:${read.fingerprint.inode}:${read.name}`;
+    if (seen.has(identity) || BigInt(read.bytes.length) !== read.fingerprint.size || createHash("sha256").update(read.bytes).digest("hex") !== read.rawSha256) fail(`${read.name}: aggregate accounting identity mismatch`);
+    seen.add(identity); total += read.bytes.length;
+  }
+  if (expectedTotal !== null && total !== expectedTotal) fail("aggregate accounting sum mismatch"); return total;
+}
 
-const schema = load("protocol.schema.json");
-const golden = load("golden-fixtures.json");
-const differentialManifest = load("differential-fixtures.json");
+const schemaRead = loadBytes("protocol.schema.json");
+const goldenRead = loadBytes("golden-fixtures.json");
+const manifestRead = loadBytes("differential-fixtures.json");
+const schema = schemaRead.value;
+const golden = goldenRead.value;
+const differentialManifest = manifestRead.value;
+
 const coordinateDomain = "semantic-release.coordinate.v0";
 const rows = {
   "semantic-source-manifest.v0": ["source-manifest", "source_manifest_digest"], "semantic-material-manifest.v0": ["material-manifest", "material_manifest_digest"],
@@ -183,33 +200,18 @@ function structural(instance, shape, path = "$") {
 }
 const eq = (a, b) => jcs(a) === jcs(b);
 const exactKeys = (value, keys) => value !== null && !Array.isArray(value) && typeof value === "object" && eq(Object.keys(value).sort(), [...keys].sort());
-function stableJsonStat(name, strictUnderLimit = false) {
-  deadlineCheck(`before stat ${name}`);
-  const path = join(root, name);
-  if (constants.O_NOFOLLOW === undefined) fail(`${name}: no-follow open unavailable`);
-  let fd; try { fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | (constants.O_CLOEXEC ?? 0)); }
-  catch { fail(`${name}: unavailable, non-regular, or symlink JSON file`); }
-  let size;
-  try {
-    const before = fstatSync(fd, { bigint: true }), after = fstatSync(fd, { bigint: true }); let current;
-    try { current = lstatSync(path, { bigint: true }); } catch { fail(`${name}: JSON file replaced during stat`); }
-    const fields = ["dev", "ino", "mode", "size", "mtimeNs", "ctimeNs"];
-    if (!before.isFile() || !after.isFile() || !current.isFile() || fields.some((key) => before[key] !== after[key] || before[key] !== current[key])
-      || before.size < 0n || before.size > BigInt(maxJsonFileBytes) || strictUnderLimit && before.size >= BigInt(maxJsonFileBytes)) fail(`${name}: unstable, non-regular, or oversized JSON stat`);
-    size = Number(before.size);
-  } finally { closeSync(fd); }
-  deadlineCheck(`after stat ${name}`); return size;
-}
 function transportLimitResult(limits, totalJsonBytes, shardCount, elapsedMs) { return totalJsonBytes > limits.max_total_json_bytes || shardCount > limits.max_shards || elapsedMs > limits.deadline_ms ? "transport_limit_exceeded" : null; }
-function loadShardedDifferential(manifest) {
+function loadShardedDifferential(schemaReadValue, goldenReadValue, manifestReadValue) {
+  const manifest = manifestReadValue.value;
   const topKeys = ["schema", "protocol", "rfc_revision", "limits", "transport_limit_cases", "aggregate", "source_case_explicitness_audit", "authority_rule_role_manifest", "authority_edge_registry", "shards"];
   if (!exactKeys(manifest, topKeys) || manifest.schema !== "semantic-differential-fixture-manifest.v0" || manifest.protocol !== "semantic-release-v0" || manifest.rfc_revision !== "semantic-release-revision-v13") fail("differential shard manifest identity/closure");
   const limits = manifest.limits, limitKeys = ["max_total_json_bytes", "max_shards", "deadline_ms"];
   if (!exactKeys(limits, limitKeys) || limitKeys.some((key) => !Number.isSafeInteger(limits[key]) || limits[key] < 1)
     || limits.max_total_json_bytes > maxTotalJsonBytes || limits.max_shards > maxShards || limits.deadline_ms > maxDeadlineMs) fail("differential transport limits shape/bound");
   configureDeadline(limits.deadline_ms);
-  const transportCases = manifest.transport_limit_cases, transportCaseKeys = ["name", "limit_kind", "observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms", "expected_error"];
+  const transportCases = manifest.transport_limit_cases, transportCaseKeys = ["name", "limit_kind", "observed_total_json_bytes", "observed_shard_count", "observed_elapsed_ms", "accounted_byte_lengths", "expected_error"];
   const expectedTransportCases = new Map([
+    ["transport_accounting_identity_accepts", "accounting_identity"],
     ["transport_aggregate_json_bytes_overflow_rejected", "max_total_json_bytes"],
     ["transport_deadline_overflow_rejected", "deadline_ms"],
     ["transport_shard_count_overflow_rejected", "max_shards"],
@@ -217,11 +219,13 @@ function loadShardedDifferential(manifest) {
   if (!Array.isArray(transportCases) || !eq(transportCases.map((row) => row?.name), [...expectedTransportCases.keys()].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))))) fail("transport conformance case identity/order");
   for (const item of transportCases) {
     deadlineCheck(`before transport case ${item?.name}`);
-    if (!exactKeys(item, transportCaseKeys) || item.limit_kind !== expectedTransportCases.get(item.name) || item.expected_error !== "transport_limit_exceeded"
-      || [item.observed_total_json_bytes, item.observed_shard_count, item.observed_elapsed_ms].some((value) => !Number.isSafeInteger(value) || value < 0)) fail("transport conformance case shape");
+    if (!exactKeys(item, transportCaseKeys) || item.limit_kind !== expectedTransportCases.get(item.name)
+      || [item.observed_total_json_bytes, item.observed_shard_count, item.observed_elapsed_ms].some((value) => !Number.isSafeInteger(value) || value < 0)
+      || !Array.isArray(item.accounted_byte_lengths) || item.accounted_byte_lengths.some((value) => !Number.isSafeInteger(value) || value < 0)) fail("transport conformance case shape");
     const observations = [["max_total_json_bytes", item.observed_total_json_bytes], ["max_shards", item.observed_shard_count], ["deadline_ms", item.observed_elapsed_ms]], violations = observations.filter(([key, observed]) => observed > limits[key]).map(([key]) => key);
     const actual = transportLimitResult(limits, item.observed_total_json_bytes, item.observed_shard_count, item.observed_elapsed_ms);
-    if (!eq(violations, [item.limit_kind]) || actual !== item.expected_error) fail(`transport conformance case outcome ${item.name}`);
+    if (item.limit_kind === "accounting_identity") { if (item.expected_error !== null || violations.length !== 0 || actual !== null || item.accounted_byte_lengths.reduce((total, value) => total + value, 0) !== item.observed_total_json_bytes) fail(`transport conformance case outcome ${item.name}`); }
+    else if (item.expected_error !== "transport_limit_exceeded" || item.accounted_byte_lengths.length !== 0 || !eq(violations, [item.limit_kind]) || actual !== item.expected_error) fail(`transport conformance case outcome ${item.name}`);
     deadlineCheck(`after transport case ${item.name}`);
   }
   const aggregate = manifest.aggregate;
@@ -239,23 +243,25 @@ function loadShardedDifferential(manifest) {
   }
   const actual = readdirSync(root).filter((name) => name.startsWith("differential-fixtures-shard-") && name.endsWith(".json")).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
   if (!eq(actual, paths)) fail("differential shard inventory has missing or extra files");
-  const statSizes = [["protocol.schema.json", false], ["golden-fixtures.json", false], ["differential-fixtures.json", false], ...inventory.map((row) => [row.path, true])].map(([name, strict]) => stableJsonStat(name, strict));
-  if (inventory.some((row, index) => statSizes[index + 3] !== row.byte_length)) fail("differential shard stable stat byte mismatch");
-  const totalJsonBytes = statSizes.reduce((total, size) => total + size, 0);
+  const topReads = [schemaReadValue, goldenReadValue, manifestReadValue];
+  if (!eq(topReads.map((read) => read.name), ["protocol.schema.json", "golden-fixtures.json", "differential-fixtures.json"]) || topReads.some((read) => read.value === null)) fail("aggregate accounting top-level read identity");
+  const shardReads = inventory.map((row, index) => { deadlineCheck(`before shard ${index} stable bounded read/hash`); const read = stableBoundedJsonRead(row.path, true, { byteLength: row.byte_length, sha256: row.sha256 }); deadlineCheck(`after shard ${index} stable bounded read/hash`); return read; });
+  const totalJsonBytes = accountedJsonBytes([...topReads, ...shardReads]);
+  if (totalJsonBytes !== [...topReads, ...shardReads].reduce((total, read) => total + read.bytes.length, 0)) fail("aggregate accounting internal sum identity");
   if (transportLimitResult(limits, totalJsonBytes, inventory.length, 0) !== null) fail("aggregate JSON transport limit exceeded before shard parsing");
   const cases = [], rawCases = [];
   for (let index = 0; index < inventory.length; index++) {
-    deadlineCheck(`before shard ${index} read/hash/parse`);
-    const row = inventory[index], [shard] = loadBytes(row.path, true, { byteLength: row.byte_length, sha256: row.sha256 });
+    deadlineCheck(`before shard ${index} retained-byte parse`);
+    const row = inventory[index], shard = parseStableJsonRead(shardReads[index]);
     const shardKeys = ["schema", "protocol", "rfc_revision", "shard_index", "cases", "raw_json_cases"];
     if (!exactKeys(shard, shardKeys) || shard.schema !== "semantic-differential-fixture-shard.v0" || shard.protocol !== manifest.protocol || shard.rfc_revision !== manifest.rfc_revision || shard.shard_index !== index || !Array.isArray(shard.cases) || !Array.isArray(shard.raw_json_cases) || shard.cases.length !== row.case_count || shard.raw_json_cases.length !== row.raw_case_count) fail(`differential shard shape/count ${row.path}`);
-    cases.push(...shard.cases); rawCases.push(...shard.raw_json_cases); deadlineCheck(`after shard ${index} read/hash/parse`);
+    cases.push(...shard.cases); rawCases.push(...shard.raw_json_cases); deadlineCheck(`after shard ${index} retained-byte parse`);
   }
   const aggregatePreimage = { cases, raw_json_cases: rawCases }; deadlineCheck("before differential aggregate hash"); const aggregateSha256 = createHash("sha256").update(Buffer.from(jcs(aggregatePreimage), "utf8")).digest("hex"); deadlineCheck("after differential aggregate hash");
   if (cases.length !== aggregate.case_count || rawCases.length !== aggregate.raw_case_count || inventory.reduce((n, row) => n + row.case_count, 0) !== cases.length || inventory.reduce((n, row) => n + row.raw_case_count, 0) !== rawCases.length || aggregateSha256 !== aggregate.sha256) fail("differential shard aggregate reconstruction mismatch");
   return [{ protocol: manifest.protocol, rfc_revision: manifest.rfc_revision, source_case_explicitness_audit: manifest.source_case_explicitness_audit, authority_rule_role_manifest: manifest.authority_rule_role_manifest, authority_edge_registry: manifest.authority_edge_registry, cases, raw_json_cases: rawCases }, inventory, aggregateSha256, totalJsonBytes, transportCases.length];
 }
-const [differential, shardInventory, shardAggregateSha256, totalJsonBytes, transportCaseCount] = loadShardedDifferential(differentialManifest);
+const [differential, shardInventory, shardAggregateSha256, totalJsonBytes, transportCaseCount] = loadShardedDifferential(schemaRead, goldenRead, manifestRead);
 function pointer(value, path) { return path.split("/").slice(1).reduce((node, token) => { const key = token.replaceAll("~1", "/").replaceAll("~0", "~"); if (!Object.hasOwn(node, key)) fail(`missing pointer token ${key}`); return node[key]; }, value); }
 const embeddedDigestValid = (subject) => { if (subject.schema === "semantic-release-coordinate.v0") return true; const [domain, omitted] = digestFields[subject.schema]; return objectDigest(subject, domain, omitted)[1] === subject[omitted]; };
 const sortedUnique = (values) => eq(values, [...values].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)))) && new Set(values).size === values.length;
@@ -308,13 +314,14 @@ function expectedShapeContext(value, definition) {
 }
 const authorityBearingRules = new Set(["acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"]);
 const allRules = new Set(["acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"]);
-const expectedAuthorityEdgeCount = 141;
-const expectedAuthorityRegistryDigest = "sha256:d78991ce172d795de35d8fe640fe4cdb266a260980d9d72c1b29a3c0ed30b9a3";
-const expectedAuthorityManifestDigest = "sha256:687d3e6c6be239d92bc5d5663c48ac18f8a6124cb9b6a99e0b0623b643ebc476";
-const expectedSourceAuditDigest = "sha256:03644461360e9790a10d6b43830e94f694bf0003aa74b10564eb01270b0a408d";
+const expectedAuthorityEdgeCount = 148;
+const expectedAuthorityRegistryDigest = "sha256:7dc77eb408c83196425df115d5828868f1b995eee0ff5f53ff4d287536dbecd9";
+const expectedAuthorityManifestDigest = "sha256:6844f7852e5561c9a95b9fb59596ea74661ea68fde2a537588f3cc9007d4f6fc";
+const expectedSourceAuditDigest = "sha256:3899e20b07c2b1f0ae09c7e1d311b99cc9f37a3e12409427e39147de93c4d9af";
 const pinnedAkRepository = { owner: "agent-kernel-owner", repository_id: "agent-kernel", canonical_locator: "local://softwareco/owned/agent-kernel", identity_revision: 9 };
 const pinnedRocsRepository = { owner: "rocs-owner", repository_id: "rocs-cli", canonical_locator: "local://core/rocs-cli", identity_revision: 4 };
 const pinnedPiRepository = { owner: "pi-owner", repository_id: "pi-adapter", canonical_locator: "local://softwareco/pi-adapter", identity_revision: 1 };
+const akLineageTaskRole = "canonical_task_state:ak:semantic-release-canary-lineage";
 const pinnedAdapterIssuers = new Map([
   ["semantic-rocs-generation-receipt.v0", ["rocs", pinnedRocsRepository.repository_id]],
   ["semantic-pi-delivery-receipt.v0", ["pi", pinnedPiRepository.repository_id]],
@@ -323,7 +330,7 @@ const pinnedAdapterIssuers = new Map([
 let authorityManifest = null;
 let authorityManifestByRule = new Map();
 const requiredReceiptRoles = Object.fromEntries(Object.entries({
-  ak_optional_pi: ["canonical_task_states"],
+  ak_optional_pi: ["canonical_store_head", "current_decision_record_digest"],
   approval_threshold: [],
   trust_rotation: ["current_root_digest", "revoked", "canonical_store_head", "current_decision_record_digest"],
   trust_revocation: ["prior_revision", "prior_head", "canonical_store_head", "current_decision_record_digest"],
@@ -339,7 +346,7 @@ const requiredReceiptRoles = Object.fromEntries(Object.entries({
   activation_binding: ["canonical_store_head", "current_decision_record_digest", "current_acceptance_digest", "current_acceptance_revision", "current_activation_digest", "current_activation_revision", "canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head"],
   generation_activation: ["canonical_store_head", "current_decision_record_digest", "current_acceptance_digest", "current_acceptance_revision", "current_activation_digest", "current_activation_revision", "canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head"],
   rollback: ["canonical_store_head", "current_decision_record_digest", "current_acceptance_digest", "current_acceptance_revision", "current_activation_digest", "current_activation_revision", "canonical_history_head", "canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head"],
-  governance_contracts: ["canonical_task_states"],
+  governance_contracts: [],
 }).map(([rule, roles]) => [rule, new Set(roles)]));
 const missingAnchorNegatives = new Map([
   ["authority_required_anchor_is_mandatory", new Set(["canonical_store_head"])],
@@ -360,6 +367,12 @@ const repositories = {
   recovery_controller: { owner: "rocs-owner", repository_id: "rocs-cli", canonical_locator: "local://core/rocs-cli", identity_revision: 4 },
   pi: { owner: "pi-owner", repository_id: "pi-adapter", canonical_locator: "local://softwareco/pi-adapter", identity_revision: 1 },
 };
+const taskReceiptRoleProfiles = new Map([
+  ["canonical_task_state:ak:", ["ak_task", "ak", "agent-kernel-owner", repositories.ak]],
+  ["canonical_task_state:rocs:", ["rocs_task", "rocs", "rocs-cli", repositories.rocs]],
+  ["canonical_task_state:semantic:", ["semantic_task", "semantic_owner", "semantic-owner", repositories.semantic_owner]],
+  ["canonical_task_state:consumer:", ["consumer_task", "consumer_owner", "consumer-owner", repositories.consumer_owner]],
+]);
 const setEqual = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
 const authorityArtifactDigest = (value) => value.schema === "semantic-release-coordinate.v0" ? objectDigest(value, coordinateDomain, null)[1] : value[digestFields[value.schema][1]];
 function decodeAuthorityFact(value) { if (value.kind === "null") return null; if (value.kind === "empty_list") return []; if (value.kind === "empty_map") return Object.create(null); return value.value; }
@@ -409,10 +422,11 @@ function authorityPreflight(rule, subject, context) {
   const bindingObservations = new Set(verifier.receipt_bindings.map((row) => row.observation_id)), bindingPins = new Set(verifier.receipt_bindings.map((row) => row.capability_pin_id));
   if (!setEqual(new Set(receipts.keys()), bindingObservations) || !setEqual(new Set(verifier.required_observation_ids), bindingObservations) || !setEqual(new Set(pins.keys()), bindingPins) || verifier.receipt_bindings.length !== bindingObservations.size) throw new ContextError("self_certification");
   if (snapshot.action_epoch < config.required_action_epoch_floor) throw new ContextError("issuer_scope_violation");
-  const resolved = Object.create(null), receiptRoles = new Set();
+  const resolved = Object.create(null), receiptRoles = new Set(), taskReceipts = new Map();
   const categoryProfiles = {
     semantic_trust: ["semantic_owner", "semantic-owner", repositories.semantic_owner], semantic_revocation: ["semantic_owner", "semantic-owner", repositories.semantic_owner], semantic_publication: ["semantic_owner", "semantic-owner", repositories.semantic_owner], semantic_lifecycle: ["semantic_owner", "semantic-owner", repositories.semantic_owner],
     ak_store: ["ak", "agent-kernel-owner", repositories.ak], ak_decision: ["ak", "agent-kernel-owner", repositories.ak], ak_task: ["ak", "agent-kernel-owner", repositories.ak],
+    rocs_task: ["rocs", "rocs-cli", repositories.rocs], semantic_task: ["semantic_owner", "semantic-owner", repositories.semantic_owner], consumer_task: ["consumer_owner", "consumer-owner", repositories.consumer_owner],
     consumer_acceptance: ["consumer_owner", "consumer-owner", repositories.consumer_owner], consumer_activation: ["consumer_owner", "consumer-owner", repositories.consumer_owner], consumer_history: ["consumer_owner", "consumer-owner", repositories.consumer_owner], recovery_controller: ["recovery_controller", "recovery", repositories.recovery_controller],
   };
   for (const binding of verifier.receipt_bindings) {
@@ -423,7 +437,9 @@ function authorityPreflight(rule, subject, context) {
     if (mapping.capability_pin_id !== null) { if (binding.capability_pin_id !== mapping.capability_pin_id || mapping.capability_pin_prefix !== null) throw new ContextError("issuer_scope_violation"); }
     else if (mapping.capability_pin_prefix === null || !binding.capability_pin_id.startsWith(mapping.capability_pin_prefix)) throw new ContextError("issuer_scope_violation");
     let expectedSurface, expectedId, expectedRepo;
+    const taskPrefixes = [...taskReceiptRoleProfiles.keys()].filter((prefix) => role.startsWith(prefix)), isTaskReceipt = taskPrefixes.length > 0;
     if (row.category === "semantic_vote") { expectedSurface = "semantic_owner"; expectedId = decodeAuthorityFact(row.fact_value)?.owner_id; expectedRepo = repositories.semantic_owner; if (mapping.role_prefix !== "vote-proof:" || expectedId === undefined || mapping.owner_surface !== expectedSurface || mapping.owner_id !== null || !eq(mapping.owner_repository, expectedRepo)) throw new ContextError("issuer_scope_violation"); }
+    else if (isTaskReceipt) { if (taskPrefixes.length !== 1) throw new ContextError("issuer_scope_violation"); const taskPrefix = taskPrefixes[0], [expectedCategory, surface, ownerId, repository] = taskReceiptRoleProfiles.get(taskPrefix); expectedSurface = surface; expectedId = ownerId; expectedRepo = repository; if (row.category !== expectedCategory || mapping.role_prefix !== taskPrefix || mapping.owner_surface !== expectedSurface || mapping.owner_id !== expectedId || !eq(mapping.owner_repository, expectedRepo)) throw new ContextError("issuer_scope_violation"); }
     else { const profile = categoryProfiles[row.category]; if (!profile) throw new ContextError("issuer_scope_violation"); [expectedSurface, expectedId, expectedRepo] = profile; if (mapping.role_prefix !== null || mapping.owner_surface !== expectedSurface || mapping.owner_id !== expectedId || !eq(mapping.owner_repository, expectedRepo)) throw new ContextError("issuer_scope_violation"); }
     if (!(pin.owner_surface === row.issuer.kind && row.issuer.kind === binding.owner_surface && binding.owner_surface === expectedSurface && pin.owner_id === row.issuer.id && row.issuer.id === binding.owner_id && binding.owner_id === expectedId && eq(pin.owner_repository, row.owner_repository) && eq(row.owner_repository, binding.owner_repository) && eq(binding.owner_repository, expectedRepo) && !eq(row.issuer, config.collator))) throw new ContextError("issuer_scope_violation");
     for (const key of ["acquisition_contract", "acquisition_contract_digest", "acquisition_distribution_digest", "store_id", "canonical_store_locator", "store_head_digest", "store_revision", "revocation_head_digest", "fact_schema", "fact_digest", "fact_value", "freshness_cas_token_digest", "required_action_epoch_floor"]) if (!eq(pin[key], row[key])) throw new ContextError("issuer_scope_violation");
@@ -434,7 +450,9 @@ function authorityPreflight(rule, subject, context) {
     const fields = { role, category: row.category, owner_surface: row.issuer.kind, owner_id: row.issuer.id, owner_repository: row.owner_repository, acquisition_contract: row.acquisition_contract, acquisition_contract_digest: row.acquisition_contract_digest, acquisition_distribution_digest: row.acquisition_distribution_digest, store_id: row.store_id, canonical_store_locator: row.canonical_store_locator, store_head_digest: row.store_head_digest, store_revision: row.store_revision, revocation_head_digest: row.revocation_head_digest, fact_schema: row.fact_schema, fact_digest: row.fact_digest, action_epoch: row.action_epoch, required_action_epoch_floor: row.required_action_epoch_floor };
     if (row.freshness_cas_token_digest !== freshnessToken(fields) || row.action_epoch !== snapshot.action_epoch || row.action_epoch < row.required_action_epoch_floor || row.required_action_epoch_floor !== config.required_action_epoch_floor) throw new ContextError("issuer_scope_violation");
     if (role === "canonical_store_head") { const value = decodeAuthorityFact(row.fact_value), storeMetadata = Object.fromEntries(["store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest"].map((key) => [key, row[key]])); if (!eq(value, storeMetadata)) throw new ContextError("issuer_scope_violation"); }
-    if (receiptRoles.has(role)) throw new ContextError("malformed_input"); receiptRoles.add(role); resolved[role] = decodeAuthorityFact(row.fact_value);
+    const decodedFact = decodeAuthorityFact(row.fact_value);
+    if (isTaskReceipt) { const expectedHead = Object.fromEntries(["store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest"].map((key) => [key, row[key]])); if (decodedFact === null || typeof decodedFact !== "object" || !eq(decodedFact.repository, expectedRepo) || !eq(decodedFact.ak_store_head, expectedHead)) throw new ContextError("issuer_scope_violation"); taskReceipts.set(role, decodedFact); }
+    if (receiptRoles.has(role)) throw new ContextError("malformed_input"); receiptRoles.add(role); if (!isTaskReceipt) resolved[role] = decodedFact;
   }
   if (rule === "publication_recovery") {
     const coherentRoles = new Set(["canonical_publication_revision", "canonical_publication_head", "canonical_publication_status_digest", "canonical_publication_journal_head", "canonical_recovery_journal_head", "canonical_recovery_transaction_digest", "canonical_recovery_resulting_revision", "canonical_recovery_resulting_head", "canonical_recovery_resulting_status_digest"]);
@@ -459,21 +477,33 @@ function authorityPreflight(rule, subject, context) {
   const allRoles = new Set([...receiptRoles, ...nodeRoles, ...parameterRoles]); if ([...receiptRoles].some((role) => nodeRoles.has(role) || parameterRoles.has(role)) || [...nodeRoles].some((role) => parameterRoles.has(role)) || !setEqual(new Set(verifier.required_role_ids), allRoles) || verifier.required_role_ids.length !== allRoles.size) throw new ContextError("self_certification");
   if (ruleManifest.required_roles.some((role) => !allRoles.has(role))) throw new ContextError("self_certification");
   for (const mapping of ruleManifest.role_mappings) { const count = [...allRoles].filter((role) => mapping.role_prefix === null ? role === mapping.role : role.startsWith(mapping.role_prefix)).length; if (count < mapping.minimum_cardinality || count > mapping.maximum_cardinality) throw new ContextError("self_certification"); }
-  const expectedReceipts = new Set(requiredReceiptRoles[rule] ?? []), voteFacts = expectedVoteReceipts(subject, nodeArtifacts); for (const role of voteFacts.keys()) expectedReceipts.add(role); if (!setEqual(receiptRoles, expectedReceipts)) throw new ContextError("self_certification"); for (const [role, fact] of voteFacts) if (!eq(resolved[role], fact)) throw new ContextError("issuer_scope_violation");
+  const expectedReceipts = new Set(requiredReceiptRoles[rule] ?? []), voteFacts = expectedVoteReceipts(subject, nodeArtifacts); for (const role of voteFacts.keys()) expectedReceipts.add(role);
+  const expectedTaskFacts = new Map();
+  if (rule === "ak_optional_pi") expectedTaskFacts.set(akLineageTaskRole, null);
+  else if (rule === "governance_contracts") {
+    for (const contract of [subject, nodeArtifacts.get("consumer_contract")]) {
+      if (contract === undefined || contract === null) continue;
+      const references = ["dependencies", "prerequisites", "required_evidence"].flatMap((group) => contract[group]); references.push(...contract.stop_conditions.map((row) => row.fact_reference));
+      for (const reference of references) {
+        if (reference.resolution !== "resolved") continue;
+        const observed = reference.observed_canonical_state, prefixes = [...taskReceiptRoleProfiles].filter(([, profile]) => eq(observed.repository, profile[3])).map(([prefix]) => prefix);
+        if (prefixes.length !== 1) throw new ContextError("issuer_scope_violation");
+        const taskRole = prefixes[0] + observed.task_id; if (expectedTaskFacts.has(taskRole) && !eq(expectedTaskFacts.get(taskRole), observed)) throw new ContextError("self_certification"); expectedTaskFacts.set(taskRole, observed);
+      }
+    }
+  }
+  for (const role of expectedTaskFacts.keys()) expectedReceipts.add(role);
+  if (!setEqual(receiptRoles, expectedReceipts)) throw new ContextError("self_certification"); for (const [role, fact] of voteFacts) if (!eq(resolved[role], fact)) throw new ContextError("issuer_scope_violation");
+  for (const [role, fact] of expectedTaskFacts) if (!taskReceipts.has(role) || fact !== null && !eq(taskReceipts.get(role), fact)) throw new ContextError("self_certification");
   if (Object.hasOwn(parameterValues, "overrides")) { const values = (lists.overrides ?? []).sort((a, b) => Buffer.compare(Buffer.from(a[0]), Buffer.from(b[0]))).map((x) => x[1]); if (!eq(parameterValues.overrides, values.map(authorityArtifactDigest))) throw new ContextError("self_certification"); resolved.overrides = values; }
   if (Object.hasOwn(parameterValues, "override_approvals")) { const values = maps.override_approvals ?? Object.create(null); if (!eq(parameterValues.override_approvals, Object.keys(values).sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))))) throw new ContextError("self_certification"); resolved.override_approvals = values; }
-  if (Object.hasOwn(resolved, "canonical_task_states")) {
-    const taskReceipt = [...receipts.values()].find((row) => row.role === "canonical_task_states"); if (!taskReceipt) throw new ContextError("self_certification");
-    const expectedHead = Object.fromEntries(["store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest"].map((key) => [key, taskReceipt[key]]));
-    for (const taskState of resolved.canonical_task_states) if (!eq(taskState.repository, taskReceipt.owner_repository) || !eq(taskState.ak_store_head, expectedHead)) throw new ContextError("issuer_scope_violation");
-    const decision = resolved.decision; if (decision !== undefined && decision !== null && (!eq(decision.ak_repository, taskReceipt.owner_repository) || !eq(decision.ak_store_head, expectedHead))) throw new ContextError("issuer_scope_violation");
-  }
-  resolved._authority_task_states = resolved.canonical_task_states ?? []; resolved._authority_snapshot_digest = snapshot.authority_snapshot_digest; return resolved;
+  resolved.canonical_task_states = [...taskReceipts].sort((a, b) => Buffer.compare(Buffer.from(a[0]), Buffer.from(b[0]))).map(([, value]) => structuredClone(value));
+  resolved._authority_task_states = structuredClone(resolved.canonical_task_states); resolved._authority_snapshot_digest = snapshot.authority_snapshot_digest; return resolved;
 }
 
 function validateRuleContext(rule, subject, context) {
   let typed = [];
-  const canonicalRules = new Set(["trust_rotation", "trust_revocation", "publication_commit", "publication_transition", "publication_recovery", "rollback", "generation_activation", "ak_decision", "acceptance_binding", "activation_binding"]);
+  const canonicalRules = new Set(["trust_rotation", "trust_revocation", "publication_commit", "publication_transition", "publication_recovery", "rollback", "generation_activation", "ak_decision", "ak_optional_pi", "acceptance_binding", "activation_binding"]);
   if (canonicalRules.has(rule) && (context.canonical_store_head === undefined || context.current_decision_record_digest === undefined)) throw new ContextError("self_certification");
   if (rule === "lifecycle" && (context.canonical_store_head === undefined || context.current_deprecation_decision_record_digest === undefined || context.current_removal_decision_record_digest === undefined)) throw new ContextError("self_certification");
   if (rule === "activation_binding" && (context.current_activation_digest === undefined || context.current_activation_revision === undefined || ((context.current_activation_digest === null) !== (context.current_activation_revision === null)))) throw new ContextError("self_certification");
@@ -489,7 +519,7 @@ function validateRuleContext(rule, subject, context) {
   else if (rule === "projection") { expectedShapeContext(context.tombstone_genesis_anchor, "tombstoneGenesisAnchor"); typed = [["projection", "semantic-payload-projection.v0"], ["capsule", "semantic-release-capsule.v0"], ["archive_linkage", "semantic-capsule-archive-linkage.v0"], ["payload_manifest", "semantic-material-manifest.v0"], ["consumer_manifest", "semantic-material-manifest.v0"], ["archive_manifest", "semantic-material-manifest.v0"], ["tombstones", "semantic-tombstone-registry.v0"], ["tombstone_history", "semantic-tombstone-history-proof.v0"]]; }
   else if (rule === "rollback") { typed = [["request", "semantic-rollback-request.v0"], ["activation", "semantic-activation-receipt.v0"], ["decision", "semantic-ak-decision-reference.v0"], ["intent", "semantic-consumer-intent.v0"], ["acceptance", "semantic-owner-acceptance.v0"], ["materialization", "semantic-materialization-verification-receipt.v0"], ["availability", "semantic-rollback-availability-proof.v0"], ["recovery_artifact", "semantic-rollback-availability-receipt.v0"]]; const names = { semantic_artifact: "semantic-rollback-availability-receipt.v0", runtime_artifact: "semantic-rollback-availability-receipt.v0", disable_artifact: "semantic-rollback-availability-receipt.v0", history_after: "semantic-rollback-history-transition.v0", ak_linkage: "semantic-ak-evidence-linkage.v0", pi_receipt: "semantic-pi-delivery-receipt.v0" }; for (const [key, name] of Object.entries(names)) if (context[key] !== null && context[key] !== undefined) expectedContext(context[key], name); expectedShapeContext(context.canonical_history_head, "historyHead"); }
   else if (rule === "pi_delivery") typed = [["generation", "semantic-rocs-generation-receipt.v0"]];
-  else if (rule === "ak_optional_pi") { if (!eq(Object.keys(context).filter((key) => !key.startsWith("_")).sort(), ["activation", "canonical_task_states", "decision", "generation", "pi_receipt"])) throw new ContextError("self_certification"); if (!Array.isArray(context.canonical_task_states) || context.canonical_task_states.length !== 1) throw new ContextError("self_certification"); expectedShapeContext(context.canonical_task_states[0], "akTaskState"); typed = [["decision", "semantic-ak-decision-reference.v0"], ["activation", "semantic-activation-receipt.v0"], ["generation", "semantic-rocs-generation-receipt.v0"]]; if (context.pi_receipt !== null) expectedContext(context.pi_receipt, "semantic-pi-delivery-receipt.v0"); }
+  else if (rule === "ak_optional_pi") { if (!eq(Object.keys(context).filter((key) => !key.startsWith("_")).sort(), ["activation", "canonical_store_head", "canonical_task_states", "current_decision_record_digest", "decision", "generation", "pi_receipt"])) throw new ContextError("self_certification"); if (!Array.isArray(context.canonical_task_states) || context.canonical_task_states.length !== 1) throw new ContextError("self_certification"); expectedShapeContext(context.canonical_store_head, "akStoreHead"); expectedShapeContext(context.canonical_task_states[0], "akTaskState"); typed = [["decision", "semantic-ak-decision-reference.v0"], ["activation", "semantic-activation-receipt.v0"], ["generation", "semantic-rocs-generation-receipt.v0"]]; if (context.pi_receipt !== null) expectedContext(context.pi_receipt, "semantic-pi-delivery-receipt.v0"); }
   else if (rule === "generation_activation") typed = [["activation", "semantic-activation-receipt.v0"], ["decision", "semantic-ak-decision-reference.v0"], ["intent", "semantic-consumer-intent.v0"], ["acceptance", "semantic-owner-acceptance.v0"], ["materialization", "semantic-materialization-verification-receipt.v0"], ["availability", "semantic-rollback-availability-proof.v0"]];
   else if (rule === "ak_decision") expectedShapeContext(context.canonical_store_head, "akStoreHead");
   else if (rule === "acceptance_binding") typed = [["decision", "semantic-ak-decision-reference.v0"], ["intent", "semantic-consumer-intent.v0"]];
@@ -829,8 +859,9 @@ function evaluate(rule, subject, context, resolved = false) {
   if (rule === "pi_delivery") { const generation = context.generation; let valid = subject.rocs_generation_receipt_digest === generation.rocs_generation_receipt_digest && eq(subject.consumer_repository, generation.consumer_repository) && eq(subject.v0_canary_scope, generation.v0_canary_scope) && eq(subject.v0_canary_scope.consumer_repository, subject.consumer_repository); if (subject.delivery_outcome === "delivered") valid &&= subject.delivered_effective_execution_digest === generation.effective_execution_digest; return valid ? null : "activation_not_current"; }
   if (rule === "ak_optional_pi") {
     const task = context.canonical_task_states[0], decision = context.decision, activation = context.activation, generation = context.generation, piReceipt = context.pi_receipt;
+    if (!decisionCurrent(decision, context)) return "self_certification";
     const exact = eq(subject.issuer, { kind: "ak", id: pinnedAkRepository.repository_id }) && eq(task.repository, pinnedAkRepository) && eq(decision.ak_repository, pinnedAkRepository)
-      && eq(task.ak_store_head, decision.ak_store_head) && task.state === "evidence_accepted" && subject.task_reference_digest === task.task_record_digest
+      && task.task_id === "semantic-release-canary-lineage" && eq(task.ak_store_head, decision.ak_store_head) && eq(decision.ak_store_head, context.canonical_store_head) && task.state === "evidence_accepted" && subject.task_reference_digest === task.task_record_digest
       && subject.decision_reference_digest === decision.ak_decision_reference_digest && subject.evidence_record_digest === task.artifact_digest
       && subject.activation_receipt_digest === activation.activation_receipt_digest && subject.rocs_generation_receipt_digest === generation.rocs_generation_receipt_digest
       && activation.gate_decision_reference_digest === decision.ak_decision_reference_digest && generation.activation_receipt_digest === activation.activation_receipt_digest;
@@ -933,6 +964,10 @@ function validateSourceCaseExplicitnessAudit(cases, registryRows) {
     const nodeArtifacts = new Map(verifier.node_bindings.filter((binding) => nodeByKey.has(binding.bundle_key)).map((binding) => [binding.role, nodeByKey.get(binding.bundle_key)]));
     const expectedVotes = voteRules.has(item.rule) ? expectedVoteReceipts(item.subject, nodeArtifacts) : new Map();
     const expectedStoreRoles = new Set(requiredReceiptRoles[item.rule] ?? []); for (const role of missingAnchorNegatives.get(item.name) ?? []) expectedStoreRoles.delete(role);
+    const declaredTaskRoles = new Set(sourceReceipts.filter((value) => value.receipt_kind === "store" && value.role.startsWith("canonical_task_state:")).map((value) => value.role));
+    if (declaredTaskRoles.size && !["ak_optional_pi", "governance_contracts"].includes(item.rule)) fail(`source-case task role rule ${item.name}`);
+    if (item.rule === "ak_optional_pi" && !setEqual(declaredTaskRoles, new Set([akLineageTaskRole]))) fail(`source-case exact AK lineage task role ${item.name}`);
+    for (const role of declaredTaskRoles) expectedStoreRoles.add(role);
     const sourceStore = sourceReceipts.filter((value) => value.receipt_kind === "store"), sourceVotes = sourceReceipts.filter((value) => value.receipt_kind === "vote");
     if (!setEqual(new Set(sourceStore.map((value) => value.role)), expectedStoreRoles) || sourceStore.length !== expectedStoreRoles.size
       || !setEqual(new Set(sourceVotes.map((value) => value.role)), new Set(expectedVotes.keys())) || sourceVotes.length !== expectedVotes.size) fail(`source-case explicit role coverage ${item.name}`);
@@ -1126,7 +1161,7 @@ const roleCount = authorityManifest.rules.reduce((total, row) => total + row.rol
 console.log(`authority manifest: ${authorityManifest.rules.length} rules (${authorityBearingRules.size} authority-bearing), ${roleCount} role mappings; registry bijection complete`);
 console.log(`authority graph: ${registry.length} full owner/repository/linkage edges; normalized semantic-mutation descriptors independently recomputed`);
 console.log(`shards: ${shardInventory.length} files, ${shardInventory.reduce((total, row) => total + row.byte_length, 0)} bytes, aggregate sha256:${shardAggregateSha256}`);
-console.log(`transport: ${totalJsonBytes} aggregate JSON bytes; ${transportCaseCount} closed overflow cases evaluated; monotonic deadline enforced`);
+console.log(`transport: ${totalJsonBytes} aggregate JSON bytes; ${transportCaseCount} closed transport conformance cases evaluated; monotonic deadline enforced`);
 console.log(`source-case audit: ${differential.cases.length} cases, ${sourceStoreCount} explicit store tuples, ${sourceVoteCount} explicit vote facts, ${finalReceiptCount} exact final receipts, ${sourceMutationCount} registered mutations; no silent mismatch`);
 console.log(`differential: ${differential.cases.length} cases (${accepted} accepted transitions, ${rejected} expected rejections)`);
 console.log(`raw-json: ${differential.raw_json_cases.length} lexical cases (${rawAccepted} accepted, ${rawRejected} expected rejections)`);
