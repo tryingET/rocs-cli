@@ -1,5 +1,49 @@
 {
   "$defs": {
+    "acceptedLifecycleLedgerRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "accepted_for_lifecycle": {
+          "const": true
+        },
+        "accepted_lifecycle_ledger_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "coordinate": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "ledger_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "ledger_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "namespace": {
+          "$ref": "#/$defs/namespace"
+        },
+        "publication_status": {
+          "const": "published"
+        },
+        "publication_status_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "schema": {
+          "const": "semantic-accepted-lifecycle-ledger-record.v0"
+        }
+      },
+      "required": [
+        "schema",
+        "namespace",
+        "ledger_revision",
+        "ledger_head_digest",
+        "coordinate",
+        "publication_status_record_digest",
+        "publication_status",
+        "accepted_for_lifecycle",
+        "accepted_lifecycle_ledger_record_digest"
+      ],
+      "type": "object"
+    },
     "activationReceipt": {
       "additionalProperties": false,
       "properties": {
@@ -430,11 +474,23 @@
         {
           "additionalProperties": false,
           "properties": {
+            "approval_predicate_digest": {
+              "$ref": "#/$defs/digest"
+            },
             "effective_ledger_revision": {
               "$ref": "#/$defs/safeInteger"
             },
             "kind": {
               "const": "trust_revocation"
+            },
+            "namespace": {
+              "$ref": "#/$defs/namespace"
+            },
+            "owner_policy_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "owner_set_digest": {
+              "$ref": "#/$defs/digest"
             },
             "prior_revocation_digest": {
               "oneOf": [
@@ -466,6 +522,10 @@
           },
           "required": [
             "kind",
+            "namespace",
+            "owner_policy_digest",
+            "owner_set_digest",
+            "approval_predicate_digest",
             "target_kind",
             "target_digest",
             "effective_ledger_revision",
@@ -533,6 +593,124 @@
             "to_classification",
             "semver_effect_floor",
             "condition"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "approval_predicate_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "coordinate": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "expected_prior_head_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "expected_prior_revision": {
+              "$ref": "#/$defs/safeInteger"
+            },
+            "kind": {
+              "const": "publication_withdrawal"
+            },
+            "namespace": {
+              "$ref": "#/$defs/namespace"
+            },
+            "operation": {
+              "const": "withdraw"
+            },
+            "owner_policy_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "owner_set_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "prior_status": {
+              "enum": [
+                "published",
+                "withdrawn"
+              ]
+            },
+            "prior_status_record_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "reason_digest": {
+              "$ref": "#/$defs/digest"
+            }
+          },
+          "required": [
+            "kind",
+            "operation",
+            "namespace",
+            "owner_policy_digest",
+            "owner_set_digest",
+            "approval_predicate_digest",
+            "coordinate",
+            "prior_status_record_digest",
+            "prior_status",
+            "reason_digest",
+            "expected_prior_revision",
+            "expected_prior_head_digest"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "approval_predicate_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "coordinate": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "expected_prior_head_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "expected_prior_revision": {
+              "$ref": "#/$defs/safeInteger"
+            },
+            "kind": {
+              "const": "publication_revocation"
+            },
+            "namespace": {
+              "$ref": "#/$defs/namespace"
+            },
+            "operation": {
+              "const": "revoke"
+            },
+            "owner_policy_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "owner_set_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "prior_status": {
+              "enum": [
+                "published",
+                "withdrawn"
+              ]
+            },
+            "prior_status_record_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "reason_digest": {
+              "$ref": "#/$defs/digest"
+            }
+          },
+          "required": [
+            "kind",
+            "operation",
+            "namespace",
+            "owner_policy_digest",
+            "owner_set_digest",
+            "approval_predicate_digest",
+            "coordinate",
+            "prior_status_record_digest",
+            "prior_status",
+            "reason_digest",
+            "expected_prior_revision",
+            "expected_prior_head_digest"
           ],
           "type": "object"
         }
@@ -1892,8 +2070,32 @@
             "created"
           ]
         },
+        "dependency_task_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 64,
+          "minItems": 0,
+          "type": "array"
+        },
         "non_authorizing_task_contract_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "prerequisite_artifact_digests": {
+          "items": {
+            "$ref": "#/$defs/digest"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array"
+        },
+        "prerequisite_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 64,
+          "minItems": 1,
+          "type": "array"
         },
         "repository": {
           "$ref": "#/$defs/text"
@@ -1923,19 +2125,30 @@
         "task_contract_id": {
           "$ref": "#/$defs/identifier"
         },
+        "task_id": {
+          "$ref": "#/$defs/identifier"
+        },
         "task_kind": {
           "enum": [
             "ak_coordination",
             "first_consumer"
           ]
+        },
+        "task_owner_id": {
+          "$ref": "#/$defs/identifier"
         }
       },
       "required": [
         "schema",
         "task_contract_id",
+        "task_id",
+        "task_owner_id",
         "task_kind",
         "repository",
         "allowed_paths",
+        "dependency_task_ids",
+        "prerequisite_ids",
+        "prerequisite_artifact_digests",
         "required_evidence",
         "rollback_owner",
         "stop_conditions",
@@ -2575,6 +2788,51 @@
       ],
       "type": "object"
     },
+    "publicationRecoveryState": {
+      "additionalProperties": false,
+      "properties": {
+        "head": {
+          "$ref": "#/$defs/digest"
+        },
+        "marker": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/publicationCommitMarker"
+            }
+          ]
+        },
+        "revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "staging_present": {
+          "type": "boolean"
+        },
+        "status_record_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "revision",
+        "head",
+        "status_record_digest",
+        "marker",
+        "staging_present"
+      ],
+      "type": "object"
+    },
+    "publicationStatusRecord": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ownerPublication"
+        },
+        {
+          "$ref": "#/$defs/publicationStatusTransition"
+        }
+      ]
+    },
     "publicationStatusTransition": {
       "oneOf": [
         {
@@ -2935,6 +3193,19 @@
             }
           ]
         },
+        "disable_target_artifact_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "recovery_artifact_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "recovery_runtime_available": {
           "const": true
         },
@@ -2987,6 +3258,16 @@
             }
           ]
         },
+        "runtime_target_artifact_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
         "schema": {
           "const": "semantic-rollback-availability-proof.v0"
         },
@@ -3001,6 +3282,16 @@
           ]
         },
         "semantic_materialization_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "semantic_target_artifact_digest": {
           "oneOf": [
             {
               "type": "null"
@@ -3033,7 +3324,121 @@
         "runtime_revalidation_receipt_digest",
         "disable_contract_digest",
         "rehearsal_receipt_digest",
+        "semantic_target_artifact_digest",
+        "runtime_target_artifact_digest",
+        "disable_target_artifact_digest",
+        "recovery_artifact_digest",
         "rollback_availability_proof_digest"
+      ],
+      "type": "object"
+    },
+    "rollbackAvailableArtifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "artifact_kind": {
+          "enum": [
+            "semantic_target",
+            "runtime_target",
+            "disable_target",
+            "recovery_runtime"
+          ]
+        },
+        "coordinate": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/coordinate"
+            }
+          ]
+        },
+        "disable_contract_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "health_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "independently_available": {
+          "const": true
+        },
+        "materialization_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "rehearsal_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "rollback_available_artifact_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "runtime_identity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/toolIdentity"
+            }
+          ]
+        },
+        "runtime_revalidation_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "schema": {
+          "const": "semantic-rollback-available-artifact.v0"
+        }
+      },
+      "required": [
+        "schema",
+        "artifact_id",
+        "artifact_kind",
+        "coordinate",
+        "runtime_identity",
+        "materialization_receipt_digest",
+        "runtime_revalidation_receipt_digest",
+        "disable_contract_digest",
+        "rehearsal_receipt_digest",
+        "health_receipt_digest",
+        "independently_available",
+        "rollback_available_artifact_digest"
       ],
       "type": "object"
     },
@@ -3907,6 +4312,9 @@
       "$ref": "#/$defs/tombstoneRegistry"
     },
     {
+      "$ref": "#/$defs/acceptedLifecycleLedgerRecord"
+    },
+    {
       "$ref": "#/$defs/payloadProjection"
     },
     {
@@ -3964,6 +4372,9 @@
       "$ref": "#/$defs/rollbackRequest"
     },
     {
+      "$ref": "#/$defs/rollbackAvailableArtifact"
+    },
+    {
       "$ref": "#/$defs/rollbackAvailabilityProof"
     },
     {
@@ -3982,5 +4393,5 @@
       "$ref": "#/$defs/errorEnvelope"
     }
   ],
-  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 4"
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 5"
 }

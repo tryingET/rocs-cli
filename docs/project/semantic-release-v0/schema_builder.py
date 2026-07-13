@@ -122,6 +122,10 @@ def build_schema() -> dict[str, Any]:
     d["tombstoneEntry"] = obj({"semantic_id": ref("identifier"), "reason": {"enum": ["removed", "renamed"]}, "origin_record_digest": ref("digest")})
     d["tombstoneRegistry"] = protocol("semantic-tombstone-registry.v0", {
         "namespace": ref("namespace"), "registry_revision": ref("safeInteger"), "entries": array(ref("tombstoneEntry")), "prior_registry_digest": nullable(ref("digest")), "tombstone_registry_digest": ref("digest")})
+    d["acceptedLifecycleLedgerRecord"] = protocol("semantic-accepted-lifecycle-ledger-record.v0", {
+        "namespace": ref("namespace"), "ledger_revision": ref("safeInteger"), "ledger_head_digest": ref("digest"), "coordinate": ref("coordinate"),
+        "publication_status_record_digest": ref("digest"), "publication_status": {"const": "published"}, "accepted_for_lifecycle": {"const": True},
+        "accepted_lifecycle_ledger_record_digest": ref("digest")})
 
     d["projectionEntry"] = obj({"capsule_path": ref("logicalPath"), "consumer_path": ref("logicalPath"), "mode": {"enum": [420, 493]}, "byte_length": nullable(ref("safeInteger")), "content_digest": nullable(ref("digest"))})
     d["payloadProjection"] = protocol("semantic-payload-projection.v0", {
@@ -150,13 +154,20 @@ def build_schema() -> dict[str, Any]:
     rotation_action = obj({"kind": {"const": "trust_rotation"}, "namespace": ref("namespace"), "old_trust_root_digest": ref("digest"), "new_trust_root_digest": ref("digest"),
         "owner_policy_digest": ref("digest"), "owner_set_digest": ref("digest"), "approval_predicate_digest": ref("digest"),
         "new_trust_root_revision": ref("safeInteger"), "rotation_revision": ref("safeInteger")})
-    revocation_action = obj({"kind": {"const": "trust_revocation"}, "target_kind": {"enum": ["owner_key", "owner_set", "owner_policy", "trust_root"]},
+    revocation_action = obj({"kind": {"const": "trust_revocation"}, "namespace": ref("namespace"), "owner_policy_digest": ref("digest"),
+        "owner_set_digest": ref("digest"), "approval_predicate_digest": ref("digest"), "target_kind": {"enum": ["owner_key", "owner_set", "owner_policy", "trust_root"]},
         "target_digest": ref("digest"), "effective_ledger_revision": ref("safeInteger"), "reason_digest": ref("digest"), "prior_revocation_digest": nullable(ref("digest")), "revocation_revision": ref("safeInteger")})
     override_action = obj({"kind": {"const": "compatibility_override"}, "namespace": ref("namespace"), "compatibility_policy_digest": ref("digest"),
         "change": ref("compatibilityChange"), "change_digest": ref("digest"), "from_classification": {"enum": ["unknown", "breaking"]},
         "from_semver_effect": {"enum": ["major", "unknown"]}, "to_classification": {"enum": ["conditionally_compatible", "breaking"]},
         "semver_effect_floor": {"enum": ["patch", "minor", "major"]}, "condition": ref("compatibilityCondition")})
-    d["approvalAction"] = {"oneOf": [release_action, rotation_action, revocation_action, override_action]}
+    publication_action_common = {"namespace": ref("namespace"), "owner_policy_digest": ref("digest"), "owner_set_digest": ref("digest"),
+        "approval_predicate_digest": ref("digest"), "coordinate": ref("coordinate"), "prior_status_record_digest": ref("digest"),
+        "prior_status": {"enum": ["published", "withdrawn"]}, "reason_digest": ref("digest"), "expected_prior_revision": ref("safeInteger"),
+        "expected_prior_head_digest": ref("digest")}
+    withdrawal_action = obj({"kind": {"const": "publication_withdrawal"}, "operation": {"const": "withdraw"}, **publication_action_common})
+    publication_revocation_action = obj({"kind": {"const": "publication_revocation"}, "operation": {"const": "revoke"}, **publication_action_common})
+    d["approvalAction"] = {"oneOf": [release_action, rotation_action, revocation_action, override_action, withdrawal_action, publication_revocation_action]}
     d["approvalVote"] = obj({"owner_id": ref("identifier"), "owner_key_id": ref("identifier"), "approved_action_digest": ref("digest"), "approval_proof_digest": ref("digest")})
     d["ownerApproval"] = protocol("semantic-owner-approval.v0", {
         "namespace": ref("namespace"), "owner_policy_digest": ref("digest"), "owner_set_digest": ref("digest"), "approval_predicate_digest": ref("digest"),
@@ -189,6 +200,9 @@ def build_schema() -> dict[str, Any]:
     d["publicationStatusTransition"] = {"oneOf": [
         protocol("semantic-publication-status-transition.v0", {"from_status": {"const": "published"}, "to_status": {"const": "withdrawn"}, **transition_common}),
         protocol("semantic-publication-status-transition.v0", {"from_status": {"enum": ["published", "withdrawn"]}, "to_status": {"const": "revoked"}, **transition_common})]}
+    d["publicationStatusRecord"] = {"oneOf": [ref("ownerPublication"), ref("publicationStatusTransition")]}
+    d["publicationRecoveryState"] = obj({"revision": ref("safeInteger"), "head": ref("digest"), "status_record_digest": ref("digest"),
+        "marker": nullable(ref("publicationCommitMarker")), "staging_present": {"type": "boolean"}})
 
     d["semanticRollbackTarget"] = obj({"kind": {"const": "semantic"}, "semantic_action": {"const": "switch"}, "target_coordinate": ref("coordinate"), "runtime_action": {"const": "retain"}, "target_materialization_receipt_digest": ref("digest")})
     d["runtimeRollbackTarget"] = obj({"kind": {"const": "runtime"}, "semantic_action": {"const": "retain"}, "runtime_action": {"const": "switch"}, "target_runtime_identity": ref("toolIdentity"), "target_materialization_receipt_digest": ref("digest"), "runtime_revalidation_receipt_digest": ref("digest")})
@@ -238,13 +252,20 @@ def build_schema() -> dict[str, Any]:
         "issuer": ref("issuer"), "active_activation_receipt_digest": ref("digest"), "from_state": ref("activeState"), "target": ref("rollbackTarget"), "recovery_runtime_identity": ref("toolIdentity"),
         "owner_decision_reference_digest": ref("digest"), "precondition_digest": ref("digest"), "rollback_request_digest": ref("digest")})
     d["rollbackStage"] = obj({"stage": {"enum": ["semantic", "runtime", "disable"]}, "result": {"enum": ["not_started", "completed", "failed"]}, "error_digest": nullable(ref("digest"))})
+    d["rollbackAvailableArtifact"] = protocol("semantic-rollback-available-artifact.v0", {
+        "artifact_id": ref("identifier"), "artifact_kind": {"enum": ["semantic_target", "runtime_target", "disable_target", "recovery_runtime"]},
+        "coordinate": nullable(ref("coordinate")), "runtime_identity": nullable(ref("toolIdentity")), "materialization_receipt_digest": nullable(ref("digest")),
+        "runtime_revalidation_receipt_digest": nullable(ref("digest")), "disable_contract_digest": nullable(ref("digest")), "rehearsal_receipt_digest": nullable(ref("digest")),
+        "health_receipt_digest": nullable(ref("digest")), "independently_available": {"const": True}, "rollback_available_artifact_digest": ref("digest")})
     d["rollbackAvailabilityProof"] = protocol("semantic-rollback-availability-proof.v0", {
         "rollback_request_digest": ref("digest"), "target_kind": {"enum": ["semantic", "runtime", "no_prior_disable", "combined"]},
         "canonical_activation_digest": ref("digest"), "recovery_runtime_identity": ref("toolIdentity"), "recovery_runtime_available": {"const": True},
         "semantic_materialization_receipt_digest": nullable(ref("digest")), "semantic_coordinate": nullable(ref("coordinate")),
         "runtime_materialization_receipt_digest": nullable(ref("digest")), "runtime_identity": nullable(ref("toolIdentity")),
         "runtime_revalidation_receipt_digest": nullable(ref("digest")), "disable_contract_digest": nullable(ref("digest")),
-        "rehearsal_receipt_digest": nullable(ref("digest")), "rollback_availability_proof_digest": ref("digest")})
+        "rehearsal_receipt_digest": nullable(ref("digest")), "semantic_target_artifact_digest": nullable(ref("digest")),
+        "runtime_target_artifact_digest": nullable(ref("digest")), "disable_target_artifact_digest": nullable(ref("digest")),
+        "recovery_artifact_digest": ref("digest"), "rollback_availability_proof_digest": ref("digest")})
     d["rollbackHistoryTransition"] = protocol("semantic-rollback-history-transition.v0", {
         "rollback_request_digest": ref("digest"), "result": {"enum": ["rolled_back", "disabled", "partial_failure"]},
         "active_state_before": ref("activeState"), "active_state_after": ref("activeState"), "stages": array(ref("rollbackStage"), 2, 1),
@@ -260,8 +281,10 @@ def build_schema() -> dict[str, Any]:
         "supersedes_activation_receipt_digest": nullable(ref("digest")), "ak_evidence_linkage_digest": nullable(ref("digest")),
         "pi_delivery_receipt_digest": nullable(ref("digest")), "rollback_receipt_digest": ref("digest")})
     d["nonAuthorizingTaskContract"] = protocol("semantic-non-authorizing-task-contract.v0", {
-        "task_contract_id": ref("identifier"), "task_kind": {"enum": ["ak_coordination", "first_consumer"]}, "repository": ref("text"),
-        "allowed_paths": array(ref("logicalPath"), 64), "required_evidence": array(ref("identifier"), 64, 1), "rollback_owner": ref("issuer"),
+        "task_contract_id": ref("identifier"), "task_id": ref("identifier"), "task_owner_id": ref("identifier"),
+        "task_kind": {"enum": ["ak_coordination", "first_consumer"]}, "repository": ref("text"), "allowed_paths": array(ref("logicalPath"), 64),
+        "dependency_task_ids": array(ref("identifier"), 64), "prerequisite_ids": array(ref("identifier"), 64, 1),
+        "prerequisite_artifact_digests": array(ref("digest"), 64, 1), "required_evidence": array(ref("identifier"), 64, 1), "rollback_owner": ref("issuer"),
         "stop_conditions": array(ref("identifier"), 64, 1), "authority_scope": {"enum": ["coordination_only", "consumer_owner_candidate_only"]},
         "authorizes_execution": {"type": "boolean"}, "authorizes_publication": {"type": "boolean"}, "authorizes_adoption": {"type": "boolean"},
         "contract_status": {"enum": ["candidate_not_created", "created"]}, "non_authorizing_task_contract_digest": ref("digest")})
@@ -275,11 +298,11 @@ def build_schema() -> dict[str, Any]:
         "related_artifact_digest": nullable(ref("digest")), "details": array(ref("errorDetail"), 64), "error_digest": ref("digest")})
 
     top = ["coordinate", "sourceManifest", "materialManifest", "ownerSet", "approvalPredicate", "ownerPolicy", "trustRoot", "trustRotation", "trustRevocation",
-           "compatibilityPolicy", "compatibilityReport", "compatibilityOverride", "deprecationRecord", "removalRecord", "tombstoneRegistry", "payloadProjection", "capsuleArchiveLinkage", "capsule",
+           "compatibilityPolicy", "compatibilityReport", "compatibilityOverride", "deprecationRecord", "removalRecord", "tombstoneRegistry", "acceptedLifecycleLedgerRecord", "payloadProjection", "capsuleArchiveLinkage", "capsule",
            "akDecisionReference", "ownerApproval", "buildReceipt", "publicationTransaction", "publicationJournal", "publicationCommitMarker", "ownerPublication", "publicationStatusTransition",
-           "consumerIntent", "ownerAcceptance", "materializationVerificationReceipt", "activationReceipt", "rocsGenerationReceipt", "piDeliveryReceipt", "akEvidenceLinkage", "rollbackRequest", "rollbackAvailabilityProof", "rollbackHistoryTransition", "rollbackReceipt", "nonAuthorizingTaskContract", "auditEnvelope", "errorEnvelope"]
+           "consumerIntent", "ownerAcceptance", "materializationVerificationReceipt", "activationReceipt", "rocsGenerationReceipt", "piDeliveryReceipt", "akEvidenceLinkage", "rollbackRequest", "rollbackAvailableArtifact", "rollbackAvailabilityProof", "rollbackHistoryTransition", "rollbackReceipt", "nonAuthorizingTaskContract", "auditEnvelope", "errorEnvelope"]
     return {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://ai-society.local/rocs/semantic-release-v0/protocol.schema.json",
-            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 4", "oneOf": [ref(name) for name in top], "$defs": d}
+            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 5", "oneOf": [ref(name) for name in top], "$defs": d}
 
 
 def write_schema() -> None:
