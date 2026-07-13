@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stdlib-only revision-12 owner-receipt authority-graph, schema, digest, link, and transition validator."""
+"""Stdlib-only revision-13 sharded authority-graph, schema, digest, link, and transition validator."""
 from __future__ import annotations
 
 import copy
@@ -14,6 +14,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
+MAX_JSON_FILE_BYTES = 16 * 1024 * 1024
+MAX_JSON_DEPTH = 64
+SHARD_NAME_RE = re.compile(r"differential-fixtures-shard-[0-9]{3}\.json")
 COORDINATE_DOMAIN = "semantic-release.coordinate.v0"
 DOMAIN_ROWS = {
     "semantic-source-manifest.v0": ("source-manifest", "source_manifest_digest"),
@@ -74,11 +77,11 @@ DIGEST_FIELDS = {schema: (f"semantic-release.{domain}.v0", field) for schema, (d
 SCHEMA_ROOT: dict[str, Any] | None = None
 
 AUTHORITY_BEARING_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "approval_threshold", "compatibility", "generation_activation", "governance_contracts", "lifecycle", "projection", "publication_cas", "publication_commit", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "version_binding"}
-ALL_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"}
-EXPECTED_AUTHORITY_EDGE_COUNT = 129
-EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:7585698cafe8bbee2e3abf38497397f9452eabc0ae60c299961ec23e8d465271"
-EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:2ffcc96847eda3978a638655aae16cf0f3ac4678ae60b9acc4a01893071f4cdd"
-EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:1fd32053d0c16907af4893c8149b29d1b0303a0afa20f6347c38106195190338"
+ALL_RULES = {"acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility", "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection", "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse", "trust_revocation", "trust_rotation", "utc", "version_binding"}
+EXPECTED_AUTHORITY_EDGE_COUNT = 139
+EXPECTED_AUTHORITY_REGISTRY_DIGEST = "sha256:a1b26aefb4c9c6746e646d8b443d24cd2ef8024123cf45cfa58adae645303130"
+EXPECTED_AUTHORITY_MANIFEST_DIGEST = "sha256:a96179f5e15b017823f7124bc8ebd8eb807fbe27cdc1367e23b0887b8a3966e8"
+EXPECTED_SOURCE_AUDIT_DIGEST = "sha256:9259e5d167428e5573df1f389590f8e2009b7e7d353a0279beb7c23cabc13705"
 AUTHORITY_MANIFEST: dict[str, Any] | None = None
 AUTHORITY_MANIFEST_BY_RULE: dict[str, dict] = {}
 
@@ -110,18 +113,31 @@ def parse_json_text(text: str) -> Any:
             parse_constant=lambda token: (_ for _ in ()).throw(ValidationError(f"non-I-JSON constant {token!r}")))
     except json.JSONDecodeError as exc:
         raise ValidationError(str(exc)) from exc
+    except RecursionError as exc:
+        raise ValidationError("JSON nesting depth exceeds 64") from exc
     validate_ijson(value)
     return value
 
 
-def load_json(path: Path) -> Any:
+def load_json_bytes(path: Path, *, strict_under_limit: bool = False) -> tuple[Any, bytes]:
+    try: byte_length = path.stat().st_size
+    except OSError as exc: raise ValidationError(f"{path}: unavailable JSON file") from exc
+    if byte_length > MAX_JSON_FILE_BYTES or strict_under_limit and byte_length >= MAX_JSON_FILE_BYTES:
+        raise ValidationError(f"{path}: JSON file size exceeds limit")
     raw = path.read_bytes()
+    if len(raw) != byte_length or len(raw) > MAX_JSON_FILE_BYTES or strict_under_limit and len(raw) >= MAX_JSON_FILE_BYTES:
+        raise ValidationError(f"{path}: JSON file size changed or exceeds limit")
     if raw.startswith(b"\xef\xbb\xbf"): raise ValidationError(f"{path}: BOM forbidden")
-    try: return parse_json_text(raw.decode("utf-8", "strict"))
+    try: return parse_json_text(raw.decode("utf-8", "strict")), raw
     except (UnicodeDecodeError, ValidationError) as exc: raise ValidationError(f"{path}: {exc}") from exc
 
 
-def validate_ijson(value: Any, path: str = "$") -> None:
+def load_json(path: Path) -> Any:
+    return load_json_bytes(path)[0]
+
+
+def validate_ijson(value: Any, path: str = "$", depth: int = 1) -> None:
+    if depth > MAX_JSON_DEPTH: raise ValidationError(f"{path}: JSON nesting depth exceeds 64")
     if value is None or isinstance(value, bool): return
     if isinstance(value, int):
         if not 0 <= value <= MAX_SAFE_INTEGER: raise ValidationError(f"{path}: unsafe integer")
@@ -132,10 +148,10 @@ def validate_ijson(value: Any, path: str = "$") -> None:
             raise ValidationError(f"{path}: forbidden Unicode scalar")
         return
     if isinstance(value, list):
-        for i, item in enumerate(value): validate_ijson(item, f"{path}/{i}")
+        for i, item in enumerate(value): validate_ijson(item, f"{path}/{i}", depth + 1)
         return
     if isinstance(value, dict):
-        for key, item in value.items(): validate_ijson(key, f"{path}/key"); validate_ijson(item, f"{path}/{key}")
+        for key, item in value.items(): validate_ijson(key, f"{path}/key", depth + 1); validate_ijson(item, f"{path}/{key}", depth + 1)
         return
     raise ValidationError(f"{path}: unsupported JSON type")
 
@@ -159,6 +175,73 @@ def domain_digest(domain: str, preimage: bytes) -> str:
 def typed_digest(domain: str, value: Any) -> str: return domain_digest(domain, jcs(value).encode())
 def action_digest(value: Any) -> str: return typed_digest("semantic-release.approval-action.v0", value)
 def change_digest(value: Any) -> str: return typed_digest("semantic-release.compatibility-change.v0", value)
+
+
+def load_sharded_differential() -> tuple[dict, list[dict], str]:
+    manifest_path = ROOT / "differential-fixtures.json"
+    manifest = load_json(manifest_path)
+    top_keys = {"schema", "protocol", "rfc_revision", "aggregate", "source_case_explicitness_audit",
+        "authority_rule_role_manifest", "authority_edge_registry", "shards"}
+    if not isinstance(manifest, dict) or set(manifest) != top_keys:
+        raise ValidationError("differential shard manifest is not closed")
+    if (manifest["schema"] != "semantic-differential-fixture-manifest.v0"
+        or manifest["protocol"] != "semantic-release-v0"
+        or manifest["rfc_revision"] != "semantic-release-revision-v13"):
+        raise ValidationError("differential shard manifest identity drift")
+    aggregate = manifest["aggregate"]
+    if (not isinstance(aggregate, dict) or set(aggregate) != {"case_count", "raw_case_count", "sha256"}
+        or isinstance(aggregate["case_count"], bool) or not isinstance(aggregate["case_count"], int)
+        or isinstance(aggregate["raw_case_count"], bool) or not isinstance(aggregate["raw_case_count"], int)
+        or re.fullmatch(r"[0-9a-f]{64}", aggregate["sha256"]) is None):
+        raise ValidationError("differential aggregate metadata shape")
+    rows = manifest["shards"]
+    row_keys = {"path", "byte_length", "sha256", "case_count", "raw_case_count"}
+    if not isinstance(rows, list) or not rows:
+        raise ValidationError("differential shard inventory missing")
+    paths = [row.get("path") for row in rows if isinstance(row, dict)]
+    if (len(paths) != len(rows) or any(not isinstance(path, str) for path in paths)
+        or paths != sorted(paths, key=str.encode) or len(paths) != len(set(paths))):
+        raise ValidationError("differential shard inventory order")
+    listed = set(paths)
+    extras = {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")} - listed
+    missing = listed - {path.name for path in ROOT.glob("differential-fixtures-shard-*.json")}
+    if extras or missing: raise ValidationError("differential shard inventory has missing or extra files")
+    cases: list[dict] = []; raw_cases: list[dict] = []; inventory: list[dict] = []
+    for index, row in enumerate(rows):
+        if (set(row) != row_keys or not SHARD_NAME_RE.fullmatch(row["path"])
+            or "/" in row["path"] or "\\" in row["path"] or ":" in row["path"]
+            or any(isinstance(row[key], bool) or not isinstance(row[key], int) or row[key] < 0
+                for key in ("byte_length", "case_count", "raw_case_count"))
+            or re.fullmatch(r"[0-9a-f]{64}", row["sha256"]) is None):
+            raise ValidationError(f"differential shard inventory row {index}")
+        path = ROOT / row["path"]
+        if path.resolve().parent != ROOT.resolve(): raise ValidationError("differential shard path traversal")
+        shard, data = load_json_bytes(path, strict_under_limit=True)
+        if len(data) != row["byte_length"] or hashlib.sha256(data).hexdigest() != row["sha256"]:
+            raise ValidationError(f"differential shard byte/hash mismatch {row['path']}")
+        shard_keys = {"schema", "protocol", "rfc_revision", "shard_index", "cases", "raw_json_cases"}
+        if (not isinstance(shard, dict) or set(shard) != shard_keys
+            or shard["schema"] != "semantic-differential-fixture-shard.v0"
+            or shard["protocol"] != manifest["protocol"] or shard["rfc_revision"] != manifest["rfc_revision"]
+            or shard["shard_index"] != index or not isinstance(shard["cases"], list)
+            or not isinstance(shard["raw_json_cases"], list)
+            or len(shard["cases"]) != row["case_count"]
+            or len(shard["raw_json_cases"]) != row["raw_case_count"]):
+            raise ValidationError(f"differential shard shape/count {row['path']}")
+        cases.extend(shard["cases"]); raw_cases.extend(shard["raw_json_cases"]); inventory.append(copy.deepcopy(row))
+    aggregate_preimage = {"cases": cases, "raw_json_cases": raw_cases}
+    aggregate_sha256 = hashlib.sha256(jcs(aggregate_preimage).encode("utf-8")).hexdigest()
+    if (len(cases) != aggregate["case_count"] or len(raw_cases) != aggregate["raw_case_count"]
+        or sum(row["case_count"] for row in rows) != len(cases)
+        or sum(row["raw_case_count"] for row in rows) != len(raw_cases)
+        or aggregate_sha256 != aggregate["sha256"]):
+        raise ValidationError("differential shard aggregate reconstruction mismatch")
+    differential = {"protocol": manifest["protocol"], "rfc_revision": manifest["rfc_revision"],
+        "source_case_explicitness_audit": manifest["source_case_explicitness_audit"],
+        "authority_rule_role_manifest": manifest["authority_rule_role_manifest"],
+        "authority_edge_registry": manifest["authority_edge_registry"],
+        "cases": cases, "raw_json_cases": raw_cases}
+    return differential, inventory, aggregate_sha256
 
 
 def object_digest(instance: dict[str, Any], domain: str, omitted: str | None) -> tuple[str, str]:
@@ -239,6 +322,8 @@ def check_order(instance: dict) -> None:
     if kind == "semantic-owner-approval.v0":
         keys = [(x["owner_id"].encode(), x["owner_key_id"].encode()) for x in instance["votes"]]
         if keys != sorted(keys) or len(keys) != len(set(keys)) or action_digest(instance["action"]) != instance["action_digest"] or any(x["approved_action_digest"] != instance["action_digest"] for x in instance["votes"]): raise ValidationError("approval order/binding")
+    if kind == "semantic-publication-transaction.v0" and action_digest(instance["approved_action"]) != instance["approved_action_digest"]:
+        raise ValidationError("publication transaction action binding")
     if kind == "semantic-compatibility-policy.v0" and not sorted_unique([x["category"] for x in instance["category_rules"]]): raise ValidationError("policy order")
     if kind == "semantic-compatibility-report.v0":
         keys = [(x["semantic_id"].encode(), x["category"].encode()) for x in instance["changes"]]
@@ -352,7 +437,7 @@ REQUIRED_RECEIPT_ROLES = {
     "trust_rotation": {"current_root_digest", "revoked", "canonical_store_head", "current_decision_record_digest"},
     "trust_revocation": {"prior_revision", "prior_head", "canonical_store_head", "current_decision_record_digest"},
     "compatibility": {"canonical_store_head", "current_decision_record_digest"},
-    "lifecycle": {"canonical_deprecation_head", "canonical_deprecation_revision", "canonical_removal_head", "canonical_removal_revision", "canonical_store_head", "current_deprecation_decision_record_digest", "current_removal_decision_record_digest", "deprecation_prior_head", "current_lifecycle_head", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests"},
+    "lifecycle": {"canonical_deprecation_head", "canonical_deprecation_revision", "canonical_removal_head", "canonical_removal_revision", "canonical_store_head", "current_deprecation_decision_record_digest", "current_removal_decision_record_digest", "deprecation_prior_head", "current_lifecycle_head", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "tombstone_genesis_anchor"},
     "publication_commit": {"canonical_store_head", "current_decision_record_digest", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head", "canonical_publication_journal_head"},
     "publication_transition": {"canonical_store_head", "current_decision_record_digest", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head", "canonical_publication_journal_head"},
     "publication_recovery": {"canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch",
@@ -361,8 +446,8 @@ REQUIRED_RECEIPT_ROLES = {
         "canonical_recovery_resulting_revision", "canonical_recovery_resulting_head", "canonical_recovery_resulting_status_digest",
         "canonical_store_head", "current_decision_record_digest", "external_trust_root_pin", "canonical_trust_root_digest",
         "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests"},
-    "tombstone_reuse": {"canonical_lifecycle_tombstone_head"},
-    "projection": {"canonical_lifecycle_tombstone_head"},
+    "tombstone_reuse": {"canonical_lifecycle_tombstone_head", "tombstone_genesis_anchor"},
+    "projection": {"canonical_lifecycle_tombstone_head", "tombstone_genesis_anchor"},
     "publication_cas": {"current_revision", "current_head", "existing_replay_key", "existing_coordinate", "existing_operation"},
     "version_binding": {"existing_coordinate"},
     "ak_decision": {"canonical_store_head", "current_decision_record_digest"},
@@ -397,7 +482,7 @@ PROTOCOL_ROLE_SCHEMAS = {
     "after": "semantic-publication-recovery-state-receipt.v0",
     "deprecation_approval": "semantic-owner-approval.v0", "removal_approval": "semantic-owner-approval.v0", "deprecation_prior_status": "semantic-owner-publication.v0",
     "deprecation_canonical_ledger": "semantic-publication-ledger-head.v0", "removal_canonical_ledger": "semantic-publication-ledger-head.v0", "owner_policy": "semantic-owner-policy.v0", "trust_root": "semantic-trust-root.v0",
-    "projection": "semantic-payload-projection.v0", "capsule": "semantic-release-capsule.v0", "archive_linkage": "semantic-capsule-archive-linkage.v0", "payload_manifest": "semantic-material-manifest.v0", "consumer_manifest": "semantic-material-manifest.v0", "archive_manifest": "semantic-material-manifest.v0", "tombstone_history": "semantic-tombstone-history-proof.v0",
+    "generation": "semantic-rocs-generation-receipt.v0", "projection": "semantic-payload-projection.v0", "capsule": "semantic-release-capsule.v0", "archive_linkage": "semantic-capsule-archive-linkage.v0", "payload_manifest": "semantic-material-manifest.v0", "consumer_manifest": "semantic-material-manifest.v0", "archive_manifest": "semantic-material-manifest.v0", "tombstone_history": "semantic-tombstone-history-proof.v0",
     "request": "semantic-rollback-request.v0", "activation": "semantic-activation-receipt.v0", "intent": "semantic-consumer-intent.v0", "acceptance": "semantic-owner-acceptance.v0", "materialization": "semantic-materialization-verification-receipt.v0", "availability": "semantic-rollback-availability-proof.v0", "activation_availability": "semantic-rollback-availability-proof.v0",
     "recovery_artifact": "semantic-rollback-availability-receipt.v0", "semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0",
     "history_after": "semantic-rollback-history-transition.v0", "ak_linkage": "semantic-ak-evidence-linkage.v0", "pi_receipt": "semantic-pi-delivery-receipt.v0",
@@ -682,7 +767,10 @@ def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
     elif rule == "lifecycle":
         typed = [("deprecation", "semantic-deprecation-record.v0"), ("policy", "semantic-compatibility-policy.v0"), ("resulting_tombstones", "semantic-tombstone-registry.v0"), ("tombstone_history", "semantic-tombstone-history-proof.v0"), ("deprecation_ledger", "semantic-accepted-lifecycle-ledger-record.v0"), ("removal_ledger", "semantic-accepted-lifecycle-ledger-record.v0"), ("deprecation_publication", "semantic-owner-publication.v0"), ("removal_publication", "semantic-owner-publication.v0"), ("deprecation_transaction", "semantic-publication-transaction.v0"), ("removal_transaction", "semantic-publication-transaction.v0"), ("deprecation_journal", "semantic-publication-journal.v0"), ("removal_journal", "semantic-publication-journal.v0"), ("deprecation_marker", "semantic-publication-commit-marker.v0"), ("removal_marker", "semantic-publication-commit-marker.v0"), ("deprecation_approval", "semantic-owner-approval.v0"), ("removal_approval", "semantic-owner-approval.v0"), ("deprecation_prior_status", "semantic-owner-publication.v0"), ("removal_prior_status", ("semantic-owner-publication.v0", "semantic-publication-status-transition.v0")), ("deprecation_prior_journal", "semantic-publication-journal.v0"), ("removal_prior_journal", "semantic-publication-journal.v0"), ("deprecation_canonical_ledger", "semantic-publication-ledger-head.v0"), ("removal_canonical_ledger", "semantic-publication-ledger-head.v0"), ("owner_policy", "semantic-owner-policy.v0"), ("owner_set", "semantic-owner-set.v0"), ("predicate", "semantic-approval-predicate.v0"), ("trust_root", "semantic-trust-root.v0"), ("deprecation_decision", "semantic-ak-decision-reference.v0"), ("removal_decision", "semantic-ak-decision-reference.v0")]
         expected_shape_context(context["external_trust_root_pin"], "externalTrustRootPin")
-    elif rule == "tombstone_reuse": typed = [("tombstones", "semantic-tombstone-registry.v0"), ("tombstone_history", "semantic-tombstone-history-proof.v0")]
+        expected_shape_context(context["tombstone_genesis_anchor"], "tombstoneGenesisAnchor")
+    elif rule == "tombstone_reuse":
+        typed = [("tombstones", "semantic-tombstone-registry.v0"), ("tombstone_history", "semantic-tombstone-history-proof.v0")]
+        expected_shape_context(context["tombstone_genesis_anchor"], "tombstoneGenesisAnchor")
     elif rule == "publication_commit":
         typed = [("transaction", "semantic-publication-transaction.v0"), ("journal", "semantic-publication-journal.v0"), ("marker", "semantic-publication-commit-marker.v0"), ("approval", "semantic-owner-approval.v0"), ("trust_root", "semantic-trust-root.v0"), ("prior_journal", "semantic-publication-journal.v0"), ("prior_status", "semantic-owner-publication.v0"), ("policy", "semantic-owner-policy.v0"), ("owner_set", "semantic-owner-set.v0"), ("predicate", "semantic-approval-predicate.v0"), ("decision", "semantic-ak-decision-reference.v0")]
         expected_shape_context(context["external_trust_root_pin"], "externalTrustRootPin")
@@ -702,8 +790,9 @@ def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
         expected_shape_context(context["before"]["state"], "publicationRecoveryState")
         expected_shape_context(context["after"]["state"], "publicationRecoveryState")
         expected_shape_context(context["external_trust_root_pin"], "externalTrustRootPin")
-        expected_shape_context(context["expected_action"], "approvalAction")
-    elif rule == "projection": typed = [("projection", "semantic-payload-projection.v0"), ("capsule", "semantic-release-capsule.v0"), ("archive_linkage", "semantic-capsule-archive-linkage.v0"), ("payload_manifest", "semantic-material-manifest.v0"), ("consumer_manifest", "semantic-material-manifest.v0"), ("archive_manifest", "semantic-material-manifest.v0"), ("tombstones", "semantic-tombstone-registry.v0"), ("tombstone_history", "semantic-tombstone-history-proof.v0")]
+    elif rule == "projection":
+        expected_shape_context(context["tombstone_genesis_anchor"], "tombstoneGenesisAnchor")
+        typed = [("projection", "semantic-payload-projection.v0"), ("capsule", "semantic-release-capsule.v0"), ("archive_linkage", "semantic-capsule-archive-linkage.v0"), ("payload_manifest", "semantic-material-manifest.v0"), ("consumer_manifest", "semantic-material-manifest.v0"), ("archive_manifest", "semantic-material-manifest.v0"), ("tombstones", "semantic-tombstone-registry.v0"), ("tombstone_history", "semantic-tombstone-history-proof.v0")]
     elif rule == "rollback":
         typed = [("request", "semantic-rollback-request.v0"), ("activation", "semantic-activation-receipt.v0"), ("decision", "semantic-ak-decision-reference.v0"), ("intent", "semantic-consumer-intent.v0"), ("acceptance", "semantic-owner-acceptance.v0"), ("materialization", "semantic-materialization-verification-receipt.v0"), ("availability", "semantic-rollback-availability-proof.v0"), ("recovery_artifact", "semantic-rollback-availability-receipt.v0")]
         for key in ("semantic_artifact", "runtime_artifact", "disable_artifact", "history_after", "ak_linkage", "pi_receipt"):
@@ -711,6 +800,7 @@ def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
                 schema_name = {"semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0", "history_after": "semantic-rollback-history-transition.v0", "ak_linkage": "semantic-ak-evidence-linkage.v0", "pi_receipt": "semantic-pi-delivery-receipt.v0"}[key]
                 expected_context(context[key], schema_name)
         expected_shape_context(context["canonical_history_head"], "historyHead")
+    elif rule == "pi_delivery": typed = [("generation", "semantic-rocs-generation-receipt.v0")]
     elif rule == "generation_activation": typed = [("activation", "semantic-activation-receipt.v0"), ("decision", "semantic-ak-decision-reference.v0"), ("intent", "semantic-consumer-intent.v0"), ("acceptance", "semantic-owner-acceptance.v0"), ("materialization", "semantic-materialization-verification-receipt.v0"), ("availability", "semantic-rollback-availability-proof.v0")]
     elif rule == "ak_decision": expected_shape_context(context["canonical_store_head"], "akStoreHead")
     elif rule == "acceptance_binding": typed = [("decision", "semantic-ak-decision-reference.v0"), ("intent", "semantic-consumer-intent.v0")]
@@ -765,7 +855,6 @@ def validate_rule_context(rule: str, subject: dict, context: dict) -> None:
         expected_context(context["archive_linkage"], "semantic-capsule-archive-linkage.v0", subject["capsule_archive_linkage_digest"], "projection_mismatch")
     if "canonical_lifecycle_tombstone_head" in context: expected_shape_context(context["canonical_lifecycle_tombstone_head"], "lifecycleTombstoneHead")
     if "previous_activation" in context and context["previous_activation"] is not None: expected_context(context["previous_activation"], "semantic-activation-receipt.v0")
-    if "expected_action" in context: expected_shape_context(context["expected_action"], "approvalAction")
     if "canonical_store_head" in context: expected_shape_context(context["canonical_store_head"], "akStoreHead")
 
 
@@ -908,11 +997,55 @@ def decision_current(subject: dict, context: dict) -> bool:
         and context["current_decision_record_digest"] == subject["decision_record_digest"])
 
 
-def publication_authority_valid(approval: dict, context: dict, coordinate: dict, expected_action: dict | None = None) -> bool:
+def required_publication_action(tx: dict, context: dict, prior_status: dict) -> dict | None:
+    action = tx["approved_action"]
+    if tx["operation"] == "publish":
+        if action["kind"] != "release": return None
+        return {"kind": "release", "coordinate": copy.deepcopy(tx["coordinate"]),
+            "source_manifest_digest": action["source_manifest_digest"],
+            "candidate_capsule_digest": tx["coordinate"]["capsule_digest"],
+            "compatibility_report_digest": action["compatibility_report_digest"]}
+    prior_digest = prior_status.get("owner_publication_digest", prior_status.get("publication_status_transition_digest"))
+    prior_state = prior_status.get("status", prior_status.get("to_status"))
+    if prior_digest is None or prior_state is None: return None
+    operation = tx["operation"]
+    if operation not in {"withdraw", "revoke"}: return None
+    return {"kind": "publication_withdrawal" if operation == "withdraw" else "publication_revocation",
+        "operation": operation, "namespace": tx["namespace"],
+        "owner_policy_digest": context["policy"]["owner_policy_digest"],
+        "owner_set_digest": context["owner_set"]["owner_set_digest"],
+        "approval_predicate_digest": context["predicate"]["approval_predicate_digest"],
+        "coordinate": copy.deepcopy(tx["coordinate"]), "prior_status_record_digest": prior_digest,
+        "prior_status": prior_state, "reason_digest": tx["status_reason_digest"],
+        "expected_prior_revision": tx["expected_prior_revision"],
+        "expected_prior_head_digest": tx["expected_prior_head_digest"]}
+
+
+def transaction_action_shape_valid(tx: dict) -> bool:
+    action = tx["approved_action"]
+    if action_digest(action) != tx["approved_action_digest"]: return False
+    if tx["operation"] == "publish":
+        return (action["kind"] == "release" and action["coordinate"] == tx["coordinate"]
+            and action["candidate_capsule_digest"] == tx["coordinate"]["capsule_digest"]
+            and tx["status_reason_digest"] is None)
+    expected_kind = "publication_withdrawal" if tx["operation"] == "withdraw" else "publication_revocation"
+    return (action["kind"] == expected_kind and action["operation"] == tx["operation"]
+        and action["namespace"] == tx["namespace"] and action["coordinate"] == tx["coordinate"]
+        and action["reason_digest"] == tx["status_reason_digest"]
+        and action["prior_status_record_digest"] == tx["expected_prior_head_digest"]
+        and action["expected_prior_revision"] == tx["expected_prior_revision"]
+        and action["expected_prior_head_digest"] == tx["expected_prior_head_digest"]
+        and tx["status_reason_digest"] is not None)
+
+
+def publication_authority_valid(approval: dict, context: dict, tx: dict, prior_status: dict) -> bool:
     policy, owner_set, predicate, decision = context["policy"], context["owner_set"], context["predicate"], context["decision"]
-    root, pin, action = context["trust_root"], context["external_trust_root_pin"], approval["action"]
-    action_exact = expected_action is None or action == expected_action
-    if action["kind"] == "release": action_exact = action_exact and action["candidate_capsule_digest"] == coordinate["capsule_digest"]
+    root, pin, coordinate = context["trust_root"], context["external_trust_root_pin"], tx["coordinate"]
+    required_action = required_publication_action(tx, context, prior_status)
+    action_exact = (required_action is not None and tx["approved_action"] == required_action
+        and tx["approved_action_digest"] == action_digest(required_action)
+        and approval["action"] == tx["approved_action"]
+        and approval["action_digest"] == tx["approved_action_digest"])
     trust_exact = (root["namespace"] == pin["namespace"] == policy["namespace"] == owner_set["namespace"] == predicate["namespace"] == approval["namespace"] == coordinate["namespace"]
         and root["owner_policy_digest"] == pin["owner_policy_digest"] == policy["owner_policy_digest"] == approval["owner_policy_digest"]
         and root["owner_set_digest"] == pin["owner_set_digest"] == owner_set["owner_set_digest"] == approval["owner_set_digest"]
@@ -924,7 +1057,7 @@ def publication_authority_valid(approval: dict, context: dict, coordinate: dict,
         and not any(vote["approval_proof_digest"] in context["revoked_trust_digests"] for vote in approval["votes"]))
     return (trust_exact and evaluate("approval_threshold", approval, {"policy": policy, "owner_set": owner_set, "predicate": predicate}, _resolved=True) is None
         and approval["decision_reference_digest"] == decision["ak_decision_reference_digest"] and decision_current(decision, context)
-        and action_exact and action_digest(action) == approval["action_digest"])
+        and action_exact)
 
 
 def prior_publication_chain_valid(tx: dict, prior_status: dict, prior_journal: dict) -> bool:
@@ -946,7 +1079,7 @@ def lifecycle_publication_endpoint_valid(prefix: str, context: dict) -> bool:
         "canonical_trust_revocation_revision": context["canonical_trust_revocation_revision"],
         "canonical_trust_revocation_head": context["canonical_trust_revocation_head"], "revoked_trust_digests": context["revoked_trust_digests"]}
     result = pub["owner_publication_digest"]
-    return (publication_authority_valid(approval, authority_context, pub["coordinate"])
+    return (publication_authority_valid(approval, authority_context, tx, prior)
         and prior_publication_chain_valid(tx, prior, prior_journal) and tx["operation"] == "publish" and tx["status_reason_digest"] is None
         and tx["coordinate"] == pub["coordinate"] and tx["namespace"] == tx["coordinate"]["namespace"] == pub["ledger_namespace"] == pub["coordinate"]["namespace"]
         and pub["transaction_digest"] == tx["publication_transaction_digest"] == journal["transaction_digest"] == marker["transaction_digest"]
@@ -961,8 +1094,11 @@ def lifecycle_publication_endpoint_valid(prefix: str, context: dict) -> bool:
         and ledger["journal_digest"] == journal["publication_journal_digest"] and ledger["commit_marker_digest"] == marker["publication_commit_marker_digest"]
         and ledger["prior_ledger_head_digest"] == tx["expected_prior_head_digest"])
 
-def tombstone_history_valid(proof: dict, current: dict) -> bool:
-    if (proof["issuer"] != {"kind": "semantic_owner", "id": "semantic-owner"}
+def tombstone_history_valid(proof: dict, current: dict, genesis_anchor: dict) -> bool:
+    if (genesis_anchor["semantic_owner_id"] != "semantic-owner"
+        or genesis_anchor["namespace"] != current["namespace"]
+        or genesis_anchor["genesis_registry_revision"] != 1
+        or proof["issuer"] != {"kind": "semantic_owner", "id": "semantic-owner"}
         or proof["namespace"] != current["namespace"]
         or proof["current_lifecycle_head_digest"] != current["lifecycle_head_digest"]
         or proof["current_registry_digest"] != current["tombstone_registry_digest"]
@@ -984,6 +1120,10 @@ def tombstone_history_valid(proof: dict, current: dict) -> bool:
             return False
         if previous is None:
             if (expected_revision != 1 or registry["prior_registry_digest"] is not None
+                or registry["tombstone_registry_digest"] != genesis_anchor["genesis_registry_digest"]
+                or registry["registry_revision"] != genesis_anchor["genesis_registry_revision"]
+                or registry["lifecycle_head_digest"] != genesis_anchor["genesis_lifecycle_head_digest"]
+                or registry["namespace"] != genesis_anchor["namespace"]
                 or delta["authorization_kind"] != "genesis" or delta["prior_lifecycle_head_digest"] is not None
                 or delta["added_entries"] != registry["entries"]):
                 return False
@@ -996,6 +1136,7 @@ def tombstone_history_valid(proof: dict, current: dict) -> bool:
                 or delta["authorization_kind"] != "removal"
                 or delta["prior_lifecycle_head_digest"] != previous["lifecycle_head_digest"]
                 or len(added) != 1 or len(added_ids) != len(added)
+                or delta["authorization_record_digest"] != registry["lifecycle_head_digest"]
                 or any(row["origin_record_digest"] != delta["authorization_record_digest"] for row in added)
                 or any(current_entries.get(key) != value for key, value in prior_entries.items())
                 or set(current_entries) != set(prior_entries) | added_ids
@@ -1102,7 +1243,7 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
         return None if valid else "semver_violation"
     if rule == "lifecycle":
         dep, policy, resulting, history_proof = context["deprecation"], context["policy"], context["resulting_tombstones"], context["tombstone_history"]
-        history_valid = tombstone_history_valid(history_proof, resulting)
+        history_valid = tombstone_history_valid(history_proof, resulting, context["tombstone_genesis_anchor"])
         prior = history_proof["revisions"][-2]["registry"] if len(history_proof["revisions"]) >= 2 else None
         expected_entry = {"semantic_id": subject["semantic_id"], "reason": "removed", "origin_record_digest": subject["removal_record_digest"]}
         expected_entries = [] if prior is None else copy.deepcopy(prior["entries"]) + [expected_entry]
@@ -1133,10 +1274,11 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
             and current["lifecycle_head_digest"] == tombstones["lifecycle_head_digest"]
             and current["tombstone_registry_digest"] == tombstones["tombstone_registry_digest"]
             and current["tombstone_registry_revision"] == tombstones["registry_revision"]
-            and tombstone_history_valid(context["tombstone_history"], tombstones))
+            and tombstone_history_valid(context["tombstone_history"], tombstones, context["tombstone_genesis_anchor"]))
         reused = any(x["semantic_id"] in {y["semantic_id"] for y in tombstones["entries"]} for x in subject["changes"])
         return None if current_exact and not reused else "lifecycle_violation"
     if rule == "publication_cas":
+        if not transaction_action_shape_valid(subject): return "lifecycle_violation"
         if subject["operation"] == "publish" and subject["status_reason_digest"] is not None or subject["operation"] in {"withdraw", "revoke"} and subject["status_reason_digest"] is None: return "lifecycle_violation"
         if context["existing_replay_key"] == subject["replay_key_digest"] and context["existing_coordinate"] == subject["coordinate"] and context["existing_operation"] == subject["operation"]: return None
         if subject["expected_prior_revision"] != context["current_revision"]: return "publication_conflict"
@@ -1146,7 +1288,7 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
         return "version_conflict" if (old["namespace"], old["semantic_version"]) == (new["namespace"], new["semantic_version"]) and old["capsule_digest"] != new["capsule_digest"] else None
     if rule == "publication_commit":
         tx, journal, marker = context["transaction"], context["journal"], context["marker"]; result_digest = subject["owner_publication_digest"]
-        authority_valid = publication_authority_valid(context["approval"], context, subject["coordinate"], context["expected_action"])
+        authority_valid = publication_authority_valid(context["approval"], context, tx, context["prior_status"])
         prior_valid = (prior_publication_chain_valid(tx, context["prior_status"], context["prior_journal"])
             and tx["expected_prior_revision"] == context["canonical_publication_revision"]
             and tx["expected_prior_head_digest"] == context["canonical_publication_head"]
@@ -1161,9 +1303,7 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
         prior_status = prior.get("status", prior.get("to_status"))
         valid_from = subject["from_status"] == prior_status and prior_digest == subject["prior_status_record_digest"] and prior["coordinate"] == subject["coordinate"] and prior["ledger_revision"] == tx["expected_prior_revision"]
         approval, policy, owner_set, predicate = context["approval"], context["policy"], context["owner_set"], context["predicate"]
-        expected_kind = "publication_withdrawal" if op == "withdraw" else "publication_revocation"
-        expected_action = {"kind": expected_kind, "operation": op, "namespace": tx["namespace"], "owner_policy_digest": policy["owner_policy_digest"], "owner_set_digest": owner_set["owner_set_digest"], "approval_predicate_digest": predicate["approval_predicate_digest"], "coordinate": tx["coordinate"], "prior_status_record_digest": prior_digest, "prior_status": prior_status, "reason_digest": tx["status_reason_digest"], "expected_prior_revision": tx["expected_prior_revision"], "expected_prior_head_digest": tx["expected_prior_head_digest"]}
-        authority_valid = publication_authority_valid(approval, context, subject["coordinate"], expected_action)
+        authority_valid = publication_authority_valid(approval, context, tx, prior)
         valid = (valid_from and prior_publication_chain_valid(tx, prior, context["prior_journal"])
             and tx["expected_prior_revision"] == context["canonical_publication_revision"]
             and tx["expected_prior_head_digest"] == context["canonical_publication_head"]
@@ -1200,20 +1340,23 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
         prior_digest = prior.get("owner_publication_digest", prior.get("publication_status_transition_digest"))
         result_digest = result.get("owner_publication_digest", result.get("publication_status_transition_digest"))
         prior_status = prior.get("status", prior.get("to_status"))
-        canonical_before = (prior_digest is not None and before["revision"] == context["canonical_publication_revision"] == prior["ledger_revision"]
-            and before["head"] == context["canonical_publication_head"] == prior_digest
-            and before["status_record_digest"] == context["canonical_publication_status_digest"] == prior_digest
+        observed_revision = result["ledger_revision"] if linear else prior["ledger_revision"]
+        observed_digest = result_digest if linear else prior_digest
+        canonical_before = (prior_digest is not None and result_digest is not None
+            and before["revision"] == context["canonical_publication_revision"] == observed_revision
+            and before["head"] == context["canonical_publication_head"] == observed_digest
+            and before["status_record_digest"] == context["canonical_publication_status_digest"] == observed_digest
             and before["intent_marker_digest"] == intent["publication_recovery_intent_marker_digest"]
             and before["durable_commit_marker_digest"] is None and before["staging_present"]
             and subject["prior_journal_digest"] == context["canonical_publication_journal_head"] == prior_journal["publication_journal_digest"]
             and subject["publication_journal_digest"] == context["canonical_recovery_journal_head"]
             and prior_publication_chain_valid(tx, prior, prior_journal)
-            and tx["expected_prior_revision"] == before["revision"] and tx["expected_prior_head_digest"] == before["head"])
+            and (linear or tx["expected_prior_revision"] == before["revision"] and tx["expected_prior_head_digest"] == before["head"]))
         transition_expected = (context["canonical_recovery_transaction_digest"] == subject["transaction_digest"]
             and context["canonical_recovery_resulting_revision"] == subject["resulting_ledger_revision"]
             and context["canonical_recovery_resulting_head"] == subject["resulting_ledger_head_digest"]
             and context["canonical_recovery_resulting_status_digest"] == subject["resulting_record_digest"])
-        authority_valid = publication_authority_valid(context["approval"], context, tx["coordinate"], context["expected_action"])
+        authority_valid = publication_authority_valid(context["approval"], context, tx, prior)
         common_result = (authority_valid and result_digest is not None
             and subject["transaction_digest"] == tx["publication_transaction_digest"] == result["transaction_digest"]
             and subject["resulting_record_digest"] == subject["resulting_ledger_head_digest"] == result_digest
@@ -1249,7 +1392,9 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
                 and marker["resulting_record_digest"] == subject["resulting_record_digest"]
                 and marker["resulting_ledger_head_digest"] == subject["resulting_ledger_head_digest"]
                 and marker["resulting_ledger_revision"] == subject["resulting_ledger_revision"])
-            if (not marker_join or after["revision"] != subject["resulting_ledger_revision"]
+            if (not marker_join or after["revision"] != before["revision"] or after["head"] != before["head"]
+                or after["status_record_digest"] != before["status_record_digest"]
+                or after["revision"] != subject["resulting_ledger_revision"]
                 or after["head"] != subject["resulting_ledger_head_digest"]
                 or after["status_record_digest"] != subject["resulting_record_digest"] or after["intent_marker_digest"] is not None
                 or after["durable_commit_marker_digest"] != marker["publication_commit_marker_digest"]
@@ -1273,7 +1418,7 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
             and current_tombstones["lifecycle_head_digest"] == tombstones["lifecycle_head_digest"] == capsule["lifecycle_head_digest"]
             and current_tombstones["tombstone_registry_digest"] == tombstones["tombstone_registry_digest"] == capsule["tombstone_registry_digest"]
             and current_tombstones["tombstone_registry_revision"] == tombstones["registry_revision"] == capsule["tombstone_registry_revision"]
-            and tombstone_history_valid(context["tombstone_history"], tombstones))
+            and tombstone_history_valid(context["tombstone_history"], tombstones, context["tombstone_genesis_anchor"]))
         capsule_coordinate = {"schema": "semantic-release-coordinate.v0", "namespace": capsule["namespace"],
             "semantic_version": capsule["semantic_version"], "capsule_digest": capsule["capsule_digest"]}
         valid = rows_ok and acyclic and archive_exact and tombstone_current and subject["coordinate"] == capsule_coordinate and archive["archive_manifest_digest"] == context["archive_manifest"]["material_manifest_digest"] and p["payload_manifest_digest"] == context["payload_manifest"]["material_manifest_digest"] and p["consumer_manifest_digest"] == context["consumer_manifest"]["material_manifest_digest"] and subject["payload_projection_digest"] == p["payload_projection_digest"] == capsule["payload_projection_digest"] and subject["capsule_archive_linkage_digest"] == archive["capsule_archive_linkage_digest"] == capsule["capsule_archive_linkage_digest"] and subject["source_payload_manifest_digest"] == p["payload_manifest_digest"] and subject["expected_consumer_manifest_digest"] == p["consumer_manifest_digest"] == subject["actual_consumer_manifest_digest"]
@@ -1360,7 +1505,16 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
         return None if valid else "history_conflict"
     if rule == "generation_activation":
         activation = context["activation"]
-        valid = activation_chain_valid(activation, context) and activation["activation_receipt_digest"] == context["current_activation_digest"] and activation["status"] == "activated" and activation["revoked_by_digest"] is None and activation["superseded_by_activation_receipt_digest"] is None and subject["activation_receipt_digest"] == subject["activation_head_digest"] == context["current_activation_digest"] and subject["activation_head_revision"] == context["current_activation_revision"] == activation["activation_revision"] and subject["coordinate"] == activation["coordinate"] and subject["runtime_identity"] == activation["runtime_identity"]
+        valid = (activation_chain_valid(activation, context)
+            and activation["activation_receipt_digest"] == context["current_activation_digest"]
+            and activation["status"] == "activated" and activation["revoked_by_digest"] is None
+            and activation["superseded_by_activation_receipt_digest"] is None
+            and subject["activation_receipt_digest"] == subject["activation_head_digest"] == context["current_activation_digest"]
+            and subject["activation_head_revision"] == context["current_activation_revision"] == activation["activation_revision"]
+            and subject["consumer_repository"] == activation["consumer_repository"]
+            and subject["v0_canary_scope"] == activation["canary_scope"]
+            and subject["v0_canary_scope"]["consumer_repository"] == subject["consumer_repository"]
+            and subject["coordinate"] == activation["coordinate"] and subject["runtime_identity"] == activation["runtime_identity"])
         return None if valid else "activation_not_current"
     if rule == "utc": return None if strict_utc(subject["recorded_at"]) else "malformed_input"
     if rule == "ak_decision": return None if decision_current(subject, context) else "self_certification"
@@ -1449,6 +1603,15 @@ def evaluate(rule: str, subject: dict, context: dict, *, _resolved: bool = False
             and references(consumer["required_evidence"], consumer_evidence, "consumer", "required_evidence") and stop_set(consumer, consumer_stops, "consumer")
             and consumer["authority_scope"] == "consumer_owner_candidate_only")
         return None if no_authority and subject["task_contract_id"] != consumer["task_contract_id"] and exact else "self_certification"
+    if rule == "pi_delivery":
+        generation = context["generation"]
+        valid = (subject["rocs_generation_receipt_digest"] == generation["rocs_generation_receipt_digest"]
+            and subject["consumer_repository"] == generation["consumer_repository"]
+            and subject["v0_canary_scope"] == generation["v0_canary_scope"]
+            and subject["v0_canary_scope"]["consumer_repository"] == subject["consumer_repository"])
+        if subject["delivery_outcome"] == "delivered":
+            valid = valid and subject["delivered_effective_execution_digest"] == generation["effective_execution_digest"]
+        return None if valid else "activation_not_current"
     if rule in {"pi_variant", "ak_optional_pi"}: return None
     raise ValidationError(f"unknown differential rule {rule}")
 
@@ -1527,7 +1690,7 @@ def normalized_semantic_pair(positive: dict, drift: dict) -> tuple[object, objec
     pairs: list[tuple[str, str, str]] = []; _collect_digest_correspondence(old, new, "", pairs)
     paths: dict[str, str] = {}
     for old_digest, new_digest, path in pairs:
-        stable = "semantic-ref:" + typed_digest("semantic-release.semantic-reference-path.v12", path)
+        stable = "semantic-ref:" + typed_digest("semantic-release.semantic-reference-path.v13", path)
         if old_digest not in paths or stable < paths[old_digest]: paths[old_digest] = stable
         if new_digest not in paths or stable < paths[new_digest]: paths[new_digest] = stable
     return _strip_digest_cascade(old, paths), _strip_digest_cascade(new, paths)
@@ -1539,7 +1702,7 @@ _MISSING = object()
 def _mutation_hash(value: object) -> str:
     payload = {"present": value is not _MISSING}
     if value is not _MISSING: payload["value"] = value
-    return typed_digest("semantic-release.semantic-mutation-value.v12", payload)
+    return typed_digest("semantic-release.semantic-mutation-value.v13", payload)
 
 
 def _semantic_diff(old: object, new: object, path: str, rows: list[dict]) -> None:
@@ -1661,10 +1824,10 @@ def validate_source_case_explicitness_audit(differential: dict, cases: list[dict
     if not isinstance(audit, dict) or set(audit) != top_keys: raise ValidationError("source-case explicitness audit shape")
     digest_value = audit["source_case_explicitness_audit_digest"]
     preimage = {key: value for key, value in audit.items() if key != "source_case_explicitness_audit_digest"}
-    if (audit["schema"] != "semantic-release-source-case-explicitness-audit.v12"
-        or audit["revision"] != "semantic-release-revision-v12"
+    if (audit["schema"] != "semantic-release-source-case-explicitness-audit.v13"
+        or audit["revision"] != "semantic-release-revision-v13"
         or audit["inference_policy"] != "explicit_source_and_expected_final_receipts_no_silent_mismatch"
-        or digest_value != typed_digest("semantic-release.source-case-explicitness-audit.v12", preimage)
+        or digest_value != typed_digest("semantic-release.source-case-explicitness-audit.v13", preimage)
         or digest_value != EXPECTED_SOURCE_AUDIT_DIGEST):
         raise ValidationError("source-case explicitness audit digest/policy")
     case_by_name = {item["name"]: item for item in cases}; edge_by_id = {row["edge_id"]: row for row in registry}
@@ -1755,8 +1918,12 @@ def validate_source_case_explicitness_audit(differential: dict, cases: list[dict
 
 def main() -> int:
     global SCHEMA_ROOT, AUTHORITY_MANIFEST, AUTHORITY_MANIFEST_BY_RULE
-    schema, golden, differential = (load_json(ROOT / name) for name in ("protocol.schema.json", "golden-fixtures.json", "differential-fixtures.json"))
+    schema = load_json(ROOT / "protocol.schema.json")
+    golden = load_json(ROOT / "golden-fixtures.json")
+    differential, shard_inventory, shard_aggregate_sha256 = load_sharded_differential()
     SCHEMA_ROOT = schema
+    if golden.get("protocol") != "semantic-release-v0" or golden.get("rfc_revision") != "semantic-release-revision-v13":
+        raise ValidationError("golden fixture revision drift")
     if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema": raise ValidationError("wrong schema draft")
     def closed(node: Any, path: str = "$") -> None:
         if isinstance(node, dict):
@@ -1780,7 +1947,7 @@ def main() -> int:
     mutation_keys = {"path", "old_semantic_hash", "new_semantic_hash"}
     if not isinstance(registry, list) or len(registry) != EXPECTED_AUTHORITY_EDGE_COUNT: raise ValidationError("authority edge registry cardinality drift")
     if [row["edge_id"] for row in registry] != sorted([row["edge_id"] for row in registry], key=str.encode) or len({row["edge_id"] for row in registry}) != len(registry): raise ValidationError("authority edge registry identity/order drift")
-    if typed_digest("semantic-release.authority-edge-registry.v12", registry) != EXPECTED_AUTHORITY_REGISTRY_DIGEST: raise ValidationError("authority edge registry full-tuple drift")
+    if typed_digest("semantic-release.authority-edge-registry.v13", registry) != EXPECTED_AUTHORITY_REGISTRY_DIGEST: raise ValidationError("authority edge registry full-tuple drift")
     registry_ids = {row["edge_id"] for row in registry}; registry_by_id = {row["edge_id"]: row for row in registry}; manifest_edge_ids: list[str] = []
     for row in registry:
         if set(row) != registry_keys or row["rule"] not in AUTHORITY_BEARING_RULES: raise ValidationError(f"authority edge tuple drift {row.get('edge_id')}")
@@ -1804,7 +1971,7 @@ def main() -> int:
         linkage = {"edge_id": row["edge_id"], "rule": row["rule"], "ownership": row["ownership"],
             "role_owners": row["role_owners"], "role_ids": row["role_ids"], "positive_fixture": row["positive_fixture"],
             "drift_fixture": row["drift_fixture"], "expected_error": row["expected_error"]}
-        if row["edge_linkage_digest"] != typed_digest("semantic-release.authority-edge-linkage.v12", linkage): raise ValidationError(f"authority edge linkage digest {row['edge_id']}")
+        if row["edge_linkage_digest"] != typed_digest("semantic-release.authority-edge-linkage.v13", linkage): raise ValidationError(f"authority edge linkage digest {row['edge_id']}")
     for rule_row in rules:
         if bool(rule_row["edge_ids"]) != rule_row["authority_bearing"]: raise ValidationError(f"authority manifest edge coverage {rule_row['rule']}")
         if [link["edge_id"] for link in rule_row["role_edge_links"]] != rule_row["edge_ids"]: raise ValidationError(f"authority role/edge order {rule_row['rule']}")
@@ -1899,6 +2066,7 @@ def main() -> int:
     role_count = sum(len(row["role_mappings"]) for row in rules)
     print(f"authority manifest: {len(rules)} rules ({len(AUTHORITY_BEARING_RULES)} authority-bearing), {role_count} role mappings; registry bijection complete")
     print(f"authority graph: {len(registry)} full owner/repository/linkage edges; normalized semantic-mutation descriptors independently recomputed")
+    print(f"shards: {len(shard_inventory)} files, {sum(row['byte_length'] for row in shard_inventory)} bytes, aggregate sha256:{shard_aggregate_sha256}")
     print(f"source-case audit: {len(differential['cases'])} cases, {source_store_count} explicit store tuples, {source_vote_count} explicit vote facts, {final_receipt_count} exact final receipts, {source_mutation_count} registered mutations; no silent mismatch")
     print(f"differential: {len(differential['cases'])} cases ({accepted} accepted transitions, {rejected} expected rejections)")
     print(f"raw-json: {len(differential['raw_json_cases'])} lexical cases ({raw_accepted} accepted, {raw_rejected} expected rejections)")

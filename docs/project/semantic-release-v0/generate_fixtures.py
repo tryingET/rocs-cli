@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Deterministically regenerate revision-12 owner-receipt authority-graph schema and normative fixtures."""
+"""Deterministically regenerate revision-13 owner-receipt authority-graph schema and normative fixtures."""
 
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -151,9 +152,13 @@ override_condition = {"condition_id": "override-proof", "kind": "evidence_digest
 
 prior_tombstones = add("tombstone_registry_genesis", {"schema": "semantic-tombstone-registry.v0", "namespace": "ai-society.core",
     "lifecycle_head_digest": raw("lifecycle-head-genesis"), "registry_revision": 1, "entries": [], "prior_registry_digest": None})
+tombstone_genesis_anchor = {"semantic_owner_id": "semantic-owner", "namespace": prior_tombstones["namespace"],
+    "genesis_registry_digest": d("tombstone_registry_genesis"), "genesis_registry_revision": 1,
+    "genesis_lifecycle_head_digest": prior_tombstones["lifecycle_head_digest"]}
+old_removal_origin = raw("old-removal-record")
 tombstones = add("tombstone_registry", {"schema": "semantic-tombstone-registry.v0", "namespace": "ai-society.core",
-    "lifecycle_head_digest": raw("lifecycle-head-2"), "registry_revision": 2,
-    "entries": [{"semantic_id": "core.Old", "reason": "removed", "origin_record_digest": raw("old-removal-record")}],
+    "lifecycle_head_digest": old_removal_origin, "registry_revision": 2,
+    "entries": [{"semantic_id": "core.Old", "reason": "removed", "origin_record_digest": old_removal_origin}],
     "prior_registry_digest": d("tombstone_registry_genesis")})
 tombstone_history = add("tombstone_history_proof", {"schema": "semantic-tombstone-history-proof.v0",
     "issuer": {"kind": "semantic_owner", "id": "semantic-owner"}, "namespace": "ai-society.core",
@@ -190,7 +195,8 @@ consumer_decision = add("consumer_ak_decision", {"schema": "semantic-ak-decision
     "revocation_digest": None, "superseded_by_decision_record_digest": None, "activation_target_digest": coord_digest, "evidence_criteria_digest": raw("canary-evidence"),
     "rollback_plan_digest": raw("canary-rollback"), "stop_conditions_digest": raw("canary-stop")})
 canonical_decision_context = {"canonical_store_head": ak_store_head, "current_decision_record_digest": consumer_decision["decision_record_digest"]}
-release_action = {"kind": "release", "source_manifest_digest": d("source_manifest"), "candidate_capsule_digest": d("capsule"), "compatibility_report_digest": d("compatibility_report")}
+release_action = {"kind": "release", "coordinate": coordinate, "source_manifest_digest": d("source_manifest"),
+    "candidate_capsule_digest": d("capsule"), "compatibility_report_digest": d("compatibility_report")}
 release_action_digest = action_digest(release_action)
 owner_approval = add("owner_approval", {"schema": "semantic-owner-approval.v0", "namespace": "ai-society.core", "owner_policy_digest": d("owner_policy"), "owner_set_digest": d("owner_set"),
     "approval_predicate_digest": d("approval_predicate"), "action": release_action, "action_digest": release_action_digest,
@@ -241,7 +247,8 @@ prior_publication = add("prior_owner_publication", {"schema": "semantic-owner-pu
     "owner_approval_digest": d("owner_approval"), "ledger_namespace": "ai-society.core", "ledger_revision": 1,
     "prior_publication_digest": None, "trust_root_digest": d("trust_root"), "status": "published"})
 publish_tx = add("publication_transaction", {"schema": "semantic-publication-transaction.v0", "transaction_id": "publish-1.1.0", "operation": "publish", "namespace": "ai-society.core", "coordinate": coordinate,
-    "owner_approval_digest": d("owner_approval"), "expected_prior_revision": 1, "expected_prior_head_digest": d("prior_owner_publication"), "replay_key_digest": raw("publish-replay-key"), "status_reason_digest": None})
+    "owner_approval_digest": d("owner_approval"), "approved_action": release_action, "approved_action_digest": release_action_digest,
+    "expected_prior_revision": 1, "expected_prior_head_digest": d("prior_owner_publication"), "replay_key_digest": raw("publish-replay-key"), "status_reason_digest": None})
 publication = add("owner_publication", {"schema": "semantic-owner-publication.v0", "coordinate": coordinate, "transaction_digest": d("publication_transaction"),
     "owner_approval_digest": d("owner_approval"), "ledger_namespace": "ai-society.core", "ledger_revision": 2,
     "prior_publication_digest": d("prior_owner_publication"), "trust_root_digest": d("trust_root"), "status": "published"})
@@ -274,7 +281,8 @@ def status_approval(name: str, kind: str, operation: str, prior_digest: str, pri
 withdraw_reason = raw("withdraw-reason")
 withdraw_approval = status_approval("withdraw_approval", "publication_withdrawal", "withdraw", d("owner_publication"), "published", withdraw_reason, 2, d("owner_publication"))
 withdraw_tx = add("withdraw_transaction", {"schema": "semantic-publication-transaction.v0", "transaction_id": "withdraw-1.1.0", "operation": "withdraw", "namespace": "ai-society.core", "coordinate": coordinate,
-    "owner_approval_digest": d("withdraw_approval"), "expected_prior_revision": 2, "expected_prior_head_digest": d("owner_publication"), "replay_key_digest": raw("withdraw-replay"), "status_reason_digest": withdraw_reason})
+    "owner_approval_digest": d("withdraw_approval"), "approved_action": withdraw_approval["action"], "approved_action_digest": withdraw_approval["action_digest"],
+    "expected_prior_revision": 2, "expected_prior_head_digest": d("owner_publication"), "replay_key_digest": raw("withdraw-replay"), "status_reason_digest": withdraw_reason})
 withdrawal = add("publication_withdrawal", {"schema": "semantic-publication-status-transition.v0", "coordinate": coordinate, "from_status": "published", "to_status": "withdrawn",
     "prior_status_record_digest": d("owner_publication"), "transaction_digest": d("withdraw_transaction"), "owner_approval_digest": d("withdraw_approval"),
     "reason_digest": withdraw_reason, "ledger_revision": 3})
@@ -287,7 +295,8 @@ withdraw_marker = add("withdraw_marker", {"schema": "semantic-publication-commit
 revoke_reason = raw("revoke-reason")
 revoke_approval = status_approval("revoke_approval", "publication_revocation", "revoke", d("publication_withdrawal"), "withdrawn", revoke_reason, 3, d("publication_withdrawal"))
 revoke_tx = add("revoke_transaction", {"schema": "semantic-publication-transaction.v0", "transaction_id": "revoke-1.1.0", "operation": "revoke", "namespace": "ai-society.core", "coordinate": coordinate,
-    "owner_approval_digest": d("revoke_approval"), "expected_prior_revision": 3, "expected_prior_head_digest": d("publication_withdrawal"), "replay_key_digest": raw("revoke-replay"), "status_reason_digest": revoke_reason})
+    "owner_approval_digest": d("revoke_approval"), "approved_action": revoke_approval["action"], "approved_action_digest": revoke_approval["action_digest"],
+    "expected_prior_revision": 3, "expected_prior_head_digest": d("publication_withdrawal"), "replay_key_digest": raw("revoke-replay"), "status_reason_digest": revoke_reason})
 revoked_publication = add("publication_revocation", {"schema": "semantic-publication-status-transition.v0", "coordinate": coordinate, "from_status": "withdrawn", "to_status": "revoked",
     "prior_status_record_digest": d("publication_withdrawal"), "transaction_digest": d("revoke_transaction"), "owner_approval_digest": d("revoke_approval"),
     "reason_digest": revoke_reason, "ledger_revision": 4})
@@ -302,7 +311,8 @@ revoke_marker = add("revoke_marker", {"schema": "semantic-publication-commit-mar
 major_coordinate = {"schema": "semantic-release-coordinate.v0", "namespace": "ai-society.core", "semantic_version": "2.0.0", "capsule_digest": raw("capsule-2")}
 major_decision = add("major_owner_ak_decision", {**copy.deepcopy(owner_decision), "decision_id": "semantic-release-2.0.0", "decision_revision": 3,
     "decision_record_digest": raw("owner-major-decision-record-3"), "activation_target_digest": major_coordinate["capsule_digest"], "ak_decision_reference_digest": ZERO})
-major_action = {"kind": "release", "source_manifest_digest": raw("major-source-manifest"), "candidate_capsule_digest": major_coordinate["capsule_digest"], "compatibility_report_digest": raw("major-compatibility-report")}
+major_action = {"kind": "release", "coordinate": major_coordinate, "source_manifest_digest": raw("major-source-manifest"),
+    "candidate_capsule_digest": major_coordinate["capsule_digest"], "compatibility_report_digest": raw("major-compatibility-report")}
 major_action_digest = action_digest(major_action)
 major_approval = add("major_owner_approval", {"schema": "semantic-owner-approval.v0", "namespace": "ai-society.core", "owner_policy_digest": d("owner_policy"), "owner_set_digest": d("owner_set"),
     "approval_predicate_digest": d("approval_predicate"), "action": major_action, "action_digest": major_action_digest,
@@ -310,7 +320,8 @@ major_approval = add("major_owner_approval", {"schema": "semantic-owner-approval
               {"owner_id": "owner-b", "owner_key_id": "owner-b-key-2", "approved_action_digest": major_action_digest, "approval_proof_digest": raw("major-vote-b")}],
     "decision_reference_digest": d("major_owner_ak_decision")})
 major_tx = add("major_publication_transaction", {"schema": "semantic-publication-transaction.v0", "transaction_id": "publish-2.0.0", "operation": "publish", "namespace": "ai-society.core", "coordinate": major_coordinate,
-    "owner_approval_digest": d("major_owner_approval"), "expected_prior_revision": 3, "expected_prior_head_digest": d("publication_withdrawal"), "replay_key_digest": raw("major-publish-replay"), "status_reason_digest": None})
+    "owner_approval_digest": d("major_owner_approval"), "approved_action": major_action, "approved_action_digest": major_action_digest,
+    "expected_prior_revision": 3, "expected_prior_head_digest": d("publication_withdrawal"), "replay_key_digest": raw("major-publish-replay"), "status_reason_digest": None})
 major_publication = add("major_owner_publication", {"schema": "semantic-owner-publication.v0", "coordinate": major_coordinate, "transaction_digest": d("major_publication_transaction"),
     "owner_approval_digest": d("major_owner_approval"), "ledger_namespace": "ai-society.core", "ledger_revision": 4,
     "prior_publication_digest": d("publication_withdrawal"), "trust_root_digest": d("trust_root"), "status": "published"})
@@ -431,14 +442,18 @@ active_state = {"enabled": True, "coordinate": coordinate, "runtime_identity": r
 activation_head = {"kind": "activation", "digest": d("activation_receipt")}
 generation = add("rocs_generation_receipt", {"schema": "semantic-rocs-generation-receipt.v0", "issuer": {"kind": "rocs", "id": "rocs-cli"}, "claim_scope": "generated_output_only",
     "activation_receipt_digest": d("activation_receipt"), "activation_head_revision": 1, "activation_head_digest": d("activation_receipt"),
+    "consumer_repository": consumer_repo, "v0_canary_scope": canary_scope,
     "coordinate": coordinate, "runtime_identity": rocs_tool, "request_digest": raw("request"), "result_digest": raw("result"),
     "effective_execution_digest": raw("execution"), "candidate_ids": ["core.Agent"], "pack_digests": [raw("pack")], "outcome": "matched"})
 pi_delivered = add("pi_delivery_delivered", {"schema": "semantic-pi-delivery-receipt.v0", "issuer": {"kind": "pi", "id": "pi-adapter"}, "claim_scope": "delivered_to_prompt_run_only",
-    "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "delivery_outcome": "delivered", "prompt_run_digest": raw("prompt-run"), "delivered_effective_execution_digest": generation["effective_execution_digest"]})
+    "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "consumer_repository": consumer_repo, "v0_canary_scope": canary_scope,
+    "delivery_outcome": "delivered", "prompt_run_digest": raw("prompt-run"), "delivered_effective_execution_digest": generation["effective_execution_digest"]})
 pi_suppressed = add("pi_delivery_suppressed", {"schema": "semantic-pi-delivery-receipt.v0", "issuer": {"kind": "pi", "id": "pi-adapter"}, "claim_scope": "delivery_suppressed_only",
-    "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "delivery_outcome": "suppressed", "suppression_reason": "stale_result"})
+    "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "consumer_repository": consumer_repo, "v0_canary_scope": canary_scope,
+    "delivery_outcome": "suppressed", "suppression_reason": "stale_result"})
 pi_failed = add("pi_delivery_failed", {"schema": "semantic-pi-delivery-receipt.v0", "issuer": {"kind": "pi", "id": "pi-adapter"}, "claim_scope": "delivery_failed_only",
-    "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "delivery_outcome": "failed", "error_digest": raw("pi-delivery-error")})
+    "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "consumer_repository": consumer_repo, "v0_canary_scope": canary_scope,
+    "delivery_outcome": "failed", "error_digest": raw("pi-delivery-error")})
 ak_link = add("ak_evidence_linkage", {"schema": "semantic-ak-evidence-linkage.v0", "issuer": {"kind": "ak", "id": "agent-kernel"}, "claim_scope": "lineage_linkage_only",
     "task_reference_digest": raw("ak-task"), "decision_reference_digest": d("consumer_ak_decision"), "evidence_record_digest": raw("ak-evidence"), "activation_receipt_digest": d("activation_receipt"),
     "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "pi_delivery_receipt_digest": d("pi_delivery_delivered"), "empirical_outcome_reference_digest": None})
@@ -584,7 +599,7 @@ links = [
     ("pi_delivery_delivered", "/rocs_generation_receipt_digest", "rocs_generation_receipt"), ("ak_evidence_linkage", "/pi_delivery_receipt_digest", "pi_delivery_delivered"),
     ("semantic_rollback_receipt", "/rollback_request_digest", "semantic_rollback_request"), ("audit_envelope", "/artifact_digest", "semantic_rollback_receipt")]
 
-golden = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-revision-v12", "canonicalization": "RFC8785 JCS after raw-token duplicate-free UTF-8 canonical-integer-only I-JSON validation",
+golden = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-revision-v13", "canonicalization": "RFC8785 JCS after raw-token duplicate-free UTF-8 canonical-integer-only I-JSON validation",
     "digest_construction": "sha256(UTF8(domain) || 0x00 || preimage)", "raw_preimages": [
         {"name": "raw_blob_example", "domain": "semantic-release.raw-blob.v0", "preimage_utf8": "agent-source", "digest": raw("agent-source")},
         {"name": "semantic_payload_example", "domain": "semantic-release.semantic-payload.v0", "preimage_utf8": "semantic-payload-1.1", "digest": raw("semantic-payload-1.1", "semantic-release.semantic-payload.v0")}],
@@ -724,6 +739,42 @@ wrong_link_tombstone_history = variant(resulting_tombstone_history,
 unauthorized_delta_revisions = copy.deepcopy(resulting_tombstone_history["revisions"])
 unauthorized_delta_revisions[-1]["authorized_delta"]["authorization_record_digest"] = raw("unauthorized-tombstone-delta")
 unauthorized_delta_history = variant(resulting_tombstone_history, revisions=unauthorized_delta_revisions)
+wrong_tombstone_genesis_anchor = {**tombstone_genesis_anchor,
+    "genesis_registry_digest": raw("wrong-external-tombstone-genesis")}
+reset_genesis = variant(prior_tombstones, lifecycle_head_digest=raw("reset-genesis-lifecycle-head"))
+reset_tombstones = variant(tombstones, prior_registry_digest=reset_genesis["tombstone_registry_digest"])
+reset_resulting_tombstones = variant(resulting_tombstones,
+    prior_registry_digest=reset_tombstones["tombstone_registry_digest"])
+reset_tombstone_history = variant(resulting_tombstone_history,
+    current_registry_digest=reset_resulting_tombstones["tombstone_registry_digest"],
+    revisions=[
+        {"registry": reset_genesis, "authorized_delta": {"authorization_kind": "genesis",
+            "authorization_record_digest": raw("reset-genesis-authorization"),
+            "prior_lifecycle_head_digest": None,
+            "resulting_lifecycle_head_digest": reset_genesis["lifecycle_head_digest"], "added_entries": []}},
+        {"registry": reset_tombstones, "authorized_delta": {"authorization_kind": "removal",
+            "authorization_record_digest": old_removal_origin,
+            "prior_lifecycle_head_digest": reset_genesis["lifecycle_head_digest"],
+            "resulting_lifecycle_head_digest": reset_tombstones["lifecycle_head_digest"],
+            "added_entries": copy.deepcopy(reset_tombstones["entries"])}},
+        {"registry": reset_resulting_tombstones, "authorized_delta": {"authorization_kind": "removal",
+            "authorization_record_digest": d("removal_record"),
+            "prior_lifecycle_head_digest": reset_tombstones["lifecycle_head_digest"],
+            "resulting_lifecycle_head_digest": reset_resulting_tombstones["lifecycle_head_digest"],
+            "added_entries": [{"semantic_id": "core.Legacy", "reason": "removed",
+                "origin_record_digest": d("removal_record")}]}},
+    ])
+coordinated_wrong_authorization = raw("coordinated-wrong-tombstone-authorization")
+coordinated_wrong_entries = copy.deepcopy(resulting_tombstones["entries"])
+next(row for row in coordinated_wrong_entries if row["semantic_id"] == "core.Legacy")["origin_record_digest"] = coordinated_wrong_authorization
+coordinated_wrong_registry = variant(resulting_tombstones, entries=coordinated_wrong_entries)
+coordinated_wrong_revisions = copy.deepcopy(resulting_tombstone_history["revisions"])
+coordinated_wrong_revisions[-1]["registry"] = coordinated_wrong_registry
+coordinated_wrong_revisions[-1]["authorized_delta"]["authorization_record_digest"] = coordinated_wrong_authorization
+coordinated_wrong_revisions[-1]["authorized_delta"]["added_entries"][0]["origin_record_digest"] = coordinated_wrong_authorization
+coordinated_wrong_history = variant(resulting_tombstone_history,
+    current_registry_digest=coordinated_wrong_registry["tombstone_registry_digest"],
+    revisions=coordinated_wrong_revisions)
 tombstoned_addition = variant(compat_report, changes=[{"category": "addition", "semantic_id": "core.Legacy", "classification": "compatible", "semver_effect": "minor", "condition_id": None}])
 reuse_namespace_drift_head = {**reuse_lifecycle_tombstone_head, "namespace": "other.space"}
 reuse_lifecycle_drift_head = {**reuse_lifecycle_tombstone_head, "lifecycle_head_digest": raw("wrong-lifecycle-current-head")}
@@ -733,7 +784,7 @@ def lifecycle_tombstone_head_for(registry: dict) -> dict:
         "tombstone_registry_digest": registry["tombstone_registry_digest"], "tombstone_registry_revision": registry["registry_revision"]}
 stale_deprecation_ledger = copy.deepcopy(deprecation_ledger); stale_deprecation_ledger["ledger_revision"] = 1
 lifecycle_context = {"deprecation": deprecation, "policy": compat_policy, "resulting_tombstones": resulting_tombstones,
-    "tombstone_history": resulting_tombstone_history,
+    "tombstone_history": resulting_tombstone_history, "tombstone_genesis_anchor": tombstone_genesis_anchor,
     "deprecation_ledger": deprecation_ledger, "removal_ledger": removal_ledger, "deprecation_publication": publication, "removal_publication": major_publication,
     "deprecation_transaction": publish_tx, "deprecation_journal": publish_journal, "deprecation_marker": publish_marker, "deprecation_approval": owner_approval,
     "deprecation_prior_status": prior_publication, "deprecation_prior_journal": prior_publish_journal, "deprecation_canonical_ledger": dep_canonical_ledger,
@@ -767,6 +818,8 @@ cases += [
     case("override_approval_requires_complete_override", "pi_variant", incomplete_override_approval, "malformed_input", schema_valid=False),
     case("override_approval_namespace_chain_must_match", "compatibility", wrong_namespace_override_report, "compatibility_rejected", {**compatibility_non_override_context, "prior_version": "1.0.0", "overrides": [wrong_namespace_override], "override_approvals": {wrong_namespace_override_approval["owner_approval_digest"]: wrong_namespace_override_approval}, "owner_policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "decision": owner_decision, "canonical_store_head": ak_store_head, "current_decision_record_digest": owner_decision["decision_record_digest"]}),
     case("deprecation_interval_satisfied", "lifecycle", removal, None, lifecycle_context),
+    case("lifecycle_tombstone_genesis_anchor_mismatch_rejected", "lifecycle", removal, "lifecycle_violation",
+        {**lifecycle_context, "tombstone_genesis_anchor": wrong_tombstone_genesis_anchor}),
     case("removal_before_interval_rejected", "lifecycle", early_removal, "lifecycle_violation", lifecycle_context),
     case("lifecycle_namespace_drift_rejected", "lifecycle", variant(removal, namespace="other.space"), "lifecycle_violation", lifecycle_context),
     case("lifecycle_prior_head_drift_rejected", "lifecycle", variant(removal, prior_lifecycle_digest=raw("wrong-lifecycle-head")), "lifecycle_violation", lifecycle_context),
@@ -777,40 +830,48 @@ cases += [
     case("lifecycle_requires_accepted_current_ledger_heads", "lifecycle", removal, "lifecycle_violation", {**lifecycle_context, "canonical_removal_head": raw("stale-lifecycle-head")}),
     case("lifecycle_referenced_ledger_self_digest_checked", "lifecycle", removal, "digest_mismatch", {**lifecycle_context, "deprecation_ledger": stale_deprecation_ledger}),
     case("non_tombstoned_identifier_accepts", "tombstone_reuse", compat_report, None,
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("tombstoned_identifier_reuse_rejected", "tombstone_reuse", reuse_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("tombstoned_identifier_cannot_return_as_addition", "tombstone_reuse", tombstoned_addition, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("override_cannot_legalize_identifier_reuse", "tombstone_reuse", reuse_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": bad_override, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": bad_override, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("tombstone_reuse_stale_registry_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": projection_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": projection_lifecycle_tombstone_head}),
     case("tombstone_registry_semantic_owner_substitution_rejected", "tombstone_reuse", compat_report, "issuer_scope_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("tombstone_reuse_namespace_currentness_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_namespace_drift_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_namespace_drift_head}),
     case("tombstone_reuse_lifecycle_head_currentness_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_drift_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_drift_head}),
     case("tombstone_reuse_registry_revision_currentness_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_revision_drift_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": resulting_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_revision_drift_head}),
     case("tombstone_history_truncation_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": truncated_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": truncated_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("tombstone_history_restart_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": restart_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": restart_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("tombstone_history_dropped_revision_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": dropped_revision_tombstone_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": dropped_revision_tombstone_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("tombstone_history_exact_digest_links_required", "tombstone_reuse", compat_report, "lifecycle_violation",
         {"tombstones": wrong_link_registry, "tombstone_history": wrong_link_tombstone_history, "override": None,
-         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(wrong_link_registry)}),
+         "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(wrong_link_registry)}),
     case("tombstone_history_authorized_delta_required", "tombstone_reuse", compat_report, "lifecycle_violation",
-        {"tombstones": resulting_tombstones, "tombstone_history": unauthorized_delta_history, "override": None, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {"tombstones": resulting_tombstones, "tombstone_history": unauthorized_delta_history, "override": None, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+    case("tombstone_history_coherent_genesis_reset_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
+        {"tombstones": reset_resulting_tombstones, "tombstone_history": reset_tombstone_history, "override": None,
+         "tombstone_genesis_anchor": tombstone_genesis_anchor,
+         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(reset_resulting_tombstones)}),
+    case("tombstone_history_coordinated_wrong_authorization_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
+        {"tombstones": coordinated_wrong_registry, "tombstone_history": coordinated_wrong_history, "override": None,
+         "tombstone_genesis_anchor": tombstone_genesis_anchor,
+         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(coordinated_wrong_registry)}),
     case("tombstone_history_dropped_cumulative_entry_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
         {"tombstones": dropped_cumulative_registry, "tombstone_history": dropped_cumulative_history, "override": None,
-         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(dropped_cumulative_registry)}),
+         "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(dropped_cumulative_registry)}),
     case("tombstone_history_changed_cumulative_entry_rejected", "tombstone_reuse", compat_report, "lifecycle_violation",
         {"tombstones": changed_cumulative_registry, "tombstone_history": changed_cumulative_history, "override": None,
-         "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(changed_cumulative_registry)})]
+         "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": lifecycle_tombstone_head_for(changed_cumulative_registry)})]
 
 stale_tx = variant(publish_tx, expected_prior_revision=0)
 fork_tx = variant(publish_tx, expected_prior_head_digest=raw("fork-head"), transaction_id="fork")
@@ -834,7 +895,9 @@ aborted = variant(publish_journal, state="aborted", linearized=False, recovery_a
 aborted_intent = variant(publish_recovery_intent, journal_digest=aborted["publication_journal_digest"])
 bad_publish_reason = variant(publish_tx, status_reason_digest=raw("publish-must-not-have-reason"))
 direct_revoke_approval = status_approval("direct_revoke_approval", "publication_revocation", "revoke", d("owner_publication"), "published", revoke_reason, 2, d("owner_publication"))
-direct_revoke_tx = variant(revoke_tx, transaction_id="direct-revoke-1.1.0", owner_approval_digest=direct_revoke_approval["owner_approval_digest"], expected_prior_revision=2, expected_prior_head_digest=d("owner_publication"), replay_key_digest=raw("direct-revoke-replay"))
+direct_revoke_tx = variant(revoke_tx, transaction_id="direct-revoke-1.1.0", owner_approval_digest=direct_revoke_approval["owner_approval_digest"],
+    approved_action=direct_revoke_approval["action"], approved_action_digest=direct_revoke_approval["action_digest"],
+    expected_prior_revision=2, expected_prior_head_digest=d("owner_publication"), replay_key_digest=raw("direct-revoke-replay"))
 direct_revocation = variant(revoked_publication, from_status="published", prior_status_record_digest=d("owner_publication"), transaction_digest=direct_revoke_tx["publication_transaction_digest"], owner_approval_digest=direct_revoke_approval["owner_approval_digest"], ledger_revision=3)
 direct_revoke_journal = variant(revoke_journal, transaction_digest=direct_revoke_tx["publication_transaction_digest"], resulting_record_digest=direct_revocation["publication_status_transition_digest"],
     resulting_ledger_revision=3, resulting_ledger_head_digest=direct_revocation["publication_status_transition_digest"], prior_journal_digest=d("publication_journal"))
@@ -858,7 +921,7 @@ owner_canonical_decision_context = {"canonical_store_head": ak_store_head, "curr
     "trust_root": trust_root, "external_trust_root_pin": external_trust_root_pin, **trust_authority_facts,
     "canonical_publication_revision": publication["ledger_revision"], "canonical_publication_head": publication["owner_publication_digest"],
     "canonical_publication_journal_head": publish_journal["publication_journal_digest"]}
-publish_commit_context = {"transaction": publish_tx, "journal": publish_journal, "marker": publish_marker, "approval": owner_approval, "trust_root": trust_root, "external_trust_root_pin": external_trust_root_pin, "policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "decision": owner_decision, "expected_action": release_action, "prior_status": prior_publication, "prior_journal_digest": d("prior_publication_journal"), "prior_journal": prior_publish_journal, **owner_canonical_decision_context,
+publish_commit_context = {"transaction": publish_tx, "journal": publish_journal, "marker": publish_marker, "approval": owner_approval, "trust_root": trust_root, "external_trust_root_pin": external_trust_root_pin, "policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "decision": owner_decision, "prior_status": prior_publication, "prior_journal_digest": d("prior_publication_journal"), "prior_journal": prior_publish_journal, **owner_canonical_decision_context,
     **trust_authority_facts, "canonical_publication_revision": prior_publication["ledger_revision"],
     "canonical_publication_head": prior_publication["owner_publication_digest"],
     "canonical_publication_journal_head": prior_publish_journal["publication_journal_digest"]}
@@ -879,9 +942,9 @@ def recovery_state_receipt(name: str, phase: str, state: dict, journal: dict, tr
 
 publish_prepared_before_state = recovery_state(prepared_intent, 1, d("prior_owner_publication"), d("prior_owner_publication"), staging=True)
 publish_prepared_after_state = recovery_state(prepared_intent, 1, d("prior_owner_publication"), d("prior_owner_publication"), staging=False)
-publish_committing_before_state = recovery_state(committing_intent, 1, d("prior_owner_publication"), d("prior_owner_publication"), staging=True)
+publish_committing_before_state = recovery_state(committing_intent, 2, d("owner_publication"), d("owner_publication"), staging=True)
 publish_committing_after_state = recovery_state(committing_intent, 2, d("owner_publication"), d("owner_publication"), staging=False, durable_marker=committing_marker)
-withdraw_before_state = recovery_state(withdraw_recovery_intent, 2, d("owner_publication"), d("owner_publication"), staging=True)
+withdraw_before_state = recovery_state(withdraw_recovery_intent, 3, d("publication_withdrawal"), d("publication_withdrawal"), staging=True)
 withdraw_after_state = recovery_state(withdraw_recovery_intent, 3, d("publication_withdrawal"), d("publication_withdrawal"), staging=False, durable_marker=withdraw_recovery_marker)
 revoke_before_state = recovery_state(revoke_prepared_intent, 3, d("publication_withdrawal"), d("publication_withdrawal"), staging=True)
 revoke_after_state = recovery_state(revoke_prepared_intent, 3, d("publication_withdrawal"), d("publication_withdrawal"), staging=False)
@@ -902,19 +965,19 @@ aborted_after = recovery_state_receipt("aborted_after_state_receipt", "after", a
 
 def recovery_context(subject_journal: dict, before: dict, after: dict, intent_marker: dict,
         marker: dict | None, transaction: dict, resulting_status: dict, prior_status: dict, prior_journal: dict,
-        approval: dict, expected_action: dict, decision: dict = owner_decision) -> dict:
+        approval: dict, decision: dict = owner_decision) -> dict:
     prior_status_digest = prior_status.get("owner_publication_digest", prior_status.get("publication_status_transition_digest"))
     result_digest = resulting_status.get("owner_publication_digest", resulting_status.get("publication_status_transition_digest"))
     if prior_status_digest is None or result_digest is None: raise ValueError("recovery status lacks a protocol digest")
     before_state = before["state"]
     return {"before": before, "after": after, "intent_marker": intent_marker, "marker": marker,
         "transaction": transaction, "resulting_status": resulting_status, "prior_status": prior_status,
-        "prior_journal": prior_journal, "approval": approval, "expected_action": expected_action,
+        "prior_journal": prior_journal, "approval": approval,
         "policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "decision": decision,
         "trust_root": trust_root, "external_trust_root_pin": external_trust_root_pin,
         "canonical_store_head": ak_store_head, "current_decision_record_digest": decision["decision_record_digest"],
         **trust_authority_facts, "canonical_publication_revision": before_state["revision"],
-        "canonical_publication_head": before_state["head"], "canonical_publication_status_digest": prior_status_digest,
+        "canonical_publication_head": before_state["head"], "canonical_publication_status_digest": before_state["status_record_digest"],
         "canonical_publication_journal_head": prior_journal["publication_journal_digest"],
         "canonical_recovery_journal_head": subject_journal["publication_journal_digest"],
         "canonical_recovery_transaction_digest": transaction["publication_transaction_digest"],
@@ -925,15 +988,15 @@ def recovery_context(subject_journal: dict, before: dict, after: dict, intent_ma
         "canonical_recovery_epoch": 85}
 
 publish_prepared_context = recovery_context(prepared, publish_prepared_before, publish_prepared_after, prepared_intent, None,
-    publish_tx, publication, prior_publication, prior_publish_journal, owner_approval, release_action)
+    publish_tx, publication, prior_publication, prior_publish_journal, owner_approval)
 publish_recovery_context = recovery_context(committing, publish_committing_before, publish_committing_after, committing_intent,
-    committing_marker, publish_tx, publication, prior_publication, prior_publish_journal, owner_approval, release_action)
+    committing_marker, publish_tx, publication, prior_publication, prior_publish_journal, owner_approval)
 withdraw_recovery_context = recovery_context(withdraw_recovery, withdraw_before, withdraw_completed, withdraw_recovery_intent,
-    withdraw_recovery_marker, withdraw_tx, withdrawal, publication, publish_journal, withdraw_approval, withdraw_approval["action"])
+    withdraw_recovery_marker, withdraw_tx, withdrawal, publication, publish_journal, withdraw_approval)
 revoke_recovery_context = recovery_context(revoke_prepared, revoke_before, revoke_discarded, revoke_prepared_intent, None,
-    revoke_tx, revoked_publication, withdrawal, withdraw_journal, revoke_approval, revoke_approval["action"])
+    revoke_tx, revoked_publication, withdrawal, withdraw_journal, revoke_approval)
 aborted_recovery_context = recovery_context(aborted, aborted_before, aborted_after, aborted_intent, None,
-    publish_tx, publication, prior_publication, prior_publish_journal, owner_approval, release_action)
+    publish_tx, publication, prior_publication, prior_publish_journal, owner_approval)
 prepared_durable_marker = variant(publish_marker, journal_digest=prepared["publication_journal_digest"])
 fsynced_intent_descriptor = variant(prepared_intent, fsync_complete=True)
 wrong_owner_intent_descriptor = variant(prepared_intent, issuer={"kind": "semantic_owner", "id": "semantic-owner"})
@@ -943,6 +1006,47 @@ recovery_namespace_drift_before = variant(publish_committing_before, namespace="
 recovery_insufficient_approval = variant(owner_approval, votes=owner_approval["votes"][:1])
 recovery_wrong_trust_root = variant(trust_root, owner_policy_digest=raw("recovery-wrong-trust-policy"))
 recovery_rejected_decision = variant(owner_decision, lifecycle_state="rejected")
+
+
+def coherent_publish_recovery(action_approval: dict, action_decision: dict) -> tuple[dict, dict]:
+    tx = variant(publish_tx, owner_approval_digest=action_approval["owner_approval_digest"],
+        approved_action=action_approval["action"], approved_action_digest=action_approval["action_digest"])
+    result = variant(publication, transaction_digest=tx["publication_transaction_digest"],
+        owner_approval_digest=action_approval["owner_approval_digest"])
+    result_digest = result["owner_publication_digest"]
+    journal = variant(committing, transaction_digest=tx["publication_transaction_digest"],
+        resulting_record_digest=result_digest, resulting_ledger_head_digest=result_digest)
+    intent_value = variant(committing_intent, transaction_digest=tx["publication_transaction_digest"],
+        journal_digest=journal["publication_journal_digest"], resulting_record_digest=result_digest,
+        resulting_ledger_head_digest=result_digest)
+    marker_value = variant(committing_marker, transaction_digest=tx["publication_transaction_digest"],
+        journal_digest=journal["publication_journal_digest"], resulting_record_digest=result_digest,
+        resulting_ledger_head_digest=result_digest)
+    before_state = recovery_state(intent_value, result["ledger_revision"], result_digest, result_digest, staging=True)
+    after_state = recovery_state(intent_value, result["ledger_revision"], result_digest, result_digest,
+        staging=False, durable_marker=marker_value)
+    before_value = variant(publish_committing_before, transaction_digest=tx["publication_transaction_digest"],
+        recovery_journal_digest=journal["publication_journal_digest"], state=before_state)
+    after_value = variant(publish_committing_after, transaction_digest=tx["publication_transaction_digest"],
+        recovery_journal_digest=journal["publication_journal_digest"], state=after_state)
+    context = recovery_context(journal, before_value, after_value, intent_value, marker_value, tx, result,
+        prior_publication, prior_publish_journal, action_approval, action_decision)
+    return journal, context
+
+wrong_kind_recovery, wrong_kind_recovery_context = coherent_publish_recovery(withdraw_approval, owner_decision)
+wrong_coordinate_recovery, wrong_coordinate_recovery_context = coherent_publish_recovery(major_approval, major_decision)
+postlinear_prior_state = recovery_state(committing_intent, 1, d("prior_owner_publication"), d("prior_owner_publication"), staging=True)
+postlinear_prior_before = variant(publish_committing_before, state=postlinear_prior_state)
+postlinear_prior_context = {**publish_recovery_context, "before": postlinear_prior_before,
+    "canonical_publication_revision": 1, "canonical_publication_head": d("prior_owner_publication"),
+    "canonical_publication_status_digest": d("prior_owner_publication")}
+postlinear_second_cas_after = variant(publish_committing_after, state={**publish_committing_after_state,
+    "revision": 3, "head": raw("second-recovery-cas-head"), "status_record_digest": raw("second-recovery-cas-head")})
+prelinear_result_state = recovery_state(prepared_intent, 2, d("owner_publication"), d("owner_publication"), staging=True)
+prelinear_result_before = variant(publish_prepared_before, state=prelinear_result_state)
+prelinear_result_context = {**publish_prepared_context, "before": prelinear_result_before,
+    "canonical_publication_revision": 2, "canonical_publication_head": d("owner_publication"),
+    "canonical_publication_status_digest": d("owner_publication")}
 cases += [
     case("publication_fresh_cas_accepts", "publication_cas", publish_tx, None, {"current_revision": 1, "current_head": d("prior_owner_publication"), "existing_replay_key": None, "existing_coordinate": None, "existing_operation": None}),
     case("publish_operation_rejects_status_reason", "publication_cas", bad_publish_reason, "lifecycle_violation", {"current_revision": 1, "current_head": d("prior_owner_publication"), "existing_replay_key": None, "existing_coordinate": None, "existing_operation": None}),
@@ -969,6 +1073,12 @@ cases += [
     case("withdrawal_recovery_after_linearization_completes", "publication_recovery", withdraw_recovery, None, withdraw_recovery_context),
     case("revocation_recovery_before_linearization_discards", "publication_recovery", revoke_prepared, None, revoke_recovery_context),
     case("aborted_transaction_discards_staging", "publication_recovery", aborted, None, aborted_recovery_context),
+    case("publication_recovery_coherent_wrong_action_kind_rejected", "publication_recovery", wrong_kind_recovery, "recovery_needed", wrong_kind_recovery_context),
+    case("publication_recovery_coherent_wrong_action_coordinate_rejected", "publication_recovery", wrong_coordinate_recovery, "recovery_needed", wrong_coordinate_recovery_context),
+    case("recovery_postlinearization_observed_start_must_be_result", "publication_recovery", committing, "recovery_needed", postlinear_prior_context),
+    case("recovery_postlinearization_forbids_second_cas", "publication_recovery", committing, "recovery_needed",
+        {**publish_recovery_context, "after": postlinear_second_cas_after}),
+    case("recovery_prelinearization_observed_start_must_be_prior", "publication_recovery", prepared, "recovery_needed", prelinear_result_context),
     case("recovery_before_linearization_must_not_move_head", "publication_recovery", prepared, "recovery_needed",
         {**publish_prepared_context, "after": variant(publish_prepared_after, state=publish_committing_after_state)}),
     case("recovery_after_linearization_requires_marker", "publication_recovery", committing, "recovery_needed",
@@ -1008,8 +1118,6 @@ cases += [
     case("publication_recovery_calls_canonical_decision_authority", "publication_recovery", committing, "recovery_needed",
         {**publish_recovery_context, "decision": recovery_rejected_decision,
          "current_decision_record_digest": recovery_rejected_decision["decision_record_digest"]}),
-    case("publication_recovery_calls_exact_action_authority", "publication_recovery", committing, "recovery_needed",
-        {**publish_recovery_context, "expected_action": withdraw_approval["action"]}),
     case("publication_recovery_store_snapshot_head_drift_rejected", "publication_recovery", committing, "issuer_scope_violation", publish_recovery_context),
     case("publication_recovery_store_snapshot_revision_drift_rejected", "publication_recovery", committing, "issuer_scope_violation", publish_recovery_context),
     case("publication_recovery_store_snapshot_action_epoch_drift_rejected", "publication_recovery", committing, "issuer_scope_violation", publish_recovery_context),
@@ -1019,7 +1127,7 @@ cases += [
 
 projection_context = {"projection": projection, "capsule": capsule, "archive_linkage": archive_link, "payload_manifest": payload,
     "consumer_manifest": consumer_manifest, "archive_manifest": archive_manifest, "tombstones": tombstones,
-    "tombstone_history": tombstone_history, "canonical_lifecycle_tombstone_head": projection_lifecycle_tombstone_head}
+    "tombstone_history": tombstone_history, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": projection_lifecycle_tombstone_head}
 bad_projection = variant(materialization, expected_consumer_manifest_digest=raw("other-consumer-tree"))
 bad_archive = variant(materialization, capsule_archive_linkage_digest=raw("other-archive"))
 projection_namespace_drift_head = {**projection_lifecycle_tombstone_head, "namespace": "other.space"}
@@ -1061,6 +1169,8 @@ utf16_manifest_order = variant(source, entries=[
     {"path": "", "kind": "file", "mode": 420, "byte_length": 1, "content_digest": raw("bmp-private") }])
 cases += [
     case("exact_payload_projection_accepts", "projection", materialization, None, projection_context),
+    case("projection_tombstone_genesis_anchor_mismatch_rejected", "projection", materialization, "projection_mismatch",
+        {**projection_context, "tombstone_genesis_anchor": wrong_tombstone_genesis_anchor}),
     case("consumer_tree_outside_projection_rejected", "projection", bad_projection, "projection_mismatch", projection_context),
     case("capsule_archive_link_drift_rejected", "projection", bad_archive, "projection_mismatch", projection_context),
     case("duplicate_projection_destination_rejected", "projection", duplicate_destination_receipt, "malformed_input", duplicate_destination_context),
@@ -1069,15 +1179,15 @@ cases += [
     case("capsule_archive_extra_entry_rejected", "projection", extra_archive_receipt, "projection_mismatch", extra_archive_context),
     case("archive_payload_root_must_be_exact_directory_entry", "projection", root_as_file_receipt, "projection_mismatch", root_as_file_context),
     case("projection_stale_tombstone_registry_rejected", "projection", materialization, "projection_mismatch",
-        {**projection_context, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
+        {**projection_context, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": reuse_lifecycle_tombstone_head}),
     case("projection_capsule_semantic_owner_substitution_rejected", "projection", materialization, "issuer_scope_violation", projection_context),
     case("projection_rocs_proof_owner_substitution_rejected", "projection", materialization, "issuer_scope_violation", projection_context),
     case("projection_namespace_currentness_rejected", "projection", materialization, "projection_mismatch",
-        {**projection_context, "canonical_lifecycle_tombstone_head": projection_namespace_drift_head}),
+        {**projection_context, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": projection_namespace_drift_head}),
     case("projection_lifecycle_head_currentness_rejected", "projection", materialization, "projection_mismatch",
-        {**projection_context, "canonical_lifecycle_tombstone_head": projection_lifecycle_drift_head}),
+        {**projection_context, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": projection_lifecycle_drift_head}),
     case("projection_registry_revision_currentness_rejected", "projection", materialization, "projection_mismatch",
-        {**projection_context, "canonical_lifecycle_tombstone_head": projection_revision_drift_head}),
+        {**projection_context, "tombstone_genesis_anchor": tombstone_genesis_anchor, "canonical_lifecycle_tombstone_head": projection_revision_drift_head}),
     case("projection_complete_tombstone_history_required", "projection", materialization, "projection_mismatch",
         {**projection_context, "tombstone_history": variant(tombstone_history, revisions=copy.deepcopy(tombstone_history["revisions"][1:]))}),
     case("projection_materialization_coordinate_equals_capsule_coordinate", "projection", projection_coordinate_drift_receipt, "projection_mismatch", projection_context),
@@ -1221,6 +1331,14 @@ revoked_activation = variant(activation, revoked_by_digest=raw("activation-revoc
 superseded_activation = variant(activation, superseded_by_activation_receipt_digest=raw("new-activation"))
 bad_generation_coordinate = variant(generation, coordinate=predecessor)
 bad_generation_runtime = variant(generation, runtime_identity=old_runtime)
+generation_scope_drift = variant(generation, v0_canary_scope={**canary_scope, "operator_canary_name": "operator-canary-beta"})
+generation_second_canary = copy.deepcopy(generation)
+generation_second_canary["v0_canary_scope"]["second_operator_canary_name"] = "operator-canary-beta"
+rehash(generation_second_canary)
+generation_default_scope = variant(generation, v0_canary_scope={**canary_scope, "adoption_mode": "default"})
+pi_delivered_scope_drift = variant(pi_delivered, v0_canary_scope={**canary_scope, "operator_canary_name": "operator-canary-beta"})
+pi_suppressed_scope_drift = variant(pi_suppressed, v0_canary_scope={**canary_scope, "operator_canary_name": "operator-canary-beta"})
+pi_failed_scope_drift = variant(pi_failed, v0_canary_scope={**canary_scope, "operator_canary_name": "operator-canary-beta"})
 activation_context = {"activation": activation, "intent": intent, "acceptance": acceptance, "materialization": materialization, "decision": consumer_decision,
     "current_activation_digest": d("activation_receipt"), "current_activation_revision": 1, "availability": semantic_availability,
     "activation_availability": semantic_availability, "previous_activation": None, **technical_context, **canonical_decision_context, **activation_authority_facts}
@@ -1229,6 +1347,9 @@ cases += [
     case("generation_from_current_activation_accepts", "generation_activation", generation, None, activation_context),
     case("generation_coordinate_must_equal_activation", "generation_activation", bad_generation_coordinate, "activation_not_current", activation_context),
     case("generation_runtime_must_equal_activation", "generation_activation", bad_generation_runtime, "activation_not_current", activation_context),
+    case("generation_canary_scope_must_equal_activation", "generation_activation", generation_scope_drift, "activation_not_current", activation_context),
+    case("generation_second_canary_rejected", "pi_variant", generation_second_canary, "malformed_input", schema_valid=False),
+    case("generation_default_scope_rejected", "pi_variant", generation_default_scope, "malformed_input", schema_valid=False),
     case("generation_from_revoked_activation_rejected", "generation_activation", generation, "activation_not_current", {**activation_context, "activation": revoked_activation}),
     case("generation_from_superseded_activation_rejected", "generation_activation", generation, "activation_not_current", {**activation_context, "activation": superseded_activation, "current_activation_digest": raw("new-activation"), "current_activation_revision": 2}),
     case("generation_from_nonhead_activation_rejected", "generation_activation", generation, "activation_not_current", {**activation_context, "current_activation_digest": raw("different-activation"), "current_activation_revision": 2}),
@@ -1338,9 +1459,12 @@ cases += [
     case("activation_materialization_coordinate_runtime_chain_exact", "activation_binding", activation, "self_certification", {"decision": consumer_decision, "intent": intent, "acceptance": acceptance, "materialization": drifting_materialization, "availability": semantic_availability, **technical_context, **canonical_decision_context, **activation_authority_facts, "activation_availability": semantic_availability, "previous_activation": None, "current_activation_digest": None, "current_activation_revision": None}),
     case("activation_context_issuer_checked_before_relation", "activation_binding", activation, "issuer_scope_violation", {"decision": consumer_decision, "intent": intent, "acceptance": acceptance, "materialization": wrong_issuer_materialization, "availability": semantic_availability, **technical_context, **canonical_decision_context, **activation_authority_facts, "activation_availability": semantic_availability, "previous_activation": None, "current_activation_digest": None, "current_activation_revision": None}),
     case("activation_requires_current_decision_record", "activation_binding", activation, "self_certification", {"decision": stale_store_decision, "intent": intent, "acceptance": acceptance, "materialization": materialization, "availability": semantic_availability, **technical_context, **canonical_decision_context, **activation_authority_facts, "activation_availability": semantic_availability, "previous_activation": None, "current_activation_digest": None, "current_activation_revision": None}),
-    case("pi_delivered_variant_accepts", "pi_variant", pi_delivered, None),
-    case("pi_suppressed_variant_accepts", "pi_variant", pi_suppressed, None),
-    case("pi_failed_variant_accepts", "pi_variant", pi_failed, None),
+    case("pi_delivered_variant_accepts", "pi_delivery", pi_delivered, None, {"generation": generation}),
+    case("pi_suppressed_variant_accepts", "pi_delivery", pi_suppressed, None, {"generation": generation}),
+    case("pi_failed_variant_accepts", "pi_delivery", pi_failed, None, {"generation": generation}),
+    case("pi_delivered_canary_scope_drift_rejected", "pi_delivery", pi_delivered_scope_drift, "activation_not_current", {"generation": generation}),
+    case("pi_suppressed_canary_scope_drift_rejected", "pi_delivery", pi_suppressed_scope_drift, "activation_not_current", {"generation": generation}),
+    case("pi_failed_canary_scope_drift_rejected", "pi_delivery", pi_failed_scope_drift, "activation_not_current", {"generation": generation}),
     case("delivered_without_prompt_run_rejected", "pi_variant", pi_delivered_missing, "malformed_input", schema_valid=False),
     case("suppressed_cannot_claim_prompt_delivery", "pi_variant", pi_suppressed_leak, "malformed_input", schema_valid=False),
     case("failed_without_error_rejected", "pi_variant", pi_failed_missing, "malformed_input", schema_valid=False),
@@ -1348,13 +1472,14 @@ cases += [
     case("ak_delivered_linkage_requires_pi_digest", "ak_optional_pi", ak_link, None)]
 
 # Revision-v6 adversarial closure: one direct negative for every revision-v5 false accept/finding.
-def publication_chain_for(approval_value: dict, decision_value: dict, expected_action: dict) -> tuple[dict, dict]:
-    tx = variant(publish_tx, owner_approval_digest=approval_value["owner_approval_digest"])
+def publication_chain_for(approval_value: dict, decision_value: dict, transaction_action: dict) -> tuple[dict, dict]:
+    tx = variant(publish_tx, owner_approval_digest=approval_value["owner_approval_digest"],
+        approved_action=transaction_action, approved_action_digest=action_digest(transaction_action))
     pub = variant(publication, transaction_digest=tx["publication_transaction_digest"], owner_approval_digest=approval_value["owner_approval_digest"])
     journal = variant(publish_journal, transaction_digest=tx["publication_transaction_digest"], resulting_record_digest=pub["owner_publication_digest"], resulting_ledger_head_digest=pub["owner_publication_digest"])
     marker = variant(publish_marker, transaction_digest=tx["publication_transaction_digest"], journal_digest=journal["publication_journal_digest"], resulting_record_digest=pub["owner_publication_digest"], resulting_ledger_head_digest=pub["owner_publication_digest"])
     context = {**publish_commit_context, "transaction": tx, "journal": journal, "marker": marker, "approval": approval_value, "decision": decision_value,
-        "expected_action": expected_action, "current_decision_record_digest": decision_value["decision_record_digest"]}
+        "current_decision_record_digest": decision_value["decision_record_digest"]}
     return pub, context
 threshold_approval = variant(owner_approval, votes=owner_approval["votes"][:1])
 threshold_pub, threshold_pub_context = publication_chain_for(threshold_approval, owner_decision, release_action)
@@ -1391,7 +1516,7 @@ recovery_transaction_after = variant(publish_committing_after, recovery_journal_
         "durable_commit_marker_digest": recovery_transaction_marker["publication_commit_marker_digest"]})
 recovery_transaction_context = recovery_context(recovery_transaction_journal, recovery_transaction_before,
     recovery_transaction_after, recovery_transaction_intent, recovery_transaction_marker, publish_tx,
-    recovery_result_transaction_drift, prior_publication, prior_publish_journal, owner_approval, release_action)
+    recovery_result_transaction_drift, prior_publication, prior_publish_journal, owner_approval)
 
 recovery_result_coordinate_drift = variant(publication, coordinate=predecessor)
 recovery_coordinate_journal = variant(committing, resulting_record_digest=recovery_result_coordinate_drift["owner_publication_digest"],
@@ -1410,7 +1535,7 @@ recovery_coordinate_after = variant(publish_committing_after, recovery_journal_d
         "durable_commit_marker_digest": recovery_coordinate_marker["publication_commit_marker_digest"]})
 recovery_coordinate_context = recovery_context(recovery_coordinate_journal, recovery_coordinate_before, recovery_coordinate_after,
     recovery_coordinate_intent, recovery_coordinate_marker, publish_tx, recovery_result_coordinate_drift,
-    prior_publication, prior_publish_journal, owner_approval, release_action)
+    prior_publication, prior_publish_journal, owner_approval)
 
 recovery_prior_status_drift = variant(prior_publication, transaction_digest=raw("recovery-wrong-prior-transaction"))
 recovery_prior_journal_drift = variant(prior_publish_journal, resulting_ledger_revision=0)
@@ -1425,7 +1550,7 @@ recovery_prior_journal_after = variant(publish_committing_after,
     state={**publish_committing_after_state, "durable_commit_marker_digest": recovery_prior_journal_marker["publication_commit_marker_digest"]})
 recovery_prior_journal_context = recovery_context(recovery_prior_journal_subject, recovery_prior_journal_before,
     recovery_prior_journal_after, recovery_prior_journal_intent, recovery_prior_journal_marker, publish_tx,
-    publication, prior_publication, recovery_prior_journal_drift, owner_approval, release_action)
+    publication, prior_publication, recovery_prior_journal_drift, owner_approval)
 self_certified_dep_pub = variant(publication, transaction_digest=raw("self-certified-publication-transaction"))
 self_certified_dep_canonical = variant(dep_canonical_ledger, ledger_head_digest=self_certified_dep_pub["owner_publication_digest"], status_record_digest=self_certified_dep_pub["owner_publication_digest"])
 self_certified_dep_ledger = variant(deprecation_ledger, ledger_head_digest=self_certified_dep_pub["owner_publication_digest"], publication_status_record_digest=self_certified_dep_pub["owner_publication_digest"], canonical_ledger_digest=self_certified_dep_canonical["publication_ledger_head_digest"])
@@ -1629,6 +1754,8 @@ raw_json_cases = [
     {"name": "raw_leading_zero_rejected", "raw_json": "{\"n\":01}", "expected_error": "malformed_input"},
     {"name": "raw_safe_integer_accepts", "raw_json": "{\"n\":9007199254740991}", "expected_error": None},
     {"name": "raw_proto_key_preserved_as_own_property", "raw_json": "{\"__proto__\":{\"polluted\":true}}", "required_own_keys": ["__proto__"], "expected_error": None},
+    {"name": "raw_nesting_depth_64_accepts", "raw_json": "[" * 63 + "0" + "]" * 63, "expected_error": None},
+    {"name": "raw_nesting_depth_65_rejected", "raw_json": "[" * 64 + "0" + "]" * 64, "expected_error": "malformed_input"},
 ]
 
 # Revision-v9 direct blockers and complete authority-rule coverage.
@@ -1678,7 +1805,7 @@ AUTHORITY_BEARING_RULES = {
 }
 ALL_RULES = {
     "acceptance_binding", "activation_binding", "ak_decision", "ak_optional_pi", "approval_threshold", "compatibility",
-    "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_variant", "projection",
+    "compatibility_policy", "digest", "generation_activation", "governance_contracts", "lifecycle", "pi_delivery", "pi_variant", "projection",
     "publication_cas", "publication_commit", "publication_journal_shape", "publication_recovery", "publication_transition", "rollback", "tombstone_reuse",
     "trust_revocation", "trust_rotation", "utc", "version_binding",
 }
@@ -1702,7 +1829,7 @@ ROLE_CATEGORY = {
     "current_activation_revision": "consumer_activation", "canonical_history_head": "consumer_history",
     "canonical_recovery_controller_id": "recovery_controller", "canonical_recovery_runtime_identity": "recovery_controller",
     "canonical_recovery_epoch": "recovery_controller",
-    "canonical_lifecycle_tombstone_head": "semantic_lifecycle",
+    "canonical_lifecycle_tombstone_head": "semantic_lifecycle", "tombstone_genesis_anchor": "semantic_lifecycle",
     "canonical_publication_status_digest": "semantic_publication",
 }
 CATEGORY_PROFILE = {
@@ -1741,6 +1868,7 @@ RULE_SCHEMA_ROLES = {
         "predicate": "semantic-approval-predicate.v0", "decision": "semantic-ak-decision-reference.v0", "trust_root": "semantic-trust-root.v0"},
     "projection": {"projection": "semantic-payload-projection.v0", "capsule": "semantic-release-capsule.v0", "archive_linkage": "semantic-capsule-archive-linkage.v0", "payload_manifest": "semantic-material-manifest.v0", "consumer_manifest": "semantic-material-manifest.v0", "archive_manifest": "semantic-material-manifest.v0", "tombstones": "semantic-tombstone-registry.v0", "tombstone_history": "semantic-tombstone-history-proof.v0"},
     "rollback": {"request": "semantic-rollback-request.v0", "activation": "semantic-activation-receipt.v0", "decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0", "acceptance": "semantic-owner-acceptance.v0", "materialization": "semantic-materialization-verification-receipt.v0", "availability": "semantic-rollback-availability-proof.v0", "activation_availability": "semantic-rollback-availability-proof.v0", "recovery_artifact": "semantic-rollback-availability-receipt.v0", "semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0", "history_after": "semantic-rollback-history-transition.v0", "ak_linkage": "semantic-ak-evidence-linkage.v0", "pi_receipt": "semantic-pi-delivery-receipt.v0", "previous_activation": "semantic-activation-receipt.v0", "semantic_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_revalidation_technical": "semantic-rollback-technical-receipt.v0", "disable_contract_technical": "semantic-rollback-technical-receipt.v0", "disable_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_health_technical": "semantic-rollback-technical-receipt.v0"},
+    "pi_delivery": {"generation": "semantic-rocs-generation-receipt.v0"},
     "generation_activation": {"activation": "semantic-activation-receipt.v0", "decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0", "acceptance": "semantic-owner-acceptance.v0", "materialization": "semantic-materialization-verification-receipt.v0", "availability": "semantic-rollback-availability-proof.v0", "activation_availability": "semantic-rollback-availability-proof.v0", "semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0", "recovery_artifact": "semantic-rollback-availability-receipt.v0", "semantic_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_revalidation_technical": "semantic-rollback-technical-receipt.v0", "disable_contract_technical": "semantic-rollback-technical-receipt.v0", "disable_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_health_technical": "semantic-rollback-technical-receipt.v0", "previous_activation": "semantic-activation-receipt.v0"},
     "acceptance_binding": {"decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0"},
     "activation_binding": {"decision": "semantic-ak-decision-reference.v0", "intent": "semantic-consumer-intent.v0", "acceptance": "semantic-owner-acceptance.v0", "materialization": "semantic-materialization-verification-receipt.v0", "availability": "semantic-rollback-availability-proof.v0", "activation_availability": "semantic-rollback-availability-proof.v0", "previous_activation": "semantic-activation-receipt.v0", "semantic_artifact": "semantic-rollback-availability-receipt.v0", "runtime_artifact": "semantic-rollback-availability-receipt.v0", "disable_artifact": "semantic-rollback-availability-receipt.v0", "recovery_artifact": "semantic-rollback-availability-receipt.v0", "semantic_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_materialization_technical": "semantic-rollback-technical-receipt.v0", "runtime_revalidation_technical": "semantic-rollback-technical-receipt.v0", "disable_contract_technical": "semantic-rollback-technical-receipt.v0", "disable_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_rehearsal_technical": "semantic-rollback-technical-receipt.v0", "recovery_health_technical": "semantic-rollback-technical-receipt.v0"},
@@ -1760,7 +1888,7 @@ REQUIRED_RECEIPT_ROLES = {
     "trust_rotation": {"current_root_digest", "revoked", "canonical_store_head", "current_decision_record_digest"},
     "trust_revocation": {"prior_revision", "prior_head", "canonical_store_head", "current_decision_record_digest"},
     "compatibility": {"canonical_store_head", "current_decision_record_digest"},
-    "lifecycle": {"canonical_deprecation_head", "canonical_deprecation_revision", "canonical_removal_head", "canonical_removal_revision", "canonical_store_head", "current_deprecation_decision_record_digest", "current_removal_decision_record_digest", "deprecation_prior_head", "current_lifecycle_head", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests"},
+    "lifecycle": {"canonical_deprecation_head", "canonical_deprecation_revision", "canonical_removal_head", "canonical_removal_revision", "canonical_store_head", "current_deprecation_decision_record_digest", "current_removal_decision_record_digest", "deprecation_prior_head", "current_lifecycle_head", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "tombstone_genesis_anchor"},
     "publication_commit": {"canonical_store_head", "current_decision_record_digest", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head", "canonical_publication_journal_head"},
     "publication_transition": {"canonical_store_head", "current_decision_record_digest", "external_trust_root_pin", "canonical_trust_root_digest", "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests", "canonical_publication_revision", "canonical_publication_head", "canonical_publication_journal_head"},
     "publication_recovery": {"canonical_recovery_controller_id", "canonical_recovery_runtime_identity", "canonical_recovery_epoch",
@@ -1769,8 +1897,8 @@ REQUIRED_RECEIPT_ROLES = {
         "canonical_recovery_resulting_revision", "canonical_recovery_resulting_head", "canonical_recovery_resulting_status_digest",
         "canonical_store_head", "current_decision_record_digest", "external_trust_root_pin", "canonical_trust_root_digest",
         "canonical_trust_revocation_revision", "canonical_trust_revocation_head", "revoked_trust_digests"},
-    "tombstone_reuse": {"canonical_lifecycle_tombstone_head"},
-    "projection": {"canonical_lifecycle_tombstone_head"},
+    "tombstone_reuse": {"canonical_lifecycle_tombstone_head", "tombstone_genesis_anchor"},
+    "projection": {"canonical_lifecycle_tombstone_head", "tombstone_genesis_anchor"},
     "publication_cas": {"current_revision", "current_head", "existing_replay_key", "existing_coordinate", "existing_operation"},
     "version_binding": {"existing_coordinate"},
     "ak_decision": {"canonical_store_head", "current_decision_record_digest"},
@@ -1783,9 +1911,9 @@ REQUIRED_RECEIPT_ROLES = {
 RULE_PARAMETER_ROLES = {
     "compatibility": {"prior_version", "overrides", "override_approvals"},
     "lifecycle": set(),
-    "publication_commit": {"expected_action", "prior_journal_digest"},
+    "publication_commit": {"prior_journal_digest"},
     "publication_transition": {"prior_journal_digest"},
-    "publication_recovery": {"expected_action"},
+    "publication_recovery": set(),
 }
 NULLABLE_ARTIFACT_ROLES = {"override", "marker", "previous_activation", "history_after", "ak_linkage", "pi_receipt",
     "decision", "owner_policy", "owner_set", "predicate", "semantic_artifact", "runtime_artifact", "disable_artifact", "recovery_artifact",
@@ -1813,6 +1941,7 @@ def value_fact(value: object) -> dict:
         keys = set(value)
         if keys == {"owner_id", "owner_key_id", "approved_action_digest", "approval_proof_digest"}: return {"kind": "owner_vote_proof", "value": value}
         if keys == {"namespace", "lifecycle_head_digest", "tombstone_registry_digest", "tombstone_registry_revision"}: return {"kind": "lifecycle_tombstone_head", "value": value}
+        if keys == {"semantic_owner_id", "namespace", "genesis_registry_digest", "genesis_registry_revision", "genesis_lifecycle_head_digest"}: return {"kind": "tombstone_genesis_anchor", "value": value}
         if keys == {"store_id", "canonical_store_locator", "store_revision", "store_head_digest", "revocation_head_digest"}: return {"kind": "ak_store_head", "value": value}
         if keys == {"namespace", "trust_root_id", "trust_root_revision", "trust_root_digest", "owner_policy_digest", "owner_set_digest", "revocation_revision", "revocation_head_digest"}: return {"kind": "external_trust_root_pin", "value": value}
         if keys == {"revision", "head", "status_record_digest", "intent_marker_digest", "durable_commit_marker_digest", "staging_present"}: return {"kind": "publication_recovery_state", "value": value}
@@ -1887,7 +2016,7 @@ MISSING_ANCHOR_NEGATIVES = {
 }
 
 
-# Revision-v12 explicit source-case authority declarations. These literals are consumed before wrapping;
+# Revision-v13 explicit source-case authority declarations. These literals are consumed before wrapping;
 # no store metadata tuple or vote proof fact is inferred from a subject, category, or canonical default.
 EXPLICIT_STORE_METADATA_TUPLES = json.loads(r'''
 {
@@ -2764,7 +2893,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:subject:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c0d1205a6a053e3cc6aa4733e8ffd41a9d20c2a50c6a20d942aaf67ec4b6fc09",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2773,7 +2902,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:subject:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:88810817187802f0dd0b3e7d1d6004d2696f6a7d3b3850527ae91a130b15b2d3",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -2784,7 +2913,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c0d1205a6a053e3cc6aa4733e8ffd41a9d20c2a50c6a20d942aaf67ec4b6fc09",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2793,7 +2922,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:88810817187802f0dd0b3e7d1d6004d2696f6a7d3b3850527ae91a130b15b2d3",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -2804,7 +2933,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:deprecation_approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c0d1205a6a053e3cc6aa4733e8ffd41a9d20c2a50c6a20d942aaf67ec4b6fc09",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2813,7 +2942,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:deprecation_approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:88810817187802f0dd0b3e7d1d6004d2696f6a7d3b3850527ae91a130b15b2d3",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -2822,7 +2951,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:removal_approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c3e9b597af24ce61eef5d0cb8dd384a1604a6c35192b2962b4394ca6ee07d077",
-        "approved_action_digest": "sha256:5179b5544dec9dad8df59ba74b794ddbd91ce1b78cd60ec97d8023f67e908808",
+        "approved_action_digest": "sha256:8d6326d25c075b970d37a550fe5666f1abce16cf6314c51e7105edfffb7c306f",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2831,7 +2960,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:removal_approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:c587f8ac2da3a5c798355579952ec7f5bc53fad68de675c20cb349561a09f944",
-        "approved_action_digest": "sha256:5179b5544dec9dad8df59ba74b794ddbd91ce1b78cd60ec97d8023f67e908808",
+        "approved_action_digest": "sha256:8d6326d25c075b970d37a550fe5666f1abce16cf6314c51e7105edfffb7c306f",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -2839,7 +2968,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     }
   },
   "vote_source_005": {
-    "vote-proof:override_approvals:sha256:b86ad6f54616bbbf65c9b4ff99a34ccfd57cdc43e1420002e4ae9db4106a635b:owner-a": {
+    "vote-proof:override_approvals:sha256:35856a81529397b31edb5d36ee213cfc4e2798ccaeb516c44714e4365f0e66f4:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:f0da5df238378cafd49e89cbde1460eed636dc7fe99f63733772e4aac56c20c1",
         "approved_action_digest": "sha256:3f2661f3afe4ce419e0116fa60833453d7e1b1339083fbd1aeb761ad15ed5de7",
@@ -2848,7 +2977,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
       },
       "store_metadata_tuple": "store_tuple_010"
     },
-    "vote-proof:override_approvals:sha256:b86ad6f54616bbbf65c9b4ff99a34ccfd57cdc43e1420002e4ae9db4106a635b:owner-b": {
+    "vote-proof:override_approvals:sha256:35856a81529397b31edb5d36ee213cfc4e2798ccaeb516c44714e4365f0e66f4:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:cffff25d9a05bf379d92699d30a34f0b2e93a3fcd8e2fd45012357025e31e509",
         "approved_action_digest": "sha256:3f2661f3afe4ce419e0116fa60833453d7e1b1339083fbd1aeb761ad15ed5de7",
@@ -2862,7 +2991,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:9ebb96454a6c5835fbdbf5197c5a461aac583a02ed7ec390907020c0e826a3a2",
-        "approved_action_digest": "sha256:170070223aabfcde5a3f274cd31979e27333f9bfde0d46a3b419b9f30408b45f",
+        "approved_action_digest": "sha256:65615d27f843bf8fea7c4a861474e66dd9e6fea539c0ba5ecab85c585e2806fb",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2871,7 +3000,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:e2c9d8c4e9ffd2dc2419a27d31ad5a8d9305b13d61b28fb27e8a3d8e46cf6040",
-        "approved_action_digest": "sha256:170070223aabfcde5a3f274cd31979e27333f9bfde0d46a3b419b9f30408b45f",
+        "approved_action_digest": "sha256:65615d27f843bf8fea7c4a861474e66dd9e6fea539c0ba5ecab85c585e2806fb",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -2879,7 +3008,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     }
   },
   "vote_source_007": {
-    "vote-proof:override_approvals:sha256:21c413976379f8a57c8aab67aa5b9493bbb5ba7982db59dad0d27df574e9df30:owner-a": {
+    "vote-proof:override_approvals:sha256:cacabad0c97054a2374e81a59ad08b59997b78655486a62edc846896495a2b2f:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:f0da5df238378cafd49e89cbde1460eed636dc7fe99f63733772e4aac56c20c1",
         "approved_action_digest": "sha256:3f2661f3afe4ce419e0116fa60833453d7e1b1339083fbd1aeb761ad15ed5de7",
@@ -2888,7 +3017,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
       },
       "store_metadata_tuple": "store_tuple_010"
     },
-    "vote-proof:override_approvals:sha256:21c413976379f8a57c8aab67aa5b9493bbb5ba7982db59dad0d27df574e9df30:owner-b": {
+    "vote-proof:override_approvals:sha256:cacabad0c97054a2374e81a59ad08b59997b78655486a62edc846896495a2b2f:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:cffff25d9a05bf379d92699d30a34f0b2e93a3fcd8e2fd45012357025e31e509",
         "approved_action_digest": "sha256:3f2661f3afe4ce419e0116fa60833453d7e1b1339083fbd1aeb761ad15ed5de7",
@@ -2899,7 +3028,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     }
   },
   "vote_source_008": {
-    "vote-proof:override_approvals:sha256:8e197e19664411c4bea7f07f6eaaf522a63c49b1441c40fac3bd9cb541537c58:owner-a": {
+    "vote-proof:override_approvals:sha256:de4ad47d5cda496edab3636b8e05cc454e68e6ea2faa19a6763cfd6e0e4de2f1:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:f0da5df238378cafd49e89cbde1460eed636dc7fe99f63733772e4aac56c20c1",
         "approved_action_digest": "sha256:416bfd5bbd74a4ec63ee58caf11c51c3750a70a3157dc2ad2c3d38562de03b49",
@@ -2908,7 +3037,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
       },
       "store_metadata_tuple": "store_tuple_010"
     },
-    "vote-proof:override_approvals:sha256:8e197e19664411c4bea7f07f6eaaf522a63c49b1441c40fac3bd9cb541537c58:owner-b": {
+    "vote-proof:override_approvals:sha256:de4ad47d5cda496edab3636b8e05cc454e68e6ea2faa19a6763cfd6e0e4de2f1:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:cffff25d9a05bf379d92699d30a34f0b2e93a3fcd8e2fd45012357025e31e509",
         "approved_action_digest": "sha256:416bfd5bbd74a4ec63ee58caf11c51c3750a70a3157dc2ad2c3d38562de03b49",
@@ -2922,7 +3051,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c0d1205a6a053e3cc6aa4733e8ffd41a9d20c2a50c6a20d942aaf67ec4b6fc09",
-        "approved_action_digest": "sha256:03be945c72e799c7bf8628bff70f41e82947e90fce9e98435fd920cd88aeb1cf",
+        "approved_action_digest": "sha256:126465bd6874b14a0498d60989a1ff38844da1a9e37f181e7df51ef1da0ebbc6",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2931,7 +3060,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:88810817187802f0dd0b3e7d1d6004d2696f6a7d3b3850527ae91a130b15b2d3",
-        "approved_action_digest": "sha256:03be945c72e799c7bf8628bff70f41e82947e90fce9e98435fd920cd88aeb1cf",
+        "approved_action_digest": "sha256:126465bd6874b14a0498d60989a1ff38844da1a9e37f181e7df51ef1da0ebbc6",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -2942,7 +3071,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c0d1205a6a053e3cc6aa4733e8ffd41a9d20c2a50c6a20d942aaf67ec4b6fc09",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2953,7 +3082,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:ecd981005e917275299c350042d143c09ec94f972a7824dbcbea09202312663e",
-        "approved_action_digest": "sha256:c84ff7e5c262e1a6065ada185d038347afef3c313a727c48cab2338ca2029858",
+        "approved_action_digest": "sha256:6dbf7fcec5b5c1a03cfe94401c6f4b07bbbfaaca760606cf5d0276f2feceae0f",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -2962,7 +3091,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:4a2fb8a1a9a7488173de7780ba9fd49f502c044ab5ad3be7e7d3ed693a756d3c",
-        "approved_action_digest": "sha256:c84ff7e5c262e1a6065ada185d038347afef3c313a727c48cab2338ca2029858",
+        "approved_action_digest": "sha256:6dbf7fcec5b5c1a03cfe94401c6f4b07bbbfaaca760606cf5d0276f2feceae0f",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -3013,7 +3142,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:subject:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c0d1205a6a053e3cc6aa4733e8ffd41a9d20c2a50c6a20d942aaf67ec4b6fc09",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -3044,7 +3173,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:subject:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:c0d1205a6a053e3cc6aa4733e8ffd41a9d20c2a50c6a20d942aaf67ec4b6fc09",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -3053,7 +3182,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:subject:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:88810817187802f0dd0b3e7d1d6004d2696f6a7d3b3850527ae91a130b15b2d3",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -3062,7 +3191,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:subject:owner-c": {
       "fact": {
         "approval_proof_digest": "sha256:d9b2439b64c749d7f70f9b099d9ce95391690a351b02f725f278165bdd57531a",
-        "approved_action_digest": "sha256:f68efe345d97675f0c885ce5421488f7b591114201576f4fbedd1c051d280e48",
+        "approved_action_digest": "sha256:65259a5ba332bfd9ff496e1805ae57888f1a64cc88fe8ae0782422d341448fab",
         "owner_id": "owner-c",
         "owner_key_id": "owner-c-key-1"
       },
@@ -3073,7 +3202,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:6a238db3e74732c43071fca9ce7cd67a0d9b1388b6869b83bc2082352eddb71b",
-        "approved_action_digest": "sha256:4280b870a67396067c998db81e2ddfb27a5609adb2e9a277a5a7d7da94cf62f7",
+        "approved_action_digest": "sha256:a665e155fff853f63872160d5353dcde7473c13627607a822ff141da4f4d4425",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -3082,7 +3211,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:4443167dfc54b2f14461ef324622862f1cd92bd81ef25fa2197248b64cd0647d",
-        "approved_action_digest": "sha256:4280b870a67396067c998db81e2ddfb27a5609adb2e9a277a5a7d7da94cf62f7",
+        "approved_action_digest": "sha256:a665e155fff853f63872160d5353dcde7473c13627607a822ff141da4f4d4425",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -3093,7 +3222,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:9ebb96454a6c5835fbdbf5197c5a461aac583a02ed7ec390907020c0e826a3a2",
-        "approved_action_digest": "sha256:d3bbc397128bf538333deff66f092b9a801c5fab47291f0741737f84ed1267c0",
+        "approved_action_digest": "sha256:b4578f004205db047dacb03ec54a85d24c634f789f1ef1619b5dd0ad304e5eda",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -3102,7 +3231,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:e2c9d8c4e9ffd2dc2419a27d31ad5a8d9305b13d61b28fb27e8a3d8e46cf6040",
-        "approved_action_digest": "sha256:d3bbc397128bf538333deff66f092b9a801c5fab47291f0741737f84ed1267c0",
+        "approved_action_digest": "sha256:b4578f004205db047dacb03ec54a85d24c634f789f1ef1619b5dd0ad304e5eda",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -3113,7 +3242,7 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-a": {
       "fact": {
         "approval_proof_digest": "sha256:3366a8f872bda948d11683f17651a4a521bcd414f85fcc0b6ef50c04c377ba50",
-        "approved_action_digest": "sha256:89ad7383476c82eea310bad103bf051f8614a59c0880656146d4c33e4d3a1de1",
+        "approved_action_digest": "sha256:7341d9e69b85ad9a29863edd4a5df099d736680274e9e5738eacca86f38cf423",
         "owner_id": "owner-a",
         "owner_key_id": "owner-a-key-3"
       },
@@ -3122,7 +3251,27 @@ EXPLICIT_VOTE_SOURCE_SETS = json.loads(r'''
     "vote-proof:approval:owner-b": {
       "fact": {
         "approval_proof_digest": "sha256:ce0e2f22e800c0ae6473f6920b16075cbf33a250310458fac6210eee1e661312",
-        "approved_action_digest": "sha256:89ad7383476c82eea310bad103bf051f8614a59c0880656146d4c33e4d3a1de1",
+        "approved_action_digest": "sha256:7341d9e69b85ad9a29863edd4a5df099d736680274e9e5738eacca86f38cf423",
+        "owner_id": "owner-b",
+        "owner_key_id": "owner-b-key-2"
+      },
+      "store_metadata_tuple": "store_tuple_011"
+    }
+  },
+  "vote_source_major_recovery_v13": {
+    "vote-proof:approval:owner-a": {
+      "fact": {
+        "approval_proof_digest": "sha256:c3e9b597af24ce61eef5d0cb8dd384a1604a6c35192b2962b4394ca6ee07d077",
+        "approved_action_digest": "sha256:8d6326d25c075b970d37a550fe5666f1abce16cf6314c51e7105edfffb7c306f",
+        "owner_id": "owner-a",
+        "owner_key_id": "owner-a-key-3"
+      },
+      "store_metadata_tuple": "store_tuple_010"
+    },
+    "vote-proof:approval:owner-b": {
+      "fact": {
+        "approval_proof_digest": "sha256:c587f8ac2da3a5c798355579952ec7f5bc53fad68de675c20cb349561a09f944",
+        "approved_action_digest": "sha256:8d6326d25c075b970d37a550fe5666f1abce16cf6314c51e7105edfffb7c306f",
         "owner_id": "owner-b",
         "owner_key_id": "owner-b-key-2"
       },
@@ -4427,8 +4576,8 @@ EXPLICIT_CASE_SOURCE_SETS = json.loads(r'''
 
 EXPLICIT_CASE_SOURCE_SETS["tombstone_origin_exact_binding"] = ["store_source_015", "vote_source_004"]
 
-# Revision-v12 source declarations extend the static v11 inventory; every case remains named explicitly.
-EXPLICIT_STORE_METADATA_SETS["store_source_recovery_authority_v12"] = {
+# Revision-v13 source declarations extend the static v12 inventory; every case remains named explicitly.
+EXPLICIT_STORE_METADATA_SETS["store_source_recovery_authority_v13"] = {
     "canonical_publication_head": "store_tuple_000", "canonical_publication_journal_head": "store_tuple_000",
     "canonical_publication_revision": "store_tuple_000", "canonical_publication_status_digest": "store_tuple_000",
     "canonical_recovery_controller_id": "store_tuple_001", "canonical_recovery_epoch": "store_tuple_001",
@@ -4440,47 +4589,46 @@ EXPLICIT_STORE_METADATA_SETS["store_source_recovery_authority_v12"] = {
     "current_decision_record_digest": "store_tuple_003", "external_trust_root_pin": "store_tuple_005",
     "revoked_trust_digests": "store_tuple_004",
 }
-EXPLICIT_CASE_SOURCE_SETS["recovery_before_linearization_discards"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_after_linearization_completes"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["aborted_transaction_discards_staging"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_before_linearization_must_not_move_head"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_after_linearization_requires_marker"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_marker_must_match_exact_journal_and_result"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_status_record_must_match_result"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_resolves_complete_resulting_status_object"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_result_context_self_digest_checked"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_prelinearization_rejects_durable_marker"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_prelinearization_requires_intent_descriptor"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_intent_descriptor_cannot_claim_fsync"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_intent_descriptor_owner_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_before_state_is_semantic_owner_issued"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_after_state_is_controller_issued"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_state_receipt_namespace_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_current_journal_receipt_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_transition_expectation_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_calls_trust_authority"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_calls_canonical_decision_authority"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_calls_exact_action_authority"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_head_drift_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_revision_drift_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_action_epoch_drift_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_repository_drift_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["recovery_result_transaction_binds_transaction"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_result_coordinate_join_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_before_status_is_canonical"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_prior_journal_full_join_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_transaction_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_result_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_marker_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_before_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_after_rejected"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_controller_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_runtime_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_epoch_is_exact"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_requires_canonical_ledger_head"] = ["store_source_recovery_authority_v12", "vote_source_003"]
-EXPLICIT_CASE_SOURCE_SETS["publication_recovery_calls_threshold_authority"] = ["store_source_recovery_authority_v12", "vote_source_010"]
-EXPLICIT_CASE_SOURCE_SETS["withdrawal_recovery_after_linearization_completes"] = ["store_source_recovery_authority_v12", "vote_source_006"]
-EXPLICIT_CASE_SOURCE_SETS["revocation_recovery_before_linearization_discards"] = ["store_source_recovery_authority_v12", "vote_source_019"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_before_linearization_discards"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_after_linearization_completes"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["aborted_transaction_discards_staging"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_before_linearization_must_not_move_head"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_after_linearization_requires_marker"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_marker_must_match_exact_journal_and_result"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_status_record_must_match_result"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_resolves_complete_resulting_status_object"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_result_context_self_digest_checked"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_prelinearization_rejects_durable_marker"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_prelinearization_requires_intent_descriptor"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_intent_descriptor_cannot_claim_fsync"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_intent_descriptor_owner_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_before_state_is_semantic_owner_issued"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_after_state_is_controller_issued"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_state_receipt_namespace_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_current_journal_receipt_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_transition_expectation_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_calls_trust_authority"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_calls_canonical_decision_authority"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_head_drift_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_revision_drift_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_action_epoch_drift_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_store_snapshot_repository_drift_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["recovery_result_transaction_binds_transaction"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_result_coordinate_join_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_before_status_is_canonical"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_prior_journal_full_join_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_transaction_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_result_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_marker_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_before_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_null_after_rejected"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_controller_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_runtime_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_epoch_is_exact"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_requires_canonical_ledger_head"] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_calls_threshold_authority"] = ["store_source_recovery_authority_v13", "vote_source_010"]
+EXPLICIT_CASE_SOURCE_SETS["withdrawal_recovery_after_linearization_completes"] = ["store_source_recovery_authority_v13", "vote_source_006"]
+EXPLICIT_CASE_SOURCE_SETS["revocation_recovery_before_linearization_discards"] = ["store_source_recovery_authority_v13", "vote_source_019"]
 EXPLICIT_CASE_SOURCE_SETS["v0_consumer_repository_is_exact"] = ["store_source_001", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["v0_consumer_identity_revision_three_is_exact"] = ["store_source_001", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["v0_consumer_locator_is_exact"] = ["store_source_001", "vote_source_000"]
@@ -4498,6 +4646,46 @@ EXPLICIT_CASE_SOURCE_SETS["disable_contract_coordinate_must_be_null"] = ["store_
 EXPLICIT_CASE_SOURCE_SETS["disable_rehearsal_coordinate_must_be_null"] = ["store_source_016", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["disable_contract_runtime_must_match_active_runtime"] = ["store_source_016", "vote_source_000"]
 EXPLICIT_CASE_SOURCE_SETS["disable_rehearsal_runtime_must_match_active_runtime"] = ["store_source_016", "vote_source_000"]
+
+# Revision-v13 external tombstone-genesis anchor and new bounded-scope cases remain explicit source declarations.
+EXPLICIT_STORE_METADATA_SETS["store_source_008"]["tombstone_genesis_anchor"] = "store_tuple_012"
+EXPLICIT_STORE_METADATA_SETS["store_source_015"]["tombstone_genesis_anchor"] = "store_tuple_012"
+EXPLICIT_STORE_METADATA_SETS["store_source_020"]["tombstone_genesis_anchor"] = "store_tuple_012"
+EXPLICIT_STORE_METADATA_SETS["store_source_021"]["tombstone_genesis_anchor"] = "store_tuple_012"
+EXPLICIT_VOTE_SOURCE_SETS["vote_source_major_recovery_v13"] = {
+    "vote-proof:approval:owner-a": {"fact": {
+        "owner_id": "owner-a", "owner_key_id": "owner-a-key-3",
+        "approved_action_digest": "sha256:8d6326d25c075b970d37a550fe5666f1abce16cf6314c51e7105edfffb7c306f",
+        "approval_proof_digest": "sha256:c3e9b597af24ce61eef5d0cb8dd384a1604a6c35192b2962b4394ca6ee07d077"},
+        "store_metadata_tuple": "store_tuple_010"},
+    "vote-proof:approval:owner-b": {"fact": {
+        "owner_id": "owner-b", "owner_key_id": "owner-b-key-2",
+        "approved_action_digest": "sha256:8d6326d25c075b970d37a550fe5666f1abce16cf6314c51e7105edfffb7c306f",
+        "approval_proof_digest": "sha256:c587f8ac2da3a5c798355579952ec7f5bc53fad68de675c20cb349561a09f944"},
+        "store_metadata_tuple": "store_tuple_011"},
+}
+for _name in (
+    "tombstone_history_coherent_genesis_reset_rejected",
+    "tombstone_history_coordinated_wrong_authorization_rejected",
+): EXPLICIT_CASE_SOURCE_SETS[_name] = ["store_source_008", "vote_source_000"]
+EXPLICIT_CASE_SOURCE_SETS["lifecycle_tombstone_genesis_anchor_mismatch_rejected"] = ["store_source_015", "vote_source_004"]
+EXPLICIT_CASE_SOURCE_SETS["projection_tombstone_genesis_anchor_mismatch_rejected"] = ["store_source_008", "vote_source_000"]
+for _name in (
+    "recovery_postlinearization_observed_start_must_be_result",
+    "recovery_postlinearization_forbids_second_cas",
+    "recovery_prelinearization_observed_start_must_be_prior",
+): EXPLICIT_CASE_SOURCE_SETS[_name] = ["store_source_recovery_authority_v13", "vote_source_003"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_coherent_wrong_action_kind_rejected"] = ["store_source_recovery_authority_v13", "vote_source_006"]
+EXPLICIT_CASE_SOURCE_SETS["publication_recovery_coherent_wrong_action_coordinate_rejected"] = ["store_source_recovery_authority_v13", "vote_source_major_recovery_v13"]
+for _name in (
+    "generation_canary_scope_must_equal_activation",
+): EXPLICIT_CASE_SOURCE_SETS[_name] = ["store_source_003", "vote_source_000"]
+for _name in (
+    "generation_second_canary_rejected", "generation_default_scope_rejected",
+    "pi_delivered_canary_scope_drift_rejected", "pi_suppressed_canary_scope_drift_rejected",
+    "pi_failed_canary_scope_drift_rejected",
+): EXPLICIT_CASE_SOURCE_SETS[_name] = ["store_source_006", "vote_source_000"]
+# The three pre-existing Pi positives retain their empty store/vote source set under the relational rule.
 
 
 REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
@@ -4733,7 +4921,7 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:0720a70f350649c0ac767c7dec87da9c586770985f4b0fea010c9f1b2f43085c"
         },
         "observation_id": "receipt:publication_commit:canonical_publication_head",
         "owner_repository": {
@@ -4755,11 +4943,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:4a703a201fa886120b474621c305b41458da4e26de67ade3c0e254be08de6ef7",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:0720a70f350649c0ac767c7dec87da9c586770985f4b0fea010c9f1b2f43085c"
         },
         "observation_id": "receipt:publication_commit:canonical_publication_head",
         "owner_repository": {
@@ -4784,11 +4972,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:4a703a201fa886120b474621c305b41458da4e26de67ade3c0e254be08de6ef7",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:0720a70f350649c0ac767c7dec87da9c586770985f4b0fea010c9f1b2f43085c"
         },
         "observation_id": "receipt:publication_commit:surplus",
         "owner_repository": {
@@ -4810,11 +4998,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:4a703a201fa886120b474621c305b41458da4e26de67ade3c0e254be08de6ef7",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:0720a70f350649c0ac767c7dec87da9c586770985f4b0fea010c9f1b2f43085c"
         },
         "observation_id": "receipt:publication_commit:canonical_publication_head",
         "owner_repository": {
@@ -4839,11 +5027,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 101,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -4865,11 +5053,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -4894,11 +5082,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -4920,11 +5108,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -4949,11 +5137,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -4975,11 +5163,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -5004,11 +5192,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "expected_final_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -5030,11 +5218,11 @@ REGISTERED_SOURCE_RECEIPT_MUTATIONS = json.loads(r'''
     "source_receipt_tuples": [
       {
         "action_epoch": 100,
-        "fact_digest": "sha256:642e864a924dcc7794ebcf64b4e1b66d9e05f84d7f4c8c9c56f1f4dfccde649c",
+        "fact_digest": "sha256:325896e7673829d7fd49b68f3ce8911361eb5afca85a5849f44df1a0e218c299",
         "fact_schema": "semantic-authority-semantic-publication-fact.v0",
         "fact_value": {
           "kind": "digest",
-          "value": "sha256:cd0a0d1b25c73e87ec042b72d866371bd22043d49cb5cad779c8169ac4fc5612"
+          "value": "sha256:f6d93f22bac420aaa137d865fc73da473cb458cf2345de99e7ef88a49ab1acce"
         },
         "observation_id": "receipt:publication_recovery:canonical_publication_status_digest",
         "owner_repository": {
@@ -5263,7 +5451,7 @@ def build_authority_manifest(registry: list[dict]) -> dict:
             "edge_linkage_digest": row["edge_linkage_digest"]} for row in rule_edges]
         entries.append({"rule": rule, "authority_bearing": rule in AUTHORITY_BEARING_RULES, "required_roles": required,
             "role_mappings": mappings, "edge_ids": [row["edge_id"] for row in rule_edges], "role_edge_links": role_edge_links})
-    manifest = {"schema": "semantic-authority-rule-role-manifest.v0", "revision": "semantic-release-revision-v12", "rules": entries,
+    manifest = {"schema": "semantic-authority-rule-role-manifest.v0", "revision": "semantic-release-revision-v13", "rules": entries,
         "authority_rule_role_manifest_digest": ZERO}
     rehash(manifest); return manifest
 
@@ -5345,8 +5533,8 @@ def build_source_case_explicitness_audit(source_cases: list[dict], final_cases: 
         rows.append({"case_name": item["name"], "rule": item["rule"], "source_receipts": source_receipts,
             "expected_final_receipts": expected_final, "registered_mutation_ids": mutation_ids})
     registered_rows.sort(key=lambda row: row["mutation_id"].encode())
-    audit = {"schema": "semantic-release-source-case-explicitness-audit.v12",
-        "revision": "semantic-release-revision-v12",
+    audit = {"schema": "semantic-release-source-case-explicitness-audit.v13",
+        "revision": "semantic-release-revision-v13",
         "inference_policy": "explicit_source_and_expected_final_receipts_no_silent_mismatch",
         "source_case_count": len(rows), "authority_case_count": sum(row["rule"] in AUTHORITY_BEARING_RULES for row in source_cases),
         "store_metadata_tuple_count": store_tuple_count, "vote_proof_fact_count": vote_fact_count,
@@ -5354,7 +5542,7 @@ def build_source_case_explicitness_audit(source_cases: list[dict], final_cases: 
         "registered_receipt_mutations": registered_rows, "cases": rows,
         "source_case_explicitness_audit_digest": ZERO}
     preimage = {key: value for key, value in audit.items() if key != "source_case_explicitness_audit_digest"}
-    audit["source_case_explicitness_audit_digest"] = typed_digest("semantic-release.source-case-explicitness-audit.v12", preimage)
+    audit["source_case_explicitness_audit_digest"] = typed_digest("semantic-release.source-case-explicitness-audit.v13", preimage)
     return audit
 
 
@@ -5642,7 +5830,7 @@ def normalized_semantic_pair(positive: dict, drift: dict) -> tuple[object, objec
     pairs: list[tuple[str, str, str]] = []; _collect_digest_correspondence(old, new, "", pairs)
     paths: dict[str, str] = {}
     for old_digest, new_digest, path in pairs:
-        stable = "semantic-ref:" + typed_digest("semantic-release.semantic-reference-path.v12", path)
+        stable = "semantic-ref:" + typed_digest("semantic-release.semantic-reference-path.v13", path)
         if old_digest not in paths or stable < paths[old_digest]: paths[old_digest] = stable
         if new_digest not in paths or stable < paths[new_digest]: paths[new_digest] = stable
     return _strip_digest_cascade(old, paths), _strip_digest_cascade(new, paths)
@@ -5654,7 +5842,7 @@ _MISSING = object()
 def _mutation_hash(value: object) -> str:
     payload = {"present": value is not _MISSING}
     if value is not _MISSING: payload["value"] = value
-    return typed_digest("semantic-release.semantic-mutation-value.v12", payload)
+    return typed_digest("semantic-release.semantic-mutation-value.v13", payload)
 
 
 def _semantic_diff(old: object, new: object, path: str, rows: list[dict]) -> None:
@@ -5751,7 +5939,7 @@ def bind_edge_ownership(row: dict, positive: dict, manifest: dict | None) -> Non
     linkage = {"edge_id": row["edge_id"], "rule": row["rule"], "ownership": row["ownership"],
         "role_owners": row["role_owners"], "role_ids": row["role_ids"], "positive_fixture": row["positive_fixture"],
         "drift_fixture": row["drift_fixture"], "expected_error": row["expected_error"]}
-    row["edge_linkage_digest"] = typed_digest("semantic-release.authority-edge-linkage.v12", linkage)
+    row["edge_linkage_digest"] = typed_digest("semantic-release.authority-edge-linkage.v13", linkage)
 
 
 # Finite inventory. Every row names one accepted witness and one direct one-edge drift.
@@ -5885,6 +6073,16 @@ authority_edge_registry = [
     edge("recovery.snapshot-revision-coherence", "publication_recovery", "all semantic publication facts share one owner-store revision", "recovery_after_linearization_completes", "publication_recovery_store_snapshot_revision_drift_rejected", "issuer_scope_violation"),
     edge("recovery.snapshot-epoch-coherence", "publication_recovery", "all semantic publication facts share one action epoch", "recovery_after_linearization_completes", "publication_recovery_store_snapshot_action_epoch_drift_rejected", "issuer_scope_violation"),
     edge("recovery.snapshot-repository-coherence", "publication_recovery", "all semantic publication facts share one owner repository", "recovery_after_linearization_completes", "publication_recovery_store_snapshot_repository_drift_rejected", "issuer_scope_violation"),
+    edge("recovery.transaction-action-kind", "publication_recovery", "recovery derives publish release kind from the transaction rather than caller input", "recovery_after_linearization_completes", "publication_recovery_coherent_wrong_action_kind_rejected", "recovery_needed"),
+    edge("recovery.transaction-action-coordinate", "publication_recovery", "recovery derives release coordinate and candidate capsule from the transaction coordinate", "recovery_after_linearization_completes", "publication_recovery_coherent_wrong_action_coordinate_rejected", "recovery_needed"),
+    edge("recovery.postlinear-observed-start", "publication_recovery", "post-linearization recovery starts from the already-linearized result head", "recovery_after_linearization_completes", "recovery_postlinearization_observed_start_must_be_result", "recovery_needed"),
+    edge("recovery.postlinear-no-second-cas", "publication_recovery", "post-linearization recovery preserves the result head without a second CAS", "recovery_after_linearization_completes", "recovery_postlinearization_forbids_second_cas", "recovery_needed"),
+    edge("recovery.prelinear-observed-start", "publication_recovery", "pre-linearization recovery starts from the canonical prior head", "recovery_before_linearization_discards", "recovery_prelinearization_observed_start_must_be_prior", "recovery_needed"),
+    edge("generation.single-canary-scope", "generation_activation", "generation repeats the exact activated consumer repository and v0 canary scope", "generation_from_current_activation_accepts", "generation_canary_scope_must_equal_activation", "activation_not_current"),
+    edge("lifecycle.tombstone-genesis-anchor", "lifecycle", "lifecycle history genesis equals the external semantic-owner anchor", "deprecation_interval_satisfied", "lifecycle_tombstone_genesis_anchor_mismatch_rejected", "lifecycle_violation"),
+    edge("tombstone-reuse.genesis-anchor", "tombstone_reuse", "internally coherent tombstone history cannot reset the external genesis anchor", "non_tombstoned_identifier_accepts", "tombstone_history_coherent_genesis_reset_rejected", "lifecycle_violation"),
+    edge("tombstone-reuse.authorization-head", "tombstone_reuse", "every removal authorization equals both exact origin and resulting lifecycle head", "non_tombstoned_identifier_accepts", "tombstone_history_coordinated_wrong_authorization_rejected", "lifecycle_violation"),
+    edge("projection.tombstone-genesis-anchor", "projection", "projection history genesis equals the external semantic-owner anchor", "exact_payload_projection_accepts", "projection_tombstone_genesis_anchor_mismatch_rejected", "projection_mismatch"),
 ]
 authority_edge_registry.sort(key=lambda row: row["edge_id"].encode())
 edge_ids_by_rule: dict[str, list[str]] = {}
@@ -5947,12 +6145,67 @@ golden["chain_assertions"].extend([
     {"record": "authority_verifier_input", "instance_path": "/authority_proof_bundle_digest", "equals_record": "authority_proof_bundle"},
 ])
 
-differential = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-revision-v12",
-    "source_case_explicitness_audit": source_case_explicitness_audit,
-    "authority_rule_role_manifest": authority_manifest, "authority_edge_registry": authority_edge_registry,
-    "cases": cases, "raw_json_cases": raw_json_cases}
+JSON_FILE_LIMIT = 16 * 1024 * 1024
+SHARD_TARGET = 12 * 1024 * 1024
+SHARD_GLOB = "differential-fixtures-shard-*.json"
+
+
+def encoded_json(value: object) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def shard_payload(index: int, shard_cases: list[dict], shard_raw_cases: list[dict]) -> dict:
+    return {"schema": "semantic-differential-fixture-shard.v0", "protocol": "semantic-release-v0",
+        "rfc_revision": "semantic-release-revision-v13", "shard_index": index,
+        "cases": shard_cases, "raw_json_cases": shard_raw_cases}
+
+
+def build_shards(all_cases: list[dict], all_raw_cases: list[dict]) -> list[tuple[dict, bytes]]:
+    partitions: list[tuple[list[dict], list[dict]]] = []
+    current_cases: list[dict] = []; current_raw: list[dict] = []
+    units = [("case", row) for row in all_cases] + [("raw", row) for row in all_raw_cases]
+    for kind, row in units:
+        candidate_cases = current_cases + [row] if kind == "case" else current_cases
+        candidate_raw = current_raw + [row] if kind == "raw" else current_raw
+        candidate = encoded_json(shard_payload(len(partitions), candidate_cases, candidate_raw))
+        if len(candidate) > SHARD_TARGET and (current_cases or current_raw):
+            partitions.append((current_cases, current_raw)); current_cases = []; current_raw = []
+            candidate_cases = [row] if kind == "case" else []
+            candidate_raw = [row] if kind == "raw" else []
+            candidate = encoded_json(shard_payload(len(partitions), candidate_cases, candidate_raw))
+        if len(candidate) > SHARD_TARGET: raise ValueError("one differential fixture exceeds the 12 MiB shard target")
+        current_cases, current_raw = candidate_cases, candidate_raw
+    if current_cases or current_raw: partitions.append((current_cases, current_raw))
+    result: list[tuple[dict, bytes]] = []
+    for index, (shard_cases, shard_raw_cases) in enumerate(partitions):
+        payload = shard_payload(index, shard_cases, shard_raw_cases); data = encoded_json(payload)
+        if len(data) > SHARD_TARGET or len(data) >= JSON_FILE_LIMIT: raise ValueError("differential shard size limit exceeded")
+        result.append((payload, data))
+    return result
+
 
 write_schema()
-for path, value in ((ROOT / "golden-fixtures.json", golden), (ROOT / "differential-fixtures.json", differential)):
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-print(f"wrote schema, {len(records)} golden records, {len(authority_manifest['rules'])} manifest rules, {len(authority_edge_registry)} authority edges, and {len(cases)} differential cases")
+shards = build_shards(cases, raw_json_cases)
+for stale in sorted(ROOT.glob(SHARD_GLOB), key=lambda path: path.name.encode()): stale.unlink()
+shard_rows: list[dict] = []
+for index, (_payload, data) in enumerate(shards):
+    name = f"differential-fixtures-shard-{index:03d}.json"
+    (ROOT / name).write_bytes(data)
+    shard_rows.append({"path": name, "byte_length": len(data), "sha256": hashlib.sha256(data).hexdigest(),
+        "case_count": len(_payload["cases"]), "raw_case_count": len(_payload["raw_json_cases"])})
+aggregate_preimage = {"cases": cases, "raw_json_cases": raw_json_cases}
+manifest = {"schema": "semantic-differential-fixture-manifest.v0", "protocol": "semantic-release-v0",
+    "rfc_revision": "semantic-release-revision-v13",
+    "aggregate": {"case_count": len(cases), "raw_case_count": len(raw_json_cases),
+        "sha256": hashlib.sha256(jcs(aggregate_preimage).encode("utf-8")).hexdigest()},
+    "source_case_explicitness_audit": source_case_explicitness_audit,
+    "authority_rule_role_manifest": authority_manifest, "authority_edge_registry": authority_edge_registry,
+    "shards": shard_rows}
+outputs = ((ROOT / "golden-fixtures.json", encoded_json(golden)),
+    (ROOT / "differential-fixtures.json", encoded_json(manifest)))
+for path, data in outputs:
+    if len(data) >= JSON_FILE_LIMIT: raise ValueError(f"{path.name} exceeds the 16 MiB JSON artifact limit")
+    path.write_bytes(data)
+for path in (ROOT / "protocol.schema.json",):
+    if path.stat().st_size >= JSON_FILE_LIMIT: raise ValueError(f"{path.name} exceeds the 16 MiB JSON artifact limit")
+print(f"wrote schema, {len(records)} golden records, {len(authority_manifest['rules'])} manifest rules, {len(authority_edge_registry)} authority edges, {len(cases)} differential cases, and {len(shards)} bounded shards")

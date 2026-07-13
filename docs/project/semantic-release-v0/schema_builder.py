@@ -184,7 +184,9 @@ def build_schema() -> dict[str, Any]:
         "scope_digest": ref("digest"), "revocation_digest": nullable(ref("digest")), "superseded_by_decision_record_digest": nullable(ref("digest")),
         "activation_target_digest": ref("digest"), "evidence_criteria_digest": ref("digest"), "rollback_plan_digest": ref("digest"), "stop_conditions_digest": ref("digest"),
         "ak_decision_reference_digest": ref("digest")})
-    release_action = obj({"kind": {"const": "release"}, "source_manifest_digest": ref("digest"), "candidate_capsule_digest": ref("digest"), "compatibility_report_digest": ref("digest")})
+    release_action = obj({"kind": {"const": "release"}, "coordinate": ref("coordinate"),
+        "source_manifest_digest": ref("digest"), "candidate_capsule_digest": ref("digest"),
+        "compatibility_report_digest": ref("digest")})
     rotation_action = obj({"kind": {"const": "trust_rotation"}, "namespace": ref("namespace"), "old_trust_root_digest": ref("digest"), "new_trust_root_digest": ref("digest"),
         "owner_policy_digest": ref("digest"), "owner_set_digest": ref("digest"), "approval_predicate_digest": ref("digest"),
         "new_trust_root_revision": ref("safeInteger"), "rotation_revision": ref("safeInteger")})
@@ -214,7 +216,8 @@ def build_schema() -> dict[str, Any]:
 
     d["publicationTransaction"] = protocol("semantic-publication-transaction.v0", {
         "transaction_id": ref("identifier"), "operation": {"enum": ["publish", "withdraw", "revoke"]}, "namespace": ref("namespace"), "coordinate": ref("coordinate"),
-        "owner_approval_digest": ref("digest"), "expected_prior_revision": ref("safeInteger"), "expected_prior_head_digest": nullable(ref("digest")), "replay_key_digest": ref("digest"),
+        "owner_approval_digest": ref("digest"), "approved_action": ref("approvalAction"), "approved_action_digest": ref("digest"),
+        "expected_prior_revision": ref("safeInteger"), "expected_prior_head_digest": nullable(ref("digest")), "replay_key_digest": ref("digest"),
         "status_reason_digest": nullable(ref("digest")), "publication_transaction_digest": ref("digest")})
     d["publicationJournal"] = protocol("semantic-publication-journal.v0", {
         "transaction_digest": ref("digest"), "state": {"enum": ["prepared", "committing", "committed", "aborted"]}, "resulting_record_digest": ref("digest"),
@@ -293,16 +296,19 @@ def build_schema() -> dict[str, Any]:
         "superseded_by_activation_receipt_digest": nullable(ref("digest")), "activation_receipt_digest": ref("digest")})
     d["rocsGenerationReceipt"] = protocol("semantic-rocs-generation-receipt.v0", {
         "issuer": ref("issuer"), "claim_scope": {"const": "generated_output_only"}, "activation_receipt_digest": ref("digest"),
-        "activation_head_revision": ref("safeInteger"), "activation_head_digest": ref("digest"), "coordinate": ref("coordinate"), "runtime_identity": ref("toolIdentity"),
+        "activation_head_revision": ref("safeInteger"), "activation_head_digest": ref("digest"),
+        "consumer_repository": ref("v0ConsumerRepositoryIdentity"), "v0_canary_scope": ref("v0CanaryScope"),
+        "coordinate": ref("coordinate"), "runtime_identity": ref("toolIdentity"),
         "request_digest": ref("digest"), "result_digest": ref("digest"), "effective_execution_digest": ref("digest"), "candidate_ids": array(ref("identifier"), 256), "pack_digests": array(ref("digest"), 256),
         "outcome": {"enum": ["matched", "ambiguous", "no_match", "not_applicable", "unavailable"]}, "rocs_generation_receipt_digest": ref("digest")})
 
+    delivery_scope = {"consumer_repository": ref("v0ConsumerRepositoryIdentity"), "v0_canary_scope": ref("v0CanaryScope")}
     delivered = protocol("semantic-pi-delivery-receipt.v0", {"issuer": ref("issuer"), "claim_scope": {"const": "delivered_to_prompt_run_only"}, "rocs_generation_receipt_digest": ref("digest"),
-        "delivery_outcome": {"const": "delivered"}, "prompt_run_digest": ref("digest"), "delivered_effective_execution_digest": ref("digest"), "pi_delivery_receipt_digest": ref("digest")})
+        **delivery_scope, "delivery_outcome": {"const": "delivered"}, "prompt_run_digest": ref("digest"), "delivered_effective_execution_digest": ref("digest"), "pi_delivery_receipt_digest": ref("digest")})
     suppressed = protocol("semantic-pi-delivery-receipt.v0", {"issuer": ref("issuer"), "claim_scope": {"const": "delivery_suppressed_only"}, "rocs_generation_receipt_digest": ref("digest"),
-        "delivery_outcome": {"const": "suppressed"}, "suppression_reason": {"enum": ["cancelled", "stale_result", "policy"]}, "pi_delivery_receipt_digest": ref("digest")})
+        **delivery_scope, "delivery_outcome": {"const": "suppressed"}, "suppression_reason": {"enum": ["cancelled", "stale_result", "policy"]}, "pi_delivery_receipt_digest": ref("digest")})
     failed = protocol("semantic-pi-delivery-receipt.v0", {"issuer": ref("issuer"), "claim_scope": {"const": "delivery_failed_only"}, "rocs_generation_receipt_digest": ref("digest"),
-        "delivery_outcome": {"const": "failed"}, "error_digest": ref("digest"), "pi_delivery_receipt_digest": ref("digest")})
+        **delivery_scope, "delivery_outcome": {"const": "failed"}, "error_digest": ref("digest"), "pi_delivery_receipt_digest": ref("digest")})
     d["piDeliveryReceipt"] = {"oneOf": [delivered, suppressed, failed]}
     d["akEvidenceLinkage"] = protocol("semantic-ak-evidence-linkage.v0", {
         "issuer": ref("issuer"), "claim_scope": {"const": "lineage_linkage_only"}, "task_reference_digest": ref("digest"), "decision_reference_digest": ref("digest"),
@@ -391,6 +397,10 @@ def build_schema() -> dict[str, Any]:
     d["lifecycleTombstoneHead"] = obj({
         "namespace": ref("namespace"), "lifecycle_head_digest": ref("digest"),
         "tombstone_registry_digest": ref("digest"), "tombstone_registry_revision": ref("safeInteger")})
+    d["tombstoneGenesisAnchor"] = obj({
+        "semantic_owner_id": {"const": "semantic-owner"}, "namespace": ref("namespace"),
+        "genesis_registry_digest": ref("digest"), "genesis_registry_revision": {"const": 1},
+        "genesis_lifecycle_head_digest": ref("digest")})
     fact_value_variants = [
         obj({"kind": {"const": "null"}}),
         obj({"kind": {"const": "digest"}, "value": nullable(ref("digest"))}),
@@ -412,6 +422,7 @@ def build_schema() -> dict[str, Any]:
         obj({"kind": {"const": "ak_task_state_list"}, "value": array(ref("akTaskState"), 10000)}),
         obj({"kind": {"const": "owner_vote_proof"}, "value": ref("ownerVoteProofFact")}),
         obj({"kind": {"const": "lifecycle_tombstone_head"}, "value": ref("lifecycleTombstoneHead")}),
+        obj({"kind": {"const": "tombstone_genesis_anchor"}, "value": ref("tombstoneGenesisAnchor")}),
     ]
     d["authorityFactValue"] = {"oneOf": fact_value_variants}
     authority_categories = ["semantic_trust", "semantic_revocation", "semantic_publication", "semantic_lifecycle", "semantic_vote",
@@ -494,7 +505,7 @@ def build_schema() -> dict[str, Any]:
         "required_roles": array(ref("identifier"), 1000), "role_mappings": array(ref("authorityRoleMapping"), 1000),
         "edge_ids": array(ref("identifier"), 1000), "role_edge_links": array(ref("authorityRoleEdgeLink"), 1000)})
     d["authorityRuleRoleManifest"] = protocol("semantic-authority-rule-role-manifest.v0", {
-        "revision": {"const": "semantic-release-revision-v12"}, "rules": array(ref("authorityRuleManifestEntry"), 1000, 1),
+        "revision": {"const": "semantic-release-revision-v13"}, "rules": array(ref("authorityRuleManifestEntry"), 1000, 1),
         "authority_rule_role_manifest_digest": ref("digest")})
     d["authorityVerifierInput"] = protocol("semantic-authority-verifier-input.v0", {
         "rule": ref("identifier"), "subject_schema": ref("identifier"), "subject_digest": ref("digest"),
@@ -507,7 +518,7 @@ def build_schema() -> dict[str, Any]:
     top = [*artifact_top, "ownerAcquisitionPin", "authorityAcquisitionConfig", "ownerStoreReadReceipt", "authoritySnapshot",
         "authorityRuleRoleManifest", "authorityProofBundle", "authorityVerifierInput"]
     return {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://ai-society.local/rocs/semantic-release-v0/protocol.schema.json",
-            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 12", "oneOf": [ref(name) for name in top], "$defs": d}
+            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 13", "oneOf": [ref(name) for name in top], "$defs": d}
 
 
 def write_schema() -> None:

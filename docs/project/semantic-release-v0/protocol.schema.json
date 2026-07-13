@@ -510,6 +510,9 @@
             "compatibility_report_digest": {
               "$ref": "#/$defs/digest"
             },
+            "coordinate": {
+              "$ref": "#/$defs/coordinate"
+            },
             "kind": {
               "const": "release"
             },
@@ -519,6 +522,7 @@
           },
           "required": [
             "kind",
+            "coordinate",
             "source_manifest_digest",
             "candidate_capsule_digest",
             "compatibility_report_digest"
@@ -1344,6 +1348,22 @@
             "value"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "tombstone_genesis_anchor"
+            },
+            "value": {
+              "$ref": "#/$defs/tombstoneGenesisAnchor"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -1701,7 +1721,7 @@
           "$ref": "#/$defs/digest"
         },
         "revision": {
-          "const": "semantic-release-revision-v12"
+          "const": "semantic-release-revision-v13"
         },
         "rules": {
           "items": {
@@ -3922,6 +3942,9 @@
             "claim_scope": {
               "const": "delivered_to_prompt_run_only"
             },
+            "consumer_repository": {
+              "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
+            },
             "delivered_effective_execution_digest": {
               "$ref": "#/$defs/digest"
             },
@@ -3942,6 +3965,9 @@
             },
             "schema": {
               "const": "semantic-pi-delivery-receipt.v0"
+            },
+            "v0_canary_scope": {
+              "$ref": "#/$defs/v0CanaryScope"
             }
           },
           "required": [
@@ -3949,6 +3975,8 @@
             "issuer",
             "claim_scope",
             "rocs_generation_receipt_digest",
+            "consumer_repository",
+            "v0_canary_scope",
             "delivery_outcome",
             "prompt_run_digest",
             "delivered_effective_execution_digest",
@@ -3961,6 +3989,9 @@
           "properties": {
             "claim_scope": {
               "const": "delivery_suppressed_only"
+            },
+            "consumer_repository": {
+              "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
             },
             "delivery_outcome": {
               "const": "suppressed"
@@ -3983,6 +4014,9 @@
                 "stale_result",
                 "policy"
               ]
+            },
+            "v0_canary_scope": {
+              "$ref": "#/$defs/v0CanaryScope"
             }
           },
           "required": [
@@ -3990,6 +4024,8 @@
             "issuer",
             "claim_scope",
             "rocs_generation_receipt_digest",
+            "consumer_repository",
+            "v0_canary_scope",
             "delivery_outcome",
             "suppression_reason",
             "pi_delivery_receipt_digest"
@@ -4001,6 +4037,9 @@
           "properties": {
             "claim_scope": {
               "const": "delivery_failed_only"
+            },
+            "consumer_repository": {
+              "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
             },
             "delivery_outcome": {
               "const": "failed"
@@ -4019,6 +4058,9 @@
             },
             "schema": {
               "const": "semantic-pi-delivery-receipt.v0"
+            },
+            "v0_canary_scope": {
+              "$ref": "#/$defs/v0CanaryScope"
             }
           },
           "required": [
@@ -4026,6 +4068,8 @@
             "issuer",
             "claim_scope",
             "rocs_generation_receipt_digest",
+            "consumer_repository",
+            "v0_canary_scope",
             "delivery_outcome",
             "error_digest",
             "pi_delivery_receipt_digest"
@@ -4786,6 +4830,12 @@
     "publicationTransaction": {
       "additionalProperties": false,
       "properties": {
+        "approved_action": {
+          "$ref": "#/$defs/approvalAction"
+        },
+        "approved_action_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "coordinate": {
           "$ref": "#/$defs/coordinate"
         },
@@ -4845,6 +4895,8 @@
         "namespace",
         "coordinate",
         "owner_approval_digest",
+        "approved_action",
+        "approved_action_digest",
         "expected_prior_revision",
         "expected_prior_head_digest",
         "replay_key_digest",
@@ -5035,6 +5087,9 @@
         "claim_scope": {
           "const": "generated_output_only"
         },
+        "consumer_repository": {
+          "$ref": "#/$defs/v0ConsumerRepositoryIdentity"
+        },
         "coordinate": {
           "$ref": "#/$defs/coordinate"
         },
@@ -5075,6 +5130,9 @@
         },
         "schema": {
           "const": "semantic-rocs-generation-receipt.v0"
+        },
+        "v0_canary_scope": {
+          "$ref": "#/$defs/v0CanaryScope"
         }
       },
       "required": [
@@ -5084,6 +5142,8 @@
         "activation_receipt_digest",
         "activation_head_revision",
         "activation_head_digest",
+        "consumer_repository",
+        "v0_canary_scope",
         "coordinate",
         "runtime_identity",
         "request_digest",
@@ -6163,6 +6223,34 @@
       ],
       "type": "object"
     },
+    "tombstoneGenesisAnchor": {
+      "additionalProperties": false,
+      "properties": {
+        "genesis_lifecycle_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "genesis_registry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "genesis_registry_revision": {
+          "const": 1
+        },
+        "namespace": {
+          "$ref": "#/$defs/namespace"
+        },
+        "semantic_owner_id": {
+          "const": "semantic-owner"
+        }
+      },
+      "required": [
+        "semantic_owner_id",
+        "namespace",
+        "genesis_registry_digest",
+        "genesis_registry_revision",
+        "genesis_lifecycle_head_digest"
+      ],
+      "type": "object"
+    },
     "tombstoneHistoryDelta": {
       "additionalProperties": false,
       "properties": {
@@ -6810,5 +6898,5 @@
       "$ref": "#/$defs/authorityVerifierInput"
     }
   ],
-  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 12"
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 13"
 }
