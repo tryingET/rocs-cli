@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministically regenerate revision-3 schema and normative fixtures."""
+"""Deterministically regenerate revision-4 schema and normative fixtures."""
 
 from __future__ import annotations
 
@@ -167,8 +167,9 @@ owner_approval = add("owner_approval", {"schema": "semantic-owner-approval.v0", 
     "approval_predicate_digest": d("approval_predicate"), "action": release_action, "action_digest": release_action_digest,
     "votes": [{"owner_id": "owner-a", "owner_key_id": "owner-a-key-3", "approved_action_digest": release_action_digest, "approval_proof_digest": raw("vote-release-a")},
               {"owner_id": "owner-b", "owner_key_id": "owner-b-key-2", "approved_action_digest": release_action_digest, "approval_proof_digest": raw("vote-release-b")}], "decision_reference_digest": d("owner_ak_decision")})
-rotation_action = {"kind": "trust_rotation", "old_trust_root_digest": d("trust_root"), "new_trust_root_digest": d("rotated_trust_root"),
-    "owner_policy_digest": d("owner_policy"), "new_trust_root_revision": 6, "rotation_revision": 6}
+rotation_action = {"kind": "trust_rotation", "namespace": "ai-society.core", "old_trust_root_digest": d("trust_root"), "new_trust_root_digest": d("rotated_trust_root"),
+    "owner_policy_digest": d("owner_policy"), "owner_set_digest": d("owner_set"), "approval_predicate_digest": d("approval_predicate"),
+    "new_trust_root_revision": 6, "rotation_revision": 6}
 rotation_action_digest = action_digest(rotation_action)
 rotation_approval = add("rotation_approval", {"schema": "semantic-owner-approval.v0", "namespace": "ai-society.core", "owner_policy_digest": d("owner_policy"), "owner_set_digest": d("owner_set"),
     "approval_predicate_digest": d("approval_predicate"), "action": rotation_action, "action_digest": rotation_action_digest,
@@ -176,7 +177,8 @@ rotation_approval = add("rotation_approval", {"schema": "semantic-owner-approval
               {"owner_id": "owner-b", "owner_key_id": "owner-b-key-2", "approved_action_digest": rotation_action_digest, "approval_proof_digest": raw("vote-rotation-b")}], "decision_reference_digest": d("owner_ak_decision")})
 rotation = add("trust_rotation", {"schema": "semantic-trust-rotation.v0", "namespace": "ai-society.core", "old_trust_root_id": trust_root["trust_root_id"],
     "old_trust_root_revision": 5, "old_trust_root_digest": d("trust_root"), "new_trust_root_id": new_trust_root["trust_root_id"], "new_trust_root_revision": 6,
-    "new_trust_root_digest": d("rotated_trust_root"), "owner_policy_digest": d("owner_policy"), "approval_digest": d("rotation_approval"), "rotation_revision": 6})
+    "new_trust_root_digest": d("rotated_trust_root"), "owner_policy_digest": d("owner_policy"), "owner_set_digest": d("owner_set"),
+    "approval_predicate_digest": d("approval_predicate"), "approval_digest": d("rotation_approval"), "rotation_revision": 6})
 revocation_action = {"kind": "trust_revocation", "target_kind": "owner_key", "target_digest": raw("compromised-key"), "effective_ledger_revision": 3,
     "reason_digest": raw("compromise-reason"), "prior_revocation_digest": None, "revocation_revision": 1}
 revocation_action_digest = action_digest(revocation_action)
@@ -187,8 +189,9 @@ revocation_approval = add("revocation_approval", {"schema": "semantic-owner-appr
 revocation = add("trust_revocation", {"schema": "semantic-trust-revocation.v0", "namespace": "ai-society.core", "revocation_revision": 1,
     "target_kind": "owner_key", "target_digest": revocation_action["target_digest"], "effective_ledger_revision": 3, "reason_digest": revocation_action["reason_digest"],
     "owner_approval_digest": d("revocation_approval"), "prior_revocation_digest": None})
-override_action = {"kind": "compatibility_override", "compatibility_policy_digest": d("compatibility_policy"), "change_digest": change_digest(unknown_change),
-    "to_classification": "conditionally_compatible", "semver_effect_floor": "minor", "condition_id": override_condition["condition_id"]}
+override_action = {"kind": "compatibility_override", "namespace": "ai-society.core", "compatibility_policy_digest": d("compatibility_policy"),
+    "change": unknown_change, "change_digest": change_digest(unknown_change), "from_classification": "unknown", "from_semver_effect": "unknown",
+    "to_classification": "conditionally_compatible", "semver_effect_floor": "major", "condition": override_condition}
 override_action_digest = action_digest(override_action)
 override_approval = add("override_approval", {"schema": "semantic-owner-approval.v0", "namespace": "ai-society.core", "owner_policy_digest": d("owner_policy"), "owner_set_digest": d("owner_set"),
     "approval_predicate_digest": d("approval_predicate"), "action": override_action, "action_digest": override_action_digest,
@@ -196,10 +199,10 @@ override_approval = add("override_approval", {"schema": "semantic-owner-approval
               {"owner_id": "owner-b", "owner_key_id": "owner-b-key-2", "approved_action_digest": override_action_digest, "approval_proof_digest": raw("vote-override-b")}], "decision_reference_digest": d("owner_ak_decision")})
 override = add("compatibility_override", {"schema": "semantic-compatibility-override.v0", "namespace": "ai-society.core", "compatibility_policy_digest": d("compatibility_policy"),
     "change": unknown_change, "change_digest": change_digest(unknown_change), "from_classification": "unknown", "from_semver_effect": "unknown",
-    "to_classification": "conditionally_compatible", "semver_effect_floor": "minor", "condition": override_condition, "owner_approval_digest": d("override_approval")})
-overridden_report = add("overridden_compatibility_report", {"schema": "semantic-compatibility-report.v0", "namespace": "ai-society.core", "prior_coordinate": predecessor, "candidate_version": "1.1.0",
+    "to_classification": "conditionally_compatible", "semver_effect_floor": "major", "condition": override_condition, "owner_approval_digest": d("override_approval")})
+overridden_report = add("overridden_compatibility_report", {"schema": "semantic-compatibility-report.v0", "namespace": "ai-society.core", "prior_coordinate": predecessor, "candidate_version": "2.0.0",
     "compatibility_policy_digest": d("compatibility_policy"), "changes": [unknown_change], "conditions": [], "classification": "conditionally_compatible",
-    "required_semver_effect": "minor", "override_digests": [d("compatibility_override")]})
+    "required_semver_effect": "major", "override_digests": [d("compatibility_override")]})
 build = add("build_receipt", {"schema": "semantic-build-receipt.v0", "source_manifest_digest": d("source_manifest"), "compilation_contract_digest": capsule["compilation_contract_digest"], "tool_identity": rocs_tool,
     "payload_manifest_digest": d("payload_manifest"), "payload_projection_digest": d("payload_projection"), "capsule_archive_linkage_digest": d("capsule_archive_linkage"),
     "semantic_payload_digest": capsule["semantic_payload_digest"], "compatibility_report_digest": d("compatibility_report"), "candidate_capsule_digest": d("capsule"), "reproducible": True})
@@ -286,44 +289,81 @@ ak_generation_only = add("ak_generation_only_linkage", {"schema": "semantic-ak-e
     "rocs_generation_receipt_digest": d("rocs_generation_receipt"), "pi_delivery_receipt_digest": None, "empirical_outcome_reference_digest": None})
 
 active_state = {"enabled": True, "coordinate": coordinate, "runtime_identity": rocs_tool}
+activation_head = {"kind": "activation", "digest": d("activation_receipt")}
+def availability(name: str, request: dict, **fields: object) -> dict:
+    base = {"schema": "semantic-rollback-availability-proof.v0", "rollback_request_digest": request["rollback_request_digest"], "target_kind": request["target"]["kind"],
+        "canonical_activation_digest": d("activation_receipt"), "recovery_runtime_identity": request["recovery_runtime_identity"], "recovery_runtime_available": True,
+        "semantic_materialization_receipt_digest": None, "semantic_coordinate": None, "runtime_materialization_receipt_digest": None,
+        "runtime_identity": None, "runtime_revalidation_receipt_digest": None, "disable_contract_digest": None, "rehearsal_receipt_digest": None}
+    base.update(fields)
+    return add(name, base)
+
+def history(name: str, request: dict, result: str, after: dict, stages: list[dict], failure_stage: str | None, error_digest: str | None, supersedes: str | None) -> dict:
+    return add(name, {"schema": "semantic-rollback-history-transition.v0", "rollback_request_digest": request["rollback_request_digest"], "result": result,
+        "active_state_before": active_state, "active_state_after": after, "stages": stages, "failure_stage": failure_stage, "error_digest": error_digest,
+        "history_head_before": activation_head, "supersedes_activation_receipt_digest": supersedes})
+
 semantic_request = add("semantic_rollback_request", {"schema": "semantic-rollback-request.v0", "issuer": {"kind": "consumer_owner", "id": "consumer-owner"}, "active_activation_receipt_digest": d("activation_receipt"),
     "from_state": active_state, "target": semantic_target, "recovery_runtime_identity": recovery_tool, "owner_decision_reference_digest": d("consumer_ak_decision"), "precondition_digest": raw("semantic-preconditions")})
+semantic_availability = availability("semantic_rollback_availability", semantic_request, semantic_materialization_receipt_digest=semantic_target["target_materialization_receipt_digest"], semantic_coordinate=predecessor)
+semantic_after = {"enabled": True, "coordinate": predecessor, "runtime_identity": rocs_tool}; semantic_stages = [{"stage": "semantic", "result": "completed", "error_digest": None}]
+semantic_history = history("semantic_rollback_history", semantic_request, "rolled_back", semantic_after, semantic_stages, None, None, d("activation_receipt"))
 semantic_receipt = add("semantic_rollback_receipt", {"schema": "semantic-rollback-receipt.v0", "issuer": {"kind": "recovery_controller", "id": "recovery"}, "rollback_request_digest": d("semantic_rollback_request"),
-    "request_target_kind": "semantic", "result": "rolled_back", "stage_order": None, "active_state_before": active_state, "active_state_after": {"enabled": True, "coordinate": predecessor, "runtime_identity": rocs_tool},
-    "availability_proof_digest": raw("semantic-available"), "runtime_revalidation_receipt_digest": None,
-    "stages": [{"stage": "semantic", "result": "completed", "error_digest": None}], "history_head_before": {"kind": "activation", "digest": d("activation_receipt")},
-    "history_head_after": {"kind": "rollback", "digest": raw("semantic-history-after")}, "error_digest": None, "supersedes_activation_receipt_digest": d("activation_receipt"),
-    "ak_evidence_linkage_digest": d("ak_evidence_linkage"), "pi_delivery_receipt_digest": d("pi_delivery_delivered")})
+    "request_target_kind": "semantic", "result": "rolled_back", "stage_order": None, "active_state_before": active_state, "active_state_after": semantic_after,
+    "availability_proof_digest": d("semantic_rollback_availability"), "runtime_revalidation_receipt_digest": None, "stages": semantic_stages, "failure_stage": None,
+    "history_head_before": activation_head, "history_head_after": {"kind": "rollback", "digest": d("semantic_rollback_history")}, "error_digest": None,
+    "supersedes_activation_receipt_digest": d("activation_receipt"), "ak_evidence_linkage_digest": d("ak_evidence_linkage"), "pi_delivery_receipt_digest": d("pi_delivery_delivered")})
 runtime_request = add("runtime_rollback_request", {"schema": "semantic-rollback-request.v0", "issuer": {"kind": "consumer_owner", "id": "consumer-owner"}, "active_activation_receipt_digest": d("activation_receipt"),
     "from_state": active_state, "target": runtime_target, "recovery_runtime_identity": recovery_tool, "owner_decision_reference_digest": d("consumer_ak_decision"), "precondition_digest": raw("runtime-preconditions")})
+runtime_availability = availability("runtime_rollback_availability", runtime_request, runtime_materialization_receipt_digest=runtime_target["target_materialization_receipt_digest"], runtime_identity=old_runtime, runtime_revalidation_receipt_digest=runtime_target["runtime_revalidation_receipt_digest"])
+runtime_after = {"enabled": True, "coordinate": coordinate, "runtime_identity": old_runtime}; runtime_stages = [{"stage": "runtime", "result": "completed", "error_digest": None}]
+runtime_history = history("runtime_rollback_history", runtime_request, "rolled_back", runtime_after, runtime_stages, None, None, d("activation_receipt"))
 runtime_receipt = add("runtime_rollback_receipt", {"schema": "semantic-rollback-receipt.v0", "issuer": {"kind": "recovery_controller", "id": "recovery"}, "rollback_request_digest": d("runtime_rollback_request"),
-    "request_target_kind": "runtime", "result": "rolled_back", "stage_order": None, "active_state_before": active_state, "active_state_after": {"enabled": True, "coordinate": coordinate, "runtime_identity": old_runtime},
-    "availability_proof_digest": runtime_target["runtime_revalidation_receipt_digest"], "runtime_revalidation_receipt_digest": runtime_target["runtime_revalidation_receipt_digest"],
-    "stages": [{"stage": "runtime", "result": "completed", "error_digest": None}], "history_head_before": {"kind": "activation", "digest": d("activation_receipt")},
-    "history_head_after": {"kind": "rollback", "digest": raw("runtime-history-after")}, "error_digest": None, "supersedes_activation_receipt_digest": d("activation_receipt"),
-    "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
+    "request_target_kind": "runtime", "result": "rolled_back", "stage_order": None, "active_state_before": active_state, "active_state_after": runtime_after,
+    "availability_proof_digest": d("runtime_rollback_availability"), "runtime_revalidation_receipt_digest": runtime_target["runtime_revalidation_receipt_digest"], "stages": runtime_stages, "failure_stage": None,
+    "history_head_before": activation_head, "history_head_after": {"kind": "rollback", "digest": d("runtime_rollback_history")}, "error_digest": None,
+    "supersedes_activation_receipt_digest": d("activation_receipt"), "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
 disable_request = add("disable_rollback_request", {"schema": "semantic-rollback-request.v0", "issuer": {"kind": "consumer_owner", "id": "consumer-owner"}, "active_activation_receipt_digest": d("activation_receipt"),
     "from_state": active_state, "target": disable_target, "recovery_runtime_identity": recovery_tool, "owner_decision_reference_digest": d("consumer_ak_decision"), "precondition_digest": raw("disable-preconditions")})
+disable_availability = availability("disable_rollback_availability", disable_request, disable_contract_digest=disable_target["disable_contract_digest"], rehearsal_receipt_digest=disable_target["rehearsal_receipt_digest"])
+disable_after = {"enabled": False, "coordinate": None, "runtime_identity": rocs_tool}; disable_stages = [{"stage": "disable", "result": "completed", "error_digest": None}]
+disable_history = history("disable_rollback_history", disable_request, "disabled", disable_after, disable_stages, None, None, d("activation_receipt"))
 disable_receipt = add("disable_rollback_receipt", {"schema": "semantic-rollback-receipt.v0", "issuer": {"kind": "recovery_controller", "id": "recovery"}, "rollback_request_digest": d("disable_rollback_request"),
-    "request_target_kind": "no_prior_disable", "result": "disabled", "stage_order": None, "active_state_before": active_state, "active_state_after": {"enabled": False, "coordinate": None, "runtime_identity": rocs_tool},
-    "availability_proof_digest": disable_target["rehearsal_receipt_digest"], "runtime_revalidation_receipt_digest": None,
-    "stages": [{"stage": "disable", "result": "completed", "error_digest": None}], "history_head_before": {"kind": "activation", "digest": d("activation_receipt")},
-    "history_head_after": {"kind": "disable", "digest": raw("disable-history-after")}, "error_digest": None, "supersedes_activation_receipt_digest": d("activation_receipt"),
-    "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
+    "request_target_kind": "no_prior_disable", "result": "disabled", "stage_order": None, "active_state_before": active_state, "active_state_after": disable_after,
+    "availability_proof_digest": d("disable_rollback_availability"), "runtime_revalidation_receipt_digest": None, "stages": disable_stages, "failure_stage": None,
+    "history_head_before": activation_head, "history_head_after": {"kind": "disable", "digest": d("disable_rollback_history")}, "error_digest": None,
+    "supersedes_activation_receipt_digest": d("activation_receipt"), "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
 combined_request = add("combined_rollback_request", {"schema": "semantic-rollback-request.v0", "issuer": {"kind": "consumer_owner", "id": "consumer-owner"}, "active_activation_receipt_digest": d("activation_receipt"),
     "from_state": active_state, "target": combined_target, "recovery_runtime_identity": recovery_tool, "owner_decision_reference_digest": d("consumer_ak_decision"), "precondition_digest": raw("combined-preconditions")})
+combined_availability = availability("combined_rollback_availability", combined_request, semantic_materialization_receipt_digest=semantic_target["target_materialization_receipt_digest"], semantic_coordinate=predecessor,
+    runtime_materialization_receipt_digest=runtime_target["target_materialization_receipt_digest"], runtime_identity=old_runtime, runtime_revalidation_receipt_digest=runtime_target["runtime_revalidation_receipt_digest"])
+partial_error = raw("runtime-stage-error"); partial_after = semantic_after
+partial_stages = [{"stage": "semantic", "result": "completed", "error_digest": None}, {"stage": "runtime", "result": "failed", "error_digest": partial_error}]
+partial_history = history("combined_partial_history", combined_request, "partial_failure", partial_after, partial_stages, "runtime", partial_error, None)
 partial_receipt = add("combined_partial_failure_receipt", {"schema": "semantic-rollback-receipt.v0", "issuer": {"kind": "recovery_controller", "id": "recovery"}, "rollback_request_digest": d("combined_rollback_request"),
-    "request_target_kind": "combined", "result": "partial_failure", "stage_order": "semantic_then_runtime", "active_state_before": active_state,
-    "active_state_after": {"enabled": True, "coordinate": predecessor, "runtime_identity": rocs_tool}, "availability_proof_digest": raw("partial-availability"),
-    "runtime_revalidation_receipt_digest": None, "stages": [{"stage": "semantic", "result": "completed", "error_digest": None}, {"stage": "runtime", "result": "failed", "error_digest": raw("runtime-stage-error")}],
-    "history_head_before": {"kind": "activation", "digest": d("activation_receipt")}, "history_head_after": {"kind": "rollback", "digest": raw("partial-history-after")},
-    "error_digest": raw("combined-partial-error"), "supersedes_activation_receipt_digest": None, "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
+    "request_target_kind": "combined", "result": "partial_failure", "stage_order": "semantic_then_runtime", "active_state_before": active_state, "active_state_after": partial_after,
+    "availability_proof_digest": d("combined_rollback_availability"), "runtime_revalidation_receipt_digest": None, "stages": partial_stages, "failure_stage": "runtime",
+    "history_head_before": activation_head, "history_head_after": {"kind": "rollback", "digest": d("combined_partial_history")}, "error_digest": partial_error,
+    "supersedes_activation_receipt_digest": None, "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
+failed_error = raw("semantic-stage-error")
 failed_receipt = add("failed_rollback_receipt", {"schema": "semantic-rollback-receipt.v0", "issuer": {"kind": "recovery_controller", "id": "recovery"}, "rollback_request_digest": d("semantic_rollback_request"),
     "request_target_kind": "semantic", "result": "failed", "stage_order": None, "active_state_before": active_state, "active_state_after": active_state,
-    "availability_proof_digest": raw("failed-availability"), "runtime_revalidation_receipt_digest": None,
-    "stages": [{"stage": "semantic", "result": "failed", "error_digest": raw("semantic-stage-error")}], "history_head_before": {"kind": "activation", "digest": d("activation_receipt")},
-    "history_head_after": {"kind": "activation", "digest": d("activation_receipt")}, "error_digest": raw("rollback-error"), "supersedes_activation_receipt_digest": None,
-    "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
+    "availability_proof_digest": d("semantic_rollback_availability"), "runtime_revalidation_receipt_digest": None,
+    "stages": [{"stage": "semantic", "result": "failed", "error_digest": failed_error}], "failure_stage": "semantic", "history_head_before": activation_head,
+    "history_head_after": activation_head, "error_digest": failed_error, "supersedes_activation_receipt_digest": None, "ak_evidence_linkage_digest": None, "pi_delivery_receipt_digest": None})
+ak_coordination_contract = add("ak_coordination_task_contract", {"schema": "semantic-non-authorizing-task-contract.v0", "task_contract_id": "decision-53-ak-coordination",
+    "task_kind": "ak_coordination", "repository": "softwareco/owned/agent-kernel", "allowed_paths": [],
+    "required_evidence": ["accepted-decision-reference", "deterministic-rerun", "docs-strict", "node-validator", "owner-task-references", "python-validator", "rollback-rehearsal"],
+    "rollback_owner": {"kind": "ak", "id": "agent-kernel-owner"},
+    "stop_conditions": ["attempted-owner-substitution", "attempted-use-as-authorization", "missing-owner-task", "scope-drift", "stale-or-revoked-decision", "store-head-drift"],
+    "authority_scope": "coordination_only", "authorizes_execution": False, "authorizes_publication": False, "authorizes_adoption": False, "contract_status": "candidate_not_created"})
+consumer_canary_contract = add("first_consumer_task_contract", {"schema": "semantic-non-authorizing-task-contract.v0", "task_contract_id": "decision-53-first-consumer-canary",
+    "task_kind": "first_consumer", "repository": "softwareco/pi-canary-consumer",
+    "allowed_paths": ["config/semantic-release/canary.json", "docs/project/semantic-release-canary-evidence.md", "scripts/ci/semantic-release-canary.sh"],
+    "required_evidence": ["activation-receipt", "canary-evidence", "consumer-intent-and-acceptance", "exact-materialization-receipt", "rollback-availability-proof", "rollback-history-and-rehearsal", "scoped-gate-decision"],
+    "rollback_owner": {"kind": "consumer_owner", "id": "consumer-owner"},
+    "stop_conditions": ["failed-validator", "missing-owner-consent", "missing-rollback-rehearsal", "projection-or-issuer-drift", "scope-beyond-named-canary", "stale-head-or-trust", "target-or-recovery-unavailable", "unknown-or-incompatible"],
+    "authority_scope": "consumer_owner_candidate_only", "authorizes_execution": False, "authorizes_publication": False, "authorizes_adoption": False, "contract_status": "candidate_not_created"})
 audit = add("audit_envelope", {"schema": "semantic-audit-envelope.v0", "artifact_schema": "semantic-rollback-receipt.v0", "artifact_digest": d("semantic_rollback_receipt"), "event": "rolled_back",
     "recorded_at": "2026-07-13T12:30:45Z", "issuer": {"kind": "ak", "id": "agent-kernel"}, "audit_sequence": 9, "previous_audit_envelope_digest": raw("audit-8")})
 error = add("error_envelope", {"schema": "semantic-protocol-error.v0", "code": "digest_mismatch", "stage": "validate", "retryable": False, "related_artifact_digest": d("capsule"),
@@ -344,7 +384,7 @@ links = [
     ("pi_delivery_delivered", "/rocs_generation_receipt_digest", "rocs_generation_receipt"), ("ak_evidence_linkage", "/pi_delivery_receipt_digest", "pi_delivery_delivered"),
     ("semantic_rollback_receipt", "/rollback_request_digest", "semantic_rollback_request"), ("audit_envelope", "/artifact_digest", "semantic_rollback_receipt")]
 
-golden = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-revision-v3", "canonicalization": "RFC8785 JCS after raw-token duplicate-free UTF-8 canonical-integer-only I-JSON validation",
+golden = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-revision-v4", "canonicalization": "RFC8785 JCS after raw-token duplicate-free UTF-8 canonical-integer-only I-JSON validation",
     "digest_construction": "sha256(UTF8(domain) || 0x00 || preimage)", "raw_preimages": [
         {"name": "raw_blob_example", "domain": "semantic-release.raw-blob.v0", "preimage_utf8": "agent-source", "digest": raw("agent-source")},
         {"name": "semantic_payload_example", "domain": "semantic-release.semantic-payload.v0", "preimage_utf8": "semantic-payload-1.1", "digest": raw("semantic-payload-1.1", "semantic-release.semantic-payload.v0")}],
@@ -353,14 +393,19 @@ golden = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-r
 # Differential fixtures include accepted transitions as well as adversarial failures.
 cases: list[dict] = []
 insufficient = variant(owner_approval, votes=owner_approval["votes"][:1])
-revoked_vote_context = {"owner_set": variant(owner_set, members=[owner_set["members"][0], {**owner_set["members"][1], "status": "revoked", "revocation_digest": raw("key-revoked")}, owner_set["members"][2]]), "predicate": predicate}
+revoked_vote_context = {"owner_set": variant(owner_set, members=[owner_set["members"][0], {**owner_set["members"][1], "status": "revoked", "revocation_digest": raw("key-revoked")}, owner_set["members"][2]]), "predicate": predicate, "policy": owner_policy}
+# Policy is rebound to the adversarial set so revocation, rather than digest drift, remains the tested failure.
+revoked_vote_context["policy"] = variant(owner_policy, owner_set_digest=revoked_vote_context["owner_set"]["owner_set_digest"])
+revoked_vote_subject = variant(owner_approval, owner_policy_digest=revoked_vote_context["policy"]["owner_policy_digest"], owner_set_digest=revoked_vote_context["owner_set"]["owner_set_digest"])
 unanimous_predicate = variant(predicate, mode="unanimous", threshold=3)
-unanimous_approval = variant(owner_approval, approval_predicate_digest=unanimous_predicate["approval_predicate_digest"], votes=owner_approval["votes"] + [
+unanimous_policy = variant(owner_policy, approval_predicate_digest=unanimous_predicate["approval_predicate_digest"])
+unanimous_approval = variant(owner_approval, owner_policy_digest=unanimous_policy["owner_policy_digest"], approval_predicate_digest=unanimous_predicate["approval_predicate_digest"], votes=owner_approval["votes"] + [
     {"owner_id": "owner-c", "owner_key_id": "owner-c-key-1", "approved_action_digest": release_action_digest, "approval_proof_digest": raw("vote-release-c")}])
 bad_unanimous_predicate = variant(unanimous_predicate, threshold=2)
-bad_unanimous_approval = variant(unanimous_approval, approval_predicate_digest=bad_unanimous_predicate["approval_predicate_digest"])
-rotation_context = {"current_root_digest": d("trust_root"), "old_root": trust_root, "new_root": new_trust_root, "approval": rotation_approval, "policy": owner_policy, "revoked": []}
-revocation_context = {"approval": revocation_approval, "policy": owner_policy, "prior_revision": 0, "prior_head": None}
+bad_unanimous_policy = variant(owner_policy, approval_predicate_digest=bad_unanimous_predicate["approval_predicate_digest"])
+bad_unanimous_approval = variant(unanimous_approval, owner_policy_digest=bad_unanimous_policy["owner_policy_digest"], approval_predicate_digest=bad_unanimous_predicate["approval_predicate_digest"])
+rotation_context = {"current_root_digest": d("trust_root"), "old_root": trust_root, "new_root": new_trust_root, "approval": rotation_approval, "policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "revoked": []}
+revocation_context = {"approval": revocation_approval, "policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "prior_revision": 0, "prior_head": None}
 root_revocation_action = {"kind": "trust_revocation", "target_kind": "trust_root", "target_digest": d("trust_root"), "effective_ledger_revision": 4,
     "reason_digest": raw("root-revocation-reason"), "prior_revocation_digest": d("trust_revocation"), "revocation_revision": 2}
 root_revocation_action_digest = action_digest(root_revocation_action)
@@ -368,19 +413,26 @@ root_revocation_approval = variant(revocation_approval, action=root_revocation_a
     votes=[{**vote, "approved_action_digest": root_revocation_action_digest} for vote in revocation_approval["votes"]])
 root_revocation = variant(revocation, revocation_revision=2, target_kind="trust_root", target_digest=d("trust_root"), effective_ledger_revision=4,
     reason_digest=root_revocation_action["reason_digest"], owner_approval_digest=root_revocation_approval["owner_approval_digest"], prior_revocation_digest=d("trust_revocation"))
-root_revocation_context = {"approval": root_revocation_approval, "policy": owner_policy, "prior_revision": 1, "prior_head": d("trust_revocation")}
+root_revocation_context = {"approval": root_revocation_approval, "policy": owner_policy, "owner_set": owner_set, "predicate": predicate, "prior_revision": 1, "prior_head": d("trust_revocation")}
 reordered_approval = variant(owner_approval, votes=list(reversed(owner_approval["votes"])))
 cases += [
-    case("threshold_two_of_three_accepts", "approval_threshold", owner_approval, None, {"owner_set": owner_set, "predicate": predicate}),
-    case("threshold_insufficient_rejected", "approval_threshold", insufficient, "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": predicate}),
-    case("approval_vote_order_rejected_independently", "approval_threshold", reordered_approval, "malformed_input", {"owner_set": owner_set, "predicate": predicate}),
-    case("unanimous_threshold_equals_active_owner_count", "approval_threshold", unanimous_approval, None, {"owner_set": owner_set, "predicate": unanimous_predicate}),
-    case("unanimous_threshold_mismatch_rejected", "approval_threshold", bad_unanimous_approval, "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": bad_unanimous_predicate}),
-    case("revoked_owner_vote_rejected", "approval_threshold", owner_approval, "trust_revoked", revoked_vote_context),
+    case("threshold_two_of_three_accepts", "approval_threshold", owner_approval, None, {"owner_set": owner_set, "predicate": predicate, "policy": owner_policy}),
+    case("threshold_insufficient_rejected", "approval_threshold", insufficient, "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": predicate, "policy": owner_policy}),
+    case("approval_owner_policy_digest_drift_rejected", "approval_threshold", variant(owner_approval, owner_policy_digest=raw("wrong-owner-policy")), "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": predicate, "policy": owner_policy}),
+    case("approval_owner_set_digest_drift_rejected", "approval_threshold", variant(owner_approval, owner_set_digest=raw("wrong-owner-set")), "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": predicate, "policy": owner_policy}),
+    case("approval_predicate_digest_drift_rejected", "approval_threshold", variant(owner_approval, approval_predicate_digest=raw("wrong-predicate")), "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": predicate, "policy": owner_policy}),
+    case("approval_namespace_drift_rejected", "approval_threshold", variant(owner_approval, namespace="other.space"), "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": predicate, "policy": owner_policy}),
+    case("approval_vote_order_rejected_independently", "approval_threshold", reordered_approval, "malformed_input", {"owner_set": owner_set, "predicate": predicate, "policy": owner_policy}),
+    case("unanimous_threshold_equals_active_owner_count", "approval_threshold", unanimous_approval, None, {"owner_set": owner_set, "predicate": unanimous_predicate, "policy": unanimous_policy}),
+    case("unanimous_threshold_mismatch_rejected", "approval_threshold", bad_unanimous_approval, "approval_threshold_unsatisfied", {"owner_set": owner_set, "predicate": bad_unanimous_predicate, "policy": bad_unanimous_policy}),
+    case("revoked_owner_vote_rejected", "approval_threshold", revoked_vote_subject, "trust_revoked", revoked_vote_context),
     case("valid_old_to_new_root_rotation", "trust_rotation", rotation, None, rotation_context),
     case("rotation_not_bound_to_current_root", "trust_rotation", variant(rotation, old_trust_root_digest=raw("wrong-root")), "trust_reference_stale", rotation_context),
     case("rotation_revision_not_increasing_rejected", "trust_rotation", variant(rotation, new_trust_root_revision=5), "trust_reference_stale", rotation_context),
     case("rotation_approval_action_drift_rejected", "trust_rotation", variant(rotation, approval_digest=d("owner_approval")), "trust_reference_stale", rotation_context),
+    case("rotation_owner_set_binding_drift_rejected", "trust_rotation", variant(rotation, owner_set_digest=raw("wrong-owner-set")), "trust_reference_stale", rotation_context),
+    case("rotation_predicate_binding_drift_rejected", "trust_rotation", variant(rotation, approval_predicate_digest=raw("wrong-predicate")), "trust_reference_stale", rotation_context),
+    case("rotation_namespace_binding_drift_rejected", "trust_rotation", variant(rotation, namespace="other.space"), "trust_reference_stale", rotation_context),
     case("revoked_rotation_root_rejected", "trust_rotation", rotation, "trust_revoked", {**rotation_context, "revoked": [d("trust_root")]}),
     case("valid_trust_revocation_transition", "trust_revocation", revocation, None, revocation_context),
     case("valid_trust_root_revocation_transition", "trust_revocation", root_revocation, None, root_revocation_context),
@@ -404,8 +456,29 @@ bad_override = variant(override, change_digest=raw("identifier-reuse"))
 duplicate_conditions = variant(conditional_report, conditions=[condition, condition])
 surplus_condition = copy.deepcopy(condition); surplus_condition["condition_id"] = "surplus-proof"
 surplus_conditions = variant(conditional_report, conditions=[condition, surplus_condition])
-override_context = {"policy": compat_policy, "prior_version": "1.0.0", "overrides": [override], "override_approvals": {d("override_approval"): override_approval}}
+shared_condition_report = variant(conditional_report, changes=[
+    {"category": "constraint_change", "semantic_id": "core.Agent", "classification": "conditionally_compatible", "semver_effect": "minor", "condition_id": "constraint-proof"},
+    {"category": "constraint_change", "semantic_id": "core.Other", "classification": "conditionally_compatible", "semver_effect": "minor", "condition_id": "constraint-proof"}])
+lowered_override_action = {**override_action, "semver_effect_floor": "minor"}
+lowered_override_action_digest = action_digest(lowered_override_action)
+lowered_override_approval = variant(override_approval, action=lowered_override_action, action_digest=lowered_override_action_digest,
+    votes=[{**vote, "approved_action_digest": lowered_override_action_digest} for vote in override_approval["votes"]])
+lowered_override = variant(override, semver_effect_floor="minor", owner_approval_digest=lowered_override_approval["owner_approval_digest"])
+lowered_report = variant(overridden_report, candidate_version="1.1.0", required_semver_effect="minor", override_digests=[lowered_override["compatibility_override_digest"]])
+incomplete_override_approval = copy.deepcopy(override_approval); del incomplete_override_approval["action"]["condition"]; rehash(incomplete_override_approval)
+wrong_namespace_override_approval = variant(override_approval, namespace="other.space")
+wrong_namespace_override = variant(override, owner_approval_digest=wrong_namespace_override_approval["owner_approval_digest"])
+wrong_namespace_override_report = variant(overridden_report, override_digests=[wrong_namespace_override["compatibility_override_digest"]])
+override_context = {"policy": compat_policy, "prior_version": "1.0.0", "overrides": [override], "override_approvals": {d("override_approval"): override_approval},
+    "owner_policy": owner_policy, "owner_set": owner_set, "predicate": predicate}
 override_drift = variant(overridden_report, override_digests=[])
+extra_tombstones = variant(resulting_tombstones, entries=resulting_tombstones["entries"] + [{"semantic_id": "core.Surplus", "reason": "removed", "origin_record_digest": raw("surplus-origin")}])
+wrong_tombstone_reason = variant(resulting_tombstones, entries=[{**resulting_tombstones["entries"][0], "reason": "renamed"}])
+prior_tombstones_with_entry = variant(tombstones, entries=[{"semantic_id": "core.Old", "reason": "removed", "origin_record_digest": raw("old-removal") }])
+removal_after_existing_tombstone = variant(removal, prior_tombstone_registry_digest=prior_tombstones_with_entry["tombstone_registry_digest"])
+dropped_prior_entry_registry = variant(resulting_tombstones, prior_registry_digest=prior_tombstones_with_entry["tombstone_registry_digest"],
+    entries=[{"semantic_id": "core.Legacy", "reason": "removed", "origin_record_digest": removal_after_existing_tombstone["removal_record_digest"]}])
+tombstoned_addition = variant(compat_report, changes=[{"category": "addition", "semantic_id": "core.Legacy", "classification": "compatible", "semver_effect": "minor", "condition_id": None}])
 cases += [
     case("minor_bump_satisfies_addition", "compatibility", compat_report, None, {"policy": compat_policy, "prior_version": "1.0.0"}),
     case("patch_bump_rejects_minor_effect", "compatibility", patch_minor, "semver_violation", {"policy": compat_policy, "prior_version": "1.0.0"}),
@@ -420,13 +493,21 @@ cases += [
     case("conditional_evidence_false", "compatibility", false_condition, "compatibility_rejected", {"policy": compat_policy, "prior_version": "1.0.0"}),
     case("duplicate_compatibility_condition_rejected", "compatibility", duplicate_conditions, "compatibility_rejected", {"policy": compat_policy, "prior_version": "1.0.0"}),
     case("surplus_unreferenced_condition_rejected", "compatibility", surplus_conditions, "compatibility_rejected", {"policy": compat_policy, "prior_version": "1.0.0"}),
+    case("condition_reference_must_be_bijective", "compatibility", shared_condition_report, "compatibility_rejected", {"policy": compat_policy, "prior_version": "1.0.0"}),
     case("executable_owner_override_accepts", "compatibility", overridden_report, None, override_context),
     case("override_digest_omission_rejected", "compatibility", override_drift, "compatibility_rejected", override_context),
+    case("override_cannot_lower_unknown_semver_floor", "compatibility", lowered_report, "compatibility_rejected", {"policy": compat_policy, "prior_version": "1.0.0", "overrides": [lowered_override], "override_approvals": {lowered_override_approval["owner_approval_digest"]: lowered_override_approval}, "owner_policy": owner_policy, "owner_set": owner_set, "predicate": predicate}),
+    case("override_approval_requires_complete_override", "pi_variant", incomplete_override_approval, "malformed_input", schema_valid=False),
+    case("override_approval_namespace_chain_must_match", "compatibility", wrong_namespace_override_report, "compatibility_rejected", {"policy": compat_policy, "prior_version": "1.0.0", "overrides": [wrong_namespace_override], "override_approvals": {wrong_namespace_override_approval["owner_approval_digest"]: wrong_namespace_override_approval}, "owner_policy": owner_policy, "owner_set": owner_set, "predicate": predicate}),
     case("deprecation_interval_satisfied", "lifecycle", removal, None, {"deprecation": deprecation, "policy": compat_policy, "prior_tombstones": tombstones, "resulting_tombstones": resulting_tombstones}),
     case("removal_before_interval_rejected", "lifecycle", early_removal, "lifecycle_violation", {"deprecation": deprecation, "policy": compat_policy, "prior_tombstones": tombstones, "resulting_tombstones": resulting_tombstones}),
     case("lifecycle_namespace_drift_rejected", "lifecycle", variant(removal, namespace="other.space"), "lifecycle_violation", {"deprecation": deprecation, "policy": compat_policy, "prior_tombstones": tombstones, "resulting_tombstones": resulting_tombstones}),
     case("lifecycle_prior_head_drift_rejected", "lifecycle", variant(removal, prior_lifecycle_digest=raw("wrong-lifecycle-head")), "lifecycle_violation", {"deprecation": deprecation, "policy": compat_policy, "prior_tombstones": tombstones, "resulting_tombstones": resulting_tombstones}),
+    case("tombstone_registry_extra_entry_rejected", "lifecycle", removal, "lifecycle_violation", {"deprecation": deprecation, "policy": compat_policy, "prior_tombstones": tombstones, "resulting_tombstones": extra_tombstones}),
+    case("tombstone_origin_reason_exact_binding", "lifecycle", removal, "lifecycle_violation", {"deprecation": deprecation, "policy": compat_policy, "prior_tombstones": tombstones, "resulting_tombstones": wrong_tombstone_reason}),
+    case("tombstone_registry_must_preserve_every_prior_entry", "lifecycle", removal_after_existing_tombstone, "lifecycle_violation", {"deprecation": deprecation, "policy": compat_policy, "prior_tombstones": prior_tombstones_with_entry, "resulting_tombstones": dropped_prior_entry_registry}),
     case("tombstoned_identifier_reuse_rejected", "tombstone_reuse", reuse_report, "lifecycle_violation", {"tombstones": resulting_tombstones, "override": None}),
+    case("tombstoned_identifier_cannot_return_as_addition", "tombstone_reuse", tombstoned_addition, "lifecycle_violation", {"tombstones": resulting_tombstones, "override": None}),
     case("override_cannot_legalize_identifier_reuse", "tombstone_reuse", reuse_report, "lifecycle_violation", {"tombstones": resulting_tombstones, "override": bad_override})]
 
 stale_tx = variant(publish_tx, expected_prior_revision=0)
@@ -435,7 +516,9 @@ version_reuse_tx = copy.deepcopy(publish_tx); version_reuse_tx["coordinate"]["ca
 replay_tx = copy.deepcopy(publish_tx)
 prepared = variant(publish_journal, state="prepared", linearized=False, recovery_action="discard_staging")
 committing = variant(publish_journal, state="committing", linearized=True, recovery_action="complete_commit")
+committing_marker = variant(publish_marker, journal_digest=committing["publication_journal_digest"])
 withdraw_recovery = variant(withdraw_journal, state="committing", linearized=True, recovery_action="complete_commit")
+withdraw_recovery_marker = variant(withdraw_marker, journal_digest=withdraw_recovery["publication_journal_digest"])
 revoke_prepared = variant(revoke_journal, state="prepared", linearized=False, recovery_action="discard_staging")
 aborted = variant(publish_journal, state="aborted", linearized=False, recovery_action="discard_staging")
 bad_publish_reason = variant(publish_tx, status_reason_digest=raw("publish-must-not-have-reason"))
@@ -449,14 +532,14 @@ illegal_transition = variant(withdrawal, from_status="withdrawn", to_status="wit
 bad_transition_link = variant(withdrawal, transaction_digest=raw("wrong-transaction"))
 bad_publish_result = variant(publication, transaction_digest=raw("wrong-publish-transaction"))
 bad_publish_journal_head = variant(publish_journal, resulting_ledger_head_digest=raw("wrong-resulting-head"))
-publish_commit_context = {"transaction": publish_tx, "journal": publish_journal, "marker": publish_marker, "approval": owner_approval, "trust_root": trust_root}
-publish_before = {"revision": 1, "head": raw("publication-1"), "marker_present": False, "staging_present": True}
-publish_discarded = {"revision": 1, "head": raw("publication-1"), "marker_present": False, "staging_present": False}
-publish_completed = {"revision": 2, "head": d("owner_publication"), "marker_present": True, "staging_present": False}
-withdraw_before = {"revision": 2, "head": d("owner_publication"), "marker_present": False, "staging_present": True}
-withdraw_completed = {"revision": 3, "head": d("publication_withdrawal"), "marker_present": True, "staging_present": False}
-revoke_before = {"revision": 3, "head": d("publication_withdrawal"), "marker_present": False, "staging_present": True}
-revoke_discarded = {"revision": 3, "head": d("publication_withdrawal"), "marker_present": False, "staging_present": False}
+publish_commit_context = {"transaction": publish_tx, "journal": publish_journal, "marker": publish_marker, "approval": owner_approval, "trust_root": trust_root, "prior_journal_digest": raw("journal-prepared")}
+publish_before = {"revision": 1, "head": raw("publication-1"), "status_record_digest": raw("publication-1"), "marker": None, "staging_present": True}
+publish_discarded = {"revision": 1, "head": raw("publication-1"), "status_record_digest": raw("publication-1"), "marker": None, "staging_present": False}
+publish_completed = {"revision": 2, "head": d("owner_publication"), "status_record_digest": d("owner_publication"), "marker": committing_marker, "staging_present": False}
+withdraw_before = {"revision": 2, "head": d("owner_publication"), "status_record_digest": d("owner_publication"), "marker": None, "staging_present": True}
+withdraw_completed = {"revision": 3, "head": d("publication_withdrawal"), "status_record_digest": d("publication_withdrawal"), "marker": withdraw_recovery_marker, "staging_present": False}
+revoke_before = {"revision": 3, "head": d("publication_withdrawal"), "status_record_digest": d("publication_withdrawal"), "marker": None, "staging_present": True}
+revoke_discarded = {"revision": 3, "head": d("publication_withdrawal"), "status_record_digest": d("publication_withdrawal"), "marker": None, "staging_present": False}
 cases += [
     case("publication_fresh_cas_accepts", "publication_cas", publish_tx, None, {"current_revision": 1, "current_head": raw("publication-1"), "existing_replay_key": None}),
     case("publish_operation_rejects_status_reason", "publication_cas", bad_publish_reason, "lifecycle_violation", {"current_revision": 1, "current_head": raw("publication-1"), "existing_replay_key": None}),
@@ -467,18 +550,22 @@ cases += [
     case("publication_result_journal_marker_bind_exactly", "publication_commit", publication, None, publish_commit_context),
     case("publication_result_transaction_drift_rejected", "publication_commit", bad_publish_result, "lifecycle_violation", publish_commit_context),
     case("publication_journal_resulting_head_drift_rejected", "publication_commit", publication, "lifecycle_violation", {**publish_commit_context, "journal": bad_publish_journal_head}),
-    case("withdrawal_transition_committed", "publication_transition", withdrawal, None, {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker}),
-    case("withdrawn_to_revoked_transition_committed", "publication_transition", revoked_publication, None, {"transaction": revoke_tx, "journal": revoke_journal, "marker": revoke_marker}),
-    case("published_to_revoked_transition_committed", "publication_transition", direct_revocation, None, {"transaction": direct_revoke_tx, "journal": direct_revoke_journal, "marker": direct_revoke_marker}),
-    case("status_transition_link_drift_rejected", "publication_transition", bad_transition_link, "lifecycle_violation", {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker}),
-    case("illegal_status_self_transition", "publication_transition", illegal_transition, "lifecycle_violation", {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker}, False),
-    case("recovery_before_linearization_discards", "publication_recovery", prepared, None, {"before": publish_before, "after": publish_discarded}),
-    case("recovery_after_linearization_completes", "publication_recovery", committing, None, {"before": publish_before, "after": publish_completed}),
-    case("withdrawal_recovery_after_linearization_completes", "publication_recovery", withdraw_recovery, None, {"before": withdraw_before, "after": withdraw_completed}),
-    case("revocation_recovery_before_linearization_discards", "publication_recovery", revoke_prepared, None, {"before": revoke_before, "after": revoke_discarded}),
-    case("aborted_transaction_discards_staging", "publication_recovery", aborted, None, {"before": publish_before, "after": publish_discarded}),
-    case("recovery_before_linearization_must_not_move_head", "publication_recovery", prepared, "recovery_needed", {"before": publish_before, "after": publish_completed}),
-    case("recovery_after_linearization_requires_marker", "publication_recovery", committing, "recovery_needed", {"before": publish_before, "after": {**publish_completed, "marker_present": False}}),
+    case("withdrawal_transition_committed", "publication_transition", withdrawal, None, {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker, "prior_status": publication, "prior_journal_digest": d("publication_journal")}),
+    case("withdrawn_to_revoked_transition_committed", "publication_transition", revoked_publication, None, {"transaction": revoke_tx, "journal": revoke_journal, "marker": revoke_marker, "prior_status": withdrawal, "prior_journal_digest": d("withdraw_journal")}),
+    case("published_to_revoked_transition_committed", "publication_transition", direct_revocation, None, {"transaction": direct_revoke_tx, "journal": direct_revoke_journal, "marker": direct_revoke_marker, "prior_status": publication, "prior_journal_digest": d("publication_journal")}),
+    case("status_transition_link_drift_rejected", "publication_transition", bad_transition_link, "lifecycle_violation", {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker, "prior_status": publication, "prior_journal_digest": d("publication_journal")}),
+    case("status_transition_fabricated_prior_object_rejected", "publication_transition", withdrawal, "lifecycle_violation", {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker, "prior_status": variant(publication, status="published", ledger_revision=1), "prior_journal_digest": d("publication_journal")}),
+    case("status_transition_prior_journal_drift_rejected", "publication_transition", withdrawal, "lifecycle_violation", {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker, "prior_status": publication, "prior_journal_digest": raw("wrong-prior-journal")}),
+    case("illegal_status_self_transition", "publication_transition", illegal_transition, "lifecycle_violation", {"transaction": withdraw_tx, "journal": withdraw_journal, "marker": withdraw_marker, "prior_status": publication, "prior_journal_digest": d("publication_journal")}, False),
+    case("recovery_before_linearization_discards", "publication_recovery", prepared, None, {"before": publish_before, "after": publish_discarded, "marker": publish_marker}),
+    case("recovery_after_linearization_completes", "publication_recovery", committing, None, {"before": publish_before, "after": publish_completed, "marker": committing_marker}),
+    case("withdrawal_recovery_after_linearization_completes", "publication_recovery", withdraw_recovery, None, {"before": withdraw_before, "after": withdraw_completed, "marker": withdraw_recovery_marker}),
+    case("revocation_recovery_before_linearization_discards", "publication_recovery", revoke_prepared, None, {"before": revoke_before, "after": revoke_discarded, "marker": revoke_marker}),
+    case("aborted_transaction_discards_staging", "publication_recovery", aborted, None, {"before": publish_before, "after": publish_discarded, "marker": publish_marker}),
+    case("recovery_before_linearization_must_not_move_head", "publication_recovery", prepared, "recovery_needed", {"before": publish_before, "after": publish_completed, "marker": committing_marker}),
+    case("recovery_after_linearization_requires_marker", "publication_recovery", committing, "recovery_needed", {"before": publish_before, "after": {**publish_completed, "marker": None}, "marker": committing_marker}),
+    case("recovery_marker_must_match_exact_journal_and_result", "publication_recovery", committing, "recovery_needed", {"before": publish_before, "after": {**publish_completed, "marker": withdraw_marker}, "marker": withdraw_marker}),
+    case("recovery_status_record_must_match_result", "publication_recovery", committing, "recovery_needed", {"before": publish_before, "after": {**publish_completed, "status_record_digest": raw("wrong-recovered-status")}, "marker": committing_marker}),
     case("committed_without_linearization_rejected", "publication_recovery", variant(publish_journal, linearized=False), "recovery_needed")]
 
 projection_context = {"projection": projection, "capsule": capsule, "archive_linkage": archive_link, "payload_manifest": payload, "consumer_manifest": consumer_manifest, "archive_manifest": archive_manifest}
@@ -499,21 +586,34 @@ cyclic_archive_link = variant(archive_link, archive_manifest_digest=cyclic_archi
 cyclic_capsule = variant(capsule, capsule_archive_linkage_digest=cyclic_archive_link["capsule_archive_linkage_digest"])
 cyclic_receipt = variant(materialization, capsule_archive_linkage_digest=cyclic_archive_link["capsule_archive_linkage_digest"])
 cyclic_context = {**projection_context, "capsule": cyclic_capsule, "archive_linkage": cyclic_archive_link, "archive_manifest": cyclic_archive_manifest}
+extra_archive_manifest = variant(archive_manifest, entries=archive_manifest["entries"] + [{"path": "surplus.txt", "kind": "file", "mode": 420, "byte_length": 1, "content_digest": raw("surplus") }])
+extra_archive_link = variant(archive_link, archive_manifest_digest=extra_archive_manifest["material_manifest_digest"])
+extra_archive_capsule = variant(capsule, capsule_archive_linkage_digest=extra_archive_link["capsule_archive_linkage_digest"])
+extra_archive_receipt = variant(materialization, capsule_archive_linkage_digest=extra_archive_link["capsule_archive_linkage_digest"])
+extra_archive_context = {**projection_context, "capsule": extra_archive_capsule, "archive_linkage": extra_archive_link, "archive_manifest": extra_archive_manifest}
+utf16_manifest_order = variant(source, entries=[
+    {"path": "𐀀", "kind": "file", "mode": 420, "byte_length": 1, "content_digest": raw("astral")},
+    {"path": "", "kind": "file", "mode": 420, "byte_length": 1, "content_digest": raw("bmp-private") }])
 cases += [
     case("exact_payload_projection_accepts", "projection", materialization, None, projection_context),
     case("consumer_tree_outside_projection_rejected", "projection", bad_projection, "projection_mismatch", projection_context),
     case("capsule_archive_link_drift_rejected", "projection", bad_archive, "projection_mismatch", projection_context),
     case("duplicate_projection_destination_rejected", "projection", duplicate_destination_receipt, "projection_mismatch", duplicate_destination_context),
     case("duplicate_projection_source_rejected", "projection", duplicate_source_receipt, "projection_mismatch", duplicate_source_context),
-    case("capsule_archive_identity_cycle_rejected", "projection", cyclic_receipt, "projection_mismatch", cyclic_context)]
+    case("capsule_archive_identity_cycle_rejected", "projection", cyclic_receipt, "projection_mismatch", cyclic_context),
+    case("capsule_archive_extra_entry_rejected", "projection", extra_archive_receipt, "projection_mismatch", extra_archive_context),
+    case("manifest_order_is_utf8_not_utf16", "pi_variant", utf16_manifest_order, "malformed_input")]
 
 runtime_missing = copy.deepcopy(runtime_request); del runtime_missing["target"]["runtime_revalidation_receipt_digest"]; rehash(runtime_missing)
 bad_disable_receipt = variant(disable_receipt, active_state_after={"enabled": True, "coordinate": coordinate, "runtime_identity": rocs_tool})
-bad_partial = variant(partial_receipt, stages=[{"stage": "semantic", "result": "completed", "error_digest": None}, {"stage": "runtime", "result": "completed", "error_digest": None}])
+bad_partial = variant(partial_receipt, stages=[{"stage": "semantic", "result": "completed", "error_digest": None}, {"stage": "runtime", "result": "completed", "error_digest": None}], failure_stage=None, error_digest=None)
 bad_failed_history = variant(failed_receipt, history_head_after={"kind": "rollback", "digest": raw("changed-history")})
-combined_success = variant(partial_receipt, result="rolled_back", active_state_after={"enabled": True, "coordinate": predecessor, "runtime_identity": old_runtime},
-    runtime_revalidation_receipt_digest=runtime_target["runtime_revalidation_receipt_digest"], stages=[{"stage": "semantic", "result": "completed", "error_digest": None}, {"stage": "runtime", "result": "completed", "error_digest": None}],
-    history_head_after={"kind": "rollback", "digest": raw("combined-success-history")}, error_digest=None, supersedes_activation_receipt_digest=d("activation_receipt"))
+combined_success_after = {"enabled": True, "coordinate": predecessor, "runtime_identity": old_runtime}
+combined_success_stages = [{"stage": "semantic", "result": "completed", "error_digest": None}, {"stage": "runtime", "result": "completed", "error_digest": None}]
+combined_success_history = history("combined_success_history", combined_request, "rolled_back", combined_success_after, combined_success_stages, None, None, d("activation_receipt"))
+combined_success = variant(partial_receipt, result="rolled_back", active_state_after=combined_success_after,
+    runtime_revalidation_receipt_digest=runtime_target["runtime_revalidation_receipt_digest"], stages=combined_success_stages, failure_stage=None,
+    history_head_after={"kind": "rollback", "digest": d("combined_success_history")}, error_digest=None, supersedes_activation_receipt_digest=d("activation_receipt"))
 bad_request_digest = variant(semantic_receipt, rollback_request_digest=raw("wrong-request"))
 bad_before = variant(semantic_receipt, active_state_before={"enabled": True, "coordinate": predecessor, "runtime_identity": rocs_tool})
 bad_result_target = variant(disable_receipt, result="rolled_back", history_head_after={"kind": "rollback", "digest": raw("wrong-result-head")})
@@ -522,36 +622,53 @@ bad_completed_error = variant(semantic_receipt, stages=[{"stage": "semantic", "r
 bad_disable_runtime = variant(disable_receipt, active_state_after={"enabled": False, "coordinate": None, "runtime_identity": old_runtime})
 bad_runtime_proof = variant(runtime_receipt, runtime_revalidation_receipt_digest=raw("wrong-revalidation"))
 bad_partial_supersession = variant(partial_receipt, supersedes_activation_receipt_digest=d("activation_receipt"))
-bad_failed_stage = variant(failed_receipt, stages=[{"stage": "semantic", "result": "not_started", "error_digest": None}])
+bad_failed_stage = variant(failed_receipt, stages=[{"stage": "semantic", "result": "not_started", "error_digest": None}], failure_stage=None, error_digest=None)
 bad_failed_state = variant(failed_receipt, active_state_after={"enabled": True, "coordinate": predecessor, "runtime_identity": rocs_tool})
 bad_rollback_pi_link = variant(semantic_receipt, pi_delivery_receipt_digest=raw("wrong-pi-link"))
 bad_request_from_state = variant(semantic_request, from_state={"enabled": True, "coordinate": predecessor, "runtime_identity": rocs_tool})
 bad_request_from_state_receipt = variant(semantic_receipt, rollback_request_digest=bad_request_from_state["rollback_request_digest"], active_state_before=bad_request_from_state["from_state"])
-rollback_common = {"activation": activation, "decision": consumer_decision, **canonical_decision_context}
-semantic_rollback_context = {**rollback_common, "request": semantic_request, "ak_linkage": ak_link, "pi_receipt": pi_delivered}
+fabricated_before_head = variant(semantic_receipt, history_head_before={"kind": "activation", "digest": raw("fabricated-before-head")})
+failed_then_completed = variant(partial_receipt, stages=[{"stage": "semantic", "result": "failed", "error_digest": raw("first-stage-failed")}, {"stage": "runtime", "result": "completed", "error_digest": None}],
+    failure_stage="semantic", error_digest=raw("first-stage-failed"), active_state_after={"enabled": True, "coordinate": coordinate, "runtime_identity": old_runtime})
+bad_failure_cause = variant(partial_receipt, error_digest=raw("unrelated-overall-error"))
+wrong_issuer_failed = variant(failed_receipt, issuer={"kind": "rocs", "id": "rocs-cli"})
+substituted_activation = variant(activation, activation_epoch=89)
+unavailable_semantic = variant(semantic_availability, recovery_runtime_available=False)
+rollback_common = {"activation": activation, "decision": consumer_decision, "current_activation_digest": d("activation_receipt"), "current_activation_revision": 1,
+    "canonical_history_head": activation_head, **canonical_decision_context}
+def rollback_context(request: dict, proof: dict, history_after: dict | None = None, **extra: object) -> dict:
+    return {**rollback_common, "request": request, "availability": proof, "history_after": history_after, **extra}
+semantic_rollback_context = rollback_context(semantic_request, semantic_availability, semantic_history, ak_linkage=ak_link, pi_receipt=pi_delivered)
 cases += [
     case("semantic_rollback_retains_runtime", "rollback", semantic_receipt, None, semantic_rollback_context),
-    case("runtime_rollback_retains_semantic_and_revalidates", "rollback", runtime_receipt, None, {**rollback_common, "request": runtime_request}),
+    case("runtime_rollback_retains_semantic_and_revalidates", "rollback", runtime_receipt, None, rollback_context(runtime_request, runtime_availability, runtime_history)),
     case("runtime_rollback_without_revalidation_rejected", "rollback", runtime_missing, "rollback_unavailable", {"request": runtime_missing}, False),
-    case("no_prior_disable_clears_semantic", "rollback", disable_receipt, None, {**rollback_common, "request": disable_request}),
-    case("disable_that_leaves_semantic_active_rejected", "rollback", bad_disable_receipt, "history_conflict", {**rollback_common, "request": disable_request}),
-    case("combined_partial_failure_records_stages", "rollback", partial_receipt, None, {**rollback_common, "request": combined_request}),
-    case("combined_full_success_records_order_and_revalidation", "rollback", combined_success, None, {**rollback_common, "request": combined_request}),
-    case("partial_failure_without_failed_stage_rejected", "rollback", bad_partial, "history_conflict", {**rollback_common, "request": combined_request}),
+    case("no_prior_disable_clears_semantic", "rollback", disable_receipt, None, rollback_context(disable_request, disable_availability, disable_history)),
+    case("disable_that_leaves_semantic_active_rejected", "rollback", bad_disable_receipt, "history_conflict", rollback_context(disable_request, disable_availability, disable_history)),
+    case("combined_partial_failure_records_stages", "rollback", partial_receipt, None, rollback_context(combined_request, combined_availability, partial_history)),
+    case("combined_full_success_records_order_and_revalidation", "rollback", combined_success, None, rollback_context(combined_request, combined_availability, combined_success_history)),
+    case("partial_failure_without_failed_stage_rejected", "rollback", bad_partial, "history_conflict", rollback_context(combined_request, combined_availability, partial_history)),
     case("rollback_optional_ak_pi_crosslinks_exact", "rollback", bad_rollback_pi_link, "history_conflict", semantic_rollback_context),
-    case("rollback_request_digest_drift_rejected", "rollback", bad_request_digest, "history_conflict", {**rollback_common, "request": semantic_request}),
-    case("rollback_request_from_activation_drift_rejected", "rollback", bad_request_from_state_receipt, "rollback_unavailable", {**rollback_common, "request": bad_request_from_state}),
-    case("rollback_from_state_drift_rejected", "rollback", bad_before, "history_conflict", {**rollback_common, "request": semantic_request}),
-    case("rollback_result_target_mismatch_rejected", "rollback", bad_result_target, "history_conflict", {**rollback_common, "request": disable_request}),
-    case("combined_stage_order_drift_rejected", "rollback", bad_stage_order, "history_conflict", {**rollback_common, "request": combined_request}),
-    case("completed_stage_error_rejected", "rollback", bad_completed_error, "history_conflict", {**rollback_common, "request": semantic_request}),
-    case("disable_must_retain_runtime", "rollback", bad_disable_runtime, "history_conflict", {**rollback_common, "request": disable_request}),
-    case("runtime_revalidation_binding_drift_rejected", "rollback", bad_runtime_proof, "rollback_unavailable", {**rollback_common, "request": runtime_request}),
-    case("partial_failure_must_not_supersede_activation", "rollback", bad_partial_supersession, "history_conflict", {**rollback_common, "request": combined_request}),
-    case("failed_rollback_preserves_state_and_typed_head", "rollback", failed_receipt, None, {**rollback_common, "request": semantic_request}),
-    case("failed_rollback_requires_failed_stage", "rollback", bad_failed_stage, "history_conflict", {**rollback_common, "request": semantic_request}),
-    case("failed_rollback_changed_state_rejected", "rollback", bad_failed_state, "history_conflict", {**rollback_common, "request": semantic_request}),
-    case("failed_rollback_changed_history_rejected", "rollback", bad_failed_history, "history_conflict", {**rollback_common, "request": semantic_request})]
+    case("rollback_request_digest_drift_rejected", "rollback", bad_request_digest, "history_conflict", rollback_context(semantic_request, semantic_availability, semantic_history)),
+    case("rollback_request_from_activation_drift_rejected", "rollback", bad_request_from_state_receipt, "rollback_unavailable", rollback_context(bad_request_from_state, semantic_availability, semantic_history)),
+    case("rollback_from_state_drift_rejected", "rollback", bad_before, "history_conflict", rollback_context(semantic_request, semantic_availability, semantic_history)),
+    case("rollback_result_target_mismatch_rejected", "rollback", bad_result_target, "history_conflict", rollback_context(disable_request, disable_availability, disable_history)),
+    case("combined_stage_order_drift_rejected", "rollback", bad_stage_order, "history_conflict", rollback_context(combined_request, combined_availability, partial_history)),
+    case("completed_stage_error_rejected", "rollback", bad_completed_error, "history_conflict", rollback_context(semantic_request, semantic_availability, semantic_history)),
+    case("disable_must_retain_runtime", "rollback", bad_disable_runtime, "history_conflict", rollback_context(disable_request, disable_availability, disable_history)),
+    case("runtime_revalidation_binding_drift_rejected", "rollback", bad_runtime_proof, "rollback_unavailable", rollback_context(runtime_request, runtime_availability, runtime_history)),
+    case("partial_failure_must_not_supersede_activation", "rollback", bad_partial_supersession, "history_conflict", rollback_context(combined_request, combined_availability, partial_history)),
+    case("failed_rollback_preserves_state_and_typed_head", "rollback", failed_receipt, None, rollback_context(semantic_request, semantic_availability)),
+    case("failed_rollback_requires_failed_stage", "rollback", bad_failed_stage, "history_conflict", rollback_context(semantic_request, semantic_availability)),
+    case("failed_rollback_changed_state_rejected", "rollback", bad_failed_state, "history_conflict", rollback_context(semantic_request, semantic_availability)),
+    case("failed_rollback_changed_history_rejected", "rollback", bad_failed_history, "history_conflict", rollback_context(semantic_request, semantic_availability)),
+    case("rollback_requires_canonical_current_activation_object", "rollback", semantic_receipt, "rollback_unavailable", {**semantic_rollback_context, "activation": substituted_activation}),
+    case("rollback_requires_concrete_target_and_recovery_availability", "rollback", semantic_receipt, "rollback_unavailable", rollback_context(semantic_request, unavailable_semantic, semantic_history)),
+    case("rollback_before_head_must_equal_canonical_head", "rollback", fabricated_before_head, "history_conflict", rollback_context(semantic_request, semantic_availability, semantic_history)),
+    case("rollback_cannot_complete_stage_after_failure", "rollback", failed_then_completed, "history_conflict", rollback_context(combined_request, combined_availability, partial_history)),
+    case("rollback_error_must_equal_failed_stage_cause", "rollback", bad_failure_cause, "history_conflict", rollback_context(combined_request, combined_availability, partial_history)),
+    case("rollback_history_head_must_bind_typed_transition", "rollback", semantic_receipt, "history_conflict", rollback_context(semantic_request, semantic_availability, runtime_history)),
+    case("issuer_scope_checked_before_subject_rule", "rollback", wrong_issuer_failed, "issuer_scope_violation", rollback_context(semantic_request, semantic_availability))]
 
 revoked_activation = variant(activation, revoked_by_digest=raw("activation-revocation"))
 superseded_activation = variant(activation, superseded_by_activation_receipt_digest=raw("new-activation"))
@@ -564,7 +681,8 @@ cases += [
     case("generation_runtime_must_equal_activation", "generation_activation", bad_generation_runtime, "activation_not_current", activation_context),
     case("generation_from_revoked_activation_rejected", "generation_activation", generation, "activation_not_current", {"activation": revoked_activation, "current_activation_digest": d("activation_receipt"), "current_activation_revision": 1}),
     case("generation_from_superseded_activation_rejected", "generation_activation", generation, "activation_not_current", {"activation": superseded_activation, "current_activation_digest": raw("new-activation"), "current_activation_revision": 2}),
-    case("generation_from_nonhead_activation_rejected", "generation_activation", generation, "activation_not_current", {"activation": activation, "current_activation_digest": raw("different-activation"), "current_activation_revision": 2})]
+    case("generation_from_nonhead_activation_rejected", "generation_activation", generation, "activation_not_current", {"activation": activation, "current_activation_digest": raw("different-activation"), "current_activation_revision": 2}),
+    case("generation_supplied_activation_must_equal_current_pointer", "generation_activation", generation, "activation_not_current", {"activation": substituted_activation, "current_activation_digest": d("activation_receipt"), "current_activation_revision": 1})]
 
 digest_bad = copy.deepcopy(capsule); digest_bad["capsule_digest"] = raw("intentionally-wrong-digest")
 invalid_date = variant(audit, recorded_at="2026-02-30T12:00:00Z")
@@ -581,7 +699,14 @@ year_9999 = variant(audit, recorded_at="9999-12-31T23:59:59Z")
 pi_delivered_missing = copy.deepcopy(pi_delivered); del pi_delivered_missing["prompt_run_digest"]; rehash(pi_delivered_missing)
 pi_suppressed_leak = copy.deepcopy(pi_suppressed); pi_suppressed_leak["prompt_run_digest"] = raw("must-not-exist"); rehash(pi_suppressed_leak)
 pi_failed_missing = copy.deepcopy(pi_failed); del pi_failed_missing["error_digest"]; rehash(pi_failed_missing)
+authorized_coordination_contract = variant(ak_coordination_contract, authorizes_execution=True, contract_status="created")
+conflated_consumer_contract = variant(consumer_canary_contract, task_contract_id=ak_coordination_contract["task_contract_id"], rollback_owner=ak_coordination_contract["rollback_owner"])
+missing_consumer_path_contract = variant(consumer_canary_contract, allowed_paths=consumer_canary_contract["allowed_paths"][:-1])
 cases += [
+    case("non_authorizing_separate_coordination_and_consumer_contracts", "governance_contracts", ak_coordination_contract, None, {"consumer_contract": consumer_canary_contract}),
+    case("ak_coordination_contract_cannot_authorize_execution", "governance_contracts", authorized_coordination_contract, "self_certification", {"consumer_contract": consumer_canary_contract}),
+    case("coordination_and_consumer_tasks_cannot_be_conflated", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": conflated_consumer_contract}),
+    case("first_consumer_allowed_paths_are_exact", "governance_contracts", ak_coordination_contract, "self_certification", {"consumer_contract": missing_consumer_path_contract}),
     case("embedded_digest_mismatch_is_deterministic", "digest", digest_bad, "digest_mismatch"),
     case("calendar_valid_utc_accepts", "utc", audit, None),
     case("calendar_invalid_utc_rejected", "utc", invalid_date, "malformed_input"),
@@ -595,7 +720,7 @@ cases += [
     case("superseded_ak_decision_fails_closed", "ak_decision", superseded_decision, "self_certification", canonical_decision_context),
     case("acceptance_owner_scope_binding_exact", "acceptance_binding", acceptance, None, {"decision": consumer_decision, **canonical_decision_context}),
     case("acceptance_scope_drift_rejected", "acceptance_binding", bad_acceptance_scope, "self_certification", {"decision": consumer_decision, **canonical_decision_context}),
-    case("rocs_cannot_self_certify_acceptance", "acceptance_binding", self_acceptance, "self_certification", {"decision": consumer_decision, **canonical_decision_context}),
+    case("rocs_cannot_self_certify_acceptance", "acceptance_binding", self_acceptance, "issuer_scope_violation", {"decision": consumer_decision, **canonical_decision_context}),
     case("activation_decision_bindings_exact", "activation_binding", activation, None, {"decision": consumer_decision, **canonical_decision_context}),
     case("activation_stop_binding_drift_rejected", "activation_binding", bad_activation_binding, "self_certification", {"decision": consumer_decision, **canonical_decision_context}),
     case("pi_delivered_variant_accepts", "pi_variant", pi_delivered, None),
@@ -615,8 +740,9 @@ raw_json_cases = [
     {"name": "raw_exponent_rejected", "raw_json": "{\"n\":1e0}", "expected_error": "malformed_input"},
     {"name": "raw_leading_zero_rejected", "raw_json": "{\"n\":01}", "expected_error": "malformed_input"},
     {"name": "raw_safe_integer_accepts", "raw_json": "{\"n\":9007199254740991}", "expected_error": None},
+    {"name": "raw_proto_key_preserved_as_own_property", "raw_json": "{\"__proto__\":{\"polluted\":true}}", "required_own_keys": ["__proto__"], "expected_error": None},
 ]
-differential = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-revision-v3", "cases": cases, "raw_json_cases": raw_json_cases}
+differential = {"protocol": "semantic-release-v0", "rfc_revision": "semantic-release-revision-v4", "cases": cases, "raw_json_cases": raw_json_cases}
 
 write_schema()
 for path, value in ((ROOT / "golden-fixtures.json", golden), (ROOT / "differential-fixtures.json", differential)):

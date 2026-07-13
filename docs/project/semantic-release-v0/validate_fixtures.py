@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stdlib-only revision-3 token-aware schema, digest, link, and transition validator."""
+"""Stdlib-only revision-4 token-aware schema, digest, link, and transition validator."""
 from __future__ import annotations
 
 import copy
@@ -49,7 +49,10 @@ DOMAIN_ROWS = {
     "semantic-pi-delivery-receipt.v0": ("pi-delivery", "pi_delivery_receipt_digest"),
     "semantic-ak-evidence-linkage.v0": ("ak-evidence-linkage", "ak_evidence_linkage_digest"),
     "semantic-rollback-request.v0": ("rollback-request", "rollback_request_digest"),
+    "semantic-rollback-availability-proof.v0": ("rollback-availability-proof", "rollback_availability_proof_digest"),
+    "semantic-rollback-history-transition.v0": ("rollback-history-transition", "rollback_history_transition_digest"),
     "semantic-rollback-receipt.v0": ("rollback-receipt", "rollback_receipt_digest"),
+    "semantic-non-authorizing-task-contract.v0": ("non-authorizing-task-contract", "non_authorizing_task_contract_digest"),
     "semantic-audit-envelope.v0": ("audit-envelope", "audit_envelope_digest"),
     "semantic-protocol-error.v0": ("error", "error_digest"),
 }
@@ -211,6 +214,7 @@ def check_order(instance: dict) -> None:
     if kind == "semantic-release-capsule.v0" and not sorted_unique(instance["required_protocol_versions"]): raise ValidationError("protocol order")
     if kind == "semantic-rocs-generation-receipt.v0" and (not sorted_unique(instance["candidate_ids"]) or not sorted_unique(instance["pack_digests"])): raise ValidationError("generation order")
     if kind == "semantic-rollback-receipt.v0" and len(instance["stages"]) != len({x["stage"] for x in instance["stages"]}): raise ValidationError("stage uniqueness")
+    if kind == "semantic-non-authorizing-task-contract.v0" and (not sorted_unique(instance["allowed_paths"]) or not sorted_unique(instance["required_evidence"]) or not sorted_unique(instance["stop_conditions"])): raise ValidationError("task contract order")
     if kind == "semantic-protocol-error.v0" and not sorted_unique([x["key"] for x in instance["details"]]): raise ValidationError("error order")
 
 
@@ -249,7 +253,10 @@ def decision_current(subject: dict, context: dict) -> bool:
 def evaluate(rule: str, subject: dict, context: dict) -> str | None:
     if rule == "digest": return None if fixture_digest_valid(subject) else "digest_mismatch"
     if rule == "approval_threshold":
-        members = {x["owner_id"]: x for x in context["owner_set"]["members"]}; predicate = context["predicate"]
+        owner_set, predicate, policy = context["owner_set"], context["predicate"], context["policy"]
+        exact = subject["namespace"] == policy["namespace"] == owner_set["namespace"] == predicate["namespace"] and subject["owner_policy_digest"] == policy["owner_policy_digest"] and subject["owner_set_digest"] == policy["owner_set_digest"] == owner_set["owner_set_digest"] and subject["approval_predicate_digest"] == policy["approval_predicate_digest"] == predicate["approval_predicate_digest"]
+        if not exact: return "approval_threshold_unsatisfied"
+        members = {x["owner_id"]: x for x in owner_set["members"]}
         active = {key for key, value in members.items() if value["status"] == "active"}
         if action_digest(subject["action"]) != subject["action_digest"]: return "approval_threshold_unsatisfied"
         eligible: set[str] = set()
@@ -258,7 +265,6 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
             if member and member["status"] == "revoked": return "trust_revoked"
             if not member or vote["owner_key_id"] not in member["key_ids"] or vote["approved_action_digest"] != subject["action_digest"] or vote["owner_id"] in eligible: return "approval_threshold_unsatisfied"
             eligible.add(vote["owner_id"])
-        if subject["approval_predicate_digest"] != predicate["approval_predicate_digest"]: return "approval_threshold_unsatisfied"
         if predicate["mode"] == "unanimous":
             if predicate["threshold"] != len(active): return "approval_threshold_unsatisfied"
             needed = len(active)
@@ -269,14 +275,22 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
         return None if approved else "approval_threshold_unsatisfied"
     if rule == "trust_rotation":
         old, new, approval, policy = context["old_root"], context["new_root"], context["approval"], context["policy"]
+        owner_set, predicate = context["owner_set"], context["predicate"]
         if old["trust_root_digest"] in context.get("revoked", []): return "trust_revoked"
         action = approval["action"]
-        valid = subject["old_trust_root_digest"] == context["current_root_digest"] == old["trust_root_digest"] and subject["old_trust_root_id"] == old["trust_root_id"] and subject["old_trust_root_revision"] == old["trust_root_revision"] and subject["new_trust_root_digest"] == new["trust_root_digest"] and subject["new_trust_root_id"] == new["trust_root_id"] and subject["new_trust_root_revision"] == new["trust_root_revision"] == old["trust_root_revision"] + 1 and new["prior_trust_root_digest"] == old["trust_root_digest"] and subject["rotation_revision"] == new["trust_root_revision"] and subject["owner_policy_digest"] == policy["owner_policy_digest"] == new["owner_policy_digest"] and subject["approval_digest"] == approval["owner_approval_digest"] and approval["owner_policy_digest"] == policy["owner_policy_digest"] and action["kind"] == "trust_rotation" and action_digest(action) == approval["action_digest"] and action["old_trust_root_digest"] == subject["old_trust_root_digest"] and action["new_trust_root_digest"] == subject["new_trust_root_digest"] and action["owner_policy_digest"] == subject["owner_policy_digest"] and action["new_trust_root_revision"] == subject["new_trust_root_revision"] and action["rotation_revision"] == subject["rotation_revision"]
+        exact_authority = subject["namespace"] == old["namespace"] == new["namespace"] == policy["namespace"] == owner_set["namespace"] == predicate["namespace"] == approval["namespace"] and subject["owner_policy_digest"] == policy["owner_policy_digest"] == old["owner_policy_digest"] == new["owner_policy_digest"] == approval["owner_policy_digest"] and subject["owner_set_digest"] == policy["owner_set_digest"] == old["owner_set_digest"] == new["owner_set_digest"] == approval["owner_set_digest"] == owner_set["owner_set_digest"] and subject["approval_predicate_digest"] == policy["approval_predicate_digest"] == approval["approval_predicate_digest"] == predicate["approval_predicate_digest"]
+        transition = subject["old_trust_root_digest"] == context["current_root_digest"] == old["trust_root_digest"] and subject["old_trust_root_id"] == old["trust_root_id"] and subject["old_trust_root_revision"] == old["trust_root_revision"] and subject["new_trust_root_digest"] == new["trust_root_digest"] and subject["new_trust_root_id"] == new["trust_root_id"] and subject["new_trust_root_revision"] == new["trust_root_revision"] == old["trust_root_revision"] + 1 and new["prior_trust_root_digest"] == old["trust_root_digest"] and subject["rotation_revision"] == new["trust_root_revision"]
+        action_expected = {"kind": "trust_rotation", "namespace": subject["namespace"], "old_trust_root_digest": subject["old_trust_root_digest"], "new_trust_root_digest": subject["new_trust_root_digest"], "owner_policy_digest": subject["owner_policy_digest"], "owner_set_digest": subject["owner_set_digest"], "approval_predicate_digest": subject["approval_predicate_digest"], "new_trust_root_revision": subject["new_trust_root_revision"], "rotation_revision": subject["rotation_revision"]}
+        approval_threshold_valid = evaluate("approval_threshold", approval, {"policy": policy, "owner_set": owner_set, "predicate": predicate}) is None
+        valid = exact_authority and transition and approval_threshold_valid and subject["approval_digest"] == approval["owner_approval_digest"] and action == action_expected and action_digest(action) == approval["action_digest"]
         return None if valid else "trust_reference_stale"
     if rule == "trust_revocation":
         approval = context["approval"]; action = approval["action"]
         expected_revision = context["prior_revision"] + 1
-        valid = subject["namespace"] == context["policy"]["namespace"] and subject["revocation_revision"] == expected_revision and subject["prior_revocation_digest"] == context["prior_head"] and subject["owner_approval_digest"] == approval["owner_approval_digest"] and approval["owner_policy_digest"] == context["policy"]["owner_policy_digest"] and action["kind"] == "trust_revocation" and action_digest(action) == approval["action_digest"] and all(subject[k] == action[k] for k in ("target_kind", "target_digest", "effective_ledger_revision", "reason_digest", "prior_revocation_digest", "revocation_revision"))
+        policy, owner_set, predicate = context["policy"], context["owner_set"], context["predicate"]
+        authority = subject["namespace"] == policy["namespace"] == owner_set["namespace"] == predicate["namespace"] == approval["namespace"] and approval["owner_policy_digest"] == policy["owner_policy_digest"] and approval["owner_set_digest"] == policy["owner_set_digest"] == owner_set["owner_set_digest"] and approval["approval_predicate_digest"] == policy["approval_predicate_digest"] == predicate["approval_predicate_digest"]
+        approval_threshold_valid = evaluate("approval_threshold", approval, {"policy": policy, "owner_set": owner_set, "predicate": predicate}) is None
+        valid = authority and approval_threshold_valid and subject["revocation_revision"] == expected_revision and subject["prior_revocation_digest"] == context["prior_head"] and subject["owner_approval_digest"] == approval["owner_approval_digest"] and action["kind"] == "trust_revocation" and action_digest(action) == approval["action_digest"] and all(subject[k] == action[k] for k in ("target_kind", "target_digest", "effective_ledger_revision", "reason_digest", "prior_revocation_digest", "revocation_revision"))
         return None if valid else "trust_reference_stale"
     if rule == "compatibility_policy":
         cats = [x["category"] for x in subject["category_rules"]]; expected = {"addition", "documentation", "compatible_refinement", "deprecation", "removal", "rename", "constraint_change", "relation_change", "identifier_reuse", "other"}
@@ -300,11 +314,16 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
             if override:
                 approval = context.get("override_approvals", {}).get(override["owner_approval_digest"])
                 action = approval and approval["action"]
-                valid = row["override_allowed"] and change["category"] != "identifier_reuse" and override["namespace"] == subject["namespace"] and override["compatibility_policy_digest"] == subject["compatibility_policy_digest"] and override["change"] == change and override["change_digest"] == change_digest(change) and override["from_classification"] == classification and override["from_semver_effect"] == effect and condition_true(override["condition"]) and action and action["kind"] == "compatibility_override" and action_digest(action) == approval["action_digest"] and action["change_digest"] == override["change_digest"] and action["to_classification"] == override["to_classification"] and action["semver_effect_floor"] == override["semver_effect_floor"] and action["condition_id"] == override["condition"]["condition_id"]
+                expected_action = {k: copy.deepcopy(override[k]) for k in ("namespace", "compatibility_policy_digest", "change", "change_digest", "from_classification", "from_semver_effect", "to_classification", "semver_effect_floor", "condition")}; expected_action["kind"] = "compatibility_override"
+                ranks = {"patch": 0, "minor": 1, "major": 2, "unknown": 2}
+                non_lowering = ranks[override["semver_effect_floor"]] >= ranks[effect]
+                approval_valid = bool(approval) and evaluate("approval_threshold", approval, {"policy": context["owner_policy"], "owner_set": context["owner_set"], "predicate": context["predicate"]}) is None
+                valid = approval_valid and approval["namespace"] == override["namespace"] and context["owner_policy"]["compatibility_policy_digest"] == subject["compatibility_policy_digest"] and row["override_allowed"] and change["category"] != "identifier_reuse" and override["namespace"] == subject["namespace"] and override["compatibility_policy_digest"] == subject["compatibility_policy_digest"] and override["change"] == change and override["change_digest"] == change_digest(change) and override["from_classification"] == classification and override["from_semver_effect"] == effect and condition_true(override["condition"]) and non_lowering and action == expected_action and action_digest(action) == approval["action_digest"]
                 if not valid: return "compatibility_rejected"
                 classification, effect = override["to_classification"], override["semver_effect_floor"]; used_overrides.append(override["compatibility_override_digest"])
             effective.append((classification, effect))
-        if set(conditions) != used_conditions or sorted(used_overrides) != subject["override_digests"] or set(overrides) != {change_digest(x) for x in subject["changes"] if change_digest(x) in overrides}: return "compatibility_rejected"
+        condition_refs = [x["condition_id"] for x in subject["changes"] if x["condition_id"] is not None]
+        if len(condition_refs) != len(set(condition_refs)) or set(conditions) != used_conditions or len(condition_refs) != len(conditions) or sorted(used_overrides) != subject["override_digests"] or set(overrides) != {change_digest(x) for x in subject["changes"] if change_digest(x) in overrides}: return "compatibility_rejected"
         class_rank = {"compatible": 0, "conditionally_compatible": 1, "breaking": 2, "unknown": 3}; effect_rank = {"patch": 0, "minor": 1, "major": 2, "unknown": 3}
         classification = max((x[0] for x in effective), key=class_rank.get, default="compatible"); effect = max((x[1] for x in effective), key=effect_rank.get, default="patch")
         if subject["classification"] != classification or subject["required_semver_effect"] != effect: return "compatibility_rejected"
@@ -315,10 +334,13 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
         return None if valid else "semver_violation"
     if rule == "lifecycle":
         dep, policy, prior, resulting = context["deprecation"], context["policy"], context["prior_tombstones"], context["resulting_tombstones"]
-        entries = {x["semantic_id"]: x for x in resulting["entries"]}
-        valid = subject["namespace"] == dep["namespace"] == subject["removed_coordinate"]["namespace"] == policy["namespace"] == prior["namespace"] == resulting["namespace"] and subject["semantic_id"] == dep["semantic_id"] and subject["deprecation_record_digest"] == dep["deprecation_record_digest"] == subject["prior_lifecycle_digest"] and subject["deprecation_ledger_revision"] == dep["introduced_ledger_revision"] and subject["removed_ledger_revision"] > subject["deprecation_ledger_revision"] and subject["required_interval"] == policy["minimum_deprecation_releases"] and subject["removed_ledger_revision"] - subject["deprecation_ledger_revision"] >= subject["required_interval"] and subject["compatibility_policy_digest"] == policy["compatibility_policy_digest"] and subject["prior_tombstone_registry_digest"] == prior["tombstone_registry_digest"] and resulting["prior_registry_digest"] == prior["tombstone_registry_digest"] and resulting["registry_revision"] == prior["registry_revision"] + 1 and entries.get(subject["semantic_id"], {}).get("origin_record_digest") == subject["removal_record_digest"]
+        expected_entry = {"semantic_id": subject["semantic_id"], "reason": context.get("reason", "removed"), "origin_record_digest": subject["removal_record_digest"]}
+        expected_entries = copy.deepcopy(prior["entries"]) + [expected_entry]
+        expected_entries.sort(key=lambda x: x["semantic_id"].encode())
+        exact_chain = dep["prior_lifecycle_digest"] == context.get("deprecation_prior_head") and subject["prior_lifecycle_digest"] == context.get("current_lifecycle_head", dep["deprecation_record_digest"]) == dep["deprecation_record_digest"]
+        valid = subject["namespace"] == dep["namespace"] == dep["introduced_coordinate"]["namespace"] == subject["removed_coordinate"]["namespace"] == policy["namespace"] == prior["namespace"] == resulting["namespace"] and subject["semantic_id"] == dep["semantic_id"] and subject["deprecation_record_digest"] == dep["deprecation_record_digest"] and exact_chain and subject["deprecation_ledger_revision"] == dep["introduced_ledger_revision"] and subject["removed_ledger_revision"] > subject["deprecation_ledger_revision"] and subject["required_interval"] == policy["minimum_deprecation_releases"] and subject["removed_ledger_revision"] - subject["deprecation_ledger_revision"] >= subject["required_interval"] and subject["compatibility_policy_digest"] == policy["compatibility_policy_digest"] and subject["prior_tombstone_registry_digest"] == prior["tombstone_registry_digest"] and resulting["prior_registry_digest"] == prior["tombstone_registry_digest"] and resulting["registry_revision"] == prior["registry_revision"] + 1 and subject["semantic_id"] not in {x["semantic_id"] for x in prior["entries"]} and resulting["entries"] == expected_entries
         return None if valid else "lifecycle_violation"
-    if rule == "tombstone_reuse": return "lifecycle_violation" if any(x["category"] == "identifier_reuse" and x["semantic_id"] in {y["semantic_id"] for y in context["tombstones"]["entries"]} for x in subject["changes"]) else None
+    if rule == "tombstone_reuse": return "lifecycle_violation" if any(x["semantic_id"] in {y["semantic_id"] for y in context["tombstones"]["entries"]} for x in subject["changes"]) else None
     if rule == "publication_cas":
         if subject["operation"] == "publish" and subject["status_reason_digest"] is not None or subject["operation"] in {"withdraw", "revoke"} and subject["status_reason_digest"] is None: return "lifecycle_violation"
         if context.get("existing_replay_key") == subject["replay_key_digest"] and context.get("existing_coordinate") == subject["coordinate"] and context.get("existing_operation", subject["operation"]) == subject["operation"]: return None
@@ -329,12 +351,16 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
         return "version_conflict" if (old["namespace"], old["semantic_version"]) == (new["namespace"], new["semantic_version"]) and old["capsule_digest"] != new["capsule_digest"] else None
     if rule == "publication_commit":
         tx, journal, marker = context["transaction"], context["journal"], context["marker"]; result_digest = subject["owner_publication_digest"]
-        valid = tx["operation"] == "publish" and tx["status_reason_digest"] is None and subject["transaction_digest"] == tx["publication_transaction_digest"] == journal["transaction_digest"] == marker["transaction_digest"] and subject["coordinate"] == tx["coordinate"] and subject["ledger_namespace"] == tx["namespace"] == tx["coordinate"]["namespace"] and subject["owner_approval_digest"] == tx["owner_approval_digest"] == context["approval"]["owner_approval_digest"] and subject["trust_root_digest"] == context["trust_root"]["trust_root_digest"] and subject["prior_publication_digest"] == tx["expected_prior_head_digest"] and subject["ledger_revision"] == tx["expected_prior_revision"] + 1 and journal["state"] == "committed" and journal["linearized"] and journal["recovery_action"] == "none" and journal["resulting_record_digest"] == journal["resulting_ledger_head_digest"] == result_digest and journal["resulting_ledger_revision"] == subject["ledger_revision"] and marker["journal_digest"] == journal["publication_journal_digest"] and marker["resulting_record_digest"] == marker["resulting_ledger_head_digest"] == result_digest and marker["resulting_ledger_revision"] == subject["ledger_revision"] and marker["fsync_complete"]
+        valid = tx["operation"] == "publish" and tx["status_reason_digest"] is None and subject["transaction_digest"] == tx["publication_transaction_digest"] == journal["transaction_digest"] == marker["transaction_digest"] and subject["coordinate"] == tx["coordinate"] and subject["ledger_namespace"] == tx["namespace"] == tx["coordinate"]["namespace"] and subject["owner_approval_digest"] == tx["owner_approval_digest"] == context["approval"]["owner_approval_digest"] and subject["trust_root_digest"] == context["trust_root"]["trust_root_digest"] and subject["prior_publication_digest"] == tx["expected_prior_head_digest"] and subject["ledger_revision"] == tx["expected_prior_revision"] + 1 and journal["state"] == "committed" and journal["linearized"] and journal["recovery_action"] == "none" and journal["resulting_record_digest"] == journal["resulting_ledger_head_digest"] == result_digest and journal["resulting_ledger_revision"] == subject["ledger_revision"] and journal["prior_journal_digest"] == context["prior_journal_digest"] and marker["journal_digest"] == journal["publication_journal_digest"] and marker["resulting_record_digest"] == marker["resulting_ledger_head_digest"] == result_digest and marker["resulting_ledger_revision"] == subject["ledger_revision"] and marker["fsync_complete"]
         return None if valid else "lifecycle_violation"
     if rule == "publication_transition":
         tx, journal, marker = context["transaction"], context["journal"], context["marker"]; result_digest = subject["publication_status_transition_digest"]
         op = "withdraw" if subject["to_status"] == "withdrawn" else "revoke"
-        valid = tx["operation"] == op and tx["publication_transaction_digest"] == subject["transaction_digest"] == journal["transaction_digest"] == marker["transaction_digest"] and tx["coordinate"] == subject["coordinate"] and tx["owner_approval_digest"] == subject["owner_approval_digest"] and tx["status_reason_digest"] == subject["reason_digest"] and tx["expected_prior_head_digest"] == subject["prior_status_record_digest"] and tx["expected_prior_revision"] + 1 == subject["ledger_revision"] and journal["state"] == "committed" and journal["linearized"] and journal["recovery_action"] == "none" and journal["resulting_record_digest"] == journal["resulting_ledger_head_digest"] == result_digest and journal["resulting_ledger_revision"] == subject["ledger_revision"] and marker["journal_digest"] == journal["publication_journal_digest"] and marker["resulting_record_digest"] == marker["resulting_ledger_head_digest"] == result_digest and marker["resulting_ledger_revision"] == subject["ledger_revision"] and marker["fsync_complete"]
+        prior = context["prior_status"]
+        prior_digest = prior.get("owner_publication_digest", prior.get("publication_status_transition_digest"))
+        prior_status = prior.get("status", prior.get("to_status"))
+        valid_from = subject["from_status"] == prior_status and prior_digest == subject["prior_status_record_digest"] and prior["coordinate"] == subject["coordinate"] and prior["ledger_revision"] == tx["expected_prior_revision"]
+        valid = valid_from and tx["operation"] == op and tx["publication_transaction_digest"] == subject["transaction_digest"] == journal["transaction_digest"] == marker["transaction_digest"] and tx["coordinate"] == subject["coordinate"] and tx["owner_approval_digest"] == subject["owner_approval_digest"] and tx["status_reason_digest"] == subject["reason_digest"] and tx["expected_prior_head_digest"] == subject["prior_status_record_digest"] and tx["expected_prior_revision"] + 1 == subject["ledger_revision"] and journal["state"] == "committed" and journal["linearized"] and journal["recovery_action"] == "none" and journal["prior_journal_digest"] == context["prior_journal_digest"] and journal["resulting_record_digest"] == journal["resulting_ledger_head_digest"] == result_digest and journal["resulting_ledger_revision"] == subject["ledger_revision"] and marker["journal_digest"] == journal["publication_journal_digest"] and marker["resulting_record_digest"] == marker["resulting_ledger_head_digest"] == result_digest and marker["resulting_ledger_revision"] == subject["ledger_revision"] and marker["fsync_complete"]
         return None if valid else "lifecycle_violation"
     if rule == "publication_recovery":
         state, linear, action = subject["state"], subject["linearized"], subject["recovery_action"]
@@ -342,9 +368,12 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
         if not valid_tuple: return "recovery_needed"
         if context:
             before, after = context["before"], context["after"]
+            marker = context.get("marker")
             if not linear:
-                if after["revision"] != before["revision"] or after["head"] != before["head"] or after["marker_present"] or after["staging_present"]: return "recovery_needed"
-            elif after["revision"] != subject["resulting_ledger_revision"] or after["head"] != subject["resulting_ledger_head_digest"] or not after["marker_present"] or after["staging_present"]: return "recovery_needed"
+                if after["revision"] != before["revision"] or after["head"] != before["head"] or after["marker"] is not None or after["staging_present"] or after["status_record_digest"] != before["status_record_digest"]: return "recovery_needed"
+            else:
+                exact_marker = marker and fixture_digest_valid(marker) and after["marker"] == marker and marker["journal_digest"] == subject["publication_journal_digest"] and marker["transaction_digest"] == subject["transaction_digest"] and marker["resulting_record_digest"] == subject["resulting_record_digest"] and marker["resulting_ledger_head_digest"] == subject["resulting_ledger_head_digest"] and marker["resulting_ledger_revision"] == subject["resulting_ledger_revision"]
+                if after["revision"] != subject["resulting_ledger_revision"] or after["head"] != subject["resulting_ledger_head_digest"] or after["status_record_digest"] != subject["resulting_record_digest"] or not exact_marker or after["staging_present"]: return "recovery_needed"
         return None
     if rule == "projection":
         p, capsule, archive = context["projection"], context["capsule"], context["archive_linkage"]
@@ -356,18 +385,39 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
             if not pe or not ce or not ae or any(pe.get(k) != ce.get(k) or pe.get(k) != ae.get(k) for k in ("kind", "mode", "byte_length", "content_digest")) or row["mode"] != pe["mode"] or row["byte_length"] != pe.get("byte_length") or row["content_digest"] != pe.get("content_digest"): rows_ok = False
         meta = archive["capsule_metadata"]; meta_bytes = jcs(meta).encode(); meta_entry = archived.get(archive["capsule_metadata_path"])
         acyclic = set(meta) == {"schema", "namespace", "semantic_version", "payload_manifest_digest", "identity_mode"} and meta["namespace"] == capsule["namespace"] and meta["semantic_version"] == capsule["semantic_version"] and meta["payload_manifest_digest"] == capsule["payload_manifest_digest"] and meta_entry and meta_entry["content_digest"] == archive["capsule_metadata_content_digest"] == domain_digest("semantic-release.raw-blob.v0", meta_bytes) and meta_entry["byte_length"] == len(meta_bytes)
-        valid = rows_ok and acyclic and archive["archive_manifest_digest"] == context["archive_manifest"]["material_manifest_digest"] and p["payload_manifest_digest"] == context["payload_manifest"]["material_manifest_digest"] and p["consumer_manifest_digest"] == context["consumer_manifest"]["material_manifest_digest"] and subject["payload_projection_digest"] == p["payload_projection_digest"] == capsule["payload_projection_digest"] and subject["capsule_archive_linkage_digest"] == archive["capsule_archive_linkage_digest"] == capsule["capsule_archive_linkage_digest"] and subject["source_payload_manifest_digest"] == p["payload_manifest_digest"] and subject["expected_consumer_manifest_digest"] == p["consumer_manifest_digest"] == subject["actual_consumer_manifest_digest"]
+        expected_archive_paths = {archive["capsule_metadata_path"], archive["payload_root"]} | {archive["payload_root"] + "/" + path for path in payload}
+        archive_exact = set(archived) == expected_archive_paths and len(archived) == len(context["archive_manifest"]["entries"])
+        valid = rows_ok and acyclic and archive_exact and archive["archive_manifest_digest"] == context["archive_manifest"]["material_manifest_digest"] and p["payload_manifest_digest"] == context["payload_manifest"]["material_manifest_digest"] and p["consumer_manifest_digest"] == context["consumer_manifest"]["material_manifest_digest"] and subject["payload_projection_digest"] == p["payload_projection_digest"] == capsule["payload_projection_digest"] and subject["capsule_archive_linkage_digest"] == archive["capsule_archive_linkage_digest"] == capsule["capsule_archive_linkage_digest"] and subject["source_payload_manifest_digest"] == p["payload_manifest_digest"] and subject["expected_consumer_manifest_digest"] == p["consumer_manifest_digest"] == subject["actual_consumer_manifest_digest"]
         return None if valid else "projection_mismatch"
     if rule == "rollback":
         request = context["request"]; target = request["target"]; before = subject["active_state_before"]; after = subject["active_state_after"]
         activation, decision = context["activation"], context["decision"]
-        request_valid = request["issuer"]["kind"] == "consumer_owner" and request["active_activation_receipt_digest"] == activation["activation_receipt_digest"] and request["from_state"]["enabled"] and request["from_state"]["coordinate"] == activation["coordinate"] and request["from_state"]["runtime_identity"] == activation["runtime_identity"] and request["owner_decision_reference_digest"] == decision["ak_decision_reference_digest"] and decision_current(decision, context) and request["recovery_runtime_identity"] != request["from_state"]["runtime_identity"]
+        current_digest, current_revision = context["current_activation_digest"], context["current_activation_revision"]
+        canonical_history = context["canonical_history_head"]
+        activation_current = activation["activation_receipt_digest"] == current_digest and activation["activation_revision"] == current_revision and activation["status"] == "activated" and activation["revoked_by_digest"] is None and activation["superseded_by_activation_receipt_digest"] is None
+        request_valid = activation_current and request["issuer"]["kind"] == "consumer_owner" and request["active_activation_receipt_digest"] == current_digest and request["from_state"]["enabled"] and request["from_state"]["coordinate"] == activation["coordinate"] and request["from_state"]["runtime_identity"] == activation["runtime_identity"] and request["owner_decision_reference_digest"] == decision["ak_decision_reference_digest"] and decision_current(decision, context) and request["recovery_runtime_identity"] != request["from_state"]["runtime_identity"]
         if not request_valid: return "rollback_unavailable"
-        if subject["rollback_request_digest"] != request["rollback_request_digest"] or subject["request_target_kind"] != target["kind"] or before != request["from_state"] or not before["enabled"] or before["coordinate"] is None: return "history_conflict"
+        proof = context.get("availability")
+        if not proof or not fixture_digest_valid(proof) or subject["availability_proof_digest"] != proof["rollback_availability_proof_digest"] or proof["rollback_request_digest"] != request["rollback_request_digest"] or proof["target_kind"] != target["kind"] or proof["canonical_activation_digest"] != current_digest or proof["recovery_runtime_identity"] != request["recovery_runtime_identity"] or not proof["recovery_runtime_available"]: return "rollback_unavailable"
+        nulls = {"semantic_materialization_receipt_digest": None, "semantic_coordinate": None, "runtime_materialization_receipt_digest": None, "runtime_identity": None, "runtime_revalidation_receipt_digest": None, "disable_contract_digest": None, "rehearsal_receipt_digest": None}
+        expected_proof = dict(nulls)
+        if target["kind"] in {"semantic", "combined"}:
+            st = target if target["kind"] == "semantic" else target["semantic_stage"]
+            expected_proof.update(semantic_materialization_receipt_digest=st["target_materialization_receipt_digest"], semantic_coordinate=st["target_coordinate"])
+        if target["kind"] in {"runtime", "combined"}:
+            rt = target if target["kind"] == "runtime" else target["runtime_stage"]
+            expected_proof.update(runtime_materialization_receipt_digest=rt["target_materialization_receipt_digest"], runtime_identity=rt["target_runtime_identity"], runtime_revalidation_receipt_digest=rt["runtime_revalidation_receipt_digest"])
+        if target["kind"] == "no_prior_disable": expected_proof.update(disable_contract_digest=target["disable_contract_digest"], rehearsal_receipt_digest=target["rehearsal_receipt_digest"])
+        if any(proof[k] != v for k, v in expected_proof.items()): return "rollback_unavailable"
+        if subject["rollback_request_digest"] != request["rollback_request_digest"] or subject["request_target_kind"] != target["kind"] or before != request["from_state"] or not before["enabled"] or before["coordinate"] is None or subject["history_head_before"] != canonical_history: return "history_conflict"
         expected_names = {"semantic": ["semantic"], "runtime": ["runtime"], "no_prior_disable": ["disable"]}.get(target["kind"])
         if target["kind"] == "combined": expected_names = ["semantic", "runtime"] if target["stage_order"] == "semantic_then_runtime" else ["runtime", "semantic"]
         if [x["stage"] for x in subject["stages"]] != expected_names or subject["stage_order"] != (target.get("stage_order") if target["kind"] == "combined" else None): return "history_conflict"
         if any((x["result"] == "failed") != (x["error_digest"] is not None) for x in subject["stages"]): return "history_conflict"
+        states = [x["result"] for x in subject["stages"]]
+        failed_indexes = [i for i, x in enumerate(states) if x == "failed"]
+        if len(failed_indexes) > 1 or failed_indexes and any(x != "not_started" for x in states[failed_indexes[0] + 1:]): return "history_conflict"
+        if "not_started" in states and any(x != "not_started" for x in states[states.index("not_started") + 1:]): return "history_conflict"
         computed = copy.deepcopy(before)
         for stage in subject["stages"]:
             if stage["result"] != "completed": continue
@@ -375,6 +425,8 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
             elif stage["stage"] == "runtime": computed["runtime_identity"] = target["target_runtime_identity"] if target["kind"] == "runtime" else target["runtime_stage"]["target_runtime_identity"]
             else: computed["enabled"] = False; computed["coordinate"] = None
         failed = [x for x in subject["stages"] if x["result"] == "failed"]; completed = [x for x in subject["stages"] if x["result"] == "completed"]
+        failure_stage = failed[0]["stage"] if failed else None; failure_error = failed[0]["error_digest"] if failed else None
+        if subject["failure_stage"] != failure_stage or subject["error_digest"] != failure_error: return "history_conflict"
         if subject["result"] == "partial_failure" and (target["kind"] != "combined" or not failed or not completed): return "history_conflict"
         runtime_proof = target.get("runtime_revalidation_receipt_digest") if target["kind"] == "runtime" else target.get("runtime_stage", {}).get("runtime_revalidation_receipt_digest")
         if completed and any(x["stage"] == "runtime" for x in completed) and subject["runtime_revalidation_receipt_digest"] != runtime_proof: return "rollback_unavailable"
@@ -385,18 +437,20 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
             ak_link, pi_receipt = context.get("ak_linkage"), context.get("pi_receipt")
             if not ak_link or not pi_receipt or ak_digest != ak_link["ak_evidence_linkage_digest"] or pi_digest != pi_receipt["pi_delivery_receipt_digest"] or ak_link["pi_delivery_receipt_digest"] != pi_digest or ak_link["activation_receipt_digest"] != request["active_activation_receipt_digest"]: return "history_conflict"
         if subject["result"] == "failed":
-            return None if failed and not completed and after == before and subject["history_head_after"] == subject["history_head_before"] and subject["error_digest"] and subject["supersedes_activation_receipt_digest"] is None else "history_conflict"
+            return None if failed and not completed and after == before and subject["history_head_after"] == canonical_history and subject["supersedes_activation_receipt_digest"] is None else "history_conflict"
         if after != computed: return "history_conflict"
-        if subject["result"] == "partial_failure":
-            return None if target["kind"] == "combined" and failed and completed and subject["error_digest"] and subject["history_head_after"] != subject["history_head_before"] and subject["history_head_after"]["kind"] == "rollback" and subject["supersedes_activation_receipt_digest"] is None else "history_conflict"
+        history = context.get("history_after")
+        expected_kind = "disable" if target["kind"] == "no_prior_disable" else "rollback"
+        history_valid = history and fixture_digest_valid(history) and subject["history_head_after"] == {"kind": expected_kind, "digest": history["rollback_history_transition_digest"]} and history["rollback_request_digest"] == request["rollback_request_digest"] and history["result"] == subject["result"] and history["active_state_before"] == before and history["active_state_after"] == after and history["stages"] == subject["stages"] and history["failure_stage"] == subject["failure_stage"] and history["error_digest"] == subject["error_digest"] and history["history_head_before"] == canonical_history and history["supersedes_activation_receipt_digest"] == subject["supersedes_activation_receipt_digest"]
+        if not history_valid: return "history_conflict"
+        if subject["result"] == "partial_failure": return None if target["kind"] == "combined" and failed and completed and subject["supersedes_activation_receipt_digest"] is None else "history_conflict"
         expected_result = "disabled" if target["kind"] == "no_prior_disable" else "rolled_back"
-        expected_head = "disable" if target["kind"] == "no_prior_disable" else "rollback"
-        valid = subject["result"] == expected_result and not failed and len(completed) == len(subject["stages"]) and subject["error_digest"] is None and subject["history_head_after"] != subject["history_head_before"] and subject["history_head_after"]["kind"] == expected_head and subject["supersedes_activation_receipt_digest"] == request["active_activation_receipt_digest"]
+        valid = subject["result"] == expected_result and not failed and len(completed) == len(subject["stages"]) and subject["supersedes_activation_receipt_digest"] == current_digest
         if target["kind"] == "no_prior_disable": valid = valid and after["runtime_identity"] == before["runtime_identity"]
         return None if valid else "history_conflict"
     if rule == "generation_activation":
         activation = context["activation"]
-        valid = activation["status"] == "activated" and activation["revoked_by_digest"] is None and activation["superseded_by_activation_receipt_digest"] is None and subject["activation_receipt_digest"] == subject["activation_head_digest"] == context["current_activation_digest"] and subject["activation_head_revision"] == context["current_activation_revision"] == activation["activation_revision"] and subject["coordinate"] == activation["coordinate"] and subject["runtime_identity"] == activation["runtime_identity"]
+        valid = activation["activation_receipt_digest"] == context["current_activation_digest"] and activation["status"] == "activated" and activation["revoked_by_digest"] is None and activation["superseded_by_activation_receipt_digest"] is None and subject["activation_receipt_digest"] == subject["activation_head_digest"] == context["current_activation_digest"] and subject["activation_head_revision"] == context["current_activation_revision"] == activation["activation_revision"] and subject["coordinate"] == activation["coordinate"] and subject["runtime_identity"] == activation["runtime_identity"]
         return None if valid else "activation_not_current"
     if rule == "utc": return None if strict_utc(subject["recorded_at"]) else "malformed_input"
     if rule == "ak_decision": return None if decision_current(subject, context) else "self_certification"
@@ -408,12 +462,19 @@ def evaluate(rule: str, subject: dict, context: dict) -> str | None:
         decision = context["decision"]
         valid = decision_current(decision, context) and subject["gate_decision_reference_digest"] == decision["ak_decision_reference_digest"] and all(subject[k] == decision[k] for k in ("activation_target_digest", "evidence_criteria_digest", "rollback_plan_digest", "stop_conditions_digest"))
         return None if valid else "self_certification"
+    if rule == "governance_contracts":
+        consumer = context["consumer_contract"]
+        expected_paths = ["config/semantic-release/canary.json", "docs/project/semantic-release-canary-evidence.md", "scripts/ci/semantic-release-canary.sh"]
+        no_authority = all(not x[k] for x in (subject, consumer) for k in ("authorizes_execution", "authorizes_publication", "authorizes_adoption")) and subject["contract_status"] == consumer["contract_status"] == "candidate_not_created"
+        separate = subject["task_contract_id"] != consumer["task_contract_id"] and subject["rollback_owner"]["kind"] == "ak" and consumer["rollback_owner"]["kind"] == "consumer_owner"
+        exact = subject["task_kind"] == "ak_coordination" and subject["repository"] == "softwareco/owned/agent-kernel" and subject["allowed_paths"] == [] and subject["authority_scope"] == "coordination_only" and consumer["task_kind"] == "first_consumer" and consumer["repository"] == "softwareco/pi-canary-consumer" and consumer["allowed_paths"] == expected_paths and consumer["authority_scope"] == "consumer_owner_candidate_only"
+        return None if no_authority and separate and exact else "self_certification"
     if rule in {"pi_variant", "ak_optional_pi"}: return None
     raise ValidationError(f"unknown differential rule {rule}")
 
 
 def check_claim_scope(instance: dict) -> None:
-    expected = {"semantic-owner-acceptance.v0": ("acceptance_authority", "consumer_owner"), "semantic-materialization-verification-receipt.v0": ("issuer", "rocs"), "semantic-activation-receipt.v0": ("issuer", "consumer_owner"), "semantic-rocs-generation-receipt.v0": ("issuer", "rocs"), "semantic-pi-delivery-receipt.v0": ("issuer", "pi"), "semantic-ak-evidence-linkage.v0": ("issuer", "ak"), "semantic-rollback-receipt.v0": ("issuer", "recovery_controller")}
+    expected = {"semantic-owner-acceptance.v0": ("acceptance_authority", "consumer_owner"), "semantic-materialization-verification-receipt.v0": ("issuer", "rocs"), "semantic-activation-receipt.v0": ("issuer", "consumer_owner"), "semantic-rocs-generation-receipt.v0": ("issuer", "rocs"), "semantic-pi-delivery-receipt.v0": ("issuer", "pi"), "semantic-ak-evidence-linkage.v0": ("issuer", "ak"), "semantic-rollback-request.v0": ("issuer", "consumer_owner"), "semantic-rollback-receipt.v0": ("issuer", "recovery_controller")}
     if (row := expected.get(instance["schema"])) and instance[row[0]]["kind"] != row[1]: raise ValidationError("issuer_scope_violation")
 
 
@@ -450,7 +511,11 @@ def main() -> int:
         except ValidationError: structural = False
         if structural != item["schema_valid"]: raise ValidationError(f"{item['name']}: schema_valid expected {item['schema_valid']}, got {structural}")
         if item["rule"] != "digest" and not fixture_digest_valid(subject): raise ValidationError(f"{item['name']}: counterexample digest masks rule")
-        actual = evaluate(item["rule"], subject, item["context"]) if structural else item["expected_error"]
+        actual = item["expected_error"] if not structural else None
+        if structural:
+            try: check_claim_scope(subject)
+            except ValidationError: actual = "issuer_scope_violation"
+            if actual is None: actual = evaluate(item["rule"], subject, item["context"])
         if actual is None:
             try: check_order(subject)
             except ValidationError: actual = "malformed_input"

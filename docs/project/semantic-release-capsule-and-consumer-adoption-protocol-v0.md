@@ -6,7 +6,7 @@ read_when:
 type: "rfc"
 status: "proposed"
 decision: "53"
-rfc_revision: "semantic-release-revision-v3"
+rfc_revision: "semantic-release-revision-v4"
 review_posture: "fresh_review_required"
 ---
 
@@ -14,7 +14,7 @@ review_posture: "fresh_review_required"
 
 ## 1. Status and legal effect
 
-This revision answers the finite closure blockers in the controlling [`semantic-release-rereview2-synthesis-v2.md`](semantic-release-rereview2-synthesis-v2.md) for decision `53`. It is a proposal-stage protocol packet submitted for fresh strict review, not an ADR, owner approval, implementation plan, publication, adoption, activation, default decision, fleet decision, or ontology mutation.
+This revision answers the finite closure blockers in the controlling [`semantic-release-rereview3-synthesis-v3.md`](semantic-release-rereview3-synthesis-v3.md) for decision `53`. It is a proposal-stage protocol packet submitted for fresh strict review, not an ADR, owner approval, implementation plan, publication, adoption, activation, default decision, fleet decision, or ontology mutation.
 
 Normative machine artifacts are:
 
@@ -111,7 +111,7 @@ A build receipt claims deterministic construction only. It is not owner approval
 
 ### 5.3 Capsule
 
-`semantic-release-capsule.v0` binds namespace/version, source and semantic payload identities, compiled payload manifest, exact payload projection, capsule archive linkage, owner/compilation policies, executable compatibility report, protocol versions, predecessor, and tombstones. Archive identity is acyclic: capsule → linkage → archive manifest plus closed metadata that excludes capsule/archive/linkage digests. The metadata raw JCS digest/length equal its archive entry. Projection source and destination paths are separately unique and their sets equal all payload and consumer entries, yielding a complete no-extra/no-missing bijection with mode/length/content equality. The capsule digest omits only `capsule_digest` and retains every nested digest.
+`semantic-release-capsule.v0` binds namespace/version, source and semantic payload identities, compiled payload manifest, exact payload projection, capsule archive linkage, owner/compilation policies, executable compatibility report, protocol versions, predecessor, and tombstones. Archive identity is acyclic: capsule → linkage → archive manifest plus closed metadata that excludes capsule/archive/linkage digests. The metadata raw JCS digest/length equal its archive entry. Projection source and destination paths are separately unique and their sets equal all payload and consumer entries, yielding a complete no-extra/no-missing bijection with mode/length/content equality. The archive set is exactly metadata, payload root, and prefixed payload entries; extra archive entries reject. The capsule digest omits only `capsule_digest` and retains every nested digest.
 
 The predecessor is the immediately prior accepted active coordinate in the namespace publication ledger. Genesis alone has no predecessor. A capsule is immutable; corrections require a new version and digest.
 
@@ -123,7 +123,7 @@ The semantic owner MUST maintain closed, immutable `semantic-owner-policy.v0`, `
 
 The owner set pins each member's keys and active/revoked state. `threshold` counts distinct eligible active owners and lies within the active count; `unanimous` requires every active owner **and** `threshold` equal that count. Multiple keys never multiply an owner. Revoked vote is `trust_revoked`; unauthorized, duplicate, insufficient, or unanimous-threshold drift is `approval_threshold_unsatisfied`.
 
-`semantic-owner-approval.v0` binds policy/set/predicate, canonical AK decision, and one closed typed action (`release`, `trust_rotation`, `trust_revocation`, or `compatibility_override`). The action digest is recomputed and every vote binds it. Rotation/revocation actions repeat exact policy/root/target/prior-head/revision facts; release repeats clean source/capsule/report; override repeats exact change/effect/condition. The predicate is recomputed. ROCS, AK, Pi, and consumer votes cannot substitute for semantic-owner approval.
+`semantic-owner-approval.v0` binds one exactly equal namespace/policy/set/predicate chain, canonical AK decision, and one closed typed action (`release`, `trust_rotation`, `trust_revocation`, or `compatibility_override`). The action digest is recomputed and every vote binds it. Rotation/revocation actions repeat exact namespace/policy/set/predicate/root/target/prior-head/revision facts; release repeats clean source/capsule/report; override repeats exact change/effect/condition. The predicate is recomputed. ROCS, AK, Pi, and consumer votes cannot substitute for semantic-owner approval.
 
 ### 6.2 Unsigned local v0 trust chain
 
@@ -151,7 +151,7 @@ The durable head CAS is the linearization point. A stale revision is `publicatio
 
 The closed journal combinations are prepared/not-linearized/discard, committing/linearized/complete, committed/linearized/none, and aborted/not-linearized/discard. Recovery before linearization discards staging; recovery after it completes record/marker idempotently. Impossible combinations return `recovery_needed`.
 
-`semantic-publication-status-transition.v0` admits only published→withdrawn, published→revoked, and withdrawn→revoked. A resulting record binds transaction/prior status without backward journal/marker links; journal and marker each bind that exact transition digest as resulting head/revision. Recovery validates concrete before/after revision, head, marker, and staging effects, not only journal enums. Revoked is terminal; history and version bindings are never rewritten.
+`semantic-publication-status-transition.v0` admits only published→withdrawn, published→revoked, and withdrawn→revoked. A resulting record binds transaction/prior status without backward journal/marker links; journal and marker each bind that exact transition digest as resulting head/revision. The prior status object and prior journal head are resolved exactly. Recovery validates concrete before/after revision, head, full resulting status object, exact marker object and all its journal/result fields, and staging effects, not only journal enums or marker-presence booleans. Revoked is terminal; history and version bindings are never rewritten.
 
 ## 8. Compatibility policy
 
@@ -169,9 +169,9 @@ The report classifies the release:
 compatible | conditionally_compatible | breaking | unknown
 ```
 
-`unknown` always fails publication/adoption. Conditions execute one of `evidence_digest_equals`, `consumer_protocol_at_least`, or `deprecation_interval_at_least` over typed operands; `satisfied` is recomputed. Missing, false, duplicate, or ill-typed evidence fails. Overall SemVer effect is the maximum and the candidate version MUST satisfy the exact patch/minor/major relation. Condition IDs form an exact reference bijection: duplicate and surplus unreferenced conditions reject. `semantic-compatibility-override.v0` embeds and independently digests the exact change, executes a typed true condition, binds a typed owner approval, and must appear exactly once in the report's used override set; it cannot legalize identifier reuse, bypass lifecycle, erase conditions, or weaken a SemVer floor.
+`unknown` always fails publication/adoption. Conditions execute one of `evidence_digest_equals`, `consumer_protocol_at_least`, or `deprecation_interval_at_least` over typed operands; `satisfied` is recomputed. Missing, false, duplicate, or ill-typed evidence fails. Overall SemVer effect is the maximum and the candidate version MUST satisfy the exact patch/minor/major relation. Condition IDs form a cardinality-preserving exact reference bijection: every required condition is present and each is referenced by exactly one change; duplicate, shared, and surplus unreferenced conditions reject. `semantic-compatibility-override.v0` embeds and independently digests the exact change, executes a typed true condition, binds a typed owner approval repeating the complete override, preserves at least the source SemVer floor (`unknown` fails closed at `major`), and must appear exactly once in the report's used override set; it cannot legalize identifier reuse, bypass lifecycle, erase conditions, or weaken a SemVer floor.
 
-`semantic-deprecation-record.v0` and `semantic-removal-record.v0` make lifecycle executable. Removal binds the exact prior deprecation and accepted-ledger interval. Removed and renamed IDs enter append-only `semantic-tombstone-registry.v0`; tombstoned IDs MUST NOT be reused, including after withdrawal/revocation or override. Owner policy, not ROCS or consumer preference, owns these classifications.
+`semantic-deprecation-record.v0` and `semantic-removal-record.v0` make lifecycle executable. Removal binds the exact prior deprecation and accepted-ledger interval. Removed and renamed IDs enter append-only `semantic-tombstone-registry.v0`, whose result is exactly every prior entry plus one exact reason/origin and no extras; tombstoned IDs MUST NOT return under any category, including after withdrawal/revocation or override. Owner policy, not ROCS or consumer preference, owns these classifications.
 
 ## 9. Consumer adoption chain
 
@@ -224,11 +224,11 @@ The protocol separates four non-interchangeable records:
 
 Generation is permitted only when its activation digest/revision equal the current `activated`, unrevoked, unsuperseded activation head and its coordinate/runtime equal that activation byte-for-byte; otherwise it fails `activation_not_current`. ROCS `matched` does not prove prompt delivery. Pi `delivered` requires prompt-run and exact effective-execution digests; `suppressed` requires a closed reason and forbids delivery fields; `failed` requires an error and forbids delivery fields. AK linkage MAY omit Pi only for generation-only lineage. No variant proves model reading, interpretation, obedience, influence, or correctness.
 
-Issuer kind and fixed `claim_scope` are schema-bound and enforced by invariants. An out-of-scope issuer fails with `issuer_scope_violation`.
+Issuer kind and fixed `claim_scope` are schema-bound and enforced for every structurally valid subject before its domain rule, including expected-rejection subjects. An out-of-scope issuer fails with `issuer_scope_violation`.
 
 ## 11. Rollback and recovery
 
-`semantic-rollback-request.v0` binds the current activation, an enabled before-state whose coordinate/runtime equal it, a closed axis target, independently pinned recovery controller distinct from active runtime, current canonical owner decision, and preconditions. Semantic targets switch coordinate and retain runtime; runtime targets retain semantics, switch runtime, and require runtime revalidation; no-prior targets bind tested disable/rehearsal; combined targets embed ordered semantic/runtime stages. `semantic-rollback-receipt.v0` binds result, typed before/after state, per-stage results/errors, availability proof, typed history heads, overall error, and superseded activation.
+`semantic-rollback-request.v0` binds the current activation, an enabled before-state whose coordinate/runtime equal it, a closed axis target, independently pinned recovery controller distinct from active runtime, current canonical owner decision, and preconditions. Semantic targets switch coordinate and retain runtime; runtime targets retain semantics, switch runtime, and require runtime revalidation; no-prior targets bind tested disable/rehearsal; combined targets embed ordered semantic/runtime stages. `semantic-rollback-availability-proof.v0` resolves the concrete target materialization/revalidation/disable facts, canonical activation, and usable recovery runtime. `semantic-rollback-receipt.v0` binds result, typed before/after state, monotone per-stage results/errors, exact failed-stage causality, availability proof, typed history heads, overall error, and superseded activation. Every changed head resolves to `semantic-rollback-history-transition.v0` repeating the canonical before-head, request, states, stages, cause, and supersession.
 
 Rollback axes are independent and MUST be rehearsed independently:
 
@@ -281,9 +281,14 @@ If and only if the membrane above later closes, a Decision-53-specific fan-out c
 | Pi | bind validated ROCS output to delivered/suppressed/failed run outcome without overclaim | three delivery variants and cancellation/stale-result evidence | Pi owner; stop on identity drift or delivery ambiguity |
 | DSPx/Oracle | optional empirical behavior analysis | separately owned outcome contract | empirical owner; no influence claim without evidence |
 
-The named first consumer candidate is `softwareco/pi-canary-consumer`, limited to one operator-named canary and represented by a future consumer-owner task contract whose allowed paths, required receipts, exact activation target/evidence/rollback/stop bindings, and stop conditions must be accepted after the membrane closes. The candidate is non-authorizing: it creates no repository consent, task, canary, default, or implementation authority.
+The two concrete candidate task contracts below are deliberately separate and **not created or authorized** by this RFC:
 
-Each lane would require its own owner-scoped task. AK coordination and consumer-owner issuance MUST remain separate tasks/owners; neither may fan out the other's authority. This table is sequencing guidance only.
+| Contract | Repository and allowed paths | Required receipts/evidence | Rollback owner | Stop conditions |
+|---|---|---|---|---|
+| `decision-53-ak-coordination` | `softwareco/owned/agent-kernel`; `allowed_paths=[]` (canonical AK records only; no worktree mutation) | current accepted Decision-53/ADR reference; immutable references to each owner task and consent; evidence records for Python, Node, docs-strict, deterministic rerun, and rollback rehearsal; `semantic-ak-evidence-linkage.v0` only after its referenced facts exist | AK owner may revoke/supersede coordination references; it cannot withdraw a semantic release or consumer acceptance | stop on stale/revoked/superseded decision, store-head or scope drift, missing owner task, attempted semantic issuance, attempted consumer consent, or any request to treat coordination as authorization |
+| `decision-53-first-consumer-canary` | `softwareco/pi-canary-consumer`; only `config/semantic-release/canary.json`, `scripts/ci/semantic-release-canary.sh`, and `docs/project/semantic-release-canary-evidence.md` | consumer intent and consumer-owner acceptance; exact capsule/archive/projection and materialization receipt; separately accepted canary gate with exact activation-target/evidence/rollback/stop digests; concrete rollback-availability proof, activation receipt, typed rollback history/rehearsal, and bounded canary evidence | repository consumer owner owns deactivation/rollback and may revoke acceptance; semantic owner separately owns withdrawal/revocation | stop before mutation on absent repository-owner consent, unavailable target or recovery runtime, stale trust/AK/activation head, projection or issuer drift, failed validators, unknown/incompatible outcome, missing rollback rehearsal, scope beyond one operator-named canary, or any default/fleet request |
+
+The first-consumer posture is exactly one operator-named canary. The AK coordination contract may link owner facts but MUST NOT issue them. The consumer-owner contract may issue repository intent/acceptance/gates but MUST NOT publish semantic facts or use AK linkage as consent. A later authority must create each task separately, preserve these repository/path bounds and stop conditions, and obtain owner acceptance after the Decision-53 membrane closes. This candidate creates no task, repository consent, implementation authority, canary, default, or rollout authority.
 
 ## 15. Non-goals
 
