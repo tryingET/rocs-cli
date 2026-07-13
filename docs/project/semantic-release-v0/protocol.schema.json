@@ -978,6 +978,46 @@
       ],
       "type": "object"
     },
+    "authorityEdgeOwnership": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "single_owner",
+            "multi_owner"
+          ]
+        },
+        "owners": {
+          "items": {
+            "$ref": "#/$defs/authorityOwnerTuple"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "owners"
+      ],
+      "type": "object"
+    },
+    "authorityEdgeRoleOwner": {
+      "additionalProperties": false,
+      "properties": {
+        "owner": {
+          "$ref": "#/$defs/authorityOwnerTuple"
+        },
+        "role": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "role",
+        "owner"
+      ],
+      "type": "object"
+    },
     "authorityFactValue": {
       "oneOf": [
         {
@@ -1307,6 +1347,33 @@
         }
       ]
     },
+    "authorityOwnerTuple": {
+      "additionalProperties": false,
+      "properties": {
+        "owner_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_repository": {
+          "$ref": "#/$defs/repositoryIdentity"
+        },
+        "owner_surface": {
+          "enum": [
+            "semantic_owner",
+            "ak",
+            "consumer_owner",
+            "rocs",
+            "recovery_controller",
+            "pi"
+          ]
+        }
+      },
+      "required": [
+        "owner_surface",
+        "owner_id",
+        "owner_repository"
+      ],
+      "type": "object"
+    },
     "authorityProofBundle": {
       "additionalProperties": false,
       "properties": {
@@ -1357,21 +1424,8 @@
         "edge_linkage_digest": {
           "$ref": "#/$defs/digest"
         },
-        "owner_id": {
-          "$ref": "#/$defs/identifier"
-        },
-        "owner_repository": {
-          "$ref": "#/$defs/repositoryIdentity"
-        },
-        "owner_surface": {
-          "enum": [
-            "semantic_owner",
-            "ak",
-            "consumer_owner",
-            "rocs",
-            "recovery_controller",
-            "pi"
-          ]
+        "ownership": {
+          "$ref": "#/$defs/authorityEdgeOwnership"
         },
         "role_ids": {
           "items": {
@@ -1380,13 +1434,20 @@
           "maxItems": 1000,
           "minItems": 1,
           "type": "array"
+        },
+        "role_owners": {
+          "items": {
+            "$ref": "#/$defs/authorityEdgeRoleOwner"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
         }
       },
       "required": [
         "edge_id",
-        "owner_surface",
-        "owner_id",
-        "owner_repository",
+        "ownership",
+        "role_owners",
         "role_ids",
         "edge_linkage_digest"
       ],
@@ -1548,12 +1609,14 @@
         "sources": {
           "items": {
             "enum": [
-              "receipt",
+              "authority_graph",
               "node",
-              "parameter"
+              "parameter",
+              "receipt",
+              "subject"
             ]
           },
-          "maxItems": 3,
+          "maxItems": 5,
           "minItems": 1,
           "type": "array"
         }
@@ -1638,7 +1701,7 @@
           "$ref": "#/$defs/digest"
         },
         "revision": {
-          "const": "semantic-release-revision-v10"
+          "const": "semantic-release-revision-v11"
         },
         "rules": {
           "items": {
@@ -1878,6 +1941,9 @@
         "compilation_contract_digest": {
           "$ref": "#/$defs/digest"
         },
+        "lifecycle_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "namespace": {
           "$ref": "#/$defs/namespace"
         },
@@ -1922,6 +1988,9 @@
         },
         "tombstone_registry_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "tombstone_registry_revision": {
+          "$ref": "#/$defs/safeInteger"
         }
       },
       "required": [
@@ -1938,7 +2007,9 @@
         "compilation_contract_digest",
         "required_protocol_versions",
         "predecessor_coordinate",
+        "lifecycle_head_digest",
         "tombstone_registry_digest",
+        "tombstone_registry_revision",
         "capsule_digest"
       ],
       "type": "object"
@@ -4091,7 +4162,13 @@
           "$ref": "#/$defs/publicationJournal"
         },
         {
+          "$ref": "#/$defs/publicationRecoveryIntentMarker"
+        },
+        {
           "$ref": "#/$defs/publicationCommitMarker"
+        },
+        {
+          "$ref": "#/$defs/publicationRecoveryStateReceipt"
         },
         {
           "$ref": "#/$defs/ownerPublication"
@@ -4363,19 +4440,81 @@
       ],
       "type": "object"
     },
+    "publicationRecoveryIntentMarker": {
+      "additionalProperties": false,
+      "properties": {
+        "durable_commit_marker_present": {
+          "const": false
+        },
+        "fsync_complete": {
+          "const": false
+        },
+        "issuer": {
+          "$ref": "#/$defs/issuer"
+        },
+        "journal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "marker_semantics": {
+          "const": "non_durable_intent_only"
+        },
+        "publication_recovery_intent_marker_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "resulting_ledger_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "resulting_ledger_revision": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "resulting_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "schema": {
+          "const": "semantic-publication-recovery-intent-marker.v0"
+        },
+        "transaction_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "required": [
+        "schema",
+        "issuer",
+        "transaction_digest",
+        "journal_digest",
+        "resulting_record_digest",
+        "resulting_ledger_revision",
+        "resulting_ledger_head_digest",
+        "marker_semantics",
+        "fsync_complete",
+        "durable_commit_marker_present",
+        "publication_recovery_intent_marker_digest"
+      ],
+      "type": "object"
+    },
     "publicationRecoveryState": {
       "additionalProperties": false,
       "properties": {
-        "head": {
-          "$ref": "#/$defs/digest"
-        },
-        "marker": {
+        "durable_commit_marker_digest": {
           "oneOf": [
             {
               "type": "null"
             },
             {
-              "$ref": "#/$defs/publicationCommitMarker"
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "head": {
+          "$ref": "#/$defs/digest"
+        },
+        "intent_marker_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
             }
           ]
         },
@@ -4393,10 +4532,145 @@
         "revision",
         "head",
         "status_record_digest",
-        "marker",
+        "intent_marker_digest",
+        "durable_commit_marker_digest",
         "staging_present"
       ],
       "type": "object"
+    },
+    "publicationRecoveryStateReceipt": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "issuer": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/identifier"
+                },
+                "kind": {
+                  "const": "semantic_owner"
+                }
+              },
+              "required": [
+                "kind",
+                "id"
+              ],
+              "type": "object"
+            },
+            "namespace": {
+              "$ref": "#/$defs/namespace"
+            },
+            "phase": {
+              "const": "before"
+            },
+            "publication_recovery_state_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "recovery_controller_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "recovery_epoch": {
+              "$ref": "#/$defs/safeInteger"
+            },
+            "recovery_journal_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "schema": {
+              "const": "semantic-publication-recovery-state-receipt.v0"
+            },
+            "semantic_owner_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "state": {
+              "$ref": "#/$defs/publicationRecoveryState"
+            },
+            "transaction_digest": {
+              "$ref": "#/$defs/digest"
+            }
+          },
+          "required": [
+            "schema",
+            "phase",
+            "issuer",
+            "semantic_owner_id",
+            "recovery_controller_id",
+            "recovery_epoch",
+            "namespace",
+            "transaction_digest",
+            "recovery_journal_digest",
+            "state",
+            "publication_recovery_state_receipt_digest"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "issuer": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "$ref": "#/$defs/identifier"
+                },
+                "kind": {
+                  "const": "recovery_controller"
+                }
+              },
+              "required": [
+                "kind",
+                "id"
+              ],
+              "type": "object"
+            },
+            "namespace": {
+              "$ref": "#/$defs/namespace"
+            },
+            "phase": {
+              "const": "after"
+            },
+            "publication_recovery_state_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "recovery_controller_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "recovery_epoch": {
+              "$ref": "#/$defs/safeInteger"
+            },
+            "recovery_journal_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "schema": {
+              "const": "semantic-publication-recovery-state-receipt.v0"
+            },
+            "semantic_owner_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "state": {
+              "$ref": "#/$defs/publicationRecoveryState"
+            },
+            "transaction_digest": {
+              "$ref": "#/$defs/digest"
+            }
+          },
+          "required": [
+            "schema",
+            "phase",
+            "issuer",
+            "semantic_owner_id",
+            "recovery_controller_id",
+            "recovery_epoch",
+            "namespace",
+            "transaction_digest",
+            "recovery_journal_digest",
+            "state",
+            "publication_recovery_state_receipt_digest"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "publicationStatusRecord": {
       "oneOf": [
@@ -5906,6 +6180,9 @@
           "minItems": 0,
           "type": "array"
         },
+        "lifecycle_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
         "namespace": {
           "$ref": "#/$defs/namespace"
         },
@@ -5932,6 +6209,7 @@
       "required": [
         "schema",
         "namespace",
+        "lifecycle_head_digest",
         "registry_revision",
         "entries",
         "prior_registry_digest",
@@ -6278,7 +6556,13 @@
       "$ref": "#/$defs/publicationJournal"
     },
     {
+      "$ref": "#/$defs/publicationRecoveryIntentMarker"
+    },
+    {
       "$ref": "#/$defs/publicationCommitMarker"
+    },
+    {
+      "$ref": "#/$defs/publicationRecoveryStateReceipt"
     },
     {
       "$ref": "#/$defs/ownerPublication"
@@ -6356,5 +6640,5 @@
       "$ref": "#/$defs/authorityVerifierInput"
     }
   ],
-  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 10"
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 11"
 }

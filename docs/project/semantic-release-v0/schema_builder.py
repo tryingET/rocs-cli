@@ -125,7 +125,9 @@ def build_schema() -> dict[str, Any]:
         "compatibility_policy_digest": ref("digest"), "required_interval": ref("safeInteger"), "prior_tombstone_registry_digest": nullable(ref("digest")), "removal_record_digest": ref("digest")})
     d["tombstoneEntry"] = obj({"semantic_id": ref("identifier"), "reason": {"enum": ["removed", "renamed"]}, "origin_record_digest": ref("digest")})
     d["tombstoneRegistry"] = protocol("semantic-tombstone-registry.v0", {
-        "namespace": ref("namespace"), "registry_revision": ref("safeInteger"), "entries": array(ref("tombstoneEntry")), "prior_registry_digest": nullable(ref("digest")), "tombstone_registry_digest": ref("digest")})
+        "namespace": ref("namespace"), "lifecycle_head_digest": ref("digest"), "registry_revision": ref("safeInteger"),
+        "entries": array(ref("tombstoneEntry")), "prior_registry_digest": nullable(ref("digest")),
+        "tombstone_registry_digest": ref("digest")})
     d["publicationLedgerHead"] = protocol("semantic-publication-ledger-head.v0", {
         "namespace": ref("namespace"), "ledger_revision": ref("safeInteger"), "ledger_head_digest": ref("digest"),
         "status_record_digest": ref("digest"), "transaction_digest": ref("digest"), "journal_digest": ref("digest"),
@@ -152,7 +154,9 @@ def build_schema() -> dict[str, Any]:
         "namespace": ref("namespace"), "semantic_version": ref("semver"), "source_manifest_digest": ref("digest"), "semantic_payload_digest": ref("digest"),
         "payload_manifest_digest": ref("digest"), "payload_projection_digest": ref("digest"), "capsule_archive_linkage_digest": ref("digest"), "compatibility_report_digest": ref("digest"),
         "owner_policy_digest": ref("digest"), "compilation_contract_digest": ref("digest"), "required_protocol_versions": array(ref("identifier"), 64, 1),
-        "predecessor_coordinate": nullable(ref("coordinate")), "tombstone_registry_digest": ref("digest"), "capsule_digest": ref("digest")})
+        "predecessor_coordinate": nullable(ref("coordinate")), "lifecycle_head_digest": ref("digest"),
+        "tombstone_registry_digest": ref("digest"), "tombstone_registry_revision": ref("safeInteger"),
+        "capsule_digest": ref("digest")})
     d["akStoreHead"] = obj({"store_id": ref("identifier"), "canonical_store_locator": ref("text"), "store_revision": ref("safeInteger"),
         "store_head_digest": ref("digest"), "revocation_head_digest": nullable(ref("digest"))})
     d["akDecisionReference"] = protocol("semantic-ak-decision-reference.v0", {
@@ -201,6 +205,12 @@ def build_schema() -> dict[str, Any]:
         "prior_journal_digest": nullable(ref("digest")), "recovery_controller_id": ref("identifier"),
         "recovery_runtime_identity": ref("toolIdentity"), "recovery_epoch": ref("safeInteger"),
         "publication_journal_digest": ref("digest")})
+    d["publicationRecoveryIntentMarker"] = protocol("semantic-publication-recovery-intent-marker.v0", {
+        "issuer": ref("issuer"), "transaction_digest": ref("digest"), "journal_digest": ref("digest"),
+        "resulting_record_digest": ref("digest"), "resulting_ledger_revision": ref("safeInteger"),
+        "resulting_ledger_head_digest": ref("digest"), "marker_semantics": {"const": "non_durable_intent_only"},
+        "fsync_complete": {"const": False}, "durable_commit_marker_present": {"const": False},
+        "publication_recovery_intent_marker_digest": ref("digest")})
     d["publicationCommitMarker"] = protocol("semantic-publication-commit-marker.v0", {
         "transaction_digest": ref("digest"), "journal_digest": ref("digest"), "resulting_record_digest": ref("digest"),
         "resulting_ledger_revision": ref("safeInteger"), "resulting_ledger_head_digest": ref("digest"),
@@ -215,8 +225,20 @@ def build_schema() -> dict[str, Any]:
         protocol("semantic-publication-status-transition.v0", {"from_status": {"const": "published"}, "to_status": {"const": "withdrawn"}, **transition_common}),
         protocol("semantic-publication-status-transition.v0", {"from_status": {"enum": ["published", "withdrawn"]}, "to_status": {"const": "revoked"}, **transition_common})]}
     d["publicationStatusRecord"] = {"oneOf": [ref("ownerPublication"), ref("publicationStatusTransition")]}
-    d["publicationRecoveryState"] = obj({"revision": ref("safeInteger"), "head": ref("digest"), "status_record_digest": ref("digest"),
-        "marker": nullable(ref("publicationCommitMarker")), "staging_present": {"type": "boolean"}})
+    d["publicationRecoveryState"] = obj({"revision": ref("safeInteger"), "head": ref("digest"),
+        "status_record_digest": ref("digest"), "intent_marker_digest": nullable(ref("digest")),
+        "durable_commit_marker_digest": nullable(ref("digest")), "staging_present": {"type": "boolean"}})
+    recovery_state_common = {"semantic_owner_id": ref("identifier"), "recovery_controller_id": ref("identifier"),
+        "recovery_epoch": ref("safeInteger"), "namespace": ref("namespace"), "transaction_digest": ref("digest"),
+        "recovery_journal_digest": ref("digest"), "state": ref("publicationRecoveryState"),
+        "publication_recovery_state_receipt_digest": ref("digest")}
+    recovery_before = protocol("semantic-publication-recovery-state-receipt.v0", {
+        "phase": {"const": "before"}, "issuer": obj({"kind": {"const": "semantic_owner"}, "id": ref("identifier")}),
+        **recovery_state_common})
+    recovery_after = protocol("semantic-publication-recovery-state-receipt.v0", {
+        "phase": {"const": "after"}, "issuer": obj({"kind": {"const": "recovery_controller"}, "id": ref("identifier")}),
+        **recovery_state_common})
+    d["publicationRecoveryStateReceipt"] = {"oneOf": [recovery_before, recovery_after]}
 
     d["semanticRollbackTarget"] = obj({"kind": {"const": "semantic"}, "semantic_action": {"const": "switch"}, "target_coordinate": ref("coordinate"), "runtime_action": {"const": "retain"}, "target_materialization_receipt_digest": ref("digest")})
     d["runtimeRollbackTarget"] = obj({"kind": {"const": "runtime"}, "semantic_action": {"const": "retain"}, "runtime_action": {"const": "switch"}, "target_runtime_identity": ref("toolIdentity"), "target_materialization_receipt_digest": ref("digest"), "runtime_revalidation_receipt_digest": ref("digest")})
@@ -408,7 +430,7 @@ def build_schema() -> dict[str, Any]:
         "store_read_receipts": array(ref("ownerStoreReadReceipt"), 10000), "authority_snapshot_digest": ref("digest")})
     artifact_top = ["coordinate", "sourceManifest", "materialManifest", "ownerSet", "approvalPredicate", "ownerPolicy", "trustRoot", "trustRotation", "trustRevocation",
         "compatibilityPolicy", "compatibilityReport", "compatibilityOverride", "deprecationRecord", "removalRecord", "tombstoneRegistry", "publicationLedgerHead", "acceptedLifecycleLedgerRecord", "payloadProjection", "capsuleArchiveLinkage", "capsule",
-        "akDecisionReference", "ownerApproval", "buildReceipt", "publicationTransaction", "publicationJournal", "publicationCommitMarker", "ownerPublication", "publicationStatusTransition",
+        "akDecisionReference", "ownerApproval", "buildReceipt", "publicationTransaction", "publicationJournal", "publicationRecoveryIntentMarker", "publicationCommitMarker", "publicationRecoveryStateReceipt", "ownerPublication", "publicationStatusTransition",
         "consumerIntent", "ownerAcceptance", "materializationVerificationReceipt", "activationReceipt", "rocsGenerationReceipt", "piDeliveryReceipt", "akEvidenceLinkage", "rollbackRequest", "rollbackTechnicalReceipt", "rollbackAvailableArtifact", "rollbackAvailabilityProof", "rollbackHistoryTransition", "rollbackReceipt", "nonAuthorizingTaskContract", "auditEnvelope", "errorEnvelope"]
     d["proofArtifact"] = {"oneOf": [ref(name) for name in artifact_top]}
     proof_claims = ["semantic_owner_fact", "ak_canonical_fact", "consumer_owner_fact", "rocs_technical_fact", "recovery_controller_fact", "pi_delivery_fact"]
@@ -431,7 +453,7 @@ def build_schema() -> dict[str, Any]:
     d["ruleParameterBinding"] = obj({"role": ref("identifier"), "value": ref("authorityFactValue")})
     d["authorityRoleMapping"] = obj({
         "role": ref("identifier"), "role_prefix": nullable(ref("identifier")),
-        "sources": array({"enum": ["receipt", "node", "parameter"]}, 3, 1),
+        "sources": array({"enum": ["authority_graph", "node", "parameter", "receipt", "subject"]}, 5, 1),
         "category": nullable({"enum": authority_categories}), "owner_surface": nullable({"enum": owner_surfaces}),
         "owner_id": nullable(ref("identifier")), "owner_repository": nullable(ref("repositoryIdentity")),
         "capability_pin_id": nullable(ref("identifier")), "capability_pin_prefix": nullable(ref("identifier")),
@@ -439,16 +461,21 @@ def build_schema() -> dict[str, Any]:
         "acquisition_distribution_digest": nullable(ref("digest")), "acquisition_capability_digest": nullable(ref("digest")),
         "expected_schemas": array(ref("identifier"), 8), "minimum_cardinality": ref("safeInteger"),
         "maximum_cardinality": ref("safeInteger"), "description": ref("text")})
+    d["authorityOwnerTuple"] = obj({"owner_surface": {"enum": owner_surfaces}, "owner_id": ref("identifier"),
+        "owner_repository": ref("repositoryIdentity")})
+    d["authorityEdgeOwnership"] = obj({"kind": {"enum": ["single_owner", "multi_owner"]},
+        "owners": array(ref("authorityOwnerTuple"), 1000, 1)})
+    d["authorityEdgeRoleOwner"] = obj({"role": ref("identifier"), "owner": ref("authorityOwnerTuple")})
     d["authorityRoleEdgeLink"] = obj({
-        "edge_id": ref("identifier"), "owner_surface": {"enum": owner_surfaces}, "owner_id": ref("identifier"),
-        "owner_repository": ref("repositoryIdentity"), "role_ids": array(ref("identifier"), 1000, 1),
+        "edge_id": ref("identifier"), "ownership": ref("authorityEdgeOwnership"),
+        "role_owners": array(ref("authorityEdgeRoleOwner"), 1000, 1), "role_ids": array(ref("identifier"), 1000, 1),
         "edge_linkage_digest": ref("digest")})
     d["authorityRuleManifestEntry"] = obj({
         "rule": ref("identifier"), "authority_bearing": {"type": "boolean"},
         "required_roles": array(ref("identifier"), 1000), "role_mappings": array(ref("authorityRoleMapping"), 1000),
         "edge_ids": array(ref("identifier"), 1000), "role_edge_links": array(ref("authorityRoleEdgeLink"), 1000)})
     d["authorityRuleRoleManifest"] = protocol("semantic-authority-rule-role-manifest.v0", {
-        "revision": {"const": "semantic-release-revision-v10"}, "rules": array(ref("authorityRuleManifestEntry"), 1000, 1),
+        "revision": {"const": "semantic-release-revision-v11"}, "rules": array(ref("authorityRuleManifestEntry"), 1000, 1),
         "authority_rule_role_manifest_digest": ref("digest")})
     d["authorityVerifierInput"] = protocol("semantic-authority-verifier-input.v0", {
         "rule": ref("identifier"), "subject_schema": ref("identifier"), "subject_digest": ref("digest"),
@@ -461,7 +488,7 @@ def build_schema() -> dict[str, Any]:
     top = [*artifact_top, "ownerAcquisitionPin", "authorityAcquisitionConfig", "ownerStoreReadReceipt", "authoritySnapshot",
         "authorityRuleRoleManifest", "authorityProofBundle", "authorityVerifierInput"]
     return {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://ai-society.local/rocs/semantic-release-v0/protocol.schema.json",
-            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 10", "oneOf": [ref(name) for name in top], "$defs": d}
+            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 11", "oneOf": [ref(name) for name in top], "$defs": d}
 
 
 def write_schema() -> None:
