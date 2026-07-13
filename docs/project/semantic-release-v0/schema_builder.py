@@ -82,6 +82,9 @@ def build_schema() -> dict[str, Any]:
         "namespace": ref("namespace"), "trust_root_id": ref("identifier"), "trust_root_revision": ref("safeInteger"), "owner_policy_digest": ref("digest"),
         "owner_set_digest": ref("digest"), "key_ids": array(ref("identifier"), 64, 1), "minimum_ledger_revision": ref("safeInteger"), "prior_trust_root_digest": nullable(ref("digest")),
         "status": {"const": "active"}, "trust_root_digest": ref("digest")})
+    d["externalTrustRootPin"] = obj({
+        "namespace": ref("namespace"), "trust_root_id": ref("identifier"), "trust_root_revision": ref("safeInteger"),
+        "trust_root_digest": ref("digest"), "owner_policy_digest": ref("digest"), "owner_set_digest": ref("digest")})
     d["trustRotation"] = protocol("semantic-trust-rotation.v0", {
         "namespace": ref("namespace"), "old_trust_root_id": ref("identifier"), "old_trust_root_revision": ref("safeInteger"), "old_trust_root_digest": ref("digest"),
         "new_trust_root_id": ref("identifier"), "new_trust_root_revision": ref("safeInteger"), "new_trust_root_digest": ref("digest"), "owner_policy_digest": ref("digest"),
@@ -301,13 +304,16 @@ def build_schema() -> dict[str, Any]:
         "history_head_before": ref("historyHead"), "history_head_after": ref("historyHead"), "error_digest": nullable(ref("digest")),
         "supersedes_activation_receipt_digest": nullable(ref("digest")), "ak_evidence_linkage_digest": nullable(ref("digest")),
         "pi_delivery_receipt_digest": nullable(ref("digest")), "rollback_receipt_digest": ref("digest")})
+    observed_task_state = obj({"repository": ref("repositoryIdentity"), "ak_store_head": ref("akStoreHead"),
+        "task_id": ref("identifier"), "task_record_digest": ref("digest"), "artifact_digest": ref("digest"),
+        "state": {"enum": ["accepted", "completed", "evidence_accepted"]}})
     resolved_task_ref = obj({"resolution": {"const": "resolved"}, "reference_id": ref("identifier"),
         "repository": ref("repositoryIdentity"), "ak_store_head": ref("akStoreHead"), "task_id": ref("identifier"),
-        "task_record_digest": ref("digest"), "artifact_digest": ref("digest"),
+        "task_record_digest": ref("digest"), "artifact_digest": ref("digest"), "observed_canonical_state": observed_task_state,
         "required_state": {"enum": ["accepted_current", "completed_current", "evidence_accepted_current"]}})
     unresolved_task_ref = obj({"resolution": {"const": "unresolved_candidate"}, "reference_id": ref("identifier"),
         "repository": ref("repositoryIdentity"), "ak_store_head": {"type": "null"}, "task_id": {"type": "null"},
-        "task_record_digest": {"type": "null"}, "artifact_digest": {"type": "null"},
+        "task_record_digest": {"type": "null"}, "artifact_digest": {"type": "null"}, "observed_canonical_state": {"type": "null"},
         "required_state": {"enum": ["accepted_current", "completed_current", "evidence_accepted_current"]}})
     d["taskArtifactReference"] = {"oneOf": [resolved_task_ref, unresolved_task_ref]}
     d["stopConditionReference"] = obj({"condition_id": ref("identifier"),
