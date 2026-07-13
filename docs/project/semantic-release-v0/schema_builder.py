@@ -284,7 +284,7 @@ def build_schema() -> dict[str, Any]:
         "health_receipt_digest": nullable(ref("digest")), "independently_available": {"const": True}, "availability_epoch": ref("safeInteger"),
         "rollback_available_artifact_digest": ref("digest")})
     d["rollbackAvailabilityProof"] = protocol("semantic-rollback-availability-proof.v0", {
-        "consumer_intent_digest": ref("digest"), "owner_acceptance_digest": ref("digest"),
+        "issuer": ref("issuer"), "consumer_intent_digest": ref("digest"), "owner_acceptance_digest": ref("digest"),
         "materialization_verification_receipt_digest": ref("digest"), "availability_epoch": ref("safeInteger"),
         "recovery_controller_id": ref("identifier"), "recovery_epoch": ref("safeInteger"),
         "target_kind": {"enum": ["semantic", "runtime", "no_prior_disable", "combined"]},
@@ -296,7 +296,7 @@ def build_schema() -> dict[str, Any]:
         "runtime_target_artifact_digest": nullable(ref("digest")), "disable_target_artifact_digest": nullable(ref("digest")),
         "recovery_artifact_digest": ref("digest"), "rollback_availability_proof_digest": ref("digest")})
     d["rollbackHistoryTransition"] = protocol("semantic-rollback-history-transition.v0", {
-        "rollback_request_digest": ref("digest"), "result": {"enum": ["rolled_back", "disabled", "partial_failure"]},
+        "issuer": ref("issuer"), "rollback_request_digest": ref("digest"), "result": {"enum": ["rolled_back", "disabled", "partial_failure"]},
         "active_state_before": ref("activeState"), "active_state_after": ref("activeState"), "stages": array(ref("rollbackStage"), 2, 1),
         "failure_stage": nullable({"enum": ["semantic", "runtime", "disable"]}), "error_digest": nullable(ref("digest")),
         "history_head_before": ref("historyHead"), "supersedes_activation_receipt_digest": nullable(ref("digest")),
@@ -344,6 +344,9 @@ def build_schema() -> dict[str, Any]:
         "stage": {"enum": ["decode", "validate", "build", "approve", "publish", "materialize", "activate", "generate", "deliver", "link", "rollback", "recover"]}, "retryable": {"type": "boolean"},
         "related_artifact_digest": nullable(ref("digest")), "details": array(ref("errorDetail"), 64), "error_digest": ref("digest")})
 
+    d["ownerVoteProofFact"] = obj({
+        "owner_id": ref("identifier"), "owner_key_id": ref("identifier"), "approved_action_digest": ref("digest"),
+        "approval_proof_digest": ref("digest")})
     fact_value_variants = [
         obj({"kind": {"const": "null"}}),
         obj({"kind": {"const": "digest"}, "value": nullable(ref("digest"))}),
@@ -362,56 +365,87 @@ def build_schema() -> dict[str, Any]:
         obj({"kind": {"const": "coordinate"}, "value": ref("coordinate")}),
         obj({"kind": {"const": "tool_identity"}, "value": ref("toolIdentity")}),
         obj({"kind": {"const": "ak_task_state"}, "value": ref("akTaskState")}),
+        obj({"kind": {"const": "ak_task_state_list"}, "value": array(ref("akTaskState"), 10000)}),
+        obj({"kind": {"const": "owner_vote_proof"}, "value": ref("ownerVoteProofFact")}),
     ]
     d["authorityFactValue"] = {"oneOf": fact_value_variants}
-    observation_contracts = ["semantic_trust_store.v0", "semantic_revocation_ledger.v0", "semantic_publication_ledger.v0", "semantic_lifecycle_ledger.v0",
-        "ak_store.v0", "ak_decision.v0", "ak_task.v0", "consumer_activation_store.v0", "consumer_history_store.v0", "recovery_controller.v0"]
-    d["authorityObservation"] = obj({
-        "observation_id": ref("identifier"), "owner_repository": ref("repositoryIdentity"),
-        "observed_head_digest": nullable(ref("digest")), "observed_revision": ref("safeInteger"),
-        "observation_contract": {"enum": observation_contracts}, "freshness_epoch": ref("safeInteger"),
-        "fact_name": ref("identifier"), "fact_value": ref("authorityFactValue")})
+    authority_categories = ["semantic_trust", "semantic_revocation", "semantic_publication", "semantic_lifecycle", "semantic_vote",
+        "ak_store", "ak_decision", "ak_task", "consumer_acceptance", "consumer_activation", "consumer_history", "recovery_controller"]
+    owner_surfaces = ["semantic_owner", "ak", "consumer_owner", "rocs", "recovery_controller", "pi"]
+    d["ownerAcquisitionPin"] = protocol("semantic-owner-acquisition-capability-pin.v0", {
+        "capability_pin_id": ref("identifier"), "role": ref("identifier"), "category": {"enum": authority_categories},
+        "owner_surface": {"enum": owner_surfaces}, "owner_id": ref("identifier"), "owner_repository": ref("repositoryIdentity"),
+        "acquisition_contract": ref("identifier"), "acquisition_contract_digest": ref("digest"),
+        "acquisition_distribution_digest": ref("digest"), "store_id": ref("identifier"), "store_head_digest": ref("digest"),
+        "store_revision": ref("safeInteger"), "fact_schema": ref("identifier"), "fact_digest": ref("digest"),
+        "fact_value": ref("authorityFactValue"), "freshness_cas_token_digest": ref("digest"),
+        "required_action_epoch_floor": ref("safeInteger"), "acquisition_capability_digest": ref("digest")})
+    d["authorityAcquisitionConfig"] = protocol("semantic-authority-acquisition-config.v0", {
+        "verifier_identity": ref("toolIdentity"), "collator": ref("issuer"),
+        "collation_scope": {"const": "transport_only_no_receipt_issuance"},
+        "required_action_epoch_floor": ref("safeInteger"), "live_acquisition_implemented": {"const": False},
+        "pins": array(ref("ownerAcquisitionPin"), 10000), "authority_acquisition_config_digest": ref("digest")})
+    d["ownerStoreReadReceipt"] = protocol("semantic-owner-store-read-receipt.v0", {
+        "observation_id": ref("identifier"), "role": ref("identifier"), "category": {"enum": authority_categories},
+        "issuer": ref("issuer"), "claim_scope": {"const": "owner_store_read_only"},
+        "owner_repository": ref("repositoryIdentity"), "capability_pin_id": ref("identifier"),
+        "acquisition_capability_digest": ref("digest"), "acquisition_contract": ref("identifier"),
+        "acquisition_contract_digest": ref("digest"), "acquisition_distribution_digest": ref("digest"),
+        "store_id": ref("identifier"), "store_head_digest": ref("digest"), "store_revision": ref("safeInteger"),
+        "fact_schema": ref("identifier"), "fact_digest": ref("digest"), "fact_value": ref("authorityFactValue"),
+        "freshness_cas_token_digest": ref("digest"), "action_epoch": ref("safeInteger"),
+        "required_action_epoch_floor": ref("safeInteger"), "owner_store_read_receipt_digest": ref("digest")})
     d["authoritySnapshot"] = protocol("semantic-authority-snapshot.v0", {
-        "caller_trust_boundary": {"const": "externally_supplied_owner_scoped_observations"}, "snapshot_epoch": ref("safeInteger"),
-        "semantic_trust_observations": array(ref("authorityObservation"), 10000, 1),
-        "semantic_revocation_observations": array(ref("authorityObservation"), 10000, 1),
-        "semantic_ledger_observations": array(ref("authorityObservation"), 10000, 1),
-        "ak_store_observations": array(ref("authorityObservation"), 10000, 1),
-        "ak_decision_observations": array(ref("authorityObservation"), 10000, 1),
-        "ak_task_observations": array(ref("authorityObservation"), 10000, 1),
-        "consumer_activation_observations": array(ref("authorityObservation"), 10000, 1),
-        "consumer_history_observations": array(ref("authorityObservation"), 10000, 1),
-        "recovery_controller_observations": array(ref("authorityObservation"), 10000, 1),
-        "authority_snapshot_digest": ref("digest")})
-    d["contextFact"] = protocol("semantic-context-fact.v0", {
-        "issuer": ref("issuer"), "claim_scope": {"const": "resolved_context_fact_only"}, "role": ref("identifier"),
-        "fact_value": ref("authorityFactValue"), "context_fact_digest": ref("digest")})
+        "caller_trust_boundary": {"const": "externally_configured_owner_acquisition_pins"},
+        "collator": ref("issuer"), "collation_scope": {"const": "transport_only_no_receipt_issuance"},
+        "authority_acquisition_config_digest": ref("digest"), "action_epoch": ref("safeInteger"),
+        "store_read_receipts": array(ref("ownerStoreReadReceipt"), 10000), "authority_snapshot_digest": ref("digest")})
     artifact_top = ["coordinate", "sourceManifest", "materialManifest", "ownerSet", "approvalPredicate", "ownerPolicy", "trustRoot", "trustRotation", "trustRevocation",
         "compatibilityPolicy", "compatibilityReport", "compatibilityOverride", "deprecationRecord", "removalRecord", "tombstoneRegistry", "publicationLedgerHead", "acceptedLifecycleLedgerRecord", "payloadProjection", "capsuleArchiveLinkage", "capsule",
         "akDecisionReference", "ownerApproval", "buildReceipt", "publicationTransaction", "publicationJournal", "publicationCommitMarker", "ownerPublication", "publicationStatusTransition",
         "consumerIntent", "ownerAcceptance", "materializationVerificationReceipt", "activationReceipt", "rocsGenerationReceipt", "piDeliveryReceipt", "akEvidenceLinkage", "rollbackRequest", "rollbackTechnicalReceipt", "rollbackAvailableArtifact", "rollbackAvailabilityProof", "rollbackHistoryTransition", "rollbackReceipt", "nonAuthorizingTaskContract", "auditEnvelope", "errorEnvelope"]
-    d["proofArtifact"] = {"oneOf": [ref(name) for name in [*artifact_top, "contextFact"]]}
+    d["proofArtifact"] = {"oneOf": [ref(name) for name in artifact_top]}
     proof_claims = ["semantic_owner_fact", "ak_canonical_fact", "consumer_owner_fact", "rocs_technical_fact", "recovery_controller_fact", "pi_delivery_fact"]
     d["proofNode"] = obj({"bundle_key": ref("digest"), "artifact_schema": ref("identifier"), "issuer": ref("issuer"),
-        "claim_scope": {"enum": proof_claims}, "artifact": ref("proofArtifact")})
+        "owner_repository": ref("repositoryIdentity"), "claim_scope": {"enum": proof_claims}, "artifact": ref("proofArtifact")})
     d["authorityProofBundle"] = protocol("semantic-authority-proof-bundle.v0", {
         "rule": ref("identifier"), "subject_schema": ref("identifier"), "subject_digest": ref("digest"),
         "authority_snapshot_digest": ref("digest"), "nodes": array(ref("proofNode"), 100000),
         "authority_proof_bundle_digest": ref("digest")})
-    d["anchorBinding"] = obj({"role": ref("identifier"), "category": {"enum": ["semantic_trust_observations", "semantic_revocation_observations", "semantic_ledger_observations", "ak_store_observations", "ak_decision_observations", "ak_task_observations", "consumer_activation_observations", "consumer_history_observations", "recovery_controller_observations"]},
-        "observation_id": ref("identifier")})
+    d["receiptBinding"] = obj({"role": ref("identifier"), "category": {"enum": authority_categories},
+        "observation_id": ref("identifier"), "capability_pin_id": ref("identifier")})
     d["nodeBinding"] = obj({"role": ref("identifier"), "bundle_key": ref("digest"), "expected_schema": ref("identifier"),
         "expected_issuer_kind": {"enum": ["semantic_owner", "consumer_owner", "rocs", "pi", "ak", "recovery_controller"]},
-        "expected_issuer_id": ref("identifier"), "expected_claim_scope": {"enum": proof_claims}})
+        "expected_issuer_id": ref("identifier"), "expected_owner_repository": ref("repositoryIdentity"),
+        "expected_claim_scope": {"enum": proof_claims}})
+    d["ruleParameterBinding"] = obj({"role": ref("identifier"), "value": ref("authorityFactValue")})
+    d["authorityRoleMapping"] = obj({
+        "role": ref("identifier"), "role_prefix": nullable(ref("identifier")),
+        "sources": array({"enum": ["receipt", "node", "parameter"]}, 3, 1),
+        "category": nullable({"enum": authority_categories}), "owner_surface": nullable({"enum": owner_surfaces}),
+        "owner_id": nullable(ref("identifier")), "owner_repository": nullable(ref("repositoryIdentity")),
+        "capability_pin_id": nullable(ref("identifier")), "capability_pin_prefix": nullable(ref("identifier")),
+        "expected_schemas": array(ref("identifier"), 8), "minimum_cardinality": ref("safeInteger"),
+        "maximum_cardinality": ref("safeInteger"), "description": ref("text")})
+    d["authorityRuleManifestEntry"] = obj({
+        "rule": ref("identifier"), "authority_bearing": {"type": "boolean"},
+        "required_roles": array(ref("identifier"), 1000), "role_mappings": array(ref("authorityRoleMapping"), 1000),
+        "edge_ids": array(ref("identifier"), 1000)})
+    d["authorityRuleRoleManifest"] = protocol("semantic-authority-rule-role-manifest.v0", {
+        "revision": {"const": "semantic-release-revision-v9"}, "rules": array(ref("authorityRuleManifestEntry"), 1000, 1),
+        "authority_rule_role_manifest_digest": ref("digest")})
     d["authorityVerifierInput"] = protocol("semantic-authority-verifier-input.v0", {
         "rule": ref("identifier"), "subject_schema": ref("identifier"), "subject_digest": ref("digest"),
+        "authority_rule_role_manifest_digest": ref("digest"), "authority_acquisition_config_digest": ref("digest"),
         "authority_snapshot_digest": ref("digest"), "authority_proof_bundle_digest": ref("digest"),
-        "anchor_bindings": array(ref("anchorBinding"), 10000), "node_bindings": array(ref("nodeBinding"), 100000),
-        "required_anchor_ids": array(ref("identifier"), 10000), "required_edge_ids": array(ref("identifier"), 10000),
-        "authority_verifier_input_digest": ref("digest")})
-    top = [*artifact_top, "authoritySnapshot", "contextFact", "authorityProofBundle", "authorityVerifierInput"]
+        "required_action_epoch_floor": ref("safeInteger"), "receipt_bindings": array(ref("receiptBinding"), 10000),
+        "node_bindings": array(ref("nodeBinding"), 100000), "parameter_bindings": array(ref("ruleParameterBinding"), 100000),
+        "required_observation_ids": array(ref("identifier"), 10000), "required_role_ids": array(ref("identifier"), 100000),
+        "required_edge_ids": array(ref("identifier"), 10000), "authority_verifier_input_digest": ref("digest")})
+    top = [*artifact_top, "ownerAcquisitionPin", "authorityAcquisitionConfig", "ownerStoreReadReceipt", "authoritySnapshot",
+        "authorityRuleRoleManifest", "authorityProofBundle", "authorityVerifierInput"]
     return {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://ai-society.local/rocs/semantic-release-v0/protocol.schema.json",
-            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 8", "oneOf": [ref(name) for name in top], "$defs": d}
+            "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 9", "oneOf": [ref(name) for name in top], "$defs": d}
 
 
 def write_schema() -> None:

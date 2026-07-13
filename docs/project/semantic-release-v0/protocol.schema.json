@@ -499,36 +499,6 @@
       ],
       "type": "object"
     },
-    "anchorBinding": {
-      "additionalProperties": false,
-      "properties": {
-        "category": {
-          "enum": [
-            "semantic_trust_observations",
-            "semantic_revocation_observations",
-            "semantic_ledger_observations",
-            "ak_store_observations",
-            "ak_decision_observations",
-            "ak_task_observations",
-            "consumer_activation_observations",
-            "consumer_history_observations",
-            "recovery_controller_observations"
-          ]
-        },
-        "observation_id": {
-          "$ref": "#/$defs/identifier"
-        },
-        "role": {
-          "$ref": "#/$defs/identifier"
-        }
-      },
-      "required": [
-        "role",
-        "category",
-        "observation_id"
-      ],
-      "type": "object"
-    },
     "approvalAction": {
       "oneOf": [
         {
@@ -963,6 +933,51 @@
       ],
       "type": "object"
     },
+    "authorityAcquisitionConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_acquisition_config_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "collation_scope": {
+          "const": "transport_only_no_receipt_issuance"
+        },
+        "collator": {
+          "$ref": "#/$defs/issuer"
+        },
+        "live_acquisition_implemented": {
+          "const": false
+        },
+        "pins": {
+          "items": {
+            "$ref": "#/$defs/ownerAcquisitionPin"
+          },
+          "maxItems": 10000,
+          "minItems": 0,
+          "type": "array"
+        },
+        "required_action_epoch_floor": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "schema": {
+          "const": "semantic-authority-acquisition-config.v0"
+        },
+        "verifier_identity": {
+          "$ref": "#/$defs/toolIdentity"
+        }
+      },
+      "required": [
+        "schema",
+        "verifier_identity",
+        "collator",
+        "collation_scope",
+        "required_action_epoch_floor",
+        "live_acquisition_implemented",
+        "pins",
+        "authority_acquisition_config_digest"
+      ],
+      "type": "object"
+    },
     "authorityFactValue": {
       "oneOf": [
         {
@@ -1236,66 +1251,45 @@
             "value"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "ak_task_state_list"
+            },
+            "value": {
+              "items": {
+                "$ref": "#/$defs/akTaskState"
+              },
+              "maxItems": 10000,
+              "minItems": 0,
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "owner_vote_proof"
+            },
+            "value": {
+              "$ref": "#/$defs/ownerVoteProofFact"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
         }
       ]
-    },
-    "authorityObservation": {
-      "additionalProperties": false,
-      "properties": {
-        "fact_name": {
-          "$ref": "#/$defs/identifier"
-        },
-        "fact_value": {
-          "$ref": "#/$defs/authorityFactValue"
-        },
-        "freshness_epoch": {
-          "$ref": "#/$defs/safeInteger"
-        },
-        "observation_contract": {
-          "enum": [
-            "semantic_trust_store.v0",
-            "semantic_revocation_ledger.v0",
-            "semantic_publication_ledger.v0",
-            "semantic_lifecycle_ledger.v0",
-            "ak_store.v0",
-            "ak_decision.v0",
-            "ak_task.v0",
-            "consumer_activation_store.v0",
-            "consumer_history_store.v0",
-            "recovery_controller.v0"
-          ]
-        },
-        "observation_id": {
-          "$ref": "#/$defs/identifier"
-        },
-        "observed_head_digest": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/$defs/digest"
-            }
-          ]
-        },
-        "observed_revision": {
-          "$ref": "#/$defs/safeInteger"
-        },
-        "owner_repository": {
-          "$ref": "#/$defs/repositoryIdentity"
-        }
-      },
-      "required": [
-        "observation_id",
-        "owner_repository",
-        "observed_head_digest",
-        "observed_revision",
-        "observation_contract",
-        "freshness_epoch",
-        "fact_name",
-        "fact_value"
-      ],
-      "type": "object"
     },
     "authorityProofBundle": {
       "additionalProperties": false,
@@ -1338,107 +1332,262 @@
       ],
       "type": "object"
     },
+    "authorityRoleMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_pin_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "capability_pin_prefix": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "category": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "semantic_trust",
+                "semantic_revocation",
+                "semantic_publication",
+                "semantic_lifecycle",
+                "semantic_vote",
+                "ak_store",
+                "ak_decision",
+                "ak_task",
+                "consumer_acceptance",
+                "consumer_activation",
+                "consumer_history",
+                "recovery_controller"
+              ]
+            }
+          ]
+        },
+        "description": {
+          "$ref": "#/$defs/text"
+        },
+        "expected_schemas": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 8,
+          "minItems": 0,
+          "type": "array"
+        },
+        "maximum_cardinality": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "minimum_cardinality": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "owner_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "owner_repository": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/repositoryIdentity"
+            }
+          ]
+        },
+        "owner_surface": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "enum": [
+                "semantic_owner",
+                "ak",
+                "consumer_owner",
+                "rocs",
+                "recovery_controller",
+                "pi"
+              ]
+            }
+          ]
+        },
+        "role": {
+          "$ref": "#/$defs/identifier"
+        },
+        "role_prefix": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "sources": {
+          "items": {
+            "enum": [
+              "receipt",
+              "node",
+              "parameter"
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "role",
+        "role_prefix",
+        "sources",
+        "category",
+        "owner_surface",
+        "owner_id",
+        "owner_repository",
+        "capability_pin_id",
+        "capability_pin_prefix",
+        "expected_schemas",
+        "minimum_cardinality",
+        "maximum_cardinality",
+        "description"
+      ],
+      "type": "object"
+    },
+    "authorityRuleManifestEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_bearing": {
+          "type": "boolean"
+        },
+        "edge_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 1000,
+          "minItems": 0,
+          "type": "array"
+        },
+        "required_roles": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 1000,
+          "minItems": 0,
+          "type": "array"
+        },
+        "role_mappings": {
+          "items": {
+            "$ref": "#/$defs/authorityRoleMapping"
+          },
+          "maxItems": 1000,
+          "minItems": 0,
+          "type": "array"
+        },
+        "rule": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "rule",
+        "authority_bearing",
+        "required_roles",
+        "role_mappings",
+        "edge_ids"
+      ],
+      "type": "object"
+    },
+    "authorityRuleRoleManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "authority_rule_role_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "revision": {
+          "const": "semantic-release-revision-v9"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/authorityRuleManifestEntry"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "type": "array"
+        },
+        "schema": {
+          "const": "semantic-authority-rule-role-manifest.v0"
+        }
+      },
+      "required": [
+        "schema",
+        "revision",
+        "rules",
+        "authority_rule_role_manifest_digest"
+      ],
+      "type": "object"
+    },
     "authoritySnapshot": {
       "additionalProperties": false,
       "properties": {
-        "ak_decision_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
+        "action_epoch": {
+          "$ref": "#/$defs/safeInteger"
         },
-        "ak_store_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
-        },
-        "ak_task_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
+        "authority_acquisition_config_digest": {
+          "$ref": "#/$defs/digest"
         },
         "authority_snapshot_digest": {
           "$ref": "#/$defs/digest"
         },
         "caller_trust_boundary": {
-          "const": "externally_supplied_owner_scoped_observations"
+          "const": "externally_configured_owner_acquisition_pins"
         },
-        "consumer_activation_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
+        "collation_scope": {
+          "const": "transport_only_no_receipt_issuance"
         },
-        "consumer_history_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
-        },
-        "recovery_controller_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
+        "collator": {
+          "$ref": "#/$defs/issuer"
         },
         "schema": {
           "const": "semantic-authority-snapshot.v0"
         },
-        "semantic_ledger_observations": {
+        "store_read_receipts": {
           "items": {
-            "$ref": "#/$defs/authorityObservation"
+            "$ref": "#/$defs/ownerStoreReadReceipt"
           },
           "maxItems": 10000,
-          "minItems": 1,
+          "minItems": 0,
           "type": "array"
-        },
-        "semantic_revocation_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
-        },
-        "semantic_trust_observations": {
-          "items": {
-            "$ref": "#/$defs/authorityObservation"
-          },
-          "maxItems": 10000,
-          "minItems": 1,
-          "type": "array"
-        },
-        "snapshot_epoch": {
-          "$ref": "#/$defs/safeInteger"
         }
       },
       "required": [
         "schema",
         "caller_trust_boundary",
-        "snapshot_epoch",
-        "semantic_trust_observations",
-        "semantic_revocation_observations",
-        "semantic_ledger_observations",
-        "ak_store_observations",
-        "ak_decision_observations",
-        "ak_task_observations",
-        "consumer_activation_observations",
-        "consumer_history_observations",
-        "recovery_controller_observations",
+        "collator",
+        "collation_scope",
+        "authority_acquisition_config_digest",
+        "action_epoch",
+        "store_read_receipts",
         "authority_snapshot_digest"
       ],
       "type": "object"
@@ -1446,15 +1595,13 @@
     "authorityVerifierInput": {
       "additionalProperties": false,
       "properties": {
-        "anchor_bindings": {
-          "items": {
-            "$ref": "#/$defs/anchorBinding"
-          },
-          "maxItems": 10000,
-          "minItems": 0,
-          "type": "array"
+        "authority_acquisition_config_digest": {
+          "$ref": "#/$defs/digest"
         },
         "authority_proof_bundle_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "authority_rule_role_manifest_digest": {
           "$ref": "#/$defs/digest"
         },
         "authority_snapshot_digest": {
@@ -1471,7 +1618,26 @@
           "minItems": 0,
           "type": "array"
         },
-        "required_anchor_ids": {
+        "parameter_bindings": {
+          "items": {
+            "$ref": "#/$defs/ruleParameterBinding"
+          },
+          "maxItems": 100000,
+          "minItems": 0,
+          "type": "array"
+        },
+        "receipt_bindings": {
+          "items": {
+            "$ref": "#/$defs/receiptBinding"
+          },
+          "maxItems": 10000,
+          "minItems": 0,
+          "type": "array"
+        },
+        "required_action_epoch_floor": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "required_edge_ids": {
           "items": {
             "$ref": "#/$defs/identifier"
           },
@@ -1479,11 +1645,19 @@
           "minItems": 0,
           "type": "array"
         },
-        "required_edge_ids": {
+        "required_observation_ids": {
           "items": {
             "$ref": "#/$defs/identifier"
           },
           "maxItems": 10000,
+          "minItems": 0,
+          "type": "array"
+        },
+        "required_role_ids": {
+          "items": {
+            "$ref": "#/$defs/identifier"
+          },
+          "maxItems": 100000,
           "minItems": 0,
           "type": "array"
         },
@@ -1505,11 +1679,16 @@
         "rule",
         "subject_schema",
         "subject_digest",
+        "authority_rule_role_manifest_digest",
+        "authority_acquisition_config_digest",
         "authority_snapshot_digest",
         "authority_proof_bundle_digest",
-        "anchor_bindings",
+        "required_action_epoch_floor",
+        "receipt_bindings",
         "node_bindings",
-        "required_anchor_ids",
+        "parameter_bindings",
+        "required_observation_ids",
+        "required_role_ids",
         "required_edge_ids",
         "authority_verifier_input_digest"
       ],
@@ -2241,38 +2420,6 @@
       ],
       "type": "object"
     },
-    "contextFact": {
-      "additionalProperties": false,
-      "properties": {
-        "claim_scope": {
-          "const": "resolved_context_fact_only"
-        },
-        "context_fact_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "fact_value": {
-          "$ref": "#/$defs/authorityFactValue"
-        },
-        "issuer": {
-          "$ref": "#/$defs/issuer"
-        },
-        "role": {
-          "$ref": "#/$defs/identifier"
-        },
-        "schema": {
-          "const": "semantic-context-fact.v0"
-        }
-      },
-      "required": [
-        "schema",
-        "issuer",
-        "claim_scope",
-        "role",
-        "fact_value",
-        "context_fact_digest"
-      ],
-      "type": "object"
-    },
     "coordinate": {
       "additionalProperties": false,
       "properties": {
@@ -2826,6 +2973,9 @@
             "recovery_controller"
           ]
         },
+        "expected_owner_repository": {
+          "$ref": "#/$defs/repositoryIdentity"
+        },
         "expected_schema": {
           "$ref": "#/$defs/identifier"
         },
@@ -2839,6 +2989,7 @@
         "expected_schema",
         "expected_issuer_kind",
         "expected_issuer_id",
+        "expected_owner_repository",
         "expected_claim_scope"
       ],
       "type": "object"
@@ -3021,6 +3172,110 @@
         "activation_epoch_not_after",
         "revoked_by_digest",
         "owner_acceptance_digest"
+      ],
+      "type": "object"
+    },
+    "ownerAcquisitionPin": {
+      "additionalProperties": false,
+      "properties": {
+        "acquisition_capability_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acquisition_contract": {
+          "$ref": "#/$defs/identifier"
+        },
+        "acquisition_contract_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acquisition_distribution_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "capability_pin_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "category": {
+          "enum": [
+            "semantic_trust",
+            "semantic_revocation",
+            "semantic_publication",
+            "semantic_lifecycle",
+            "semantic_vote",
+            "ak_store",
+            "ak_decision",
+            "ak_task",
+            "consumer_acceptance",
+            "consumer_activation",
+            "consumer_history",
+            "recovery_controller"
+          ]
+        },
+        "fact_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "fact_schema": {
+          "$ref": "#/$defs/identifier"
+        },
+        "fact_value": {
+          "$ref": "#/$defs/authorityFactValue"
+        },
+        "freshness_cas_token_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_repository": {
+          "$ref": "#/$defs/repositoryIdentity"
+        },
+        "owner_surface": {
+          "enum": [
+            "semantic_owner",
+            "ak",
+            "consumer_owner",
+            "rocs",
+            "recovery_controller",
+            "pi"
+          ]
+        },
+        "required_action_epoch_floor": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "role": {
+          "$ref": "#/$defs/identifier"
+        },
+        "schema": {
+          "const": "semantic-owner-acquisition-capability-pin.v0"
+        },
+        "store_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "store_revision": {
+          "$ref": "#/$defs/safeInteger"
+        }
+      },
+      "required": [
+        "schema",
+        "capability_pin_id",
+        "role",
+        "category",
+        "owner_surface",
+        "owner_id",
+        "owner_repository",
+        "acquisition_contract",
+        "acquisition_contract_digest",
+        "acquisition_distribution_digest",
+        "store_id",
+        "store_head_digest",
+        "store_revision",
+        "fact_schema",
+        "fact_digest",
+        "fact_value",
+        "freshness_cas_token_digest",
+        "required_action_epoch_floor",
+        "acquisition_capability_digest"
       ],
       "type": "object"
     },
@@ -3275,6 +3530,139 @@
         "members",
         "prior_owner_set_digest",
         "owner_set_digest"
+      ],
+      "type": "object"
+    },
+    "ownerStoreReadReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "acquisition_capability_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acquisition_contract": {
+          "$ref": "#/$defs/identifier"
+        },
+        "acquisition_contract_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acquisition_distribution_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "action_epoch": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "capability_pin_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "category": {
+          "enum": [
+            "semantic_trust",
+            "semantic_revocation",
+            "semantic_publication",
+            "semantic_lifecycle",
+            "semantic_vote",
+            "ak_store",
+            "ak_decision",
+            "ak_task",
+            "consumer_acceptance",
+            "consumer_activation",
+            "consumer_history",
+            "recovery_controller"
+          ]
+        },
+        "claim_scope": {
+          "const": "owner_store_read_only"
+        },
+        "fact_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "fact_schema": {
+          "$ref": "#/$defs/identifier"
+        },
+        "fact_value": {
+          "$ref": "#/$defs/authorityFactValue"
+        },
+        "freshness_cas_token_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "issuer": {
+          "$ref": "#/$defs/issuer"
+        },
+        "observation_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_repository": {
+          "$ref": "#/$defs/repositoryIdentity"
+        },
+        "owner_store_read_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "required_action_epoch_floor": {
+          "$ref": "#/$defs/safeInteger"
+        },
+        "role": {
+          "$ref": "#/$defs/identifier"
+        },
+        "schema": {
+          "const": "semantic-owner-store-read-receipt.v0"
+        },
+        "store_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "store_revision": {
+          "$ref": "#/$defs/safeInteger"
+        }
+      },
+      "required": [
+        "schema",
+        "observation_id",
+        "role",
+        "category",
+        "issuer",
+        "claim_scope",
+        "owner_repository",
+        "capability_pin_id",
+        "acquisition_capability_digest",
+        "acquisition_contract",
+        "acquisition_contract_digest",
+        "acquisition_distribution_digest",
+        "store_id",
+        "store_head_digest",
+        "store_revision",
+        "fact_schema",
+        "fact_digest",
+        "fact_value",
+        "freshness_cas_token_digest",
+        "action_epoch",
+        "required_action_epoch_floor",
+        "owner_store_read_receipt_digest"
+      ],
+      "type": "object"
+    },
+    "ownerVoteProofFact": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_proof_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "approved_action_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_key_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "owner_id",
+        "owner_key_id",
+        "approved_action_digest",
+        "approval_proof_digest"
       ],
       "type": "object"
     },
@@ -3613,9 +4001,6 @@
         },
         {
           "$ref": "#/$defs/errorEnvelope"
-        },
-        {
-          "$ref": "#/$defs/contextFact"
         }
       ]
     },
@@ -3643,12 +4028,16 @@
         },
         "issuer": {
           "$ref": "#/$defs/issuer"
+        },
+        "owner_repository": {
+          "$ref": "#/$defs/repositoryIdentity"
         }
       },
       "required": [
         "bundle_key",
         "artifact_schema",
         "issuer",
+        "owner_repository",
         "claim_scope",
         "artifact"
       ],
@@ -4047,6 +4436,43 @@
       ],
       "type": "object"
     },
+    "receiptBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "capability_pin_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "category": {
+          "enum": [
+            "semantic_trust",
+            "semantic_revocation",
+            "semantic_publication",
+            "semantic_lifecycle",
+            "semantic_vote",
+            "ak_store",
+            "ak_decision",
+            "ak_task",
+            "consumer_acceptance",
+            "consumer_activation",
+            "consumer_history",
+            "recovery_controller"
+          ]
+        },
+        "observation_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "role": {
+          "$ref": "#/$defs/identifier"
+        }
+      },
+      "required": [
+        "role",
+        "category",
+        "observation_id",
+        "capability_pin_id"
+      ],
+      "type": "object"
+    },
     "removalRecord": {
       "additionalProperties": false,
       "properties": {
@@ -4247,6 +4673,9 @@
             }
           ]
         },
+        "issuer": {
+          "$ref": "#/$defs/issuer"
+        },
         "materialization_verification_receipt_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -4365,6 +4794,7 @@
       },
       "required": [
         "schema",
+        "issuer",
         "consumer_intent_digest",
         "owner_acceptance_digest",
         "materialization_verification_receipt_digest",
@@ -4543,6 +4973,9 @@
         "history_head_before": {
           "$ref": "#/$defs/historyHead"
         },
+        "issuer": {
+          "$ref": "#/$defs/issuer"
+        },
         "result": {
           "enum": [
             "rolled_back",
@@ -4580,6 +5013,7 @@
       },
       "required": [
         "schema",
+        "issuer",
         "rollback_request_digest",
         "result",
         "active_state_before",
@@ -4927,6 +5361,22 @@
         "referenced_receipt_digest",
         "outcome",
         "rollback_technical_receipt_digest"
+      ],
+      "type": "object"
+    },
+    "ruleParameterBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/identifier"
+        },
+        "value": {
+          "$ref": "#/$defs/authorityFactValue"
+        }
+      },
+      "required": [
+        "role",
+        "value"
       ],
       "type": "object"
     },
@@ -5705,10 +6155,19 @@
       "$ref": "#/$defs/errorEnvelope"
     },
     {
+      "$ref": "#/$defs/ownerAcquisitionPin"
+    },
+    {
+      "$ref": "#/$defs/authorityAcquisitionConfig"
+    },
+    {
+      "$ref": "#/$defs/ownerStoreReadReceipt"
+    },
+    {
       "$ref": "#/$defs/authoritySnapshot"
     },
     {
-      "$ref": "#/$defs/contextFact"
+      "$ref": "#/$defs/authorityRuleRoleManifest"
     },
     {
       "$ref": "#/$defs/authorityProofBundle"
@@ -5717,5 +6176,5 @@
       "$ref": "#/$defs/authorityVerifierInput"
     }
   ],
-  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 8"
+  "title": "Semantic Release Capsule and Consumer Adoption Protocol v0 revision 9"
 }
