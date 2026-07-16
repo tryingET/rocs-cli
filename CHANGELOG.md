@@ -8,6 +8,8 @@ read_when:
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-16
+
 ### Removed
 - **Breaking (Wave 6):** removed `.gitlab-ci.yml`, the `rocs_cli.gitlab_ci` helper API, and its GitLab include-rewriting tests. Local gates have sole authority; no compatibility shims remain.
 - **Breaking (Wave 1):** removed `audit-fleet.py`, `open-remediation-batch.sh`, `run-fleet-audit-nightly.py`, `run-fleet-audit-nightly.sh`, `bootstrap-repo.sh`, `vendor-to.sh`, `bump_version.py`, `bench.py`, and `gen_bench_repo.py`; there are no compatibility shims.
@@ -38,6 +40,7 @@ read_when:
 - Hardened ROCS manifest layer parsing so each layer must declare exactly one of `path` or `ref`.
 
 ### Fixed
+- Foreign-repository Git checks now discard inherited repository-local hook variables before using `git -C`, preventing strict workspace refs from resolving against the caller repository.
 - Repository and generated FCOS gate commands use frozen dependency resolution, so deterministic validation no longer normalizes the intentional `uv.lock` snapshot as a side effect.
 - `rocs vendor` rejects targets that overlap the source package tree, preventing recursive self-copy behavior.
 - Authority receipt lock handling no longer triggers a `return`-in-`finally` warning during compilation.

@@ -13,6 +13,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from rocs_cli import __version__
+
 from rocs_cli.cli import build_parser, cmd_contracts
 from rocs_cli.contracts import COMMANDS, RUNTIME_FACT_KEYS, command_contract, evaluate_effects
 
@@ -332,4 +334,4 @@ fleet:
                     capture_output=True,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn("rocs-cli 0.1.4", result.stdout)
+            self.assertIn(f"rocs-cli {__version__}", result.stdout)
