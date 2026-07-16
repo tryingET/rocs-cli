@@ -8,6 +8,11 @@ read_when:
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-16
+
+### Fixed
+- Vendored runtimes exclude machine-local Ruff, Mypy, and Pytest cache directories so complete-file manifests remain reproducible from clean commits.
+
 ## [0.2.0] - 2026-07-16
 
 ### Removed
