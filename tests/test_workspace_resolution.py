@@ -125,6 +125,43 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertIsNotNone(good)
             self.assertIsNone(git_rev_sha(repo, "--help"))
 
+    def test_workspace_resolution_ignores_inherited_git_hook_environment(self) -> None:
+        project_path = "core/dep"
+        locator = f"<repo:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            dep = ws / "core" / "dep"
+            _init_workspace_repo(dep, project_path=project_path, tag="v1", make_mismatch=False)
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            hook_repo = td_path / "hook-repo"
+            _init_workspace_repo(
+                hook_repo,
+                project_path="softwareco/hook-repo",
+                tag="v1",
+                make_mismatch=True,
+            )
+            with _Env(GIT_DIR=str(hook_repo / ".git"), GIT_WORK_TREE=str(hook_repo)):
+                code, out = _run_capture(
+                    [
+                        "resolve",
+                        "--repo",
+                        str(repo),
+                        "--resolve-refs",
+                        "--workspace-root",
+                        str(ws),
+                        "--workspace-ref-mode",
+                        "strict",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(code, 0)
+            payload = _parse_json(out)
+            dep_layer = [x for x in payload["layers"] if x["name"] == "dep"][0]
+            self.assertEqual(dep_layer["source"], "workspace")
+
     def test_remote_url_parser_handles_urls_with_port(self) -> None:
         cases = {
             "ssh://git@192.168.161.10:2224/ai-society/core/ontology-kernel.git": "ai-society/core/ontology-kernel",
