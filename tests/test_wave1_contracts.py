@@ -196,6 +196,31 @@ class Wave1ContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 vendor(root, root / "nested-artifact", dry_run=True)
 
+    def test_vendor_excludes_machine_local_cache_directories(self) -> None:
+        from rocs_cli.wave1 import vendor, verify
+
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source = base / "source"
+            package = source / "src/rocs_cli"
+            shutil.copytree(root / "src/rocs_cli", package)
+            for name in ("pyproject.toml", "README.md", "uv.lock"):
+                shutil.copy2(root / name, source / name)
+
+            for cache_name in (".ruff_cache", ".mypy_cache", ".pytest_cache"):
+                cache = package / "_bootstrap_assets" / cache_name
+                cache.mkdir(parents=True)
+                (cache / "machine-local").write_text("ignored\n", "utf-8")
+
+            artifact = base / "artifact"
+            vendor(source, artifact)
+            cache_names = {".ruff_cache", ".mypy_cache", ".pytest_cache"}
+            self.assertFalse(any(cache_names.intersection(path.parts) for path in artifact.rglob("*")))
+            payload, code = verify(artifact)
+            self.assertEqual(code, 0, payload)
+            self.assertTrue(payload["ok"])
+
     def test_self_contained_artifact_rejects_unlocked_root_files(self) -> None:
         from rocs_cli.wave1 import vendor, verify
 

@@ -115,7 +115,17 @@ def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: P
             fcntl.flock(lock_file, fcntl.LOCK_EX)
         stage = Path(tempfile.mkdtemp(prefix=f".{target.name}.stage-", dir=target.parent))
         try:
-            shutil.copytree(package, stage / "src/rocs_cli", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+            shutil.copytree(
+                package,
+                stage / "src/rocs_cli",
+                ignore=shutil.ignore_patterns(
+                    "__pycache__",
+                    "*.pyc",
+                    ".ruff_cache",
+                    ".mypy_cache",
+                    ".pytest_cache",
+                ),
+            )
             pyproject_text = pyproject.read_text("utf-8")
             version_pattern = r'(?m)^(version\s*=\s*)["\'][^"\']+["\']\s*$'
             pyproject_text, replacements = re.subn(
