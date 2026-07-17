@@ -16,7 +16,8 @@ Decision 53 evolved the semantic supply chain from a plausible release/adoption 
 - corrected machine revision: [`../project/semantic-release-revision-v13.md`](../project/semantic-release-revision-v13.md);
 - final strict synthesis: [`../project/semantic-release-rereview13-final-synthesis.md`](../project/semantic-release-rereview13-final-synthesis.md);
 - implementation plan: [`../project/semantic-release-implementation-plan.md`](../project/semantic-release-implementation-plan.md);
-- rollout/rollback plan: [`../project/semantic-release-validation-rollout-rollback.md`](../project/semantic-release-validation-rollout-rollback.md).
+- rollout/rollback plan: [`../project/semantic-release-validation-rollout-rollback.md`](../project/semantic-release-validation-rollout-rollback.md);
+- implementation receipts: AK evidence `4668` (Pi enum-coercion repair review), `4675` (owner replay type-aware review), `4679`–`4681` (Pi ordering correction, tests, and rereview), and `4682` (joined default-off closeout).
 
 ## Durable pattern
 
@@ -63,6 +64,14 @@ Rollback combines policy selection and technical execution. The affected owner s
 ### Fixture-to-production inference
 
 Closed schemas and differential fixtures establish declared conformance. They do not prove live capability distribution, authenticated reads, race behavior, crash safety, owner consent, publication, or canary operation.
+
+### Mirror-validator subset drift
+
+A local adapter that validates an authority-bearing object must enforce the complete accepted constraints it claims to check, not only fields needed by its happy path. Cross-language coercions are especially dangerous: Python treats `True == 1`, JavaScript can stringify arrays into enum-looking strings, and a digest-valid receipt can still violate sorted/unique invariants. Require type-aware canonical comparison, exact enum types, ordering/uniqueness checks, and adversarial resealing tests against the independent canonical validators.
+
+### Component-pass without joined rehearsal
+
+Repository-local tests can all pass while the joined path remains unsound. Independent controller review found the owner-sandbox boolean/integer replay drift; the later disposable cross-repo rehearsal found incomplete Pi generation ordering validation and then verified the corrected joined path. Before promoting a cross-owner learning or implementation wave, replay exact owner receipts through deterministic validation, transactional CAS, delivery suppression/failure paths, and rollback fixtures while every live/production flag remains false.
 
 ## Method that worked
 
