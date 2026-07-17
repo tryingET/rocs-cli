@@ -19,27 +19,25 @@ This is an execution decomposition, not an authority issuer. AK owns task state.
 
 ## First executable wave
 
-| Key | Owner repository | Scope | Dependency | Initial posture |
-|---|---|---|---|---|
-| `d53-rocs-protocol-runtime` | `core/rocs-cli` | I1 closed protocol runtime and independent conformance | — | executable after AK unblocking |
-| `d53-rocs-transactions` | `core/rocs-cli` | I2 append-only/CAS transactions, bounded effects, crash proofs | ROCS protocol runtime | dependency-blocked |
-| `d53-semantic-owner-sandbox` | `core/ontology-kernel` | I3 owner-only sandbox records and acquisition fixtures | ROCS protocol runtime | defer until dirty worktree is reconciled |
-| `d53-ak-lineage` | `softwareco/owned/agent-kernel` | I4 DB-only exact task/decision/evidence lineage; no repository files | ROCS protocol runtime | executable as AK-only work; dirty repo files are off-limits |
-| `d53-pi-delivery` | `softwareco/owned/pi-extensions` | I5 default-off Pi validation and delivery attestations | ROCS protocol runtime | defer until owner supplies clean worktree |
-| `d53-owner-identity-gate` | `core/rocs-cli` | I6 resolve exact consumer, Pi adapter, and independent recovery-controller identities without substitution | semantic-owner, AK, and Pi slices | coordination only; cannot issue owner facts |
+| Key | AK task | Owner repository | Scope | Dependencies | Initial posture |
+|---|---:|---|---|---|---|
+| `d53-rocs-protocol-runtime` | `3986` | `core/rocs-cli` | I1 closed protocol runtime and independent conformance | — | executable after AK unblocking |
+| `d53-rocs-transactions` | `3987` | `core/rocs-cli` | I2 append-only/CAS transactions, bounded effects, crash proofs | `3986` | dependency-blocked |
+| `d53-semantic-owner-sandbox` | `3988` | `core/ontology-kernel` | I3 owner-only sandbox records and acquisition fixtures | `3986` | defer until dirty worktree is reconciled |
+| `d53-ak-lineage` | `3989` | `softwareco/owned/agent-kernel` | I4 DB-only exact task/decision/evidence lineage; no repository files | `3986` | executable as AK-only work; dirty repo files are off-limits |
+| `d53-pi-delivery` | `3990` | `softwareco/owned/pi-extensions` | I5 default-off Pi validation and delivery attestations | `3986` | defer until owner supplies clean worktree |
+| `d53-owner-identity-gate` | `3991` | `core/rocs-cli` | I6 resolve exact consumer, Pi adapter, and independent recovery-controller identities without substitution | `3987`, `3988`, `3989`, `3990` | coordination only; cannot issue owner facts |
 
-All materialized tasks must be linked to Decision 53 as `post_adr_execution`, carry explicit repo-relative scope and guardrails, and be reevaluated before unblocking.
+Tasks `3986`–`3991` are linked to Decision 53 as `post_adr_execution`. Their AK-native scopes, dependencies, done contracts, and guardrails were audited before reevaluation. The accepted machine packet and `uv.lock` are forbidden in ROCS implementation tasks; the AK lineage task forbids every repository path; dirty-owner tasks explicitly stop before mutation until a clean owner worktree exists.
 
 ## Execution graph
 
 ```text
-d53-rocs-protocol-runtime
-  ├─> d53-rocs-transactions
-  ├─> d53-semantic-owner-sandbox
-  ├─> d53-ak-lineage
-  └─> d53-pi-delivery
-          \       |       /
-           d53-owner-identity-gate
+3986 d53-rocs-protocol-runtime
+  ├─> 3987 d53-rocs-transactions ─────────────┐
+  ├─> 3988 d53-semantic-owner-sandbox ────────┤
+  ├─> 3989 d53-ak-lineage ────────────────────┼─> 3991 d53-owner-identity-gate
+  └─> 3990 d53-pi-delivery ───────────────────┘
 ```
 
 A dependency arrow grants sequencing only. It does not let the upstream owner issue downstream facts.
