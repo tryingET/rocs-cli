@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r8"
+rfc_revision: "semantic-pi-delivery-v1-r9"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -140,9 +140,13 @@ argv_contract_digest
 host_runtime_manifest_digest
 ```
 
-`runtime_kind=bun_standalone_binary`. `pi.standalone-host-runtime-closure.v1` is exactly `{schema,standalone_host_executable_digest,elf_interpreter,shared_libraries,runtime_data_tree,closure_probe_tool_digest,standalone_runtime_closure_digest}`. Interpreter is null or `{logical_path,content_digest}`; shared libraries are UTF-8-SONAME-sorted unique `{soname,logical_path,content_digest}`; interpreter/library content uses `pi.host-runtime-library-bytes.v1`; runtime data tree is `pi.host-runtime-data-tree-manifest.v1`; the probe tool uses `pi.controller-executable-bytes.v1`. `pi.host-runtime-data-tree-manifest.v1` is exactly `{schema,entries,runtime_data_tree_manifest_digest}` with UTF-8 `(path,kind)`-sorted `{path,kind,mode,byte_length,content_digest}` rows; directories have null length/digest and files use `pi.host-runtime-data-file-bytes.v1`.
+`runtime_kind=bun_standalone_binary`. `pi.standalone-host-runtime-closure.v1` is exactly `{schema,standalone_host_executable_digest,elf_interpreter,shared_libraries,runtime_data_tree,closure_probe_tool_digest,namespace_tool_digest,mount_contract_digest,staged_root_logical_id,standalone_runtime_closure_digest}`. Interpreter is null or `{logical_path,content_digest}`; shared libraries are UTF-8-SONAME-sorted unique `{soname,logical_path,content_digest}`; interpreter/library content uses `pi.host-runtime-library-bytes.v1`; runtime data tree is `pi.host-runtime-data-tree-manifest.v1`; the probe tool uses `pi.controller-executable-bytes.v1`. `pi.host-runtime-data-tree-manifest.v1` is exactly `{schema,entries,runtime_data_tree_manifest_digest}` with UTF-8 `(path,kind)`-sorted `{path,kind,mode,byte_length,content_digest}` rows; directories have null length/digest and files use `pi.host-runtime-data-file-bytes.v1`.
 
 Witness-capable mode is restricted to the binary produced by the reviewed `build:binary` path whose independently run ELF/interpreter/shared-library probe exactly equals the closure. A non-ELF binary requires null interpreter and empty libraries. Unlisted runtime loading fails. Source/Jiti host startup, npm Node entrypoints, inline factories, mutable paths, and host dynamic loading outside the executable/closure are ineligible. Exact artifact hashes, not build reproducibility, are pinned. Extension loading remains manifest-confined; dynamic/computed extension imports are forbidden.
+
+`pi.native-loader-mount-contract.v1` is exactly `{schema,staged_root_logical_id,executable_path,interpreter_path,library_paths,runtime_data_root,bwrap_argv,network_unshared,ambient_root_visible}`. Constants are executable `/host/pi`, runtime data `/host/runtime-data`, `network_unshared=true`, and `ambient_root_visible=false`; paths are absolute inside the staged root. The content-addressed `bwrap` executable launches with `--unshare-all`, read-only binds only the staged root as `/`, creates a fresh `/proc` and minimal `/dev`, and exposes no host filesystem.
+
+Before launch, the controller parses ELF `PT_INTERP` and dependency resolution using the pinned probe and requires exact closure equality. After process start but before extension loading, and again before redemption, it reads the target process's `/proc/<pid>/maps`. `pi.runtime-load-observation.v1` is exactly `{schema,process_start_nonce,mappings,runtime_load_observation_digest}` with sorted unique file-backed `{device,inode,logical_path,content_digest}` rows. Interpreter/library mappings must equal the staged closure; unlisted file-backed executable mappings abort. Runtime-data root placement and every sidecar lookup are bound to `/host/runtime-data` in the mount contract. Non-Linux or unavailable namespace/maps enforcement is ineligible, not a weaker posture.
 
 The controller stages snapshots read-only. The host verifies all bytes before load, immediately before prompt execution, before redemption, and during final prompt readback. Any path/inode/mode/content drift aborts before redemption and provider dispatch.
 
@@ -179,6 +183,9 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | host runtime-data file bytes | `pi.host-runtime-data-file-bytes.v1` | exact bytes |
 | host runtime-data tree | `pi.host-runtime-data-tree-manifest.v1` | `runtime_data_tree_manifest_digest` |
 | standalone runtime closure | `pi.standalone-host-runtime-closure.v1` | `standalone_runtime_closure_digest` |
+| native loader mount contract | `pi.native-loader-mount-contract.v1` | full closed object |
+| runtime load observation | `pi.runtime-load-observation.v1` | `runtime_load_observation_digest` |
+| namespace tool bytes | `pi.namespace-tool-bytes.v1` | exact bytes |
 | runtime interpreter/library bytes | `pi.host-runtime-library-bytes.v1` | exact bytes |
 | host file bytes | `pi.host-file-bytes.v1` | exact bytes |
 | loader configuration | `pi.loader-configuration.v1` | full closed object |
@@ -253,7 +260,12 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 
 Session nonce has the same 32-byte encoding and appears in witness/transcript/attestation. Generation and ordinal are safe integers, start at `0`, increment before use, and fail closed permanently at maximum rather than wrap.
 
-`handler_registration_index` is zero-based in one total registration order shared by ordinary `before_agent_start` handlers and prompt-system contributors. Order is extension load order, then registration call order within each extension. The contributor must be the last registration in that total order; any later ordinary handler or contributor makes witnessing ineligible regardless of whether it returns only a message. The host adds one paired API: `pi.registerPromptSystemContributor({prepare,applied})`. `prepare` runs in the `before_agent_start` chain and must return exactly `{systemPrompt,application_witness_request}` where the request is `{repository_identity,component_identity,rocs_generation_receipt_digest}` and `systemPrompt` differs bytewise from input. The host validates the request after return; attempt identity remains non-retroactive because it excludes generation digest. The contributor must be the sole requester and final effective handler; any later handler/change aborts before assignment.
+`handler_registration_index` is zero-based in one total registration order shared by ordinary `before_agent_start` handlers and prompt-system contributors. Order is extension load order, then registration call order within each extension. The contributor must be the last registration in that total order; any later ordinary handler or contributor makes witnessing ineligible regardless of whether it returns only a message. The host adds one paired API: `pi.registerPromptSystemContributor({prepare,applied})`. `prepare(prepareContext)` receives read-only host/runtime/component/attempt identity plus signal/deadline and no mutating host methods. It returns exactly one discriminated result:
+
+- `{kind:terminal_receipt,receipt}` where receipt is only the complete suppressed or failed v1 branch. Host validates it, records it in the prompt result, keeps the input prompt unchanged, issues no witness, and never calls `applied`.
+- `{kind:contribution,systemPrompt,application_witness_request}` where the request is `{repository_identity,component_identity,rocs_generation_receipt_digest}` and `systemPrompt` differs bytewise from input.
+
+Thus suppressed/failed transport is pre-witness and their mandatory host/attempt fields come from `prepareContext`. The host validates the request after return; attempt identity remains non-retroactive because it excludes generation digest. The contributor must be the sole requester and final effective handler; any later handler/change aborts before assignment.
 
 After assignment/readback, the host enters a host-wide prompt-application critical section and invokes the same registration's personalized `applied({witness},restrictedContext)` callback exactly once. `restrictedContext` contains only read-only host identity, `AbortSignal`, and deadline; it exposes no model, session, UI, message, prompt, command, or provider method. The host guard also rejects recursive `prompt`, `continue`, `_runAgentPrompt`, `sendUserMessage`, `sendCustomMessage({triggerTurn:true})`, host-owned model completion, or provider dispatch attempted through retained closures until redemption and transcript persistence finish. Any attempt aborts.
 
@@ -358,7 +370,7 @@ Host issuer is fixed and outcome is `rejected_already_redeemed`. No second redem
 
 ```text
 schema, controller_executable_digest, host_runtime_manifest_digest,
-component_package_tree_manifest_digest, dependency_manifest_digests,
+runtime_load_observation_digest, component_package_tree_manifest_digest, dependency_manifest_digests,
 process_environment_contract_digest, argv_contract_digest, process_start_nonce,
 boot_nonce, session_instance_nonce, authorization_envelope_digest,
 authorization_claim_record_digest, witness_bytes_digest,
@@ -374,8 +386,8 @@ It is integration-only: authorization/acknowledgement/replay fields are non-null
 `pi.host-delivery-execution-transcript.v1` is a separate production shape with exactly:
 
 ```text
-schema, host_runtime_manifest_digest, loaded_component_manifest_digest,
-execution_instance_digest, boot_nonce, session_instance_nonce,
+schema, host_runtime_manifest_digest, runtime_load_observation_digest,
+loaded_component_manifest_digest, execution_instance_digest, boot_nonce, session_instance_nonce,
 prompt_run_attempt_digest, rocs_generation_receipt_digest,
 host_application_witness_digest, delivery_receipt_bytes_digest,
 pre_redemption_journal_digest, host_witness_redemption_digest,
@@ -410,7 +422,8 @@ Order:
 ```text
 allocate attempt
 -> chain before_agent_start while recording per-handler input/return
--> assign final prompt
+-> if prepare returned terminal receipt, validate/record it with unchanged prompt and skip the remaining witness machine
+-> otherwise assign final prompt
 -> readback/hash
 -> issue opaque personalized witness
 -> receive semantic delivery receipt or integration acknowledgement
@@ -490,7 +503,7 @@ Issuer is the controller, claim `host_integration_only`; all booleans are false.
 
 V0 artifacts and runtime remain unchanged. V1 adds `ak_optional_pi_v1`, a generated rule whose role/edge set is mechanically derived from v0 `ak_optional_pi` by replacing only the Pi receipt role with v1 receipt + witness + redemption + host-attestation roles. The generator proves every other role, category, owner, repository, acquisition contract, edge, parameter, error precedence, and currentness predicate is byte-equal to v0.
 
-The exact v1 resolver context is `{v0_authority_verifier_input,v0_authority_proof_bundle,resolved_generation,v1_receipt_or_null,loaded_component_manifest,host_runtime_manifest,witness_or_null,pre_redemption_journal_or_null,redemption_or_null,delivery_execution_transcript_or_null,host_attestation_resolution_or_null,canonical_task_states}` with every nullable role explicitly present. Null receipt requires all v1 evidence roles null and yields generation-only linkage; non-null delivered requires every evidence role non-null. Suppressed/failed require witness/journal/redemption/transcript/attestation null.
+The exact v1 resolver context is `{v0_authority_verifier_input,v0_authority_proof_bundle,resolved_generation,v1_receipt_or_null,loaded_component_manifest,host_runtime_manifest,runtime_load_observation_or_null,witness_or_null,pre_redemption_journal_or_null,redemption_or_null,delivery_execution_transcript_or_null,host_attestation_resolution_or_null,canonical_task_states}` with every nullable role explicitly present. Null receipt requires all v1 evidence roles null and yields generation-only linkage; non-null delivered requires every evidence role non-null. Suppressed/failed require witness/journal/redemption/transcript/attestation null.
 
 Validation sequence:
 
