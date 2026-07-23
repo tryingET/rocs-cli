@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r4"
+rfc_revision: "semantic-pi-delivery-v1-r5"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -201,12 +201,24 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | controller executable bytes | `pi.controller-executable-bytes.v1` | exact bytes |
 | process environment contract | `pi.process-environment-contract.v1` | full closed object |
 | filesystem manifest | `pi.filesystem-manifest.v1` | full closed object |
+| TypeScript config bytes | `pi.tsconfig-bytes.v1` | exact bytes |
+| logical realpath identity | `pi.logical-realpath-identity.v1` | closed `{logical_id,normalized_device_id,normalized_inode_id}` |
+| filesystem tree | `pi.filesystem-tree-manifest.v1` | closed sorted tree rows |
+| witness lexical bytes | `pi.witness-json-bytes.v1` | exact JCS bytes |
+| acknowledgement lexical bytes | `pi.acknowledgement-json-bytes.v1` | exact JCS bytes |
+| redemption lexical bytes | `pi.redemption-json-bytes.v1` | exact JCS bytes |
+| replay-probe lexical bytes | `pi.replay-probe-json-bytes.v1` | exact JCS bytes |
+| stdout bytes | `pi.process-stdout-bytes.v1` | exact bytes |
+| stderr bytes | `pi.process-stderr-bytes.v1` | exact bytes |
+| pre-redemption journal | `pi.prompt-system-pre-redemption-journal.v1` | `pre_redemption_journal_digest` |
+| ledger store head | `semantic-release.pi-integration-ledger-store-head.v1` | `ledger_store_head_digest` |
+| ledger record bytes | `semantic-release.pi-integration-ledger-record-bytes.v1` | exact JCS bytes |
 
-Unknown domains reject.
+`loaded_entry_digest` is exactly the resolved package-tree entry's `content_digest` under `pi.package-file-bytes.v1`; no second entry-digest algorithm exists. Store-head, transcript-byte, configuration, and nested digest fields must use the corresponding row above. Unknown domains reject.
 
 ## Closed configuration preimages
 
-`pi.loader-configuration.v1` is exactly `{schema,loader_kind,loader_version,tsconfig_digest,import_map,allowed_root_manifest_digests,module_cache_mode,outside_imports_forbidden,native_addons_forbidden}`. `loader_kind=jiti`; import-map rows are `{specifier,target_logical_path,target_manifest_digest}`, UTF-8 specifier sorted/unique; allowed roots are sorted/unique digests; cache mode is `per_execution_generation`; outside imports are false-to-allow/constant forbidden; native add-ons are forbidden for the v1 proof.
+`pi.loader-configuration.v1` is exactly `{schema,loader_kind,loader_version,tsconfig_digest,import_map,allowed_root_manifest_digests,node_builtin_allowlist,dynamic_import_policy,module_cache_mode,outside_imports_forbidden,native_addons_forbidden}`. `loader_kind=jiti`; `tsconfig_digest` is `pi.tsconfig-bytes.v1`; import-map rows are `{specifier,target_logical_path,target_manifest_digest}`, UTF-8 specifier sorted/unique; each target digest resolves a package-tree manifest. Allowed roots and Node built-ins are sorted/unique. Built-ins are bound to the resolved Node executable/runtime; only literal specifiers in the allow-list are legal. Dynamic/computed import or require is `forbidden`; cache mode is `per_execution_generation`; `outside_imports_forbidden=true`; `native_addons_forbidden=true` for v1.
 
 `pi.process-environment-contract.v1` is exactly `{schema,inherit_environment,entries,unset_keys,locale,timezone,network_mode}`. Inheritance is false; entries are UTF-8-key-sorted unique `{key,value}` rows from a closed allow-list; unset keys are sorted/unique and disjoint; locale is `C.UTF-8`, timezone `UTC`, and network mode `forbidden`.
 
@@ -228,12 +240,12 @@ Unknown domains reject.
 
 ```text
 {execution_instance_digest, execution_generation, attempt_ordinal,
- session_instance_nonce, rocs_generation_receipt_digest}
+ session_instance_nonce}
 ```
 
 Session nonce has the same 32-byte encoding and appears in witness/transcript/attestation. Generation and ordinal are safe integers, start at `0`, increment before use, and fail closed permanently at maximum rather than wrap.
 
-`handler_registration_index` is a zero-based safe integer assigned globally by the runner in registration order. One witness corresponds to the exact contributing registration. Multiple handlers from one component receive separate indexes and witnesses.
+`handler_registration_index` is a zero-based safe integer assigned globally by the runner in registration order. A `before_agent_start` result may include one closed `application_witness_request={repository_identity,component_identity,rocs_generation_receipt_digest}`. The host validates that request after the handler returns and binds it into the witness; attempt allocation is not retroactive because attempt identity excludes the generation digest. At most one registration may request witnessing, and it must be the final effective handler: no later handler may exist or change the returned prompt. Earlier/intermediate transformations are ineligible and receive no `application_outcome=applied` witness. Multiple requesting handlers, a non-final requester, or request/currentness drift aborts before assignment.
 
 ## Closed delivery receipt union
 
@@ -386,6 +398,8 @@ allocate attempt
 
 Any acknowledgement, validation, snapshot, final-readback, pre-redemption persistence, redemption, or transcript persistence failure aborts before provider dispatch and restores the pre-contribution prompt. No redemption is issued before every artifact and prompt postcondition succeeds. A redemption without the required persisted transcript and, for delivery, host attestation is invalid. Integration proof sets `provider_request_dispatched=false` and terminates after replay probe.
 
+`pi.prompt-system-pre-redemption-journal.v1` has exactly `{schema,execution_instance_digest,prompt_run_attempt_digest,host_application_witness_digest,subject_kind,subject_digest,loaded_component_manifest_digest,final_prompt_chain_digest,final_readback_digest,filesystem_manifest_digest,state,pre_redemption_journal_digest}`. State is `verified_pending_redemption`. It is written and fsynced before redemption. Recovery never manufactures redemption: a journal without a redemption is terminal failed; a redemption without the exact journal plus transcript is unresolved and cannot validate delivery.
+
 State is `allocated -> chained -> applied -> witness_issued -> redeemed`, with failure terminal. Every await rechecks instance/generation/attempt. Reload/new/resume/fork/replacement/shutdown invalidates nonterminal state. Redeemed/invalidated tuples remain in a non-evicting set capped at 4096 for the generation; reaching cap fails closed and requires a new generation. Restart changes execution instance. Production durable replay requires the attestation owner and remains unprovisioned.
 
 ## Acyclic isolated authorization and canonical one-shot ledger
@@ -414,25 +428,17 @@ The integration controller is a bounded internal component of the real Pi host o
 
 A separately reviewed Pi-host owner artifact must accept this identity before implementation. The controller remains internal and adds no public command or product surface.
 
-Construction order:
+Construction order uses these exhaustive closed schemas:
 
-1. `semantic-pi-integration-authorization-request.v1` fixes Decision 71 reference, ROCS packet manifest, component/host/controller commits and manifests, process nonce, UTC window, monotonic max duration, disposable roots, and cardinalities `1 witness/1 redemption/1 replay probe`, with live/production false.
-2. Separate `semantic-pi-integration-owner-approval.v1` objects from component owner and host owner each reference only the request digest, owner repository/revision, accepted artifact digest, owner-store head, revocation head, and validity window.
-3. `semantic-pi-integration-authorization-envelope.v1` references the request and both approval digests plus a current accepted/unsuperseded AK Decision 71 reference. There is no digest cycle.
+1. `semantic-pi-integration-authorization-request.v1` is exactly `{schema,authorization_id,decision_id,rocs_packet_manifest_digest,component_commit,package_artifact_identity,loaded_component_manifest_digest,host_commit,host_runtime_manifest_digest,controller_commit,controller_executable_digest,process_start_nonce,not_before_utc,not_after_utc,max_monotonic_duration_ns,disposable_roots,max_witness_issuances,max_redemptions,max_replay_probes,live_acquisition_implemented,production_authorized,authorization_request_digest}`. Cardinalities are `1`; booleans false; roots are sorted, unique, realpath-disjoint from production/runtime/canonical-ledger roots.
+2. Each `semantic-pi-integration-owner-approval.v1` is exactly `{schema,issuer,owner_repository,owner_artifact_revision,accepted_owner_artifact_digest,owner_store_id,owner_store_revision,owner_store_head_digest,revocation_head_digest,authorization_request_digest,valid_not_before_utc,valid_not_after_utc,owner_approval_digest}`. Issuers are exactly component owner and host owner, one each, with current accepted unsuperseded artifacts and store receipts.
+3. `semantic-pi-integration-authorization-envelope.v1` is exactly `{schema,authorization_request_digest,component_owner_approval_digest,host_owner_approval_digest,ak_decision_reference_digest,issued_at_utc,authorization_envelope_digest}`. The AK reference resolves Decision 71 as accepted, unsuperseded, unrevoked, and current. No object refers forward, so no digest cycle exists.
 
-The canonical append-only SQLite ledger outside disposable/production/runtime roots is the one-shot source. Its location is resolved only through a host-owner acquisition pin and current owner-store read receipt; caller paths and copied databases are never authority. Exact records are:
+The canonical append-only SQLite ledger outside disposable/production/runtime roots is the one-shot source. Its location is resolved only through a host-owner acquisition pin and current owner-store read receipt; caller paths and copied databases are never authority.
 
-```text
-{schema, store_id, canonical_store_locator, store_revision,
- prior_store_head_digest, resulting_store_head_digest,
- authorization_envelope_digest, sequence, prior_record_digest,
- state, process_start_nonce, controller_identity,
- controller_executable_digest, claimed_at_utc, monotonic_deadline_ns,
- terminal_reason, controller_transcript_digest,
- authorization_ledger_record_digest}
-```
+A ledger record is exactly `{schema,store_id,canonical_store_locator,store_revision,prior_store_head_digest,authorization_envelope_digest,sequence,prior_record_digest,state,process_start_nonce,controller_identity,controller_executable_digest,claimed_at_utc,monotonic_deadline_ns,terminal_reason,controller_transcript_digest,authorization_ledger_record_digest}`. It never contains its resulting head. Per-state rules are: `available` has null claim/time/deadline/reason/transcript; `claimed` has non-null nonce/controller/time/deadline and null reason/transcript; `consumed` has non-null transcript and reason `completed`; `failed` has non-empty terminal reason and nullable transcript. Sequence and store revision increment by one.
 
-States are `available -> claimed -> consumed|failed`. Claim uses `BEGIN IMMEDIATE`, exact current owner-store head/revision, expected prior record/state, unique authorization digest, same-filesystem durable CAS, and fsync before process launch. The resulting head/revision are re-read through the host-owner store receipt. Concurrent/duplicate claim, alternate store identity/locator, stale head, or restored pre-claim snapshot fails. Crash after claim is terminal `failed`; startup recovery converts stale claimed to failed, never available. Terminal records are immutable and their current head is externally anchored by the host-owner acquisition pin/store receipt, preventing a copied or rolled-back ledger from satisfying action-time currentness. UTC is checked once against the envelope; realtime rollback relative to monotonic progression fails. The private inherited handle derives from the already-claimed canonical record and is consumed by the host; it is not authority by itself.
+`semantic-pi-integration-ledger-store-head.v1` is exactly `{schema,store_id,canonical_store_locator,store_revision,record_digest,prior_store_head_digest,ledger_store_head_digest}`. It is constructed only after the record digest, so there is no recursion. Claim uses `BEGIN IMMEDIATE`, exact current owner-store head/revision, expected prior record/state, unique authorization digest, same-filesystem durable CAS, and fsync before process launch. The resulting head is re-read through the host-owner store receipt. Concurrent/duplicate claim, alternate store, stale/restored head, or copied database fails. Crash after claim becomes terminal `failed`; recovery never restores available. Terminal current head is externally anchored by the host-owner acquisition pin/receipt. UTC is checked once; realtime rollback relative to monotonic progression fails. The private inherited handle derives from the claimed canonical record and is not authority itself.
 
 ## Closed integration proof
 
@@ -456,22 +462,24 @@ Issuer is the controller, claim `host_integration_only`; all booleans are false.
 
 V0 artifacts and runtime remain unchanged. V1 adds `ak_optional_pi_v1`, a generated rule whose role/edge set is mechanically derived from v0 `ak_optional_pi` by replacing only the Pi receipt role with v1 receipt + witness + redemption + host-attestation roles. The generator proves every other role, category, owner, repository, acquisition contract, edge, parameter, error precedence, and currentness predicate is byte-equal to v0.
 
+The exact v1 resolver context is `{v0_authority_verifier_input,v0_authority_proof_bundle,resolved_generation,v1_receipt_or_null,loaded_component_manifest,host_runtime_manifest,witness_or_null,pre_redemption_journal_or_null,redemption_or_null,controller_transcript_or_null,host_attestation_resolution_or_null,canonical_task_states}` with every nullable role explicitly present. Null receipt requires all v1 evidence roles null and yields generation-only linkage; non-null delivered requires every evidence role non-null. Suppressed/failed require witness/journal/redemption/transcript/attestation null.
+
 Validation sequence:
 
-1. v0 universal authority preflight and generation/activation rule validate the complete unchanged graph and resolved checked generation;
-2. v1 schema/digest/package/host/attempt/witness/redemption preflight;
-3. v1 host-attestation owner pin/read/trust/currentness validation;
-4. exact overlay role/edge closure;
-5. delivered relation;
-6. AK linkage overlay.
+1. strict decode/schema and all recursive/derived digests;
+2. v0 universal authority preflight plus generation/activation rule over the complete unchanged graph;
+3. v1 package/host/attempt/witness/journal/redemption/transcript preflight;
+4. host-attestation owner pin/read/trust/currentness validation;
+5. exact overlay role/edge closure and delivered relation;
+6. `ak_optional_pi_v1`, identical to v0 AK linkage except the resolved v1 evidence roles.
 
-Missing/invalid input precedence is: malformed input -> digest mismatch -> issuer scope -> self-certification -> trust/currentness -> activation currentness -> replay/authorization -> delivery relation. V0 historical commands still accept v0; successor component entrypoints reject v0 as `unsupported_protocol`. Passing schema-checked v0 objects alone never substitutes for the v0 authority verifier.
+Complete precedence is `malformed_input -> unsupported_protocol -> resource_exhausted -> deadline_exceeded -> digest_mismatch -> issuer_scope_violation -> self_certification -> trust_reference_stale|trust_revoked -> activation_not_current -> authorization_or_replay_failure -> delivery_relation_failure`. If deadline equality is already observed at a guard, `deadline_exceeded` wins over later resource detection; otherwise earlier decode/schema/resource failures retain order. V0 historical commands accept v0; successor entrypoints reject v0. Schema-checked v0 objects never substitute for the v0 authority verifier.
 
 ## Packet and deterministic implementation limits
 
 Preserve `docs/project/semantic-release-v0/**` byte-for-byte. `docs/project/semantic-pi-delivery-v1/` contains only `packet-manifest.json` plus every file listed by it, including schemas, invariants, registries, generator, independent validators, vectors, and fixtures. Any unlisted/missing regular file rejects. Manifest excludes itself and lists UTF-8-sorted `{path,byte_length,sha256}` rows; aggregate row bytes are `path<TAB>byte_length<TAB>sha256<LF>` under the registered aggregate domain. Manifest self-digest omits only its self field.
 
-Limits cover the complete operation from first packet/tarball read through extraction, all dependency/host/component hashing, validation, teardown, and receipt/proof production:
+Limits and the single monotonic deadline start before the first packet/archive/executable/ledger read and end only after process reap, filesystem recheck, transcript/ledger terminal persistence, and receipt/proof validation. They include packet files, compressed/extracted archives, Node/host/controller executable bytes, stdout/stderr, disposable outputs, pre-redemption journals, and all ledger reads/growth:
 
 - 16 MiB per JSON file, 64 MiB packet aggregate, 32 packet files;
 - 64 MiB compressed tarballs cumulative;
@@ -482,13 +490,16 @@ Limits cover the complete operation from first packet/tarball read through extra
 - retained-byte accounting once per object; no reopen;
 - stable no-follow regular-file reads, descriptor/path identity/metadata checks;
 - NFC root-local POSIX paths; no traversal, backslash, network form, symlink, hard link, special file, normalization/casefold collision;
-- extraction ratio at most 32:1 per archive and cumulatively.
+- extraction ratio at most 32:1 per archive and cumulatively;
+- Node + host + controller executable/manifests at most 128 MiB cumulative;
+- stdout and stderr at most 1 MiB each; disposable output at most 64 MiB;
+- pre-redemption journal at most 1 MiB; canonical ledger at most 64 MiB and 100,000 records, with the current operation accounting every read/new byte.
 
 Error codes and precedence are generated and independently tested. Resource failure is `resource_exhausted` unless deadline equality/expiry occurred first, which is `deadline_exceeded`; earlier malformed/digest/issuer failures retain precedence.
 
 The generator imports neither validator. Python and Node validators share no code/parser/digest helper. Raw vectors cover every JSON/digest rule and boundary.
 
-Existing v0 embedding remains. New v1 embedding uses uncompressed standard base64 of the exact top-level v1 schema bundle, fixed 76 ASCII characters per line, LF endings, one trailing LF, byte length, and SHA-256. A checked-in generator writes it; `--check` compares exact bytes; two fresh-checkout generations must match.
+Existing v0 embedding remains. The sole v1 embedding source is `docs/project/semantic-pi-delivery-v1/protocol.schema.json`, draft 2020-12, `$id=https://ai-society.local/rocs/semantic-pi-delivery-v1/protocol.schema.json`, whose top-level `oneOf` inventory is UTF-8 schema-name sorted and closed by the packet registry. Target is `src/rocs_cli/semantic_pi_delivery_v1_schema.py`. The generated template contains imports, `SCHEMA_SHA256`, `SCHEMA_BYTE_LENGTH`, one `_SCHEMA_B64` tuple, and `schema_bytes()` integrity checks. Standard base64 is split into 76-character non-final lines and one final line of 1..76 characters, with LF endings and exactly one trailing LF. `python docs/project/semantic-pi-delivery-v1/generate.py --write-embedding|--check-embedding` owns generation; two fresh-checkout runs must match exactly.
 
 ## Public surface and cross-repo sequence
 
