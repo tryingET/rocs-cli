@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r7"
+rfc_revision: "semantic-pi-delivery-v1-r8"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -133,14 +133,16 @@ host_version
 extension_api_version
 runtime_kind
 standalone_host_executable_digest
-runtime_data_tree_manifest_digest
+standalone_runtime_closure_digest
 embedded_builtin_module_allowlist
 loader_configuration_digest
 argv_contract_digest
 host_runtime_manifest_digest
 ```
 
-`runtime_kind=bun_standalone_binary`. Witness-capable mode is restricted to the self-contained executable produced by the host's reviewed `build:binary` path plus one complete runtime-data tree. Source/Jiti host startup, npm Node entrypoints, inline factories, mutable local paths, and host dynamic loading outside the executable/runtime-data manifests are ineligible. The exact binary hash, not build reproducibility, is pinned by owner authorization. Extension loading remains manifest-confined through the embedded reviewed loader; extension dynamic/computed imports are forbidden.
+`runtime_kind=bun_standalone_binary`. `pi.standalone-host-runtime-closure.v1` is exactly `{schema,standalone_host_executable_digest,elf_interpreter,shared_libraries,runtime_data_tree,closure_probe_tool_digest,standalone_runtime_closure_digest}`. Interpreter is null or `{logical_path,content_digest}`; shared libraries are UTF-8-SONAME-sorted unique `{soname,logical_path,content_digest}`; interpreter/library content uses `pi.host-runtime-library-bytes.v1`; runtime data tree is `pi.host-runtime-data-tree-manifest.v1`; the probe tool uses `pi.controller-executable-bytes.v1`. `pi.host-runtime-data-tree-manifest.v1` is exactly `{schema,entries,runtime_data_tree_manifest_digest}` with UTF-8 `(path,kind)`-sorted `{path,kind,mode,byte_length,content_digest}` rows; directories have null length/digest and files use `pi.host-runtime-data-file-bytes.v1`.
+
+Witness-capable mode is restricted to the binary produced by the reviewed `build:binary` path whose independently run ELF/interpreter/shared-library probe exactly equals the closure. A non-ELF binary requires null interpreter and empty libraries. Unlisted runtime loading fails. Source/Jiti host startup, npm Node entrypoints, inline factories, mutable paths, and host dynamic loading outside the executable/closure are ineligible. Exact artifact hashes, not build reproducibility, are pinned. Extension loading remains manifest-confined; dynamic/computed extension imports are forbidden.
 
 The controller stages snapshots read-only. The host verifies all bytes before load, immediately before prompt execution, before redemption, and during final prompt readback. Any path/inode/mode/content drift aborts before redemption and provider dispatch.
 
@@ -175,6 +177,9 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | loaded component | `pi.loaded-extension-component-manifest.v1` | `loaded_component_manifest_digest` |
 | standalone host executable bytes | `pi.standalone-host-executable-bytes.v1` | exact bytes |
 | host runtime-data file bytes | `pi.host-runtime-data-file-bytes.v1` | exact bytes |
+| host runtime-data tree | `pi.host-runtime-data-tree-manifest.v1` | `runtime_data_tree_manifest_digest` |
+| standalone runtime closure | `pi.standalone-host-runtime-closure.v1` | `standalone_runtime_closure_digest` |
+| runtime interpreter/library bytes | `pi.host-runtime-library-bytes.v1` | exact bytes |
 | host file bytes | `pi.host-file-bytes.v1` | exact bytes |
 | loader configuration | `pi.loader-configuration.v1` | full closed object |
 | argv contract | `pi.argv-contract.v1` | full closed object |
@@ -252,7 +257,7 @@ Session nonce has the same 32-byte encoding and appears in witness/transcript/at
 
 After assignment/readback, the host enters a host-wide prompt-application critical section and invokes the same registration's personalized `applied({witness},restrictedContext)` callback exactly once. `restrictedContext` contains only read-only host identity, `AbortSignal`, and deadline; it exposes no model, session, UI, message, prompt, command, or provider method. The host guard also rejects recursive `prompt`, `continue`, `_runAgentPrompt`, `sendUserMessage`, `sendCustomMessage({triggerTurn:true})`, host-owned model completion, or provider dispatch attempted through retained closures until redemption and transcript persistence finish. Any attempt aborts.
 
-The callback resolves within 500 ms and returns exactly `{subject_kind,subject}` where kind is `semantic_delivery_receipt|host_integration_acknowledgement`; the first subject is a complete `semantic-pi-delivery-receipt.v1`, the second the closed acknowledgement. Timeout, throw, stale context, wrong brand/index, missing subject, or reentry aborts. No broadcast/unrelated extension receives the witness.
+The callback resolves within 500 ms and returns exactly `{subject_kind,subject}` where kind is `semantic_delivered_receipt|host_integration_acknowledgement`; the first subject is a complete `semantic-pi-delivery-receipt.v1` delivered branch with `delivery_outcome=delivered`, the second the closed acknowledgement. Suppressed/failed receipts are produced only before witness request/issuance and never enter journal, redemption, transcript, or attestation. Timeout, throw, stale context, wrong brand/index, missing subject, or reentry aborts. No broadcast/unrelated extension receives the witness.
 
 ## Closed delivery receipt union
 
@@ -321,7 +326,7 @@ host_application_witness_digest, subject_kind, subject_digest,
 redemption_outcome, redemption_sequence, host_witness_redemption_digest
 ```
 
-`subject_kind` is `semantic_delivery_receipt|host_integration_acknowledgement`; subject digest is respectively `pi_delivery_receipt_digest` or `integration_acknowledgement_digest` from the resolved closed object. Outcome is `redeemed`, sequence `1`.
+`subject_kind` is `semantic_delivered_receipt|host_integration_acknowledgement`; subject digest is respectively the delivered branch's `pi_delivery_receipt_digest` or `integration_acknowledgement_digest` from the resolved closed object. Outcome is `redeemed`, sequence `1`.
 
 ### Integration acknowledgement
 
@@ -372,7 +377,7 @@ It is integration-only: authorization/acknowledgement/replay fields are non-null
 schema, host_runtime_manifest_digest, loaded_component_manifest_digest,
 execution_instance_digest, boot_nonce, session_instance_nonce,
 prompt_run_attempt_digest, rocs_generation_receipt_digest,
-host_application_witness_digest, delivery_candidate_bytes_digest,
+host_application_witness_digest, delivery_receipt_bytes_digest,
 pre_redemption_journal_digest, host_witness_redemption_digest,
 final_prompt_chain_digest, final_readback_digest,
 filesystem_manifest_digest, provider_dispatch_posture,
