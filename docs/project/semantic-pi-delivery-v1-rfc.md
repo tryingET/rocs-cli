@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r9"
+rfc_revision: "semantic-pi-delivery-v1-r10"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -144,9 +144,9 @@ host_runtime_manifest_digest
 
 Witness-capable mode is restricted to the binary produced by the reviewed `build:binary` path whose independently run ELF/interpreter/shared-library probe exactly equals the closure. A non-ELF binary requires null interpreter and empty libraries. Unlisted runtime loading fails. Source/Jiti host startup, npm Node entrypoints, inline factories, mutable paths, and host dynamic loading outside the executable/closure are ineligible. Exact artifact hashes, not build reproducibility, are pinned. Extension loading remains manifest-confined; dynamic/computed extension imports are forbidden.
 
-`pi.native-loader-mount-contract.v1` is exactly `{schema,staged_root_logical_id,executable_path,interpreter_path,library_paths,runtime_data_root,bwrap_argv,network_unshared,ambient_root_visible}`. Constants are executable `/host/pi`, runtime data `/host/runtime-data`, `network_unshared=true`, and `ambient_root_visible=false`; paths are absolute inside the staged root. The content-addressed `bwrap` executable launches with `--unshare-all`, read-only binds only the staged root as `/`, creates a fresh `/proc` and minimal `/dev`, and exposes no host filesystem.
+`pi.native-loader-mount-contract.v1` is exactly `{schema,staged_root_logical_id,executable_path,interpreter_path,library_paths,runtime_data_root,bwrap_argv,network_unshared,ambient_root_visible}`. Constants are executable `/host/pi`, runtime data `/host/runtime-data`, `network_unshared=true`, and `ambient_root_visible=false`; paths are absolute inside the staged root. The namespace launcher is a reviewed statically linked helper implementing the required user/mount/pid/network namespace and bind operations directly; its ELF has no `PT_INTERP` and no `DT_NEEDED`, verified by the pinned probe before execution. Dynamic `bwrap` is ineligible. The content-addressed helper applies the exact `bwrap_argv`-equivalent contract: unshare all namespaces, read-only bind only the staged root as `/`, create fresh `/proc` and minimal `/dev`, and expose no host filesystem.
 
-Before launch, the controller parses ELF `PT_INTERP` and dependency resolution using the pinned probe and requires exact closure equality. After process start but before extension loading, and again before redemption, it reads the target process's `/proc/<pid>/maps`. `pi.runtime-load-observation.v1` is exactly `{schema,process_start_nonce,mappings,runtime_load_observation_digest}` with sorted unique file-backed `{device,inode,logical_path,content_digest}` rows. Interpreter/library mappings must equal the staged closure; unlisted file-backed executable mappings abort. Runtime-data root placement and every sidecar lookup are bound to `/host/runtime-data` in the mount contract. Non-Linux or unavailable namespace/maps enforcement is ineligible, not a weaker posture.
+Before launch, the controller parses ELF `PT_INTERP` and dependency resolution using the pinned probe and requires exact closure equality. After process start but before extension loading, and again before redemption, it reads the target process's `/proc/<pid>/maps`. `pi.runtime-load-observation.v1` is exactly `{schema,phase,process_start_nonce,mappings,runtime_load_observation_digest}` where phase is `pre_extension_load|pre_redemption`. Mappings are sorted unique file-backed `{device,inode,permissions,logical_path,content_digest}` rows; permissions match `^[r-][w-][x-][ps]$`. Interpreter/library mappings must equal the staged closure; unlisted file-backed executable mappings abort. Runtime-data root placement and every sidecar lookup are bound to `/host/runtime-data` in the mount contract. Non-Linux or unavailable namespace/maps enforcement is ineligible, not a weaker posture.
 
 The controller stages snapshots read-only. The host verifies all bytes before load, immediately before prompt execution, before redemption, and during final prompt readback. Any path/inode/mode/content drift aborts before redemption and provider dispatch.
 
@@ -175,6 +175,7 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | Object/value | Domain | Omitted field/preimage |
 |---|---|---|
 | delivery receipt | `semantic-release.pi-delivery.v1` | `pi_delivery_receipt_digest` |
+| delivery error | `semantic-release.pi-delivery-error.v1` | `error_digest` |
 | package tarball bytes | `pi.package-tarball-bytes.v1` | exact bytes |
 | package/source file bytes | `pi.package-file-bytes.v1` | exact bytes |
 | package tree | `pi.package-tree-manifest.v1` | `package_tree_manifest_digest` |
@@ -265,7 +266,7 @@ Session nonce has the same 32-byte encoding and appears in witness/transcript/at
 - `{kind:terminal_receipt,receipt}` where receipt is only the complete suppressed or failed v1 branch. Host validates it, records it in the prompt result, keeps the input prompt unchanged, issues no witness, and never calls `applied`.
 - `{kind:contribution,systemPrompt,application_witness_request}` where the request is `{repository_identity,component_identity,rocs_generation_receipt_digest}` and `systemPrompt` differs bytewise from input.
 
-Thus suppressed/failed transport is pre-witness and their mandatory host/attempt fields come from `prepareContext`. The host validates the request after return; attempt identity remains non-retroactive because it excludes generation digest. The contributor must be the sole requester and final effective handler; any later handler/change aborts before assignment.
+Thus suppressed/failed transport is pre-witness and their mandatory host/attempt fields come from `prepareContext`. A contributor may return a failed receipt for an error it observed. If `prepare` throws, times out, is aborted without returning, or returns malformed data, the host aborts this direct prompt before provider dispatch and emits only a host-local diagnostic; it does not continue as current ordinary-handler error handling does and cannot forge a component-issued receipt. The host validates the request after return; attempt identity remains non-retroactive because it excludes generation digest. The contributor must be the sole requester and final effective handler; any later handler/change aborts before assignment.
 
 After assignment/readback, the host enters a host-wide prompt-application critical section and invokes the same registration's personalized `applied({witness},restrictedContext)` callback exactly once. `restrictedContext` contains only read-only host identity, `AbortSignal`, and deadline; it exposes no model, session, UI, message, prompt, command, or provider method. The host guard also rejects recursive `prompt`, `continue`, `_runAgentPrompt`, `sendUserMessage`, `sendCustomMessage({triggerTurn:true})`, host-owned model completion, or provider dispatch attempted through retained closures until redemption and transcript persistence finish. Any attempt aborts.
 
@@ -306,6 +307,8 @@ Host capabilities are exactly UTF-8 sorted/unique and include `prompt.system.app
 - **Failed** adds exactly `error_digest`; outcome is `failed`, claim is `delivery_failed_only`, witness digest is null. It contains no delivered/suppression field. Deadline equality fails.
 
 A host without the v1 capability or host identity emits no v1 receipt; the component exposes only a local non-protocol diagnostic. Thus all receipt branches can truthfully carry the mandatory host identity fields.
+
+`semantic-pi-delivery-error.v1` is exactly `{schema,stage,code,related_artifact_digest,details,error_digest}`. Stage is `prepare|apply|redeem`; code is `component_failure|deadline_exceeded|cancelled|malformed_result|stale_context|host_postcondition_failed`; related digest is nullable; details are UTF-8-key-sorted unique `{key,value}` rows. A failed receipt's `error_digest` resolves exactly this object.
 
 ## Closed host objects
 
@@ -370,7 +373,7 @@ Host issuer is fixed and outcome is `rejected_already_redeemed`. No second redem
 
 ```text
 schema, controller_executable_digest, host_runtime_manifest_digest,
-runtime_load_observation_digest, component_package_tree_manifest_digest, dependency_manifest_digests,
+runtime_load_observation_digests, component_package_tree_manifest_digest, dependency_manifest_digests,
 process_environment_contract_digest, argv_contract_digest, process_start_nonce,
 boot_nonce, session_instance_nonce, authorization_envelope_digest,
 authorization_claim_record_digest, witness_bytes_digest,
@@ -386,7 +389,7 @@ It is integration-only: authorization/acknowledgement/replay fields are non-null
 `pi.host-delivery-execution-transcript.v1` is a separate production shape with exactly:
 
 ```text
-schema, host_runtime_manifest_digest, runtime_load_observation_digest,
+schema, host_runtime_manifest_digest, runtime_load_observation_digests,
 loaded_component_manifest_digest, execution_instance_digest, boot_nonce, session_instance_nonce,
 prompt_run_attempt_digest, rocs_generation_receipt_digest,
 host_application_witness_digest, delivery_receipt_bytes_digest,
@@ -396,7 +399,7 @@ filesystem_manifest_digest, provider_dispatch_posture,
 delivery_execution_transcript_digest
 ```
 
-It contains no integration authorization, acknowledgement, replay-probe, exit, or teardown fields. `provider_dispatch_posture` is the constant `not_dispatched_at_record`; the transcript is persisted before any dispatch. Later dispatch is outside the transcript and delivery claim. One transcript exists per prompt-run attempt, regardless of later provider retries/continuations. Both transcript types prove deterministic consistency only unless resolved by owner evidence.
+It contains no integration authorization, acknowledgement, replay-probe, exit, or teardown fields. In both transcript schemas, `runtime_load_observation_digests` is an exact two-item array ordered `[pre_extension_load,pre_redemption]`; both observations share the process nonce and independently resolve all mapping bytes/permissions. `provider_dispatch_posture` is the constant `not_dispatched_at_record`; the transcript is persisted before any dispatch. Later dispatch is outside the transcript and delivery claim. One transcript exists per prompt-run attempt, regardless of later provider retries/continuations. Both transcript types prove deterministic consistency only unless resolved by owner evidence.
 
 ### Host attestation resolution
 
@@ -406,7 +409,7 @@ Exact keys:
 schema, issuer, owner_repository, attestation_root_id,
 attestation_root_revision, attestation_root_digest,
 revocation_head_digest, host_runtime_manifest_digest,
-execution_instance_digest, boot_nonce, session_instance_nonce,
+runtime_load_observation_digests, execution_instance_digest, boot_nonce, session_instance_nonce,
 prompt_run_attempt_digest, host_application_witness_digest,
 host_witness_redemption_digest, delivery_execution_transcript_digest,
 action_epoch, currentness_cas_digest, verification_outcome,
