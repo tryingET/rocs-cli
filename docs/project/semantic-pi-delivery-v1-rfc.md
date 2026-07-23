@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r6"
+rfc_revision: "semantic-pi-delivery-v1-r7"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -131,20 +131,16 @@ schema
 host_package
 host_version
 extension_api_version
-node_executable_digest
-node_runtime_manifest_digest
-host_package_tree_manifest_digest
-host_dependency_manifests
+runtime_kind
+standalone_host_executable_digest
+runtime_data_tree_manifest_digest
+embedded_builtin_module_allowlist
 loader_configuration_digest
-entrypoint_logical_path
-entrypoint_content_digest
 argv_contract_digest
 host_runtime_manifest_digest
 ```
 
-Witness-capable execution is eligible only from resolved content-addressed component, dependency, host, and Node-runtime snapshots. Mutable local paths, inline factories, symlinks, and imports outside the resolved manifests reject.
-
-`pi.node-runtime-manifest.v1` is exactly `{schema,node_version,node_executable_digest,dynamic_library_files,runtime_data_files,node_builtin_modules,node_runtime_manifest_digest}`. File rows are `{logical_path,byte_length,content_digest}`, UTF-8 path sorted/unique, with content under `pi.node-runtime-file-bytes.v1`; built-ins are sorted/unique. It closes the executable's resolved dynamic libraries and runtime data, not only the launcher file.
+`runtime_kind=bun_standalone_binary`. Witness-capable mode is restricted to the self-contained executable produced by the host's reviewed `build:binary` path plus one complete runtime-data tree. Source/Jiti host startup, npm Node entrypoints, inline factories, mutable local paths, and host dynamic loading outside the executable/runtime-data manifests are ineligible. The exact binary hash, not build reproducibility, is pinned by owner authorization. Extension loading remains manifest-confined through the embedded reviewed loader; extension dynamic/computed imports are forbidden.
 
 The controller stages snapshots read-only. The host verifies all bytes before load, immediately before prompt execution, before redemption, and during final prompt readback. Any path/inode/mode/content drift aborts before redemption and provider dispatch.
 
@@ -177,9 +173,8 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | package/source file bytes | `pi.package-file-bytes.v1` | exact bytes |
 | package tree | `pi.package-tree-manifest.v1` | `package_tree_manifest_digest` |
 | loaded component | `pi.loaded-extension-component-manifest.v1` | `loaded_component_manifest_digest` |
-| Node executable bytes | `pi.node-executable-bytes.v1` | exact bytes |
-| Node runtime manifest | `pi.node-runtime-manifest.v1` | `node_runtime_manifest_digest` |
-| Node runtime file bytes | `pi.node-runtime-file-bytes.v1` | exact bytes |
+| standalone host executable bytes | `pi.standalone-host-executable-bytes.v1` | exact bytes |
+| host runtime-data file bytes | `pi.host-runtime-data-file-bytes.v1` | exact bytes |
 | host file bytes | `pi.host-file-bytes.v1` | exact bytes |
 | loader configuration | `pi.loader-configuration.v1` | full closed object |
 | argv contract | `pi.argv-contract.v1` | full closed object |
@@ -214,7 +209,7 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | acknowledgement lexical bytes | `pi.acknowledgement-json-bytes.v1` | exact JCS bytes |
 | redemption lexical bytes | `pi.redemption-json-bytes.v1` | exact JCS bytes |
 | replay-probe lexical bytes | `pi.replay-probe-json-bytes.v1` | exact JCS bytes |
-| delivery-candidate lexical bytes | `pi.delivery-candidate-json-bytes.v1` | exact JCS bytes |
+| delivery-receipt lexical bytes | `pi.delivery-receipt-json-bytes.v1` | exact JCS bytes |
 | filesystem file bytes | `pi.filesystem-file-bytes.v1` | exact bytes |
 | stdout bytes | `pi.process-stdout-bytes.v1` | exact bytes |
 | stderr bytes | `pi.process-stderr-bytes.v1` | exact bytes |
@@ -226,11 +221,11 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 
 ## Closed configuration preimages
 
-`pi.loader-configuration.v1` is exactly `{schema,loader_kind,loader_version,tsconfig_digest,import_map,allowed_root_manifest_digests,node_builtin_allowlist,dynamic_import_policy,module_cache_mode,outside_imports_forbidden,native_addons_forbidden}`. `loader_kind=jiti`; `tsconfig_digest` is `pi.tsconfig-bytes.v1`; import-map rows are `{specifier,target_logical_path,target_manifest_digest}`, UTF-8 specifier sorted/unique; each target digest resolves a package-tree manifest. Allowed roots and Node built-ins are sorted/unique. Built-ins are bound to the resolved Node executable/runtime; only literal specifiers in the allow-list are legal. Dynamic/computed import or require is `forbidden`; cache mode is `per_execution_generation`; `outside_imports_forbidden=true`; `native_addons_forbidden=true` for v1.
+`pi.loader-configuration.v1` is exactly `{schema,loader_kind,loader_version,tsconfig_digest,import_map,allowed_root_manifest_digests,node_builtin_allowlist,dynamic_import_policy,module_cache_mode,outside_imports_forbidden,native_addons_forbidden}`. `loader_kind=jiti`; `tsconfig_digest` is `pi.tsconfig-bytes.v1`; import-map rows are `{specifier,target_logical_path,target_manifest_digest}`, UTF-8 specifier sorted/unique; each target digest resolves a package-tree manifest. Allowed roots and Node built-ins are sorted/unique. Built-ins are bound to `embedded_builtin_module_allowlist` in the standalone host manifest; only literal specifiers in that allow-list are legal. Dynamic/computed import or require is `forbidden`; cache mode is `per_execution_generation`; `outside_imports_forbidden=true`; `native_addons_forbidden=true` for v1.
 
 `pi.process-environment-contract.v1` is exactly `{schema,inherit_environment,entries,unset_keys,locale,timezone,network_mode}`. Inheritance is false. The only permitted entry keys are exactly the used subset of `HOME,LANG,LC_ALL,PATH,PI_CODING_AGENT_DIR,TMPDIR,TZ`, UTF-8-key-sorted unique `{key,value}` rows; every omitted key is present in the sorted/unique `unset_keys`, and the sets partition that closed allow-list. Locale is `C.UTF-8`, timezone `UTC`, and network mode `forbidden`.
 
-`pi.argv-contract.v1` is exactly `{schema,node_executable_digest,entrypoint_logical_path,argv,cwd_logical_id,process_environment_contract_digest,shell}`. `argv` preserves order, `shell=false`, and cwd resolves inside the staged host snapshot.
+`pi.argv-contract.v1` is exactly `{schema,standalone_host_executable_digest,argv,cwd_logical_id,process_environment_contract_digest,shell}`. `argv` preserves order, `shell=false`, and cwd resolves inside the staged host snapshot.
 
 `pi.filesystem-tree-manifest.v1` is exactly `{schema,root_logical_id,entries}` where entries are UTF-8 sorted by `(path,kind)` and exactly `{path,kind,mode,byte_length,content_digest}`. Kinds are `directory|file`; directories have null length/digest; files use `pi.filesystem-file-bytes.v1`. `pi.filesystem-manifest.v1` is exactly `{schema,roots,process_ids,network_connections}`. Roots are UTF-8-logical-id-sorted unique `{logical_id,realpath_digest,tree_manifest_digest,mutability}` rows; mutability is `read_only|disposable_write|canonical_ledger`. Process IDs are sorted safe integers. Network connections is empty. Real paths never enter a preimage directly.
 
@@ -253,9 +248,11 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 
 Session nonce has the same 32-byte encoding and appears in witness/transcript/attestation. Generation and ordinal are safe integers, start at `0`, increment before use, and fail closed permanently at maximum rather than wrap.
 
-`handler_registration_index` is zero-based and global. The host adds one paired API: `pi.registerPromptSystemContributor({prepare,applied})`. `prepare` runs in the `before_agent_start` chain and must return exactly `{systemPrompt,application_witness_request}` where the request is `{repository_identity,component_identity,rocs_generation_receipt_digest}` and `systemPrompt` differs bytewise from input. The host validates the request after return; attempt identity remains non-retroactive because it excludes generation digest. The contributor must be the sole requester and final effective handler; any later handler/change aborts before assignment.
+`handler_registration_index` is zero-based in one total registration order shared by ordinary `before_agent_start` handlers and prompt-system contributors. Order is extension load order, then registration call order within each extension. The contributor must be the last registration in that total order; any later ordinary handler or contributor makes witnessing ineligible regardless of whether it returns only a message. The host adds one paired API: `pi.registerPromptSystemContributor({prepare,applied})`. `prepare` runs in the `before_agent_start` chain and must return exactly `{systemPrompt,application_witness_request}` where the request is `{repository_identity,component_identity,rocs_generation_receipt_digest}` and `systemPrompt` differs bytewise from input. The host validates the request after return; attempt identity remains non-retroactive because it excludes generation digest. The contributor must be the sole requester and final effective handler; any later handler/change aborts before assignment.
 
-After assignment/readback, the host invokes the same registration's personalized `applied({witness},ctx)` callback exactly once with the opaque branded witness. It must resolve within 500 ms and return exactly one discriminated `{subject_kind,subject}` where subject kind is `semantic_delivery_candidate|host_integration_acknowledgement` and subject is the corresponding closed object. Timeout, throw, stale context, wrong brand/index, missing subject, or a second callback aborts before redemption/provider dispatch. No generic event broadcast or unrelated extension receives the witness.
+After assignment/readback, the host enters a host-wide prompt-application critical section and invokes the same registration's personalized `applied({witness},restrictedContext)` callback exactly once. `restrictedContext` contains only read-only host identity, `AbortSignal`, and deadline; it exposes no model, session, UI, message, prompt, command, or provider method. The host guard also rejects recursive `prompt`, `continue`, `_runAgentPrompt`, `sendUserMessage`, `sendCustomMessage({triggerTurn:true})`, host-owned model completion, or provider dispatch attempted through retained closures until redemption and transcript persistence finish. Any attempt aborts.
+
+The callback resolves within 500 ms and returns exactly `{subject_kind,subject}` where kind is `semantic_delivery_receipt|host_integration_acknowledgement`; the first subject is a complete `semantic-pi-delivery-receipt.v1`, the second the closed acknowledgement. Timeout, throw, stale context, wrong brand/index, missing subject, or reentry aborts. No broadcast/unrelated extension receives the witness.
 
 ## Closed delivery receipt union
 
@@ -324,7 +321,7 @@ host_application_witness_digest, subject_kind, subject_digest,
 redemption_outcome, redemption_sequence, host_witness_redemption_digest
 ```
 
-`subject_kind` is `semantic_delivery_candidate|host_integration_acknowledgement`; subject digest resolves to the corresponding schema. Outcome is `redeemed`, sequence `1`.
+`subject_kind` is `semantic_delivery_receipt|host_integration_acknowledgement`; subject digest is respectively `pi_delivery_receipt_digest` or `integration_acknowledgement_digest` from the resolved closed object. Outcome is `redeemed`, sequence `1`.
 
 ### Integration acknowledgement
 
@@ -382,7 +379,7 @@ filesystem_manifest_digest, provider_dispatch_posture,
 delivery_execution_transcript_digest
 ```
 
-It contains no integration authorization, acknowledgement, replay-probe, exit, or teardown fields. `provider_dispatch_posture` is `not_observed|dispatched_after_postconditions` and is outside the delivery claim. Both transcript types prove deterministic consistency only unless resolved by owner evidence.
+It contains no integration authorization, acknowledgement, replay-probe, exit, or teardown fields. `provider_dispatch_posture` is the constant `not_dispatched_at_record`; the transcript is persisted before any dispatch. Later dispatch is outside the transcript and delivery claim. One transcript exists per prompt-run attempt, regardless of later provider retries/continuations. Both transcript types prove deterministic consistency only unless resolved by owner evidence.
 
 ### Host attestation resolution
 
@@ -411,20 +408,20 @@ allocate attempt
 -> assign final prompt
 -> readback/hash
 -> issue opaque personalized witness
--> receive delivery candidate or integration acknowledgement
+-> receive semantic delivery receipt or integration acknowledgement
 -> validate candidate shape/digest
 -> reverify staged artifacts
 -> final readback/hash agent.state.systemPrompt
 -> persist and fsync a pre-redemption journal bound to those final checks
 -> atomically redeem once
--> persist the delivery execution transcript for a delivery candidate
+-> persist the delivery execution transcript for a semantic delivery receipt
 -> if exact host postconditions persist, optionally construct/dispatch this run's provider request
 -> for integration mode, run the replay probe, terminate/reap the host, then persist the integration controller transcript
 ```
 
 Any acknowledgement, validation, snapshot, final-readback, pre-redemption persistence, redemption, or delivery-transcript persistence failure aborts before provider dispatch and restores the pre-contribution prompt. Integration mode never dispatches and treats replay, teardown, or integration-transcript persistence failure as terminal proof failure. No redemption is issued before every artifact and prompt postcondition succeeds. A redemption without its matching persisted integration or delivery transcript is unresolved; delivered validation additionally requires host attestation. Provider dispatch depends only on the host's already completed application/snapshot/readback postconditions, never on later offline attestation. Integration proof sets `provider_request_dispatched=false` and terminates after replay probe.
 
-`pi.prompt-system-pre-redemption-journal.v1` has exactly `{schema,execution_instance_digest,prompt_run_attempt_digest,host_application_witness_digest,subject_kind,subject_digest,loaded_component_manifest_digest,final_prompt_chain_digest,final_readback_digest,filesystem_manifest_digest,state,pre_redemption_journal_digest}`. State is `verified_pending_redemption`. It is written and fsynced before redemption. Recovery never manufactures redemption: a journal without a redemption is terminal failed; a redemption without the exact journal plus transcript is unresolved and cannot validate delivery.
+`pi.prompt-system-pre-redemption-journal.v1` has exactly `{schema,execution_instance_digest,prompt_run_attempt_digest,host_application_witness_digest,subject_kind,subject_digest,loaded_component_manifest_digest,final_prompt_chain_digest,final_readback_digest,filesystem_manifest_digest,state,pre_redemption_journal_digest}`. `final_readback_digest` uses `pi.prompt-final-chain.v1` over the exact UTF-8 readback bytes and must equal `final_prompt_chain_digest`. State is `verified_pending_redemption`. It is written and fsynced before redemption. Recovery never manufactures redemption: a journal without a redemption is terminal failed; a redemption without the exact journal plus transcript is unresolved and cannot validate delivery.
 
 State is `allocated -> chained -> applied -> witness_issued -> redeemed`, with failure terminal. Every await rechecks instance/generation/attempt. Reload/new/resume/fork/replacement/shutdown invalidates nonterminal state. Redeemed/invalidated tuples remain in a non-evicting set capped at 4096 for the generation; reaching cap fails closed and requires a new generation. Restart changes execution instance. Production durable replay requires the attestation owner and remains unprovisioned.
 
@@ -505,7 +502,7 @@ Complete precedence is `malformed_input -> unsupported_protocol -> resource_exha
 
 Preserve `docs/project/semantic-release-v0/**` byte-for-byte. `docs/project/semantic-pi-delivery-v1/` contains only `packet-manifest.json` plus every file listed by it, including schemas, invariants, registries, generator, independent validators, vectors, and fixtures. Any unlisted/missing regular file rejects. Manifest excludes itself and lists UTF-8-sorted `{path,byte_length,sha256}` rows; aggregate row bytes are `path<TAB>byte_length<TAB>sha256<LF>` under the registered aggregate domain. Manifest self-digest omits only its self field.
 
-Limits and the single monotonic deadline start before the first packet/archive/executable/ledger read and end only after process reap, filesystem recheck, transcript/ledger terminal persistence, and receipt/proof validation. They include packet files, compressed/extracted archives, Node/host/controller executable bytes, stdout/stderr, disposable outputs, pre-redemption journals, and all ledger reads/growth:
+Limits and the single monotonic deadline start before the first packet/archive/executable/ledger read and end only after process reap, filesystem recheck, transcript/ledger terminal persistence, and receipt/proof validation. They include packet files, compressed/extracted archives, standalone host/controller executable bytes, stdout/stderr, disposable outputs, pre-redemption journals, and all ledger reads/growth:
 
 - 16 MiB per JSON file, 64 MiB packet aggregate, 32 packet files;
 - 64 MiB compressed tarballs cumulative;
@@ -517,7 +514,7 @@ Limits and the single monotonic deadline start before the first packet/archive/e
 - stable no-follow regular-file reads, descriptor/path identity/metadata checks;
 - NFC root-local POSIX paths; no traversal, backslash, network form, symlink, hard link, special file, normalization/casefold collision;
 - extraction ratio at most 32:1 per archive and cumulatively;
-- Node + host + controller executable/manifests at most 128 MiB cumulative;
+- standalone host + runtime-data + controller executable/manifests at most 128 MiB cumulative;
 - stdout and stderr at most 1 MiB each; disposable output at most 64 MiB;
 - pre-redemption journal at most 1 MiB; canonical ledger at most 64 MiB and 100,000 records, with the current operation accounting every read/new byte.
 
