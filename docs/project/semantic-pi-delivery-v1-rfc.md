@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r10"
+rfc_revision: "semantic-pi-delivery-v1-r11"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -140,13 +140,15 @@ argv_contract_digest
 host_runtime_manifest_digest
 ```
 
-`runtime_kind=bun_standalone_binary`. `pi.standalone-host-runtime-closure.v1` is exactly `{schema,standalone_host_executable_digest,elf_interpreter,shared_libraries,runtime_data_tree,closure_probe_tool_digest,namespace_tool_digest,mount_contract_digest,staged_root_logical_id,standalone_runtime_closure_digest}`. Interpreter is null or `{logical_path,content_digest}`; shared libraries are UTF-8-SONAME-sorted unique `{soname,logical_path,content_digest}`; interpreter/library content uses `pi.host-runtime-library-bytes.v1`; runtime data tree is `pi.host-runtime-data-tree-manifest.v1`; the probe tool uses `pi.controller-executable-bytes.v1`. `pi.host-runtime-data-tree-manifest.v1` is exactly `{schema,entries,runtime_data_tree_manifest_digest}` with UTF-8 `(path,kind)`-sorted `{path,kind,mode,byte_length,content_digest}` rows; directories have null length/digest and files use `pi.host-runtime-data-file-bytes.v1`.
+`runtime_kind=bun_standalone_binary`. `pi.standalone-host-runtime-closure.v1` is exactly `{schema,standalone_host_executable_digest,elf_interpreter,shared_libraries,expected_load_segments,runtime_data_tree,closure_probe_tool_digest,namespace_tool_digest,mount_contract_digest,staged_root_logical_id,standalone_runtime_closure_digest}`. Interpreter is null or `{logical_path,content_digest}`; shared libraries are UTF-8-SONAME-sorted unique `{soname,logical_path,content_digest}`; interpreter/library content uses `pi.host-runtime-library-bytes.v1`; runtime data tree is `pi.host-runtime-data-tree-manifest.v1`; the probe tool uses `pi.controller-executable-bytes.v1`. `pi.host-runtime-data-tree-manifest.v1` is exactly `{schema,entries,runtime_data_tree_manifest_digest}` with UTF-8 `(path,kind)`-sorted `{path,kind,mode,byte_length,content_digest}` rows; directories have null length/digest and files use `pi.host-runtime-data-file-bytes.v1`.
 
 Witness-capable mode is restricted to the binary produced by the reviewed `build:binary` path whose independently run ELF/interpreter/shared-library probe exactly equals the closure. A non-ELF binary requires null interpreter and empty libraries. Unlisted runtime loading fails. Source/Jiti host startup, npm Node entrypoints, inline factories, mutable paths, and host dynamic loading outside the executable/closure are ineligible. Exact artifact hashes, not build reproducibility, are pinned. Extension loading remains manifest-confined; dynamic/computed extension imports are forbidden.
 
-`pi.native-loader-mount-contract.v1` is exactly `{schema,staged_root_logical_id,executable_path,interpreter_path,library_paths,runtime_data_root,bwrap_argv,network_unshared,ambient_root_visible}`. Constants are executable `/host/pi`, runtime data `/host/runtime-data`, `network_unshared=true`, and `ambient_root_visible=false`; paths are absolute inside the staged root. The namespace launcher is a reviewed statically linked helper implementing the required user/mount/pid/network namespace and bind operations directly; its ELF has no `PT_INTERP` and no `DT_NEEDED`, verified by the pinned probe before execution. Dynamic `bwrap` is ineligible. The content-addressed helper applies the exact `bwrap_argv`-equivalent contract: unshare all namespaces, read-only bind only the staged root as `/`, create fresh `/proc` and minimal `/dev`, and expose no host filesystem.
+`pi.native-loader-mount-contract.v1` is exactly `{schema,staged_root_logical_id,executable_path,interpreter_path,library_paths,runtime_data_root,bwrap_argv,network_unshared,ambient_root_visible}`. Constants are executable `/host/pi`, runtime data `/host/runtime-data`, `network_unshared=true`, and `ambient_root_visible=false`; paths are absolute inside the staged root. The namespace launcher is a reviewed statically linked helper implementing the required user/mount/pid/network namespace, bind operations, and inherited barrier socket directly; its ELF has no `PT_INTERP` and no `DT_NEEDED`, verified by the pinned probe before execution. Dynamic `bwrap` is ineligible. The content-addressed helper applies the exact `bwrap_argv`-equivalent contract: unshare all namespaces, read-only bind only the staged root as `/`, create fresh `/proc` and minimal `/dev`, and expose no host filesystem.
 
-Before launch, the controller parses ELF `PT_INTERP` and dependency resolution using the pinned probe and requires exact closure equality. After process start but before extension loading, and again before redemption, it reads the target process's `/proc/<pid>/maps`. `pi.runtime-load-observation.v1` is exactly `{schema,phase,process_start_nonce,mappings,runtime_load_observation_digest}` where phase is `pre_extension_load|pre_redemption`. Mappings are sorted unique file-backed `{device,inode,permissions,logical_path,content_digest}` rows; permissions match `^[r-][w-][x-][ps]$`. Interpreter/library mappings must equal the staged closure; unlisted file-backed executable mappings abort. Runtime-data root placement and every sidecar lookup are bound to `/host/runtime-data` in the mount contract. Non-Linux or unavailable namespace/maps enforcement is ineligible, not a weaker posture.
+Before launch, the controller parses ELF `PT_INTERP` and dependency resolution using the pinned probe and requires exact closure equality. The launcher creates a private inherited `SOCK_SEQPACKET` socketpair whose controller endpoint identity is bound by `{process_start_nonce,device,inode}`; no descriptor number is authority. Host core starts in `witness_bootstrap_paused`, before extension discovery/import, sends a closed `pi.runtime-barrier-message.v1` `ready` message, and blocks. The controller verifies nonce/channel, records the `pre_extension_load` maps observation, then sends the matching `continue`. Before redemption, host sends/blocks on the same sequence for `pre_redemption`. Each message is exactly `{schema,phase,sequence,process_start_nonce,prompt_run_attempt_digest,action,barrier_message_digest}`; first attempt digest is null, second non-null; sequence is 1 then 2. Timeout, EOF, extra/reordered message, wrong nonce/channel, or failed map read kills/reaps the host and yields no witness/redemption.
+
+`pi.runtime-load-observation.v1` is exactly `{schema,phase,process_start_nonce,mappings,runtime_load_observation_digest}`. Mappings are UTF-8 sorted/unique by `(device,inode,file_offset,mapped_length,permissions,logical_path)` and exactly `{device,inode,file_offset,mapped_length,permissions,logical_path,content_digest}`; permissions match `^[r-][w-][x-][ps]$`. The closure's `expected_load_segments` uses the same tuple minus device/inode and is derived from ELF program headers. Observations must equal expected file/offset/length/permission segments modulo device/inode, forbid writable+executable segments, require executable mappings for host/interpreter/libraries, and reject every unlisted file-backed executable mapping. Runtime-data root placement and every sidecar lookup are bound to `/host/runtime-data` in the mount contract. Non-Linux or unavailable namespace/maps enforcement is ineligible, not a weaker posture.
 
 The controller stages snapshots read-only. The host verifies all bytes before load, immediately before prompt execution, before redemption, and during final prompt readback. Any path/inode/mode/content drift aborts before redemption and provider dispatch.
 
@@ -176,6 +178,7 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 |---|---|---|
 | delivery receipt | `semantic-release.pi-delivery.v1` | `pi_delivery_receipt_digest` |
 | delivery error | `semantic-release.pi-delivery-error.v1` | `error_digest` |
+| host prompt-application error | `pi.host-prompt-application-error.v1` | `host_error_digest` |
 | package tarball bytes | `pi.package-tarball-bytes.v1` | exact bytes |
 | package/source file bytes | `pi.package-file-bytes.v1` | exact bytes |
 | package tree | `pi.package-tree-manifest.v1` | `package_tree_manifest_digest` |
@@ -186,6 +189,7 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | standalone runtime closure | `pi.standalone-host-runtime-closure.v1` | `standalone_runtime_closure_digest` |
 | native loader mount contract | `pi.native-loader-mount-contract.v1` | full closed object |
 | runtime load observation | `pi.runtime-load-observation.v1` | `runtime_load_observation_digest` |
+| runtime barrier message | `pi.runtime-barrier-message.v1` | `barrier_message_digest` |
 | namespace tool bytes | `pi.namespace-tool-bytes.v1` | exact bytes |
 | runtime interpreter/library bytes | `pi.host-runtime-library-bytes.v1` | exact bytes |
 | host file bytes | `pi.host-file-bytes.v1` | exact bytes |
@@ -308,7 +312,7 @@ Host capabilities are exactly UTF-8 sorted/unique and include `prompt.system.app
 
 A host without the v1 capability or host identity emits no v1 receipt; the component exposes only a local non-protocol diagnostic. Thus all receipt branches can truthfully carry the mandatory host identity fields.
 
-`semantic-pi-delivery-error.v1` is exactly `{schema,stage,code,related_artifact_digest,details,error_digest}`. Stage is `prepare|apply|redeem`; code is `component_failure|deadline_exceeded|cancelled|malformed_result|stale_context|host_postcondition_failed`; related digest is nullable; details are UTF-8-key-sorted unique `{key,value}` rows. A failed receipt's `error_digest` resolves exactly this object.
+`semantic-pi-delivery-error.v1` is component-owned and exactly `{schema,stage,code,related_artifact_digest,details,error_digest}`. Stage is the constant `prepare`; code is `component_failure|dependency_unavailable|generation_stale|policy_failure`; related digest is nullable; details are UTF-8-key-sorted unique `{key,value}` rows. A failed receipt's `error_digest` resolves exactly this object. Host-observed timeout, abort-without-return, malformed result, stale context, apply/redeem/postcondition failure use separate host-local `pi.host-prompt-application-error.v1={schema,stage,code,related_artifact_digest,details,host_error_digest}` under domain `pi.host-prompt-application-error.v1`; they never appear in a component receipt.
 
 ## Closed host objects
 
