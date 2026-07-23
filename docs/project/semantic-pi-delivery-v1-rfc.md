@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r3"
+rfc_revision: "semantic-pi-delivery-v1-r4"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -143,7 +143,7 @@ host_runtime_manifest_digest
 
 Witness-capable execution is eligible only from resolved content-addressed component, dependency, host, and Node-runtime snapshots. Mutable local paths, inline factories, symlinks, and imports outside the resolved manifests reject.
 
-The controller stages snapshots read-only, the host verifies all bytes before load, immediately before prompt execution, after redemption, and after final prompt readback. Any path/inode/mode/content drift aborts before provider dispatch.
+The controller stages snapshots read-only. The host verifies all bytes before load, immediately before prompt execution, before redemption, and during final prompt readback. Any path/inode/mode/content drift aborts before redemption and provider dispatch.
 
 ## Normative JSON profile
 
@@ -203,6 +203,16 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | filesystem manifest | `pi.filesystem-manifest.v1` | full closed object |
 
 Unknown domains reject.
+
+## Closed configuration preimages
+
+`pi.loader-configuration.v1` is exactly `{schema,loader_kind,loader_version,tsconfig_digest,import_map,allowed_root_manifest_digests,module_cache_mode,outside_imports_forbidden,native_addons_forbidden}`. `loader_kind=jiti`; import-map rows are `{specifier,target_logical_path,target_manifest_digest}`, UTF-8 specifier sorted/unique; allowed roots are sorted/unique digests; cache mode is `per_execution_generation`; outside imports are false-to-allow/constant forbidden; native add-ons are forbidden for the v1 proof.
+
+`pi.process-environment-contract.v1` is exactly `{schema,inherit_environment,entries,unset_keys,locale,timezone,network_mode}`. Inheritance is false; entries are UTF-8-key-sorted unique `{key,value}` rows from a closed allow-list; unset keys are sorted/unique and disjoint; locale is `C.UTF-8`, timezone `UTC`, and network mode `forbidden`.
+
+`pi.argv-contract.v1` is exactly `{schema,node_executable_digest,entrypoint_logical_path,argv,cwd_logical_id,process_environment_contract_digest,shell}`. `argv` preserves order, `shell=false`, and cwd resolves inside the staged host snapshot.
+
+`pi.filesystem-manifest.v1` is exactly `{schema,roots,process_ids,network_connections}`. Roots are UTF-8-logical-id-sorted unique `{logical_id,realpath_digest,tree_manifest_digest,mutability}` rows; mutability is `read_only|disposable_write|canonical_ledger`. Process IDs are sorted safe integers. Network connections is the empty array. Real paths never enter the digest preimage directly.
 
 ## Execution and attempt identity
 
@@ -366,17 +376,43 @@ allocate attempt
 -> issue opaque personalized witness
 -> receive delivery candidate or integration acknowledgement
 -> validate candidate shape/digest
--> atomically redeem once
 -> reverify staged artifacts
 -> final readback/hash agent.state.systemPrompt
--> if exact, optionally construct/dispatch this run's provider request
+-> persist and fsync a pre-redemption journal bound to those final checks
+-> atomically redeem once
+-> persist transcript/attestation inputs
+-> if exact evidence persists, optionally construct/dispatch this run's provider request
 ```
 
-Any acknowledgement, validation, redemption, snapshot, final-readback, or persistence failure aborts before provider dispatch and restores the pre-contribution prompt. Integration proof sets `provider_request_dispatched=false` and terminates after replay probe.
+Any acknowledgement, validation, snapshot, final-readback, pre-redemption persistence, redemption, or transcript persistence failure aborts before provider dispatch and restores the pre-contribution prompt. No redemption is issued before every artifact and prompt postcondition succeeds. A redemption without the required persisted transcript and, for delivery, host attestation is invalid. Integration proof sets `provider_request_dispatched=false` and terminates after replay probe.
 
 State is `allocated -> chained -> applied -> witness_issued -> redeemed`, with failure terminal. Every await rechecks instance/generation/attempt. Reload/new/resume/fork/replacement/shutdown invalidates nonterminal state. Redeemed/invalidated tuples remain in a non-evicting set capped at 4096 for the generation; reaching cap fails closed and requires a new generation. Restart changes execution instance. Production durable replay requires the attestation owner and remains unprovisioned.
 
-## Acyclic isolated authorization and global one-shot ledger
+## Acyclic isolated authorization and canonical one-shot ledger
+
+The integration controller is a bounded internal component of the real Pi host owner surface, not a new repository product:
+
+```json
+{
+  "governance_owner_role": "pi-host-owner",
+  "repository": {
+    "repository_id": "pi-mono",
+    "canonical_source_locator": "git+https://github.com/tryingET/pi-mono.git",
+    "identity_revision": 1
+  },
+  "component": {
+    "component_id": "pi-coding-agent-host-integration-controller",
+    "repository_path": "packages/coding-agent",
+    "identity_revision": 1
+  },
+  "canonical_ledger": {
+    "store_id": "pi-host-integration-authorization-v1",
+    "canonical_store_locator": "sqlite+local://pi-host-owner/semantic-integration-authorization-ledger-v1"
+  }
+}
+```
+
+A separately reviewed Pi-host owner artifact must accept this identity before implementation. The controller remains internal and adds no public command or product surface.
 
 Construction order:
 
@@ -384,16 +420,19 @@ Construction order:
 2. Separate `semantic-pi-integration-owner-approval.v1` objects from component owner and host owner each reference only the request digest, owner repository/revision, accepted artifact digest, owner-store head, revocation head, and validity window.
 3. `semantic-pi-integration-authorization-envelope.v1` references the request and both approval digests plus a current accepted/unsuperseded AK Decision 71 reference. There is no digest cycle.
 
-A controller-owned append-only SQLite ledger outside disposable/production/runtime roots is the one-shot source. Exact records are:
+The canonical append-only SQLite ledger outside disposable/production/runtime roots is the one-shot source. Its location is resolved only through a host-owner acquisition pin and current owner-store read receipt; caller paths and copied databases are never authority. Exact records are:
 
 ```text
-{schema, authorization_envelope_digest, sequence, prior_record_digest,
- state, process_start_nonce, controller_executable_digest,
- claimed_at_utc, monotonic_deadline_ns, terminal_reason,
- controller_transcript_digest, authorization_ledger_record_digest}
+{schema, store_id, canonical_store_locator, store_revision,
+ prior_store_head_digest, resulting_store_head_digest,
+ authorization_envelope_digest, sequence, prior_record_digest,
+ state, process_start_nonce, controller_identity,
+ controller_executable_digest, claimed_at_utc, monotonic_deadline_ns,
+ terminal_reason, controller_transcript_digest,
+ authorization_ledger_record_digest}
 ```
 
-States are `available -> claimed -> consumed|failed`. Claim uses `BEGIN IMMEDIATE`, expected prior digest/state, fsync, and unique authorization digest before process launch. Concurrent/duplicate claim fails. Crash after claim is terminal `failed`; startup recovery converts stale claimed to failed, never available. Terminal records are immutable. UTC is checked once against the envelope; any realtime rollback relative to monotonic progression fails. The private inherited handle derives from the already-claimed record and is consumed by the host; it is not authority by itself.
+States are `available -> claimed -> consumed|failed`. Claim uses `BEGIN IMMEDIATE`, exact current owner-store head/revision, expected prior record/state, unique authorization digest, same-filesystem durable CAS, and fsync before process launch. The resulting head/revision are re-read through the host-owner store receipt. Concurrent/duplicate claim, alternate store identity/locator, stale head, or restored pre-claim snapshot fails. Crash after claim is terminal `failed`; startup recovery converts stale claimed to failed, never available. Terminal records are immutable and their current head is externally anchored by the host-owner acquisition pin/store receipt, preventing a copied or rolled-back ledger from satisfying action-time currentness. UTC is checked once against the envelope; realtime rollback relative to monotonic progression fails. The private inherited handle derives from the already-claimed canonical record and is consumed by the host; it is not authority by itself.
 
 ## Closed integration proof
 
