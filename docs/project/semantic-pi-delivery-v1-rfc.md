@@ -9,7 +9,7 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r5"
+rfc_revision: "semantic-pi-delivery-v1-r6"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
@@ -132,6 +132,7 @@ host_package
 host_version
 extension_api_version
 node_executable_digest
+node_runtime_manifest_digest
 host_package_tree_manifest_digest
 host_dependency_manifests
 loader_configuration_digest
@@ -142,6 +143,8 @@ host_runtime_manifest_digest
 ```
 
 Witness-capable execution is eligible only from resolved content-addressed component, dependency, host, and Node-runtime snapshots. Mutable local paths, inline factories, symlinks, and imports outside the resolved manifests reject.
+
+`pi.node-runtime-manifest.v1` is exactly `{schema,node_version,node_executable_digest,dynamic_library_files,runtime_data_files,node_builtin_modules,node_runtime_manifest_digest}`. File rows are `{logical_path,byte_length,content_digest}`, UTF-8 path sorted/unique, with content under `pi.node-runtime-file-bytes.v1`; built-ins are sorted/unique. It closes the executable's resolved dynamic libraries and runtime data, not only the launcher file.
 
 The controller stages snapshots read-only. The host verifies all bytes before load, immediately before prompt execution, before redemption, and during final prompt readback. Any path/inode/mode/content drift aborts before redemption and provider dispatch.
 
@@ -175,6 +178,8 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | package tree | `pi.package-tree-manifest.v1` | `package_tree_manifest_digest` |
 | loaded component | `pi.loaded-extension-component-manifest.v1` | `loaded_component_manifest_digest` |
 | Node executable bytes | `pi.node-executable-bytes.v1` | exact bytes |
+| Node runtime manifest | `pi.node-runtime-manifest.v1` | `node_runtime_manifest_digest` |
+| Node runtime file bytes | `pi.node-runtime-file-bytes.v1` | exact bytes |
 | host file bytes | `pi.host-file-bytes.v1` | exact bytes |
 | loader configuration | `pi.loader-configuration.v1` | full closed object |
 | argv contract | `pi.argv-contract.v1` | full closed object |
@@ -189,7 +194,8 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | integration acknowledgement | `pi.host-integration-acknowledgement.v1` | `integration_acknowledgement_digest` |
 | redemption | `pi.prompt-system-witness-redemption.v1` | `host_witness_redemption_digest` |
 | replay probe | `pi.prompt-system-witness-replay-probe.v1` | `replay_probe_digest` |
-| controller transcript | `pi.host-integration-controller-transcript.v1` | `controller_transcript_digest` |
+| integration controller transcript | `pi.host-integration-controller-transcript.v1` | `controller_transcript_digest` |
+| delivery execution transcript | `pi.host-delivery-execution-transcript.v1` | `delivery_execution_transcript_digest` |
 | host attestation | `pi.host-attestation-resolution.v1` | `host_attestation_resolution_digest` |
 | authorization request | `semantic-release.pi-integration-authorization-request.v1` | `authorization_request_digest` |
 | owner approval | `semantic-release.pi-integration-owner-approval.v1` | `owner_approval_digest` |
@@ -208,6 +214,8 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 | acknowledgement lexical bytes | `pi.acknowledgement-json-bytes.v1` | exact JCS bytes |
 | redemption lexical bytes | `pi.redemption-json-bytes.v1` | exact JCS bytes |
 | replay-probe lexical bytes | `pi.replay-probe-json-bytes.v1` | exact JCS bytes |
+| delivery-candidate lexical bytes | `pi.delivery-candidate-json-bytes.v1` | exact JCS bytes |
+| filesystem file bytes | `pi.filesystem-file-bytes.v1` | exact bytes |
 | stdout bytes | `pi.process-stdout-bytes.v1` | exact bytes |
 | stderr bytes | `pi.process-stderr-bytes.v1` | exact bytes |
 | pre-redemption journal | `pi.prompt-system-pre-redemption-journal.v1` | `pre_redemption_journal_digest` |
@@ -220,11 +228,11 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 
 `pi.loader-configuration.v1` is exactly `{schema,loader_kind,loader_version,tsconfig_digest,import_map,allowed_root_manifest_digests,node_builtin_allowlist,dynamic_import_policy,module_cache_mode,outside_imports_forbidden,native_addons_forbidden}`. `loader_kind=jiti`; `tsconfig_digest` is `pi.tsconfig-bytes.v1`; import-map rows are `{specifier,target_logical_path,target_manifest_digest}`, UTF-8 specifier sorted/unique; each target digest resolves a package-tree manifest. Allowed roots and Node built-ins are sorted/unique. Built-ins are bound to the resolved Node executable/runtime; only literal specifiers in the allow-list are legal. Dynamic/computed import or require is `forbidden`; cache mode is `per_execution_generation`; `outside_imports_forbidden=true`; `native_addons_forbidden=true` for v1.
 
-`pi.process-environment-contract.v1` is exactly `{schema,inherit_environment,entries,unset_keys,locale,timezone,network_mode}`. Inheritance is false; entries are UTF-8-key-sorted unique `{key,value}` rows from a closed allow-list; unset keys are sorted/unique and disjoint; locale is `C.UTF-8`, timezone `UTC`, and network mode `forbidden`.
+`pi.process-environment-contract.v1` is exactly `{schema,inherit_environment,entries,unset_keys,locale,timezone,network_mode}`. Inheritance is false. The only permitted entry keys are exactly the used subset of `HOME,LANG,LC_ALL,PATH,PI_CODING_AGENT_DIR,TMPDIR,TZ`, UTF-8-key-sorted unique `{key,value}` rows; every omitted key is present in the sorted/unique `unset_keys`, and the sets partition that closed allow-list. Locale is `C.UTF-8`, timezone `UTC`, and network mode `forbidden`.
 
 `pi.argv-contract.v1` is exactly `{schema,node_executable_digest,entrypoint_logical_path,argv,cwd_logical_id,process_environment_contract_digest,shell}`. `argv` preserves order, `shell=false`, and cwd resolves inside the staged host snapshot.
 
-`pi.filesystem-manifest.v1` is exactly `{schema,roots,process_ids,network_connections}`. Roots are UTF-8-logical-id-sorted unique `{logical_id,realpath_digest,tree_manifest_digest,mutability}` rows; mutability is `read_only|disposable_write|canonical_ledger`. Process IDs are sorted safe integers. Network connections is the empty array. Real paths never enter the digest preimage directly.
+`pi.filesystem-tree-manifest.v1` is exactly `{schema,root_logical_id,entries}` where entries are UTF-8 sorted by `(path,kind)` and exactly `{path,kind,mode,byte_length,content_digest}`. Kinds are `directory|file`; directories have null length/digest; files use `pi.filesystem-file-bytes.v1`. `pi.filesystem-manifest.v1` is exactly `{schema,roots,process_ids,network_connections}`. Roots are UTF-8-logical-id-sorted unique `{logical_id,realpath_digest,tree_manifest_digest,mutability}` rows; mutability is `read_only|disposable_write|canonical_ledger`. Process IDs are sorted safe integers. Network connections is empty. Real paths never enter a preimage directly.
 
 ## Execution and attempt identity
 
@@ -245,7 +253,9 @@ Every digest is `sha256:` plus 64 lowercase hex characters.
 
 Session nonce has the same 32-byte encoding and appears in witness/transcript/attestation. Generation and ordinal are safe integers, start at `0`, increment before use, and fail closed permanently at maximum rather than wrap.
 
-`handler_registration_index` is a zero-based safe integer assigned globally by the runner in registration order. A `before_agent_start` result may include one closed `application_witness_request={repository_identity,component_identity,rocs_generation_receipt_digest}`. The host validates that request after the handler returns and binds it into the witness; attempt allocation is not retroactive because attempt identity excludes the generation digest. At most one registration may request witnessing, and it must be the final effective handler: no later handler may exist or change the returned prompt. Earlier/intermediate transformations are ineligible and receive no `application_outcome=applied` witness. Multiple requesting handlers, a non-final requester, or request/currentness drift aborts before assignment.
+`handler_registration_index` is zero-based and global. The host adds one paired API: `pi.registerPromptSystemContributor({prepare,applied})`. `prepare` runs in the `before_agent_start` chain and must return exactly `{systemPrompt,application_witness_request}` where the request is `{repository_identity,component_identity,rocs_generation_receipt_digest}` and `systemPrompt` differs bytewise from input. The host validates the request after return; attempt identity remains non-retroactive because it excludes generation digest. The contributor must be the sole requester and final effective handler; any later handler/change aborts before assignment.
+
+After assignment/readback, the host invokes the same registration's personalized `applied({witness},ctx)` callback exactly once with the opaque branded witness. It must resolve within 500 ms and return exactly one discriminated `{subject_kind,subject}` where subject kind is `semantic_delivery_candidate|host_integration_acknowledgement` and subject is the corresponding closed object. Timeout, throw, stale context, wrong brand/index, missing subject, or a second callback aborts before redemption/provider dispatch. No generic event broadcast or unrelated extension receives the witness.
 
 ## Closed delivery receipt union
 
@@ -340,9 +350,9 @@ repeated_subject_digest, probe_outcome, replay_probe_digest
 
 Host issuer is fixed and outcome is `rejected_already_redeemed`. No second redemption exists.
 
-### Controller transcript
+### Integration controller transcript
 
-Exact keys:
+`pi.host-integration-controller-transcript.v1` has exactly:
 
 ```text
 schema, controller_executable_digest, host_runtime_manifest_digest,
@@ -357,7 +367,22 @@ filesystem_after_digest, process_teardown_complete,
 controller_transcript_digest
 ```
 
-This proves deterministic internal consistency and, when AK evidence cites the exact observed command/output, controller-observed execution. By itself it is not authenticated provenance or delivery authority.
+It is integration-only: authorization/acknowledgement/replay fields are non-null, `provider_request_dispatched=false`, and teardown is true.
+
+`pi.host-delivery-execution-transcript.v1` is a separate production shape with exactly:
+
+```text
+schema, host_runtime_manifest_digest, loaded_component_manifest_digest,
+execution_instance_digest, boot_nonce, session_instance_nonce,
+prompt_run_attempt_digest, rocs_generation_receipt_digest,
+host_application_witness_digest, delivery_candidate_bytes_digest,
+pre_redemption_journal_digest, host_witness_redemption_digest,
+final_prompt_chain_digest, final_readback_digest,
+filesystem_manifest_digest, provider_dispatch_posture,
+delivery_execution_transcript_digest
+```
+
+It contains no integration authorization, acknowledgement, replay-probe, exit, or teardown fields. `provider_dispatch_posture` is `not_observed|dispatched_after_postconditions` and is outside the delivery claim. Both transcript types prove deterministic consistency only unless resolved by owner evidence.
 
 ### Host attestation resolution
 
@@ -369,7 +394,7 @@ attestation_root_revision, attestation_root_digest,
 revocation_head_digest, host_runtime_manifest_digest,
 execution_instance_digest, boot_nonce, session_instance_nonce,
 prompt_run_attempt_digest, host_application_witness_digest,
-host_witness_redemption_digest, controller_transcript_digest,
+host_witness_redemption_digest, delivery_execution_transcript_digest,
 action_epoch, currentness_cas_digest, verification_outcome,
 host_attestation_resolution_digest
 ```
@@ -392,11 +417,12 @@ allocate attempt
 -> final readback/hash agent.state.systemPrompt
 -> persist and fsync a pre-redemption journal bound to those final checks
 -> atomically redeem once
--> persist transcript/attestation inputs
--> if exact evidence persists, optionally construct/dispatch this run's provider request
+-> persist the delivery execution transcript for a delivery candidate
+-> if exact host postconditions persist, optionally construct/dispatch this run's provider request
+-> for integration mode, run the replay probe, terminate/reap the host, then persist the integration controller transcript
 ```
 
-Any acknowledgement, validation, snapshot, final-readback, pre-redemption persistence, redemption, or transcript persistence failure aborts before provider dispatch and restores the pre-contribution prompt. No redemption is issued before every artifact and prompt postcondition succeeds. A redemption without the required persisted transcript and, for delivery, host attestation is invalid. Integration proof sets `provider_request_dispatched=false` and terminates after replay probe.
+Any acknowledgement, validation, snapshot, final-readback, pre-redemption persistence, redemption, or delivery-transcript persistence failure aborts before provider dispatch and restores the pre-contribution prompt. Integration mode never dispatches and treats replay, teardown, or integration-transcript persistence failure as terminal proof failure. No redemption is issued before every artifact and prompt postcondition succeeds. A redemption without its matching persisted integration or delivery transcript is unresolved; delivered validation additionally requires host attestation. Provider dispatch depends only on the host's already completed application/snapshot/readback postconditions, never on later offline attestation. Integration proof sets `provider_request_dispatched=false` and terminates after replay probe.
 
 `pi.prompt-system-pre-redemption-journal.v1` has exactly `{schema,execution_instance_digest,prompt_run_attempt_digest,host_application_witness_digest,subject_kind,subject_digest,loaded_component_manifest_digest,final_prompt_chain_digest,final_readback_digest,filesystem_manifest_digest,state,pre_redemption_journal_digest}`. State is `verified_pending_redemption`. It is written and fsynced before redemption. Recovery never manufactures redemption: a journal without a redemption is terminal failed; a redemption without the exact journal plus transcript is unresolved and cannot validate delivery.
 
@@ -462,13 +488,13 @@ Issuer is the controller, claim `host_integration_only`; all booleans are false.
 
 V0 artifacts and runtime remain unchanged. V1 adds `ak_optional_pi_v1`, a generated rule whose role/edge set is mechanically derived from v0 `ak_optional_pi` by replacing only the Pi receipt role with v1 receipt + witness + redemption + host-attestation roles. The generator proves every other role, category, owner, repository, acquisition contract, edge, parameter, error precedence, and currentness predicate is byte-equal to v0.
 
-The exact v1 resolver context is `{v0_authority_verifier_input,v0_authority_proof_bundle,resolved_generation,v1_receipt_or_null,loaded_component_manifest,host_runtime_manifest,witness_or_null,pre_redemption_journal_or_null,redemption_or_null,controller_transcript_or_null,host_attestation_resolution_or_null,canonical_task_states}` with every nullable role explicitly present. Null receipt requires all v1 evidence roles null and yields generation-only linkage; non-null delivered requires every evidence role non-null. Suppressed/failed require witness/journal/redemption/transcript/attestation null.
+The exact v1 resolver context is `{v0_authority_verifier_input,v0_authority_proof_bundle,resolved_generation,v1_receipt_or_null,loaded_component_manifest,host_runtime_manifest,witness_or_null,pre_redemption_journal_or_null,redemption_or_null,delivery_execution_transcript_or_null,host_attestation_resolution_or_null,canonical_task_states}` with every nullable role explicitly present. Null receipt requires all v1 evidence roles null and yields generation-only linkage; non-null delivered requires every evidence role non-null. Suppressed/failed require witness/journal/redemption/transcript/attestation null.
 
 Validation sequence:
 
 1. strict decode/schema and all recursive/derived digests;
 2. v0 universal authority preflight plus generation/activation rule over the complete unchanged graph;
-3. v1 package/host/attempt/witness/journal/redemption/transcript preflight;
+3. v1 package/host/attempt/witness/journal/redemption/delivery-transcript preflight;
 4. host-attestation owner pin/read/trust/currentness validation;
 5. exact overlay role/edge closure and delivered relation;
 6. `ak_optional_pi_v1`, identical to v0 AK linkage except the resolved v1 evidence roles.
