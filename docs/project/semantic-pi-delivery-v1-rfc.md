@@ -1,41 +1,44 @@
 ---
-summary: "RFC for a real pi-ontology-workflows delivery issuer, independent Pi host application witness, and default-off semantic Pi delivery receipt v1."
+summary: "Revised RFC for a real pi-ontology-workflows delivery issuer, independently resolved Pi host application witness, and default-off semantic Pi delivery receipt v1."
 read_when:
   - "Reviewing the Decision 53 successor protocol or Pi host delivery witness."
 system4d:
   container: "Cross-repo successor RFC for ROCS, pi-ontology-workflows, and Pi host."
-  compass: "Attest only what the component and host can independently observe, with every identity axis explicit."
-  engine: "Closed v1 packet -> component validation -> host post-application witness -> one sealed component receipt."
-  fog: "Identity substitution, pre-application callbacks, replay, or test flags can manufacture a false delivered claim."
+  compass: "Attest only what the component and host can independently observe, with every identity and authority axis explicit."
+  engine: "Closed v1 packet -> immutable staged artifacts -> host post-application witness -> host redemption -> component receipt or non-authoritative integration proof."
+  fog: "Identity substitution, pre-application callbacks, forgeable self-digests, replay, or test authorization can manufacture a false delivered claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r1"
+rfc_revision: "semantic-pi-delivery-v1-r2"
 ---
 
 # RFC — Semantic Pi delivery receipt v1
 
 ## Decision requested
 
-Accept a versioned successor to the Pi-delivery portion of Decision 53. Preserve v0 as history, replace its fictional `pi-adapter` identity with the accepted `pi-ontology-workflows` component identity, and make `delivered` depend on an independently issued Pi-host post-application witness.
+Accept a versioned successor to the Pi-delivery seam of Decision 53. Preserve v0 as history, replace its fictional `pi-adapter` identity with the accepted `pi-ontology-workflows` component identity, and require independently resolved Pi-host post-application evidence before a v1 `delivered` receipt can validate.
 
-This RFC changes no semantic-owner, consumer-owner, AK, ROCS, or recovery authority. It authorizes no code until a successor ADR and post-ADR execution membrane are complete.
+Accept separately that an isolated host-integration proof may exercise the host/component seam without sealing a semantic delivery receipt while current consumer/activation/recovery facts remain unavailable. The proof is validation evidence only and cannot enter the Decision 53 delivery authority graph.
+
+This RFC authorizes no code until a successor ADR and post-ADR execution membrane are complete.
 
 ## Inputs
 
 - [`semantic-pi-delivery-v1-problem-brief.md`](semantic-pi-delivery-v1-problem-brief.md)
 - [`semantic-pi-delivery-v1-evidence-note.md`](semantic-pi-delivery-v1-evidence-note.md)
+- immutable r1 review and synthesis artifacts;
 - accepted Decision 53 v0 ADR and packet;
 - Pi-owner identity artifact at exact commit `63d1e9f5c271007b48c45818d1f419a228de1561`;
 - AK task `4108`, evidence `5030` and `5031`.
 
 ## Goals
 
-1. Bind the real repository/component/package identity without creating or aliasing `pi-adapter`.
-2. Keep component attestation and host observation independently issued and falsifiable.
-3. Permit `delivered` only after successful host application of the completed prompt chain.
-4. Bind one receipt to one current generation, one prompt-run attempt, one application witness, and one ROCS generation.
+1. Bind the real repository, component, and package without creating or aliasing `pi-adapter`.
+2. Keep component attestation, host observation, owner authorization, and external validation separate.
+3. Permit `delivered` only after successful host application, host-side single-use redemption, and complete unchanged Decision 53 authority-graph validation.
+4. Bind exact component package, loaded component snapshot, host executable, runtime generation, prompt-run attempt, ROCS generation, and application contribution.
 5. Preserve default-off and live-gate boundaries.
-6. Keep Python and Node validation independent and generated artifacts reproducible.
+6. Keep Python and Node validation independent and all generated/embedded artifacts reproducible.
 
 ## Non-goals
 
@@ -43,11 +46,23 @@ This RFC changes no semantic-owner, consumer-owner, AK, ROCS, or recovery author
 - semantic publication, consumer intent/acceptance/adoption/activation, or rollback policy;
 - naming a production consumer or canary;
 - appointing a recovery controller;
-- live acquisition, startup enforcement, defaults, or fleet rollout.
+- live acquisition, startup enforcement, defaults, or fleet rollout;
+- cryptographic protection after compromise of the exact trusted host or component artifacts.
+
+## Threat and trust boundary
+
+Pi extensions currently execute arbitrary code in the Pi host process. An unkeyed JSON self-digest cannot prove host issuance, and same-process code isolation is not a security boundary against a compromised trusted artifact.
+
+V1 therefore makes two explicit claims:
+
+1. **Runtime anti-confusion:** the exact trusted host implementation issues an opaque branded witness object after application and accepts it once through a host-owned redemption API. Caller JSON, copied fields, or a recomputed digest cannot redeem in that live runtime.
+2. **Independent evidence:** an external validator accepts a persisted witness only together with a host redemption receipt and a controller transcript bound to the exact host executable, component snapshot, process launch, and output bytes. This proves behavior of the reviewed exact artifacts under supervised execution; it is not nonrepudiation against compromise of those artifacts.
+
+Production acceptance additionally requires a separately approved host attestation root or isolation boundary. None exists today, so v1 `delivered` sealing remains unreachable while `live_acquisition_implemented=false`.
 
 ## Identity model
 
-V1 separates the following axes and compares each independently:
+V1 separates and independently compares:
 
 ```json
 {
@@ -66,249 +81,383 @@ V1 separates the following axes and compares each independently:
   "package_artifact_identity": {
     "package_name": "@tryinget/pi-ontology-workflows",
     "package_version": "<semver>",
-    "package_distribution_digest": "sha256:<64 lowercase hex>"
+    "npm_pack_tarball_digest": "<digest>",
+    "package_tree_manifest_digest": "<digest>"
   },
   "protocol_issuer": {
     "kind": "pi_extension_component",
     "id": "pi-ontology-workflows",
     "role": "semantic_pi_delivery_attestor"
+  },
+  "host_artifact_identity": {
+    "host_package": "@earendil-works/pi-coding-agent",
+    "host_version": "<semver>",
+    "extension_api_version": "1.0.0",
+    "host_executable_digest": "<digest>"
   }
 }
 ```
 
-`pi-owner` is a governance role, not a Git owner or receipt issuer. Canonical source provenance and local workspace projection are distinct. The Pi host is not the receipt issuer. The package name is not the component ID.
+`pi-owner` is a governance role, not a Git owner or receipt issuer. Canonical source provenance and local projection are distinct. Host is not component issuer. Package name is not component ID. Any `pi-adapter` value in a v1 identity axis is `issuer_scope_violation`; no alias exists.
 
-Any `pi-adapter` value in a v1 identity axis is `issuer_scope_violation`. No compatibility alias exists.
+## Immutable package and load contract
 
-## Component receipt
+The component owner produces an `npm pack` tarball from an exact clean commit. `npm_pack_tarball_digest` uses raw SHA-256 bytes under `semantic-release.pi-package-tarball.v1`. A deterministic safe extractor creates a disposable snapshot with no symlinks, hard links, devices, sockets, traversal, or extra files.
 
-Introduce the closed discriminated union `semantic-pi-delivery-receipt.v1`.
+`pi.loaded-extension-component-manifest.v1` is a closed object containing:
 
-### Common fields
-
-```json
-{
-  "schema": "semantic-pi-delivery-receipt.v1",
-  "governance_owner_role": "pi-owner",
-  "issuer": {
-    "kind": "pi_extension_component",
-    "id": "pi-ontology-workflows",
-    "role": "semantic_pi_delivery_attestor"
-  },
-  "repository_identity": "<exact identity above>",
-  "component_identity": "<exact identity above>",
-  "package_artifact_identity": "<versioned package identity above>",
-  "host_identity": {
-    "host_package": "@earendil-works/pi-coding-agent",
-    "host_version": "<semver>",
-    "extension_api_version": "1.0.0"
-  },
-  "host_capabilities": [
-    "prompt.system.application-witness.v1",
-    "prompt.system.chain.v1",
-    "session.lifecycle.reason.v1",
-    "session.shutdown.v1",
-    "ui.confirm.timeout.v1",
-    "ui.mode.v1"
-  ],
-  "loaded_component_identity": {
-    "availability": "host_witnessed | unavailable",
-    "loaded_component_manifest_digest": "<digest-or-null>",
-    "loaded_entry_digest": "<digest-or-null>"
-  },
-  "execution_identity": {
-    "availability": "host_witnessed | unavailable",
-    "execution_generation": "<safe-integer-or-null>",
-    "execution_instance_digest": "<digest-or-null>"
-  },
-  "prompt_run_attempt_digest": "<digest>",
-  "rocs_generation_receipt_digest": "<digest>",
-  "consumer_repository": "<unchanged closed Decision 53 consumer identity>",
-  "v0_canary_scope": "<unchanged closed Decision 53 canary scope>",
-  "delivery_outcome": "delivered | suppressed | failed",
-  "claim_scope": "<outcome constant>",
-  "host_application_witness_digest": "<digest-or-null>",
-  "pi_delivery_receipt_digest": "<digest>"
-}
+```text
+schema
+repository_identity
+component_identity
+package_artifact_identity
+package_root_logical_id
+entry_logical_path
+files[] = {path, mode, byte_length, raw_sha256}
+dependency_manifests[] = {package_name, version, manifest_digest}
+package_json_raw_sha256
+entry_raw_sha256
+loaded_component_manifest_digest
 ```
 
-The legacy field name `v0_canary_scope` remains only because the surrounding Decision 53 consumer protocol is still v0. It does not make the delivery receipt v0 and grants no canary authority.
+Files are the complete extracted tarball inventory, UTF-8 path sorted and unique. Dependencies used by the extension are separately content-addressed immutable snapshots and included by manifest; imports outside the component/dependency snapshots reject. Inline factories and mutable direct local-path loading are ineligible for v1 witnessing.
 
-Capabilities are exact, UTF-8 sorted, unique, and host-issued. Static host context may populate host identity and capabilities, but not loaded or execution identity and not the witness.
+The host loads only from these read-only snapshots, verifies every file before load, verifies entry and manifest again immediately before prompt execution and after witness redemption, and rejects inode/content/mode drift. This is the normative package-to-loaded-artifact join:
 
-### Delivered
+```text
+receipt.package_artifact_identity
+= witness.package_artifact_identity
+= loaded_manifest.package_artifact_identity
 
-`delivered` requires:
+receipt.loaded_component_manifest_digest
+= witness.loaded_component_manifest_digest
+= digest(resolved loaded manifest)
+```
 
+## Closed component receipt union
+
+All objects use `additionalProperties=false`. Common fields in all three branches, in this exact order-independent key set, are:
+
+```text
+schema
+governance_owner_role
+issuer
+repository_identity
+component_identity
+package_artifact_identity
+host_artifact_identity
+host_capabilities
+loaded_component_manifest_digest
+loaded_entry_digest
+execution_instance_digest
+execution_generation
+prompt_run_attempt_digest
+handler_registration_index
+rocs_generation_receipt_digest
+consumer_repository
+v0_canary_scope
+delivery_outcome
+claim_scope
+host_application_witness_digest
+pi_delivery_receipt_digest
+```
+
+Constants:
+
+- `schema=semantic-pi-delivery-receipt.v1`;
+- governance/issuer/repository/component constants equal the identity model;
+- capabilities are exactly UTF-8 sorted and unique and include `prompt.system.application-witness.v1`;
+- package/host values are non-empty and digest-bound;
+- all digest fields are lowercase `sha256:` digests;
+- generation and handler index are safe integers;
+- consumer/scope are copied only from a fully resolved valid ROCS generation receipt and attest byte binding only—not owner existence, naming, consent, adoption, or activation.
+
+### Delivered exact extension fields
+
+Delivered adds exactly:
+
+```text
+delivered_effective_execution_digest
+applied_prompt_chain_entry_digest
+```
+
+and requires:
+
+- `delivery_outcome=delivered`;
 - `claim_scope=delivered_to_pi_prompt_chain_only`;
-- both availability values `host_witnessed` with non-null fields;
-- non-null `host_application_witness_digest` resolving to one valid `pi.prompt-system-application-witness.v1`;
-- `delivered_effective_execution_digest` equal to the ROCS generation receipt;
-- `applied_prompt_chain_entry_digest` equal to the host witness;
-- no suppression or error field.
+- non-null witness digest;
+- delivered execution equals `generation.effective_execution_digest`;
+- applied entry equals `witness.applied_prompt_chain_entry_digest`;
+- every common identity/attempt/generation value equals the resolved generation, loaded manifest, host witness, host redemption, and authority context.
 
-The claim ends at successful installation into Pi's prompt chain. It does not claim provider transmission.
+### Suppressed exact extension field
 
-### Suppressed
-
-`suppressed` requires `claim_scope=delivery_suppressed_only`, null witness digest, no delivered/error fields, and exactly one reason:
+Suppressed adds exactly `suppression_reason`, requires a null witness digest, and uses:
 
 ```text
-cancelled
-stale_result
-policy
-incompatible_host
-host_witness_unavailable
-application_not_acknowledged
-duplicate_attempt
+claim_scope=delivery_suppressed_only
+suppression_reason ∈ cancelled | stale_result | policy | incompatible_host |
+  host_witness_unavailable | application_not_acknowledged | duplicate_attempt
 ```
 
-Loaded and execution identity may be either completely host-witnessed or completely unavailable. Partial availability is malformed.
+It contains no delivered or error field. Identity and attempt fields remain mandatory so duplicate/stale outcomes are attributable.
 
-### Failed
+### Failed exact extension field
 
-`failed` requires `claim_scope=delivery_failed_only`, null witness digest, one `error_digest`, and no delivered/suppression fields. Deadline equality is failure, not delivery.
+Failed adds exactly `error_digest`, requires a null witness digest, and uses `claim_scope=delivery_failed_only`. It contains no delivered or suppression field. Deadline equality is failure.
 
-## Host-owned application witness
+## Closed host objects and API
 
-Pi host introduces capability `prompt.system.application-witness.v1` and the closed host-owned object `pi.prompt-system-application-witness.v1`.
+### Application witness
 
-Minimum fields:
-
-```json
-{
-  "schema": "pi.prompt-system-application-witness.v1",
-  "issuer": {
-    "kind": "pi_host",
-    "id": "@earendil-works/pi-coding-agent"
-  },
-  "host_identity": "<exact component-receipt host identity>",
-  "loaded_component_manifest_digest": "<digest>",
-  "loaded_entry_digest": "<digest>",
-  "execution_generation": "<safe integer>",
-  "execution_instance_digest": "<digest>",
-  "prompt_run_attempt_digest": "<digest>",
-  "handler_registration_index": "<safe integer>",
-  "input_prompt_digest": "<digest>",
-  "returned_prompt_digest": "<digest>",
-  "final_prompt_chain_digest": "<digest>",
-  "applied_prompt_chain_entry_digest": "<digest>",
-  "application_outcome": "applied",
-  "application_target": "agent.state.systemPrompt",
-  "observation_phase": "post_application",
-  "host_application_witness_digest": "<digest>"
-}
-```
-
-The Pi-host owner must define the exact loaded-component manifest algorithm in its host ADR before implementation. The algorithm must hash the complete approved extension artifact used for the run, not merely trust a package path, component declaration, or callback. The host independently reads and binds the entry bytes, rejects mutable/replaced material across load and application, and issues a fresh generation after reload/replacement.
-
-The witness is emitted only after the host:
-
-1. chains every `before_agent_start` result;
-2. assigns the final chain to `agent.state.systemPrompt`;
-3. reads the assigned value back and verifies its digest;
-4. binds the personalized extension contribution and final chain;
-5. freezes the witness before delivery to the extension.
-
-It is emitted before provider execution and therefore never claims provider transmission. Command handling, intercepted input, queued streaming input, callback success, or generic preflight success cannot issue it.
-
-## Digest contracts
-
-Component receipt:
+`pi.prompt-system-application-witness.v1` has exactly:
 
 ```text
-sha256(ASCII("semantic-release.pi-delivery.v1") || 0x00 || JCS(receipt without pi_delivery_receipt_digest))
+schema
+issuer
+host_artifact_identity
+repository_identity
+component_identity
+package_artifact_identity
+loaded_component_manifest_digest
+loaded_entry_digest
+execution_instance_digest
+execution_generation
+prompt_run_attempt_digest
+handler_registration_index
+rocs_generation_receipt_digest
+input_prompt_digest
+returned_prompt_digest
+final_prompt_chain_digest
+applied_prompt_chain_entry_digest
+application_outcome
+application_target
+observation_phase
+host_application_witness_digest
 ```
 
-Host witness:
+Constants are:
 
 ```text
-sha256(ASCII("pi.prompt-system-application-witness.v1") || 0x00 || JCS(witness without host_application_witness_digest))
+issuer = {kind: pi_host, id: @earendil-works/pi-coding-agent}
+application_outcome = applied
+application_target = agent.state.systemPrompt
+observation_phase = post_application
 ```
 
-All nested identity and null-availability fields remain in the preimage. JSON follows Decision 53's I-JSON/JCS restrictions, duplicate-key rejection, Unicode rules, safe-integer range, byte/depth caps, and exact type equality.
+The witness binds the selected component and exact ROCS generation request supplied to that component. Prompt digests use raw UTF-8 bytes with domain-specific prefixes. `applied_prompt_chain_entry_digest` identifies the component's exact returned contribution and its position, not the whole final prompt.
 
-## State and replay invariants
+### Redemption receipt
 
-1. One host witness authorizes at most one component receipt digest.
-2. One `(execution_generation, prompt_run_attempt_digest, handler_registration_index)` tuple is single-use.
-3. The component records the tuple before sealing success; a second attempt is `suppressed/duplicate_attempt`.
-4. Cancellation, stale activation head, stale generation, reload, replacement, shutdown, incompatible capabilities, missing witness, failed assignment, readback mismatch, deadline equality, or witness digest mismatch cannot yield `delivered`.
-5. Host, loaded artifact, execution, attempt, generation receipt, consumer, scope, and effective-execution values agree byte-for-byte across resolved objects.
-6. Component code cannot mint, accept from caller input, or reconstruct a host witness.
-7. The host cannot issue the component receipt.
-8. V0 delivery receipts are rejected by the successor runtime after v1 lands but remain readable in historical fixtures and evidence.
+`pi.prompt-system-witness-redemption.v1` has exactly:
 
-## Default-off and authorization
+```text
+schema
+issuer
+host_artifact_identity
+execution_instance_digest
+execution_generation
+prompt_run_attempt_digest
+handler_registration_index
+host_application_witness_digest
+component_receipt_digest
+redemption_outcome
+redemption_sequence
+host_witness_redemption_digest
+```
 
-- `SEMANTIC_RELEASE_DELIVERY_DEFAULT_ENABLED=false` remains a compile-time/runtime invariant.
-- `live_acquisition_implemented=false` remains mandatory.
-- Remove `isolatedDogfood` as a constructor authority flag; do not replace it with an environment variable, startup hook, ordinary command, or fixture token.
-- An isolated proof requires a separate one-shot Pi-owner authorization artifact bound to exact ROCS, component, package, host, and witness commits/digests; one attempt; expiry; disposable roots; and explicit non-authorizations.
-- A valid isolated proof produces no publication, adoption, activation, use, influence, or production fact.
+`redemption_outcome=redeemed`; sequence is `1`. It is emitted only after the component returns a schema-valid candidate receipt referencing the opaque witness. A second redemption returns no receipt and drives `suppressed/duplicate_attempt` through a separate probe result.
 
-## Generated packet and validator ownership
+### Controller transcript
 
-Preserve `docs/project/semantic-release-v0/**` unchanged. Add a versioned successor packet under `docs/project/semantic-pi-delivery-v1/` containing:
+`pi.host-integration-controller-transcript.v1` binds exact controller executable digest, host executable digest, process argv/environment allow-list digest, staged package/dependency manifests, process start nonce, witness bytes, redemption bytes, exit status, filesystem before/after manifest, and transcript digest. It is required for independent isolated-proof validation and is not semantic authority.
 
-- closed receipt and host-witness reference schemas;
-- normative invariants;
-- golden and differential fixtures;
-- packet manifest with per-file byte length/SHA-256 and aggregate digest;
-- deterministic generator and source audit.
+### Event sequence
 
-Generated files change only through the packet generator. Python and Node validators remain independent and share no implementation imports.
+The host API adds `prompt_system_applied` as a personalized opt-in event. Exact order:
 
-The current runtime embedding in `src/rocs_cli/semantic_release_schema.py` has no checked-in regeneration command. V1 acceptance requires a deterministic generator command that writes the embedded bytes, byte length, and SHA-256 from the generated normative schema and a clean-check mode proving byte equality. Manual base85 editing is forbidden.
+```text
+before_agent_start chain
+-> assign final chain to agent.state.systemPrompt
+-> read back and hash exact value
+-> emit opaque branded prompt_system_applied witness to the contributing component
+-> component returns candidate receipt or integration acknowledgement
+-> host atomically redeems once and records receipt digest
+-> construct or dispatch this agent run's next provider request
+```
 
-## Compatibility and supersession
+The host tracks each handler contribution rather than only the final string. Generic preflight success, command handling, intercepted input, queued input, prepared bytes, and callback return cannot issue a witness.
 
-- V0 packet, fixtures, ADR, receipts, and evidence are preserved as history.
-- V1 changes only the Pi delivery identity/evidence seam and references unchanged surrounding Decision 53 v0 objects where required.
-- No v0-to-v1 issuer alias or receipt conversion exists.
-- Runtime delivery validation accepts v1 only after the implementation lands.
-- The accepted v0 default-off implementation remains rollback history, not a production fallback.
+## Generation, attempt, and replay machine
 
-## Cross-repo implementation shape after ADR
+At process boot the trusted host creates a 256-bit random boot nonce. `execution_instance_digest` hashes host executable digest, boot nonce, and extension API version. Generation starts at `0` and increments before every new/reloaded/replaced extension runtime. Attempt ordinal starts at `0` per generation and increments before invoking the first `before_agent_start` handler for one direct non-queued prompt. `prompt_run_attempt_digest` hashes execution instance, generation, ordinal, session-instance nonce, and bound ROCS request digest.
 
-1. **ROCS:** generate/validate the v1 packet; add independent Python/Node conformance; document and automate runtime schema embedding.
-2. **Pi host:** accept a dedicated host ADR; implement loaded-artifact identity, generation/attempt tracking, post-application witness event, immutability, replay resistance, and tests.
-3. **pi-ontology-workflows:** reconcile product docs and the accepted identity artifact; replace v0 delivery runtime with v1; remove constructor authority; validate host witness; remain default-off.
-4. **Dogfood:** after all exact commits pass review, issue a separate one-shot authorization and run one isolated real-host attempt plus a duplicate suppression attempt.
+The host state machine is:
+
+```text
+allocated -> chained -> applied -> witness_issued -> redeemed
+                                 \-> failed
+```
+
+Transitions are atomic in the host event loop. Every await rechecks instance/generation/attempt currentness. Reload, replacement, new/resume/fork boundary, or shutdown invalidates nonterminal state. Within a process/generation, redeemed and invalidated tuples remain in a bounded 4096-entry LRU until generation disposal; overflow fails closed before issuing another witness. Restart creates a new execution instance, so tuples cannot collide. Production replay durability remains separately gated; no production delivered receipt is issued until an approved durable host ledger exists.
+
+One witness is evidence that may be redeemed at most once; it authorizes nothing. Component code cannot create a redeemable opaque brand or host map entry through the public API. Compromise of the exact trusted host/component artifacts remains outside the claim.
+
+## Digest registry
+
+All JSON digests use:
+
+```text
+sha256(ASCII(domain) || 0x00 || JCS(object without its top-level self-digest))
+```
+
+Raw prompt/file/tarball bytes use the same construction without JCS. Domains are:
+
+```text
+semantic-release.pi-delivery.v1
+semantic-release.pi-package-tarball.v1
+pi.loaded-extension-component-manifest.v1
+pi.host-executable.v1
+pi.execution-instance.v1
+pi.prompt-run-attempt.v1
+pi.prompt-input.v1
+pi.prompt-returned.v1
+pi.prompt-final-chain.v1
+pi.prompt-applied-entry.v1
+pi.prompt-system-application-witness.v1
+pi.prompt-system-witness-redemption.v1
+pi.host-integration-controller-transcript.v1
+semantic-release.pi-host-integration-authorization.v1
+semantic-release.pi-host-integration-proof.v1
+```
+
+The packet registry maps every schema to exactly one domain and omitted field. Unknown domains reject.
+
+## Unchanged Decision 53 authority graft
+
+V1 delivered validation changes only the delivery receipt/witness seam. The following remain required and unchanged in owner meaning and currentness semantics:
+
+- semantic owner policy, trust roots, rotations/revocations, approvals, publication and lifecycle;
+- consumer intent, acceptance, activation and history;
+- ROCS materialization and current generation from the current activation;
+- AK canonical decision/task/evidence currentness;
+- recovery identity and availability;
+- owner-specific acquisition receipts and `live_acquisition_implemented=false` behavior;
+- complete rejection of fixtures, validators, generators, callers, and copied objects as owner facts.
+
+A delivered receipt validates only when the complete unchanged graph is independently resolved. V0 rejection is delivery-protocol compatibility only; it transfers no semantic compatibility authority.
+
+## Default-off and isolated integration authorization
+
+`SEMANTIC_RELEASE_DELIVERY_DEFAULT_ENABLED=false` and `live_acquisition_implemented=false` remain invariant. Remove `isolatedDogfood`; add no environment, startup, ordinary command, public tool, prompt, flag, default, or general package export.
+
+A closed `semantic-pi-host-integration-authorization.v1` is jointly referenced by separate component-owner and host-owner accepted artifacts and contains exactly:
+
+```text
+schema
+authorization_id
+ak_decision_reference_digest
+component_owner_artifact_digest
+host_owner_artifact_digest
+rocs_packet_manifest_digest
+component_commit
+package_artifact_identity
+loaded_component_manifest_digest
+host_commit
+host_executable_digest
+controller_executable_digest
+process_start_nonce
+not_before_utc
+not_after_utc
+max_witness_issuances
+max_redemptions
+max_replay_probes
+disposable_roots
+live_acquisition_implemented
+production_authorized
+authorization_digest
+```
+
+Cardinalities are `1`, `1`, and `1`; booleans are false. Roots are absolute disposable paths outside production roots. The controller—not the component constructor—retrieves and validates the authorization, stages exact artifacts, and launches the host with a one-use opaque handle over a private inherited channel. The host consumes the handle before witness issuance. Failure or crash consumes the authorization; no retry is implicit. The replay probe reuses the already consumed witness and is not a second application.
+
+Because the complete current consumer/activation/recovery graph is absent, isolated execution emits only `semantic-pi-host-integration-proof.v1`, never `semantic-pi-delivery-receipt.v1`. The proof has `claim_scope=host_integration_only`, binds authorization/witness/redemption/transcript digests, asserts the replay probe was rejected, and carries explicit false fields for publication, adoption, activation, use, influence, and production authorization. ROCS delivery validation and AK delivery linkage reject this schema. AK may record it only as implementation-validation evidence.
+
+## Packet, validators, and resources
+
+Preserve `docs/project/semantic-release-v0/**` byte-for-byte. Add `docs/project/semantic-pi-delivery-v1/` with schema, invariants, golden/differential fixtures, digest registry, source audit, generator, and manifest.
+
+Exact limits:
+
+- 16 MiB per JSON file;
+- 64 MiB aggregate retained bytes;
+- 32 generated files maximum;
+- depth 64;
+- 100,000 array items unless a lower field cap applies;
+- 60,000 ms one monotonic validation deadline; equality is expired;
+- 4096 replay tuples per generation;
+- 4096 package files, 512 MiB extracted bytes, 4096-byte logical paths.
+
+Stable reads use no-follow open, regular-file checks, descriptor/path identity and metadata comparison, `limit+1` reads, retained-byte hashing, and no reopen. Paths are root-local NFC POSIX paths without traversal, backslash, empty segments, normalization/casefold collision, or network form. Symlinks, hard links, special files, extra/missing generated files, and snapshot mutation reject.
+
+`packet-manifest.json` does not list itself. It lists every other generated packet file as UTF-8 path-sorted rows `{path,byte_length,sha256}`. Aggregate preimage is the UTF-8 sequence `path<TAB>byte_length<TAB>sha256<LF>` and domain `semantic-release.pi-delivery-packet-aggregate.v1`. The manifest's self-digest uses its complete rows/aggregate after omitting only `packet_manifest_digest`. Any extra or missing generated file rejects.
+
+The generator has its own canonicalization/digest implementation and imports neither validator. Python and Node validators share no code, generated library, parser, or digest helper. Independent raw vectors cover Unicode astral-key UTF-16 ordering, escapes, duplicate keys, non-NFC/noncharacters/surrogates, booleans-as-integers, unsafe numbers, limits, and all domains.
+
+Runtime architecture:
+
+- existing `semantic_release_protocol.py` and embedded v0 schema remain the historical/general v0 reader;
+- new `semantic_pi_delivery_v1_protocol.py` owns the v1 packet and cross-object resolver;
+- successor component delivery entrypoints accept only v1; v0 receipts return `unsupported_protocol`;
+- historical corpus commands continue validating v0 fixtures;
+- unchanged surrounding v0 objects are resolved by the v0 runtime and passed as immutable checked objects into the v1 resolver.
+
+Embedding generation uses uncompressed standard base64 of exact schema bytes with fixed 76-character lines, byte length, and SHA-256. A checked-in generator command writes the module; `--check` regenerates in memory and compares exact bytes. Clean-checkout double regeneration must be byte-identical. Manual editing is forbidden.
+
+## Cross-repo sequence after ADR
+
+1. Reconcile the Pi package vision, foundation, stable-core ADR, and accepted identity artifact; this precedes code.
+2. ROCS generates and validates the v1 packet and embedding path.
+3. Pi host accepts its owner ADR pinning immutable staging, API, witness/redemption, and trust limitation.
+4. Pi host implements and proves the exact event/replay/transcript seam.
+5. `pi-ontology-workflows` replaces v0 runtime acceptance with v1 validation, removes constructor authority, and adds no public surface.
+6. Separate component-owner and host-owner artifacts issue one joint isolated authorization.
+7. A supervised real Pi process emits one integration proof and one rejected replay probe.
+8. Actual delivered sealing remains blocked until separately acquired live owner graph and durable host attestation/ledger approval.
 
 ## Validation requirements
 
-- exact schema/digest parity across Python and Node;
-- deterministic regeneration twice with byte-identical output;
-- identity-axis substitution attacks;
-- host/component issuer substitution attacks;
-- callback-return, prepared-byte, path, manifest, static-capability, and fixture-authority attacks;
-- cancellation, stale generation, deadline equality, reload/replacement, failed assignment/readback, missing witness, replay, and duplicate attempts;
+- exact Python/Node schema, digest, packet, and cross-object parity;
+- double deterministic generation and fresh-checkout embedding check;
+- repository/component/package/host/executable/snapshot/dependency/generation/attempt substitution attacks;
+- forged JSON witness versus opaque live redemption;
+- cancellation, stale generation, deadline equality, reload/replacement, failed assignment/readback, missing witness, replay, LRU overflow, restart, and snapshot drift;
+- authorization expiry, wrong owner artifact, wrong root, wrong process nonce, crash consumption, and retry rejection;
 - proof that defaults/live acquisition/publication/adoption/activation/use/influence remain absent;
-- sanitized isolated install and a real Pi host proof after separate authorization.
+- sanitized package installation and one supervised real Pi host integration proof.
 
 ## Live D2E boundary
 
-The successor can enable a full isolated delivery D2E only. Production/live D2E remains blocked until independently retrieved owner artifacts establish a real consumer, consent, one operator-named canary, and an independent recovery controller. Those facts require a later gate and are not implementation details of this RFC.
+This successor authorizes implementation and a full isolated **host-integration** D2E after post-ADR tasks and one-shot owner authorization. It does not authorize a protocol-valid `delivered` receipt or production semantic-release D2E. Those remain blocked until a real consumer, consent, operator-named canary, independent recovery controller, live owner acquisition, and durable host attestation/ledger are separately accepted.
 
 ## Alternatives rejected
 
-- create a standalone `pi-adapter` repository;
-- silently alias `pi-adapter` to the package;
-- use Pi host identity as receipt issuer;
-- treat `before_agent_start` return, prepared bytes, static capabilities, or preflight success as application proof;
-- keep `isolatedDogfood` as authority;
-- edit accepted v0 in place;
-- let one receipt imply delivery, provider transmission, adoption, and influence.
+- standalone or aliased `pi-adapter`;
+- Pi host as component receipt issuer;
+- public self-digest as proof of host issuance;
+- callback/prepared/static-context evidence as application proof;
+- constructor/environment/command test authority;
+- isolated fixtures as current owner facts;
+- edit v0 in place;
+- one receipt implying provider transmission, adoption, and influence.
 
 ## Rollback
 
-Before implementation, supersede or reject this proposal with no runtime effect. After implementation, revert only owner-scoped default-off commits and restore v0 code as historical disabled behavior while retaining v1 decision, packets, reviews, receipts, and failed-attempt evidence. No rollback may re-authorize the fictional identity or a false delivered claim.
+Before implementation, supersede or reject this proposal. After implementation, revert bounded default-off owner commits while retaining v1 decisions, packet, reviews, authorization, transcripts, and failed attempts. Rollback never restores the fictional identity, constructor authority, v0 acceptance at the successor entrypoint, or a false delivered claim.
 
 ## Open questions
 
-None are allowed to affect ADR legality. The Pi-host owner ADR must pin the loaded-component manifest algorithm before its implementation task can be unblocked; that is a post-ADR owner-specific design obligation, not permission to weaken the witness fields or claim.
+None. Production host attestation, durable replay state, consumer identity, canary consent, and recovery ownership are explicit later-gate prerequisites rather than unresolved v1 implementation choices.
 
 ## Requested review outcome
 
-Run exact-byte multi-lane review. Any unresolved material issue yields `revise_rfc`. Only a controlling synthesis with all required lanes and `ready_for_adr` permits ADR drafting.
+Run a fresh exact-byte five-lane review. Any unresolved material issue yields `revise_rfc`; only complete controlling synthesis with `ready_for_adr` permits ADR drafting.
