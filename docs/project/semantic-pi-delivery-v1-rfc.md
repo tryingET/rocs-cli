@@ -9,10 +9,10 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r16"
+rfc_revision: "semantic-pi-delivery-v1-r17"
 ---
 
-# RFC — Semantic Pi delivery receipt v1
+# RFC — Semantic Pi delivery receipt v1 r17
 
 ## Decision requested
 
@@ -101,7 +101,7 @@ files
 package_tree_manifest_digest
 ```
 
-`files` is the complete safely extracted tarball inventory of `{path,mode,byte_length,content_digest}`, UTF-8 path sorted and unique. `source_commit` is exactly 40 lowercase hexadecimal characters. The manifest does not embed its own identity elsewhere. Root `package_artifact_identity` is exactly:
+`files` is the complete regular-file inventory of `{path,mode,byte_length,content_digest}`, UTF-8 path sorted and unique; modes are JSON integers `0..511`. Archive profile is one RFC1952 gzip member (CM=8, reserved flags zero, validated CRC32/ISIZE, no concatenated/trailing member) containing 512-byte POSIX ustar records. Header layout is exact POSIX ustar field widths `100,8,8,8,12,12,8,1,100,6,2,32,32,8,8,155,12`; magic/version are `ustar\\0`/`00`. Mode/uid/gid/size/mtime/dev fields are zero-left-padded octal to width-1 then NUL; checksum is six octal digits, NUL, space and is computed with eight checksum bytes treated as spaces. Base-256/GNU/sparse/global-PAX forms reject. Types are regular `0|NUL`, directory `5`, or local PAX `x`; links/devices/other types reject. Local PAX is strict UTF-8 records `<canonical-decimal-total-length><SPACE><key>=<value><LF>` with unique keys limited to `path|size`, and applies to exactly the next non-PAX member; consecutive/orphan PAX rejects. Duplicate/colliding paths, duplicate regular members, nonzero invalid padding/checksum, data-length mismatch, special mode bits, and non-root-safe paths reject. Exactly two all-zero 512-byte EOF blocks end the decompressed stream with no following byte. Directory headers are validated but omitted from `files`; every regular member appears exactly once. `source_commit` is exactly 40 lowercase hexadecimal characters. The manifest does not embed its own identity elsewhere. Root `package_artifact_identity` is exactly:
 
 ```text
 package_identity
@@ -139,13 +139,13 @@ It references but does not contain package-tree or provenance bodies, preventing
 
 ## Normative contract annexes
 
-This core RFC and the following three annexes are one indivisible normative r16 review object:
+This core RFC and the following three annexes are one indivisible normative r17 review object:
 
 - `semantic-pi-delivery-v1-runtime-contracts.md` — host runtime, sealed staging, maps, digest registry, deterministic loading, registrar, attempt, and receipt preimages;
 - `semantic-pi-delivery-v1-authority-contracts.md` — receipt/witness semantics, durable replay, signed attestation, integration authorization, finalizer, canonical ledger, and proof;
 - `semantic-pi-delivery-v1-validation-contracts.md` — unchanged-v0 overlay, closed resolver, packet, independent validators, mandatory vectors, limits, and embedding.
 
-No annex is optional, informative, or lower precedence. Definitions occur once across the four files. A missing annex, review-byte mismatch, undefined cross-reference, or contradiction rejects r16. The review-set manifest covers every file.
+No annex is optional, informative, or lower precedence. Definitions occur once across the four files. A missing annex, review-byte mismatch, undefined cross-reference, or contradiction rejects r17. The review-set manifest covers every file.
 
 ## Public surface and cross-repo sequence
 
