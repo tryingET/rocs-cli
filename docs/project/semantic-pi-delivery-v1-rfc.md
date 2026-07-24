@@ -9,10 +9,10 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r17"
+rfc_revision: "semantic-pi-delivery-v1-r18"
 ---
 
-# RFC — Semantic Pi delivery receipt v1 r17
+# RFC — Semantic Pi delivery receipt v1 r18
 
 ## Decision requested
 
@@ -69,6 +69,7 @@ V1 does **not** claim that a self-digested persisted transcript alone proves exe
   "package_identity": {
     "kind": "repository_package",
     "package_id": "pi-extensions:packages/pi-ontology-workflows",
+    "package_name": "@tryinget/pi-ontology-workflows",
     "repository_path": "packages/pi-ontology-workflows",
     "package_manifest_path": "packages/pi-ontology-workflows/package.json",
     "identity_revision": 1
@@ -83,7 +84,7 @@ V1 does **not** claim that a self-digested persisted transcript alone proves exe
 
 `pi-owner` is governance only. Repository, component, package, host, loaded snapshot, execution instance, and attempt are separate. Any `pi-adapter` value in v1 is `issuer_scope_violation`; no alias or conversion exists.
 
-`controller_identity` is the closed object `{kind:"pi_host_internal_controller",governance_owner_role:"pi-host-owner",repository_identity:{repository_id:"pi-mono",canonical_source_locator:"git+https://github.com/tryingET/pi-mono.git",identity_revision:1},component_identity:{component_id:"pi-coding-agent-host-integration-controller",repository_path:"packages/coding-agent",identity_revision:1}}`. The request, controller transcript, host-owner release provenance, and integration-proof issuer equal it byte-for-byte; ledger writer is exclusively the distinct finalizer identity. Aliases or caller-supplied identity reject. `finalizer_identity` is the analogous closed object with kind `pi_host_integration_finalizer` and component `{component_id:"pi-coding-agent-host-integration-finalizer",repository_path:"packages/coding-agent",identity_revision:1}`; it is distinct from controller identity. `pi.host-integration-release-provenance.v1` is exactly `{schema,issuer,host_commit,host_runtime_manifest_digest,controller_identity,controller_commit,controller_executable_digest,finalizer_identity,finalizer_commit,finalizer_executable_digest,canonical_ledger_identity,host_integration_release_provenance_digest}`. Issuer is exactly `{kind:"repository_owner",role:"pi-host-owner",repository_id:"pi-mono"}`. Production authority requires current host-owner control/pin/read evidence. For isolated integration only, the current signed host-owner approval plus its authenticated read receipt may authenticate this exact accepted artifact; it grants no delivery authority.
+`controller_identity` is the closed object `{kind:"pi_host_internal_controller",governance_owner_role:"pi-host-owner",repository_identity:{repository_id:"pi-mono",canonical_source_locator:"git+https://github.com/tryingET/pi-mono.git",identity_revision:1},component_identity:{component_id:"pi-coding-agent-host-integration-controller",repository_path:"packages/coding-agent",identity_revision:1}}`. The request, controller transcript, and host-owner release provenance equal controller identity byte-for-byte; ledger writer and final integration-proof issuer are exclusively the distinct finalizer identity. Aliases or caller-supplied identity reject. `finalizer_identity` is the analogous closed object with kind `pi_host_integration_finalizer` and component `{component_id:"pi-coding-agent-host-integration-finalizer",repository_path:"packages/coding-agent",identity_revision:1}`; it is distinct from controller identity. `pi.host-integration-release-provenance.v1` is exactly `{schema,issuer,host_commit,host_runtime_manifest_digest,controller_identity,controller_commit,controller_executable_digest,finalizer_identity,finalizer_commit,finalizer_executable_digest,canonical_ledger_identity,host_integration_release_provenance_digest}`. Issuer is exactly `{kind:"repository_owner",role:"pi-host-owner",repository_id:"pi-mono"}`. Production authority requires current host-owner control/pin/read evidence. For isolated integration only, the current signed host-owner approval plus its authenticated read receipt may authenticate this exact accepted artifact; it grants no delivery authority.
 
 ## Acyclic artifact model
 
@@ -101,7 +102,7 @@ files
 package_tree_manifest_digest
 ```
 
-`files` is the complete regular-file inventory of `{path,mode,byte_length,content_digest}`, UTF-8 path sorted and unique; modes are JSON integers `0..511`. Archive profile is one RFC1952 gzip member (CM=8, reserved flags zero, validated CRC32/ISIZE, no concatenated/trailing member) containing 512-byte POSIX ustar records. Header layout is exact POSIX ustar field widths `100,8,8,8,12,12,8,1,100,6,2,32,32,8,8,155,12`; magic/version are `ustar\\0`/`00`. Mode/uid/gid/size/mtime/dev fields are zero-left-padded octal to width-1 then NUL; checksum is six octal digits, NUL, space and is computed with eight checksum bytes treated as spaces. Base-256/GNU/sparse/global-PAX forms reject. Types are regular `0|NUL`, directory `5`, or local PAX `x`; links/devices/other types reject. Local PAX is strict UTF-8 records `<canonical-decimal-total-length><SPACE><key>=<value><LF>` with unique keys limited to `path|size`, and applies to exactly the next non-PAX member; consecutive/orphan PAX rejects. Duplicate/colliding paths, duplicate regular members, nonzero invalid padding/checksum, data-length mismatch, special mode bits, and non-root-safe paths reject. Exactly two all-zero 512-byte EOF blocks end the decompressed stream with no following byte. Directory headers are validated but omitted from `files`; every regular member appears exactly once. `source_commit` is exactly 40 lowercase hexadecimal characters. The manifest does not embed its own identity elsewhere. Root `package_artifact_identity` is exactly:
+`files` is the complete regular-file inventory of `{path,mode,byte_length,content_digest}`, UTF-8 path sorted and unique; modes are JSON integers `0..511`. Archive profile is one RFC1952 gzip member (CM=8, reserved flags zero, validated CRC32/ISIZE, no concatenated/trailing member) containing 512-byte POSIX ustar records. Header layout is exact POSIX ustar field widths `100,8,8,8,12,12,8,1,100,6,2,32,32,8,8,155,12`; magic/version are `ustar\\0`/`00`. Mode/uid/gid/size/mtime/dev fields are zero-left-padded octal to width-1 then NUL; checksum is six octal digits, NUL, space and is computed with eight checksum bytes treated as spaces. Every unused byte in a fixed-width name, linkname, uname, gname, prefix, or padding field after its first NUL is zero. Base-256/GNU/sparse/global-PAX forms reject. Types are regular `0|NUL`, directory `5`, or local PAX `x`; links/devices/other types reject. A non-PAX path is strict UTF-8 `prefix + ("/" iff both nonempty) + name`, where name is nonempty, prefix/name bytes end at the first NUL, and neither field may contain an embedded NUL followed by nonzero bytes. Local PAX is strict UTF-8 records `<canonical-decimal-total-length><SPACE><key>=<value><LF>` with unique keys limited to `path|size`, and applies to exactly the next non-PAX member; consecutive/orphan PAX rejects. PAX `size` is canonical unsigned decimal with no leading zero except `0`, range `0..9007199254740991`, and must equal the following header size; PAX `path` replaces the joined header path and is subject to the same NFC/root-local profile. Duplicate/colliding paths, duplicate regular members, nonzero invalid padding/checksum, data-length mismatch, special mode bits, and non-root-safe paths reject. Exactly two all-zero 512-byte EOF blocks end the decompressed stream with no following byte. Directory headers are validated but omitted from `files`; every regular member appears exactly once. `source_commit` is exactly 40 lowercase hexadecimal characters. The manifest does not embed its own identity elsewhere. Root `package_artifact_identity` is exactly:
 
 ```text
 package_identity
@@ -112,11 +113,11 @@ npm_pack_tarball_digest
 package_tree_manifest_digest
 ```
 
-Its `package_identity` equals the fixed identity; all remaining values equal the resolved root manifest. Dependencies never carry or reuse the fixed package identity. `pi.component-release-provenance.v1` is exactly `{schema,issuer,repository_identity,component_identity,package_identity,accepted_identity_artifact_digest,source_commit,package_artifact_identity,entry_logical_path,entry_content_digest,dependency_manifest_digests,module_import_closure_manifest_digest,issued_at_utc,component_release_provenance_digest}`. Issuer is `{kind:"repository_owner",role:"pi-owner",repository_id:"pi-extensions"}`. Production authority requires its digest as the subject of current component-owner control, acquisition-pin, canonical-store read, and revocation evidence. For isolated integration only, the current signed component-owner approval plus authenticated read receipt may authenticate this exact accepted artifact; it grants no delivery authority. Every package/source/entry/dependency field must equal the loaded manifests; a self-digested provenance object is `self_certification`.
+Its `package_identity` equals the fixed identity, root/package-artifact `package_name` equals fixed `@tryinget/pi-ontology-workflows`, and all remaining values equal the resolved root manifest. Dependencies never carry or reuse the fixed package identity. The accepted component identity artifact is the exact 9,728 raw bytes at repository `pi-extensions`, path `packages/pi-ontology-workflows/docs/decisions/2026-07-20-decision-53-pi-delivery-identity.md`, source commit `63d1e9f5c271007b48c45818d1f419a228de1561`, commit tree `84951b35bfd06637d85f0b7342ad3bd14e955c1c`, and Git blob `b79f3eb315c0d06af498cbfa286fb9ae45f0292b`. Ordinary SHA-256 is `430bedb2c9bcf41ce58d2bfa7860e191bc51057b8eb411fb6bb0a02b129c701e`; the normative `pi.component-identity-artifact-bytes.v1` digest is `sha256:9ce187de11a2f2129f445834d576f8330b866567a8a3442af1f165ffa6ce15ee`. `pi.component-release-provenance.v1` is exactly `{schema,issuer,repository_identity,component_identity,package_identity,accepted_identity_artifact_digest,source_commit,package_artifact_identity,entry_logical_path,entry_content_digest,dependency_manifest_digests,module_import_closure_manifest_digest,issued_at_utc,component_release_provenance_digest}`. Issuer is `{kind:"repository_owner",role:"pi-owner",repository_id:"pi-extensions"}`. Production authority requires its digest as the subject of current component-owner control, acquisition-pin, canonical-store read, and revocation evidence. For isolated integration only, the current signed component-owner approval plus authenticated read receipt may authenticate this exact accepted artifact; it grants no delivery authority. Every package/source/entry/dependency field must equal the loaded manifests; a self-digested provenance object is `self_certification`. `accepted_identity_artifact_digest` equals the subject digest of a current component-owner read receipt with `subject_kind=component_identity`; the resolver supplies the raw artifact blob and proves repository/path/commit/digest equality. That receipt is mandatory in both resolvers.
 
 ### Dependency tree
 
-Every runtime dependency is a separate `pi.package-tree-manifest.v1`. Dependency rows in the loaded manifest are exactly `{package_name,package_version,package_tree_manifest_digest}`. The full transitive dependency closure is present once, UTF-8 sorted by `(package_name, package_version, digest)`, with no cycles or undeclared imports.
+R18 requires one precompiled root WebAssembly package entry and no runtime dependency packages: `dependency_manifests` and provenance `dependency_manifest_digests` are empty. Build-time dependencies are not runtime identities. Any WebAssembly import, external package import, runtime dependency row, JS/TS entry, or loader resolution is `unsupported_protocol`.
 
 ### Loaded component
 
@@ -135,17 +136,17 @@ dependency_manifests
 loaded_component_manifest_digest
 ```
 
-It references but does not contain package-tree or provenance bodies, preventing digest recursion. Resolver equality requires fixed repository/component/package identities, the provenance-selected root manifest/tarball/source commit, an entry path resolving exactly one root file row with the same content digest, and dependency rows resolving every and only non-root manifest in the deterministic import closure.
+It references but does not contain package-tree or provenance bodies, preventing digest recursion. Resolver equality requires fixed repository/component/package identities, the provenance-selected root manifest/tarball/source commit, one `.wasm` entry path resolving exactly one root file row with the same content digest, and `dependency_manifests` exactly empty. The independently parsed WebAssembly import section is empty.
 
 ## Normative contract annexes
 
-This core RFC and the following three annexes are one indivisible normative r17 review object:
+This core RFC and the following three annexes are one indivisible normative r18 review object:
 
 - `semantic-pi-delivery-v1-runtime-contracts.md` — host runtime, sealed staging, maps, digest registry, deterministic loading, registrar, attempt, and receipt preimages;
 - `semantic-pi-delivery-v1-authority-contracts.md` — receipt/witness semantics, durable replay, signed attestation, integration authorization, finalizer, canonical ledger, and proof;
 - `semantic-pi-delivery-v1-validation-contracts.md` — unchanged-v0 overlay, closed resolver, packet, independent validators, mandatory vectors, limits, and embedding.
 
-No annex is optional, informative, or lower precedence. Definitions occur once across the four files. A missing annex, review-byte mismatch, undefined cross-reference, or contradiction rejects r17. The review-set manifest covers every file.
+No annex is optional, informative, or lower precedence. Definitions occur once across the four files. A missing annex, review-byte mismatch, undefined cross-reference, or contradiction rejects r18. The review-set manifest covers every file.
 
 ## Public surface and cross-repo sequence
 
