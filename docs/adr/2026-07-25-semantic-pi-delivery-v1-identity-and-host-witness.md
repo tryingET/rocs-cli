@@ -10,7 +10,7 @@ system4d:
   engine: "Frozen r21 review -> ADR acceptance -> owner-scoped implementation -> separate one-shot dogfood and production gates."
   fog: "An ADR, fixture, witness digest, or dogfood run may be mistaken for implementation or production authority."
 type: "adr"
-status: "proposed"
+status: "accepted"
 ---
 # ADR — Semantic Pi Delivery v1 Identity and Host Witness
 
