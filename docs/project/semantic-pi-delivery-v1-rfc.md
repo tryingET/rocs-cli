@@ -9,10 +9,10 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r19"
+rfc_revision: "semantic-pi-delivery-v1-r20"
 ---
 
-# RFC — Semantic Pi delivery receipt v1 r19
+# RFC — Semantic Pi delivery receipt v1 r20
 
 ## Decision requested
 
@@ -120,7 +120,7 @@ Its `package_identity` equals the fixed identity, root/package-artifact `package
 
 ### Dependency tree
 
-R19 requires one precompiled root WebAssembly package entry and no runtime dependency packages: `dependency_manifests` and provenance `dependency_manifest_digests` are empty. Build-time dependencies are not runtime identities. Any WebAssembly import, external package import, runtime dependency row, JS/TS entry, or loader resolution is `unsupported_protocol`.
+R20 requires one precompiled root WebAssembly package entry and no runtime dependency packages: `dependency_manifests` and provenance `dependency_manifest_digests` are empty. Build-time dependencies are not runtime identities. Any WebAssembly import, external package import, runtime dependency row, JS/TS entry, or loader resolution is `unsupported_protocol`.
 
 ### Loaded component
 
@@ -143,7 +143,7 @@ It references but does not contain package-tree or provenance bodies, preventing
 
 ## Normative contract annexes
 
-This core RFC and the following seven annexes are one indivisible normative r19 review object:
+This core RFC and the following ten annexes and reviewed machine-source files are one indivisible normative r20 review object:
 
 - `semantic-pi-delivery-v1-runtime-contracts.md` — host runtime, sealed staging, maps, digest registry, deterministic loading, registrar, attempt, and receipt preimages;
 - `semantic-pi-delivery-v1-authority-contracts.md` — receipt/witness semantics, durable replay, signed attestation, integration authorization, finalizer, canonical ledger, and proof;
@@ -152,8 +152,11 @@ This core RFC and the following seven annexes are one indivisible normative r19 
 - `semantic-pi-delivery-v1-seccomp-policy.json` — reviewed lifetime executable-mapping prevention policy;
 - `semantic-pi-delivery-v1-wasm-grammar.json` — reviewed restricted Wasm grammar and opcode inventory;
 - `semantic-pi-delivery-v1-wasm-validation-algorithm.md` — reviewed byte parser, type validator, and ABI boundary algorithm.
+- `semantic-pi-delivery-v1-durable-store.sql` — exact SQLite schema bytes for the per-attempt durable artifact store;
+- `semantic-pi-delivery-v1-integration-ledger.sql` — exact SQLite schema bytes for the one-shot integration authorization ledger;
+- `semantic-pi-delivery-v1-production-replay.sql` — exact SQLite schema bytes for the production replay store and immutable exchange index.
 
-No annex is optional, informative, or lower precedence. Definitions occur once across the eight normative files. A missing annex, review-byte mismatch, undefined cross-reference, or contradiction rejects r19. The exact-byte review set additionally includes the problem brief, evidence note, and review plan as reviewed supporting/governance bytes; they are not normative generator inputs. The design-source manifest covers all eleven reviewed files and marks each row `normative_semantic_source|reviewed_supporting` according to this split.
+No annex or reviewed SQL source is optional, informative, or lower precedence. Definitions occur once across the eleven normative files. A missing source, review-byte mismatch, undefined cross-reference, or contradiction rejects r20. The exact-byte review set additionally includes the problem brief, evidence note, and review plan as reviewed supporting/governance bytes; they are not normative generator inputs. The design-source manifest covers all fourteen reviewed files and marks each row `normative_semantic_source|reviewed_supporting` according to this split.
 
 ## Public surface and cross-repo sequence
 
