@@ -1,6 +1,6 @@
 {
   "schema": "semantic-release.pi-wasm-reviewed-grammar.v1",
-  "core_version": "2.0-restricted-r20",
+  "core_version": "2.0-restricted-r21",
   "magic_hex": "0061736d",
   "version_hex": "01000000",
   "section_order": [

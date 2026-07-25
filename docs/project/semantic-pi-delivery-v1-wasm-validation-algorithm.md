@@ -1,11 +1,11 @@
 ---
 summary: "Reviewed deterministic validator algorithm for the restricted semantic Pi Wasm component."
-read_when: ["Implementing or reviewing r20 module closure validation."]
+read_when: ["Implementing or reviewing r21 module closure validation."]
 type: "rfc_annex"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r20"
+rfc_revision: "semantic-pi-delivery-v1-r21"
 ---
-# Restricted Wasm validation algorithm — r20
+# Restricted Wasm validation algorithm — r21
 
 This algorithm and `semantic-pi-delivery-v1-wasm-grammar.json` are normative reviewed bytes. Generated packet copies must be byte-identical or carry packet rows whose bytes are exactly these sources.
 
