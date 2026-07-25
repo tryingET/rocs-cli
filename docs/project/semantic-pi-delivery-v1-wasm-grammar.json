@@ -1,0 +1,354 @@
+{
+  "schema": "semantic-release.pi-wasm-reviewed-grammar.v1",
+  "core_version": "2.0-restricted-r19",
+  "magic_hex": "0061736d",
+  "version_hex": "01000000",
+  "section_order": [
+    {
+      "id": 1,
+      "name": "type"
+    },
+    {
+      "id": 3,
+      "name": "function"
+    },
+    {
+      "id": 5,
+      "name": "memory"
+    },
+    {
+      "id": 6,
+      "name": "global"
+    },
+    {
+      "id": 7,
+      "name": "export"
+    },
+    {
+      "id": 10,
+      "name": "code"
+    },
+    {
+      "id": 11,
+      "name": "data"
+    }
+  ],
+  "optional_custom_section": "name",
+  "value_types": {
+    "i32": "7f",
+    "i64": "7e"
+  },
+  "limits": {
+    "max_module_bytes": 16777216,
+    "max_sections": 8,
+    "max_functions": 64,
+    "max_locals_per_function": 256,
+    "max_control_depth": 64,
+    "max_memory_pages": 1024,
+    "max_data_segments": 64,
+    "max_name_bytes": 4096
+  },
+  "required_exports": [
+    {
+      "name": "memory",
+      "kind": "memory",
+      "index": 0
+    },
+    {
+      "name": "alloc",
+      "kind": "function",
+      "params": [
+        "i32"
+      ],
+      "results": [
+        "i32"
+      ]
+    },
+    {
+      "name": "prepare",
+      "kind": "function",
+      "params": [
+        "i32",
+        "i32"
+      ],
+      "results": [
+        "i64"
+      ]
+    },
+    {
+      "name": "applied",
+      "kind": "function",
+      "params": [
+        "i32",
+        "i32"
+      ],
+      "results": [
+        "i64"
+      ]
+    }
+  ],
+  "allowed_opcodes": [
+    {
+      "hex": "00",
+      "name": "unreachable"
+    },
+    {
+      "hex": "01",
+      "name": "nop"
+    },
+    {
+      "hex": "02",
+      "name": "block"
+    },
+    {
+      "hex": "03",
+      "name": "loop"
+    },
+    {
+      "hex": "04",
+      "name": "if"
+    },
+    {
+      "hex": "05",
+      "name": "else"
+    },
+    {
+      "hex": "0b",
+      "name": "end"
+    },
+    {
+      "hex": "0c",
+      "name": "br"
+    },
+    {
+      "hex": "0d",
+      "name": "br_if"
+    },
+    {
+      "hex": "0f",
+      "name": "return"
+    },
+    {
+      "hex": "10",
+      "name": "call"
+    },
+    {
+      "hex": "1a",
+      "name": "drop"
+    },
+    {
+      "hex": "1b",
+      "name": "select"
+    },
+    {
+      "hex": "20",
+      "name": "local.get"
+    },
+    {
+      "hex": "21",
+      "name": "local.set"
+    },
+    {
+      "hex": "22",
+      "name": "local.tee"
+    },
+    {
+      "hex": "23",
+      "name": "global.get"
+    },
+    {
+      "hex": "24",
+      "name": "global.set"
+    },
+    {
+      "hex": "28",
+      "name": "i32.load"
+    },
+    {
+      "hex": "29",
+      "name": "i64.load"
+    },
+    {
+      "hex": "2d",
+      "name": "i32.load8_u"
+    },
+    {
+      "hex": "36",
+      "name": "i32.store"
+    },
+    {
+      "hex": "37",
+      "name": "i64.store"
+    },
+    {
+      "hex": "3a",
+      "name": "i32.store8"
+    },
+    {
+      "hex": "3f",
+      "name": "memory.size"
+    },
+    {
+      "hex": "40",
+      "name": "memory.grow"
+    },
+    {
+      "hex": "41",
+      "name": "i32.const"
+    },
+    {
+      "hex": "42",
+      "name": "i64.const"
+    },
+    {
+      "hex": "45",
+      "name": "i32.eqz"
+    },
+    {
+      "hex": "46",
+      "name": "i32.eq"
+    },
+    {
+      "hex": "47",
+      "name": "i32.ne"
+    },
+    {
+      "hex": "49",
+      "name": "i32.lt_u"
+    },
+    {
+      "hex": "4b",
+      "name": "i32.gt_u"
+    },
+    {
+      "hex": "4d",
+      "name": "i32.le_u"
+    },
+    {
+      "hex": "4f",
+      "name": "i32.ge_u"
+    },
+    {
+      "hex": "50",
+      "name": "i64.eqz"
+    },
+    {
+      "hex": "51",
+      "name": "i64.eq"
+    },
+    {
+      "hex": "52",
+      "name": "i64.ne"
+    },
+    {
+      "hex": "67",
+      "name": "i32.clz"
+    },
+    {
+      "hex": "68",
+      "name": "i32.ctz"
+    },
+    {
+      "hex": "6a",
+      "name": "i32.add"
+    },
+    {
+      "hex": "6b",
+      "name": "i32.sub"
+    },
+    {
+      "hex": "6c",
+      "name": "i32.mul"
+    },
+    {
+      "hex": "71",
+      "name": "i32.and"
+    },
+    {
+      "hex": "72",
+      "name": "i32.or"
+    },
+    {
+      "hex": "73",
+      "name": "i32.xor"
+    },
+    {
+      "hex": "74",
+      "name": "i32.shl"
+    },
+    {
+      "hex": "76",
+      "name": "i32.shr_u"
+    },
+    {
+      "hex": "7c",
+      "name": "i64.add"
+    },
+    {
+      "hex": "7d",
+      "name": "i64.sub"
+    },
+    {
+      "hex": "7e",
+      "name": "i64.mul"
+    },
+    {
+      "hex": "83",
+      "name": "i64.and"
+    },
+    {
+      "hex": "84",
+      "name": "i64.or"
+    },
+    {
+      "hex": "85",
+      "name": "i64.xor"
+    },
+    {
+      "hex": "86",
+      "name": "i64.shl"
+    },
+    {
+      "hex": "88",
+      "name": "i64.shr_u"
+    },
+    {
+      "hex": "a7",
+      "name": "i32.wrap_i64"
+    },
+    {
+      "hex": "ad",
+      "name": "i64.extend_i32_u"
+    }
+  ],
+  "forbidden_features": [
+    "imports",
+    "start",
+    "tables",
+    "elements",
+    "tags",
+    "exceptions",
+    "reference_types",
+    "floating_point",
+    "simd",
+    "threads",
+    "shared_memory",
+    "multiple_memories",
+    "tail_calls",
+    "bulk_memory",
+    "unknown_custom_sections"
+  ],
+  "integer_encoding": "canonical-minimal-leb128",
+  "name_encoding": "strict-utf8-nfc",
+  "global_mutability": {
+    "immutable": "00",
+    "mutable": "01"
+  },
+  "active_data_segment_flag": "00",
+  "block_types": {
+    "empty": "40",
+    "i32": "7f",
+    "i64": "7e"
+  },
+  "max_expanded_locals_per_function": 256
+}

@@ -1,0 +1,39 @@
+{
+  "schema": "pi.semantic-witness-seccomp-policy.v1",
+  "architecture": {"name": "AUDIT_ARCH_X86_64", "value": 3221225534},
+  "seccomp_data_offsets": {"nr": 0, "arch": 4, "args": 16},
+  "x32_syscall_bit": 1073741824,
+  "actions": {
+    "kill_process": 2147483648,
+    "errno": 327680,
+    "allow": 2147418112,
+    "eperm": 1
+  },
+  "flags": {
+    "PROT_EXEC": 4,
+    "SHM_EXEC": 32768,
+    "MFD_EXEC": 16,
+    "SECCOMP_FILTER_FLAG_TSYNC": 1
+  },
+  "default_action": "ALLOW",
+  "unknown_architecture_action": "KILL_PROCESS",
+  "x32_syscall_action": "KILL_PROCESS",
+  "no_new_privs_required": true,
+  "denials": [
+    {"syscall": "mmap", "syscall_number": 9, "predicate": "masked_nonzero", "argument_index": 2, "mask_name": "PROT_EXEC", "mask_value": 4, "errno": "EPERM"},
+    {"syscall": "mprotect", "syscall_number": 10, "predicate": "masked_nonzero", "argument_index": 2, "mask_name": "PROT_EXEC", "mask_value": 4, "errno": "EPERM"},
+    {"syscall": "mremap", "syscall_number": 25, "predicate": "unconditional", "argument_index": null, "mask_name": null, "mask_value": null, "errno": "EPERM"},
+    {"syscall": "pkey_mprotect", "syscall_number": 329, "predicate": "masked_nonzero", "argument_index": 2, "mask_name": "PROT_EXEC", "mask_value": 4, "errno": "EPERM"},
+    {"syscall": "shmat", "syscall_number": 30, "predicate": "masked_nonzero", "argument_index": 2, "mask_name": "SHM_EXEC", "mask_value": 32768, "errno": "EPERM"},
+    {"syscall": "personality", "syscall_number": 135, "predicate": "unconditional", "argument_index": null, "mask_name": null, "mask_value": null, "errno": "EPERM"},
+    {"syscall": "memfd_create", "syscall_number": 319, "predicate": "masked_nonzero", "argument_index": 1, "mask_name": "MFD_EXEC", "mask_value": 16, "errno": "EPERM"},
+    {"syscall": "execve", "syscall_number": 59, "predicate": "unconditional", "argument_index": null, "mask_name": null, "mask_value": null, "errno": "EPERM"},
+    {"syscall": "execveat", "syscall_number": 322, "predicate": "unconditional", "argument_index": null, "mask_name": null, "mask_value": null, "errno": "EPERM"},
+    {"syscall": "ptrace", "syscall_number": 101, "predicate": "unconditional", "argument_index": null, "mask_name": null, "mask_value": null, "errno": "EPERM"},
+    {"syscall": "process_vm_writev", "syscall_number": 311, "predicate": "unconditional", "argument_index": null, "mask_name": null, "mask_value": null, "errno": "EPERM"},
+    {"syscall": "seccomp", "syscall_number": 317, "predicate": "unconditional", "argument_index": null, "mask_name": null, "mask_value": null, "errno": "EPERM"}
+  ],
+  "readback": ["PR_GET_NO_NEW_PRIVS=1", "PR_GET_SECCOMP=2"],
+  "self_test": {"syscall": "mprotect", "length": 4096, "protection": 5, "expected_return": "minus_one", "expected_errno": "EPERM", "sacrificial_child": true},
+  "compiler": "pi.reviewed-seccomp-policy-compiler.v1"
+}

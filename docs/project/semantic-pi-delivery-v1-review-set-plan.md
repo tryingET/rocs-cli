@@ -23,6 +23,10 @@ The review controller freezes one Git commit containing exactly:
 - `docs/project/semantic-pi-delivery-v1-runtime-contracts.md`;
 - `docs/project/semantic-pi-delivery-v1-authority-contracts.md`;
 - `docs/project/semantic-pi-delivery-v1-validation-contracts.md`;
+- `docs/project/semantic-pi-delivery-v1-machine-contract.md`;
+- `docs/project/semantic-pi-delivery-v1-seccomp-policy.json`;
+- `docs/project/semantic-pi-delivery-v1-wasm-grammar.json`;
+- `docs/project/semantic-pi-delivery-v1-wasm-validation-algorithm.md`;
 - `docs/project/semantic-pi-delivery-v1-review-set-plan.md`.
 
 The controller records commit SHA, per-file SHA-256, byte lengths, and an aggregate SHA-256. For each reviewed path, compute SHA-256 over its exact file bytes and serialize one ASCII row exactly as `path<TAB>byte_length<TAB>sha256<LF>`, where `path` is the repository-relative POSIX path shown above, byte length is canonical unsigned decimal with no leading zero except `0`, and `sha256` is 64 lowercase hexadecimal characters without a prefix. Sort complete rows by the unsigned UTF-8 bytes of `path`, concatenate them with no header or extra bytes, and compute ordinary SHA-256 over that concatenation; the aggregate is 64 lowercase hexadecimal characters without a prefix. Any byte change invalidates every review and requires a new set.
