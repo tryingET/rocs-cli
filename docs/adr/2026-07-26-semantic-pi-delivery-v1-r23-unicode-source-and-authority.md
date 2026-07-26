@@ -9,7 +9,7 @@ system4d:
   engine: "Failed r21 implementation -> r22 review failure -> r23 strict convergence -> new owner-scoped implementation tasks."
   fog: "A corrected parser, accepted predecessor ADR, or passing fixture may be mistaken for current implementation or execution authority."
 type: "adr"
-status: "proposed"
+status: "accepted"
 ---
 # ADR — Semantic Pi Delivery v1 r23 Unicode Source and Authority
 
