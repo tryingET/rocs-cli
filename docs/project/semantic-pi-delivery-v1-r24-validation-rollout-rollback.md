@@ -9,7 +9,7 @@ system4d:
   engine: "Baseline -> deterministic packet -> owner acceptance -> host-owner artifact/API -> component proof -> exact scope/readiness -> optional one-shot dogfood."
   fog: "A passing fixture, AK unblocking, or isolated run may be overclaimed as delivery or production."
 type: "validation_rollout_rollback"
-status: "ready_for_attachment"
+status: "accepted_plan"
 ---
 # Validation / Rollout / Rollback — Semantic Pi Delivery v1
 
