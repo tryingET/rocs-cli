@@ -9,7 +9,7 @@ system4d:
   engine: "AK release -> ROCS packet -> semantic-owner acceptance -> Pi-host owner artifact/API -> component -> readiness reevaluation -> separately authorized one-shot dogfood."
   fog: "AK unblocking, passing fixtures, or a component callback may be mistaken for delivery or production authority."
 type: "implementation_plan"
-status: "ready_for_attachment"
+status: "accepted_plan"
 ---
 # Implementation Plan — Semantic Pi Delivery v1
 
