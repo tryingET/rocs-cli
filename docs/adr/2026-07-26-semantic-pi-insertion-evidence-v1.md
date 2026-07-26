@@ -3,14 +3,14 @@ summary: "Accepts a compact insertion-only Pi evidence protocol and retires the 
 read_when:
   - "Implementing or reviewing semantic Pi prompt-chain insertion evidence."
 type: "adr"
-status: "proposed"
+status: "accepted"
 decision_id: 85
 ---
 # ADR — Semantic Pi insertion evidence v1
 
 ## Status
 
-Proposed for Decision 85 after strict five-lane convergence.
+Accepted for Decision 85 after strict five-lane convergence and independent ADR reviews `dispatch-1785106541564` and `dispatch-1785106541564-1`.
 
 ## Context
 
