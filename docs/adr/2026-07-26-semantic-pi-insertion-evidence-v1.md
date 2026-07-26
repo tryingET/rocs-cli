@@ -14,9 +14,9 @@ Proposed for Decision 85 after strict five-lane convergence.
 
 ## Context
 
-Decision 53 v0 used a fictional `pi-adapter` identity and local callback completion as delivery evidence. Decisions 71, 80, and 82 progressively corrected identity, Unicode-source, and digest-registry defects. Their implementation tasks `4230`, `4250`, and `4278` failed closed. Decision 84 task `4298` then proved that completing the broad delivery protocol requires at least 155 schemas and 2,591 root properties before nested shapes; four catalog attempts were inconsistent and non-machine-executable. AK evidence `5492` records that result.
+Decision 53 v0 used a fictional `pi-adapter` identity and local callback completion as delivery evidence. Decisions 71, 80, and 82 progressively corrected identity, pinned Unicode-source parsing, and the missing `preimage_kind` registry vocabulary before implementation exposed broader schema/edge/fixture compiler underdetermination. Their implementation tasks `4230`, `4250`, and `4278` failed closed. Decision 84 task `4298` then proved that completing the broad delivery protocol requires at least 155 schemas and 2,591 root properties before nested shapes; four catalog attempts were inconsistent and non-machine-executable. AK evidence `5492` records that result.
 
-The useful host observation is smaller: the host can prove, within one process and attempt, that it assigned and read back a prompt chain containing one exact component contribution, invoked the exact registered acknowledgement callback through a private capability, and committed an insertion record before dispatch became eligible.
+The useful host observation is smaller: the host can prove, within one process and attempt, that it assigned and read back a prompt chain containing one exact component contribution, received and validated the exact registered acknowledgement callback's successful return through a private capability, and committed an insertion record before dispatch became eligible.
 
 Decision 85 froze and reviewed:
 
@@ -43,20 +43,21 @@ The protocol:
 
 It does not prove or authorize provider transmission, model invocation/input/influence, semantic correctness, semantic delivery, publication, adoption, activation, consumer consent, live acquisition, or production use.
 
-The broad semantic-delivery packet/resolver/production direction from Decisions 71, 80, 82, and 84 is retired as an active implementation direction. Those decisions, ADRs, frozen bytes, failed tasks, evidence, and reviews remain immutable non-authorizing history. Failed tasks `4230`, `4250`, `4278`, and `4298` and their downstream tasks are not reopened or reused.
+Decision 53 v0 remains accepted immutable history, while the broad successor packet/resolver/production direction from Decisions 71, 80, 82, and 84 is retired as an active implementation direction. All five decisions, their ADRs, frozen bytes, failed tasks, evidence, and reviews remain immutable non-authorizing history. Failed tasks `4230`, `4250`, `4278`, and `4298` and their downstream tasks are not reopened or reused.
 
 ## Consequences
 
-- Any implementation requires fresh Decision-85 owner-scoped tasks and post-ADR implementation plus validation/rollout/rollback plans.
-- ROCS may own deterministic schemas/vectors; Pi host owns assignment/readback, private witness, guard, and record linearization; `pi-ontology-workflows` owns only its acknowledgement callback.
+- ADR acceptance permits only fresh owner-scoped implementation planning. Candidate implementation and all installation/live activity require separate authorization; this ADR supplies none.
+- Fresh Decision-85 plans must define owner-scoped tasks plus validation/rollout/rollback before any later candidate authorization.
+- ROCS may own deterministic schemas/vectors; Pi host owns callback invocation/control, application, assignment/readback, private witness/gateway, guards, validation, and record linearization; `pi-ontology-workflows` owns its contribution preparation and acknowledgement callback behavior without host/provider/model/production authority.
 - No generic resolver, registry, SQL ledger, recovery actor, seccomp/Wasm protocol, semantic-release overlay, consumer graph, or production authority enters insertion-evidence v1.
 - Generation/attempt/frame/guard sets are process-local operational state, not governance authority or durable recovery state.
 - Installation, reload execution, dogfood, provider/model use, publication, activation, live acquisition, and production remain separately unauthorized.
 
 ## Rollback and supersession
 
-Before implementation, rollback is simply to perform no owner task and keep the feature absent/default-off. After a future implementation, rollback must disable registration of the contributor and remove no historical audit bytes. Any expansion beyond insertion-only evidence, any public issuance claim, any durable recovery, or any provider/model assertion requires a new decision and ADR.
+Before implementation, rollback is simply to perform no owner task and keep the feature absent/default-off. After any separately authorized future implementation, rollback restores insertion evidence to absent/default-off; exact mechanism and optional audit-data disposition belong to owner-approved rollout/rollback planning. Any expansion beyond insertion-only evidence, any public issuance claim, any durable recovery, or any provider/model assertion requires a new decision and ADR.
 
 ## Non-authorization
 
-This ADR records architecture. It does not itself install code, create a candidate, authorize dogfood, supply owner facts, or permit live/production behavior.
+This ADR records architecture and permits planning only. It does not itself implement or install code, create or authorize a candidate, authorize reload/dogfood/provider/model use, supply owner facts, or permit publication, activation, live, or production behavior. Neither the private witness nor persisted JSON is independently authenticated public proof.
