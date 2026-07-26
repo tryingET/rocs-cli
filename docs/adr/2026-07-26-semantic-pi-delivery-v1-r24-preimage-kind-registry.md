@@ -9,7 +9,7 @@ system4d:
   engine: "Failed r23 generation -> explicit 193-row classification -> five-lane strict convergence -> fresh owner-scoped implementation tasks."
   fog: "A plausible preimage label, accepted predecessor ADR, or passing fixture may be mistaken for current implementation or execution authority."
 type: "adr"
-status: "proposed"
+status: "accepted"
 ---
 # ADR — Semantic Pi Delivery v1 r24 Preimage-Kind Registry
 
