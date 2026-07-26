@@ -64,6 +64,12 @@ No owner-issued artifact currently establishes all of:
 
 The accepted v0 ADR requires expansion through a later decision and superseding ADR. The governance lifecycle requires problem/evidence framing, RFC, immutable exact-artifact reviews, controlling synthesis, ADR, post-ADR implementation/validation plans, owner-scoped tasks, evidence, and learning.
 
+## R21 implementation blocker
+
+Post-ADR task `4230` independently verified the three pinned Unicode-15 input identities. The exact 1,913,704-byte `UnicodeData.txt` with SHA-256 `806e9aed65037197f1ec85e12be6e8cd870fc5608b4de0fffd990f689f376a73` contains six required surrogate range-sentinel source rows at lines 15253–15258: `D800`, `DB7F`, `DB80`, `DBFF`, `DC00`, and `DFFF`, all General_Category `Cs`. R21 simultaneously required parsing every field-0 source and rejecting every non-scalar token, with no sentinel branch. Machine-contract fail-closed rules therefore prohibited packet generation. AK evidence `5325` records the reproduced hashes, rows, no generated packet, and unchanged frozen sources.
+
+R22 may resolve only this contradiction by recognizing the six exact pinned rows as non-emitting source metadata while retaining scalar-only mappings and outputs. Tests or implementation inference cannot repair r21 without a new exact-byte review and superseding ADR.
+
 ## Evidence conclusion
 
 The lawful next move is a new cross-repo Tier-1 RFC for a default-off v1 receipt and host witness. It may authorize later isolated implementation and a separately authorized one-shot proof; it cannot authorize live adoption.

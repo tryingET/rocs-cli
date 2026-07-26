@@ -9,10 +9,10 @@ system4d:
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r21"
+rfc_revision: "semantic-pi-delivery-v1-r22"
 ---
 
-# RFC — Semantic Pi delivery receipt v1 r21
+# RFC — Semantic Pi delivery receipt v1 r22
 
 ## Decision requested
 
@@ -25,6 +25,10 @@ Accept a successor to the Pi-delivery seam of Decision 53 that:
 5. permits one separately authorized, non-authoritative real-host integration proof that cannot validate as semantic delivery.
 
 No code is authorized before a successor ADR and post-ADR execution membrane.
+
+## R22 correction boundary
+
+Decision `80` supersedes r21 only for pinned Unicode-15 source parsing. Failed implementation task `4230` and AK evidence `5325` proved that the exact pinned `UnicodeData.txt` contains six required General_Category `Cs` surrogate range-sentinel source rows, while r21 rejected every non-scalar source token. R22 accepts only those six exact sentinel rows as non-emitting source metadata. It does not admit surrogate decomposition mappings, case-fold mappings, composition exclusions, normalized output, identifiers, or JSON strings; every generated table codepoint and mapping remains a Unicode scalar. All identity, authority, runtime, schema, digest, packet, fixture, host, component, dogfood, live-acquisition, and production contracts otherwise remain byte-semantically unchanged.
 
 ## Inputs
 
@@ -143,7 +147,7 @@ It references but does not contain package-tree or provenance bodies, preventing
 
 ## Normative contract annexes
 
-This core RFC and the following ten annexes and reviewed machine-source files are one indivisible normative r21 review object:
+This core RFC and the following ten annexes and reviewed machine-source files are one indivisible normative r22 review object:
 
 - `semantic-pi-delivery-v1-runtime-contracts.md` — host runtime, sealed staging, maps, digest registry, deterministic loading, registrar, attempt, and receipt preimages;
 - `semantic-pi-delivery-v1-authority-contracts.md` — receipt/witness semantics, durable replay, signed attestation, integration authorization, finalizer, canonical ledger, and proof;
@@ -156,7 +160,7 @@ This core RFC and the following ten annexes and reviewed machine-source files ar
 - `semantic-pi-delivery-v1-integration-ledger.sql` — exact SQLite schema bytes for the one-shot integration authorization ledger;
 - `semantic-pi-delivery-v1-production-replay.sql` — exact SQLite schema bytes for the production replay store and immutable exchange index.
 
-No annex or reviewed SQL source is optional, informative, or lower precedence. Definitions occur once across the eleven normative files. A missing source, review-byte mismatch, undefined cross-reference, or contradiction rejects r21. The exact-byte review set additionally includes the problem brief, evidence note, and review plan as reviewed supporting/governance bytes; they are not normative generator inputs. The design-source manifest covers all fourteen reviewed files and marks each row `normative_semantic_source|reviewed_supporting` according to this split.
+No annex or reviewed SQL source is optional, informative, or lower precedence. Definitions occur once across the eleven normative files. A missing source, review-byte mismatch, undefined cross-reference, or contradiction rejects r22. The exact-byte review set additionally includes the problem brief, evidence note, and review plan as reviewed supporting/governance bytes; they are not normative generator inputs. The design-source manifest covers all fourteen reviewed files and marks each row `normative_semantic_source|reviewed_supporting` according to this split.
 
 ## Public surface and cross-repo sequence
 

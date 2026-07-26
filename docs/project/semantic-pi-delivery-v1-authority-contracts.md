@@ -1,7 +1,7 @@
 ---
-summary: "Normative receipt, witness, attestation, authorization, ledger, and replay contracts for semantic Pi delivery v1 r21."
+summary: "Normative receipt, witness, attestation, authorization, ledger, and replay contracts for semantic Pi delivery v1 r22."
 read_when:
-  - "Reviewing the exact semantic Pi delivery v1 RFC r21 contract."
+  - "Reviewing the exact semantic Pi delivery v1 RFC r22 contract."
 system4d:
   container: "Normative annex to Decision 71 semantic Pi delivery v1."
   compass: "Keep exact executable contracts reviewable without an oversized monolith."
@@ -9,10 +9,10 @@ system4d:
   fog: "Reading only the core RFC can omit mandatory annex constraints."
 type: "rfc_annex"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r21"
+rfc_revision: "semantic-pi-delivery-v1-r22"
 ---
 
-# Authority contracts — semantic Pi delivery v1 r21
+# Authority contracts — semantic Pi delivery v1 r22
 
 ## Closed delivery receipt union
 

@@ -52,6 +52,10 @@ Track verdicts are inputs. Only the latest complete synthesis supplies the decis
 
 No consumer-owner or recovery-owner verdict may be fabricated while those owner products do not exist. Their absence remains a live-gate blocker.
 
+## R22 correction focus
+
+Every lane must reproduce the three pinned Unicode input hashes and inspect the six exact `UnicodeData.txt` `Cs` source rows. Review must prove that r22 accepts only those rows as non-emitting source metadata, retains scalar-only decomposition/casefold/exclusion/output semantics, and leaves all non-Unicode authority/runtime behavior unchanged. Any broader surrogate allowance, ambient Unicode dependency, packet-generation shortcut, or missing failed-task/evidence lineage forces `revise_rfc`.
+
 ## Review prompt
 
 Each lane must:
