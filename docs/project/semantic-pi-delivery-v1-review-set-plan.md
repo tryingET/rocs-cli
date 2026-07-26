@@ -52,9 +52,9 @@ Track verdicts are inputs. Only the latest complete synthesis supplies the decis
 
 No consumer-owner or recovery-owner verdict may be fabricated while those owner products do not exist. Their absence remains a live-gate blocker.
 
-## R22 correction focus
+## R23 correction focus
 
-Every lane must reproduce the three pinned Unicode input hashes and inspect the six exact `UnicodeData.txt` `Cs` source rows. Review must prove that r22 accepts only those rows as non-emitting source metadata, retains scalar-only decomposition/casefold/exclusion/output semantics, and leaves all non-Unicode authority/runtime behavior unchanged. Any broader surrogate allowance, ambient Unicode dependency, packet-generation shortcut, or missing failed-task/evidence lineage forces `revise_rfc`.
+Every lane must reproduce the three pinned Unicode input hashes, the non-ASCII comment suffixes, and the six exact `UnicodeData.txt` `Cs` source rows. Review must prove that r23 orders raw comment stripping before retained-prefix ASCII validation, accepts only those six rows as non-emitting source metadata, retains scalar-only decomposition/casefold/exclusion/output semantics, and independently closes the six source-compiler conformance obligations without altering the 112/115/127 protocol fixture counts. It must also prove that Decision 71/r21 stays immutable predecessor history, Decision 80 supersession is conditional on an accepted ADR, and every corrected packet/runtime/task/ledger authority binding names Decision 80. Any broader surrogate allowance, ambient Unicode dependency, parser-order ambiguity, Decision-71 execution binding, packet-generation shortcut, or missing failed-task/evidence lineage forces `revise_rfc`.
 
 ## Review prompt
 

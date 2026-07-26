@@ -70,6 +70,12 @@ Post-ADR task `4230` independently verified the three pinned Unicode-15 input id
 
 R22 may resolve only this contradiction by recognizing the six exact pinned rows as non-emitting source metadata while retaining scalar-only mappings and outputs. Tests or implementation inference cannot repair r21 without a new exact-byte review and superseding ADR.
 
+## R22 review blockers
+
+The exact r22 review at commit `b834dc2e3b450483a7f0bfabf8fa88a910d9beb8`, aggregate `4c874dbbc016b09c5e2ba7b5c17dce20a9f4133ec8e7380a6b421e534eefec4f`, returned `revise_rfc`. CaseFolding contains six and CompositionExclusions four non-ASCII UTF-8 bytes in comment suffixes, while r22 did not order comment removal before ASCII syntax validation. Governance also found corrected runtime authority still bound to Decision 71 and required explicit sentinel-branch conformance obligations. The controlling record is `semantic-pi-delivery-v1-review-synthesis-r22.md`.
+
+R23 must fix raw-byte preprocessing, bind all corrected authority to Decision 80 conditionally on its accepted superseding ADR, and require independent exact-six/negative/emission conformance while preserving the existing protocol fixture counts.
+
 ## Evidence conclusion
 
 The lawful next move is a new cross-repo Tier-1 RFC for a default-off v1 receipt and host witness. It may authorize later isolated implementation and a separately authorized one-shot proof; it cannot authorize live adoption.
