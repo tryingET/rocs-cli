@@ -1,0 +1,1132 @@
+{
+  "accepted_object_aggregate_sha256": "e1a715cd868bdd9807eecb798b29ac02342697cc2afd9ac8eb7d9b6296b97a7e",
+  "cases": [
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "before_witness",
+          "kind": "abort_signal",
+          "value": "set"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "aborted",
+          "error_digest": "sha256:39f98b0105cfab64f552234f17c4dbf3599b23700c86602a39220bc7e6fc1c6d",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "witness"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "abort-before-witness",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_applied",
+          "kind": "replace_ack_issuer",
+          "value": "other-component"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "acknowledgement_mismatch",
+          "error_digest": "sha256:9364774792bd2a28bdc55781bff5398c41461d627191a2c38ce031d74289c750",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "acknowledgement"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "acknowledgement-substitution",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "invoke_nested_prompt",
+          "value": "attempt"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "reentry_attempt",
+          "error_digest": "sha256:2a4ac2ffc88c14557b0f56d85b205299e7449b3a2170852491b73f33fa5b1b27",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "dispatch_guard"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "applied-reentry",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "before_reservation",
+          "kind": "reserve_attempt_override",
+          "value": "0"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": null,
+          "details": [],
+          "error_code": "attempt_reuse",
+          "error_digest": "sha256:05c09c32ba29bd769c9eec9068196b6bf775ec1007d96dad137f254ed46ad1cf",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "registration"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "attempt-reuse",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 1,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_apply",
+          "kind": "apply_span",
+          "value": "0:0"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "contribution_not_inserted",
+          "error_digest": "sha256:5e3a293d82e6b50f95c654659c6c08f2f9a44615eda45289dcb4f138814abbdf",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "apply"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "contribution-absent",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "advance_monotonic_ns",
+          "value": "1000"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "deadline_exceeded",
+          "error_digest": "sha256:6af1d1b7e28169ae2703fae9dacd37d0974213207436b4bc664bc331d18266bb",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "acknowledgement"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "deadline-equality",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "before_reservation",
+          "kind": "replace_registration_component_id",
+          "value": "pi-adapter"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": null,
+          "details": [],
+          "error_code": "identity_mismatch",
+          "error_digest": "sha256:cb28890ea26524d6d43ee61316e044d047bb45afcca0d5b9dbe7002b32d94f5e",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "registration"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "identity-substitution",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_applied",
+          "kind": "inject_ack_bytes_base64",
+          "value": "eyJzY2hlbWEiOiJzZW1hbnRpYy1waS1pbnNlcnRpb24tYWNrbm93bGVkZ2VtZW50LnYxIiwic2NoZW1hIjoiZHVwbGljYXRlIn0="
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "malformed_input",
+          "error_digest": "sha256:0ae7ab4bfd9ba9fc19ac238aa246f341efd0feb50ef406410a5cc086981e8904",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "acknowledgement"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "malformed-ack-json",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "zIE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_apply",
+          "kind": "apply_span",
+          "value": "1:3"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "malformed_input",
+          "error_digest": "sha256:70a7ecae27c714573a74a5edca3746d4876b50d2746d5b626f2ba6d76115aa9a",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "apply"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "non-nfc-assigned-chain",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "ZQ=="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_readback",
+          "kind": "readback_base64",
+          "value": "YWxwaGEgQkVUQQ=="
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "readback_mismatch",
+          "error_digest": "sha256:f4ff173e67080994efe8f62c391877600d66072bb38972148551af3b0bd691ea",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "readback"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "readback-drift",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "before_witness",
+          "kind": "reload_generation",
+          "value": "1"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "stale_generation",
+          "error_digest": "sha256:0231700669ef2384e45e609d3f1dc20ae2a29999c5f14b4dddc2426f8e5ff2c1",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "witness"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "stale-generation",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "ZHVw",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_reservation",
+          "kind": "reserve",
+          "value": "0"
+        },
+        {
+          "at_hook": "during_prepare",
+          "kind": "prepare_return_base64",
+          "value": "ZHVw"
+        },
+        {
+          "at_hook": "after_apply",
+          "kind": "apply_span",
+          "value": "8:11"
+        },
+        {
+          "at_hook": "after_assignment",
+          "kind": "assign_base64",
+          "value": "cHJlfGR1cHxkdXBwb3N0fGR1cA=="
+        },
+        {
+          "at_hook": "after_readback",
+          "kind": "readback_base64",
+          "value": "cHJlfGR1cHxkdXBwb3N0fGR1cA=="
+        },
+        {
+          "at_hook": "after_witness",
+          "kind": "issue_witness",
+          "value": "sha256:fd8694051ba73cb11f6b1e0be0d42b2dd081d5049451179c9a16270f9671f039"
+        },
+        {
+          "at_hook": "after_applied",
+          "kind": "applied_return_digest",
+          "value": "sha256:e5356335d3d68f389095843fa74f1f8f2c0a5b182862e7f78976a10945be58e3"
+        },
+        {
+          "at_hook": "after_record_commit",
+          "kind": "commit_record",
+          "value": "sha256:72d3b4acdcaf62653626144deb5fe52e25ab240c469a92dfd5e06526e0153c80"
+        }
+      ],
+      "expected": {
+        "accepted": true,
+        "acknowledgement_or_null": {
+          "acknowledgement_digest": "sha256:e5356335d3d68f389095843fa74f1f8f2c0a5b182862e7f78976a10945be58e3",
+          "acknowledgement_outcome": "observed_inserted",
+          "attempt_id": 0,
+          "claim_scope": "prompt_chain_insertion_only",
+          "execution_generation": 0,
+          "handler_registration_index": 3,
+          "issuer": {
+            "id": "pi-ontology-workflows",
+            "kind": "pi_extension_component"
+          },
+          "request_digest": "sha256:5bdd5e058ca6d3942ed45fdcf9e3c8ce4735ff2dc8d85847f8a785df8c6d9532",
+          "schema": "semantic-pi-insertion-acknowledgement.v1",
+          "witness_digest": "sha256:fd8694051ba73cb11f6b1e0be0d42b2dd081d5049451179c9a16270f9671f039"
+        },
+        "error_or_null": null,
+        "record_or_null": {
+          "acknowledgement_digest": "sha256:e5356335d3d68f389095843fa74f1f8f2c0a5b182862e7f78976a10945be58e3",
+          "attempt_id": 0,
+          "claim_scope": "prompt_chain_insertion_only",
+          "execution_generation": 0,
+          "handler_registration_index": 3,
+          "host_package": "@earendil-works/pi-coding-agent",
+          "insertion_outcome": "observed_inserted",
+          "insertion_record_digest": "sha256:72d3b4acdcaf62653626144deb5fe52e25ab240c469a92dfd5e06526e0153c80",
+          "model_invocation_started_at_record": false,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "provider_request_dispatched_at_record": false,
+          "record_phase": "acknowledged_pre_dispatch",
+          "request_digest": "sha256:5bdd5e058ca6d3942ed45fdcf9e3c8ce4735ff2dc8d85847f8a785df8c6d9532",
+          "schema": "pi.prompt-chain-insertion-record.v1",
+          "witness_digest": "sha256:fd8694051ba73cb11f6b1e0be0d42b2dd081d5049451179c9a16270f9671f039"
+        },
+        "request_or_null": {
+          "attempt_id": 0,
+          "component_id": "pi-ontology-workflows",
+          "contribution_byte_length": 3,
+          "contribution_digest": "sha256:f4d77c887401ef95ec3ac90d6af1adec6e4790a7492e9964b1315f801bc3fa7b",
+          "execution_generation": 0,
+          "handler_registration_index": 3,
+          "input_prompt_byte_length": 16,
+          "input_prompt_digest": "sha256:3721315f2ea79619bfddb0e01efdb9ed8de75781f9f1181251c18d98420bdd3f",
+          "package_name": "@tryinget/pi-ontology-workflows",
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "repository_id": "pi-extensions",
+          "request_digest": "sha256:5bdd5e058ca6d3942ed45fdcf9e3c8ce4735ff2dc8d85847f8a785df8c6d9532",
+          "schema": "semantic-pi-insertion-request.v1"
+        },
+        "witness_or_null": {
+          "assigned_prompt_chain_byte_length": 19,
+          "assigned_prompt_chain_digest": "sha256:80beade44ce1dfa080d6f4f3eb7b5952f9e33a919113e78499035db2faf86cff",
+          "attempt_id": 0,
+          "contribution_end_byte_offset": 11,
+          "contribution_start_byte_offset": 8,
+          "execution_generation": 0,
+          "handler_registration_index": 3,
+          "host_package": "@earendil-works/pi-coding-agent",
+          "model_invocation_started_at_observation": false,
+          "observation_phase": "post_assignment_readback_pre_dispatch",
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "provider_request_dispatched_at_observation": false,
+          "readback_prompt_chain_byte_length": 19,
+          "readback_prompt_chain_digest": "sha256:80beade44ce1dfa080d6f4f3eb7b5952f9e33a919113e78499035db2faf86cff",
+          "request_digest": "sha256:5bdd5e058ca6d3942ed45fdcf9e3c8ce4735ff2dc8d85847f8a785df8c6d9532",
+          "schema": "pi.prompt-chain-application-witness.v1",
+          "witness_digest": "sha256:fd8694051ba73cb11f6b1e0be0d42b2dd081d5049451179c9a16270f9671f039"
+        }
+      },
+      "handler_registration_index": 3,
+      "id": "valid-nonzero-handler-index",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "cHJlfGR1cHxwb3N0fGR1cA=="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_reservation",
+          "kind": "reserve",
+          "value": "0"
+        },
+        {
+          "at_hook": "during_prepare",
+          "kind": "prepare_return_base64",
+          "value": "IGJldGE="
+        },
+        {
+          "at_hook": "after_apply",
+          "kind": "apply_span",
+          "value": "5:10"
+        },
+        {
+          "at_hook": "after_assignment",
+          "kind": "assign_base64",
+          "value": "YWxwaGEgYmV0YQ=="
+        },
+        {
+          "at_hook": "after_readback",
+          "kind": "readback_base64",
+          "value": "YWxwaGEgYmV0YQ=="
+        },
+        {
+          "at_hook": "after_witness",
+          "kind": "issue_witness",
+          "value": "sha256:34257b438b30d064c70aa3ac60ae4874385536802eac2785ef77b2b798fc28e1"
+        },
+        {
+          "at_hook": "after_applied",
+          "kind": "applied_return_digest",
+          "value": "sha256:493d25a656adc316e56671c1bf7a691752aeb522e81b87edf1125def7b6a6ed7"
+        },
+        {
+          "at_hook": "after_record_commit",
+          "kind": "commit_record",
+          "value": "sha256:dd95801bbc54d6f7a3e358d4477030117edb0282fed42c2fd8515191b4db5756"
+        }
+      ],
+      "expected": {
+        "accepted": true,
+        "acknowledgement_or_null": {
+          "acknowledgement_digest": "sha256:493d25a656adc316e56671c1bf7a691752aeb522e81b87edf1125def7b6a6ed7",
+          "acknowledgement_outcome": "observed_inserted",
+          "attempt_id": 0,
+          "claim_scope": "prompt_chain_insertion_only",
+          "execution_generation": 0,
+          "handler_registration_index": 0,
+          "issuer": {
+            "id": "pi-ontology-workflows",
+            "kind": "pi_extension_component"
+          },
+          "request_digest": "sha256:d8ed1aa3a254bfd8e055035a6d66b0da508f2e325615d31ed8031c4cc0323253",
+          "schema": "semantic-pi-insertion-acknowledgement.v1",
+          "witness_digest": "sha256:34257b438b30d064c70aa3ac60ae4874385536802eac2785ef77b2b798fc28e1"
+        },
+        "error_or_null": null,
+        "record_or_null": {
+          "acknowledgement_digest": "sha256:493d25a656adc316e56671c1bf7a691752aeb522e81b87edf1125def7b6a6ed7",
+          "attempt_id": 0,
+          "claim_scope": "prompt_chain_insertion_only",
+          "execution_generation": 0,
+          "handler_registration_index": 0,
+          "host_package": "@earendil-works/pi-coding-agent",
+          "insertion_outcome": "observed_inserted",
+          "insertion_record_digest": "sha256:dd95801bbc54d6f7a3e358d4477030117edb0282fed42c2fd8515191b4db5756",
+          "model_invocation_started_at_record": false,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "provider_request_dispatched_at_record": false,
+          "record_phase": "acknowledged_pre_dispatch",
+          "request_digest": "sha256:d8ed1aa3a254bfd8e055035a6d66b0da508f2e325615d31ed8031c4cc0323253",
+          "schema": "pi.prompt-chain-insertion-record.v1",
+          "witness_digest": "sha256:34257b438b30d064c70aa3ac60ae4874385536802eac2785ef77b2b798fc28e1"
+        },
+        "request_or_null": {
+          "attempt_id": 0,
+          "component_id": "pi-ontology-workflows",
+          "contribution_byte_length": 5,
+          "contribution_digest": "sha256:5523400f068355a6ff1dfe0bcd792d4bbcbdf89fd2fd489ba651a28d142ad501",
+          "execution_generation": 0,
+          "handler_registration_index": 0,
+          "input_prompt_byte_length": 5,
+          "input_prompt_digest": "sha256:cf5d5c165da535519b005dc95e366bc6f9e71979722769062626bde1121d7284",
+          "package_name": "@tryinget/pi-ontology-workflows",
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "repository_id": "pi-extensions",
+          "request_digest": "sha256:d8ed1aa3a254bfd8e055035a6d66b0da508f2e325615d31ed8031c4cc0323253",
+          "schema": "semantic-pi-insertion-request.v1"
+        },
+        "witness_or_null": {
+          "assigned_prompt_chain_byte_length": 10,
+          "assigned_prompt_chain_digest": "sha256:1ef48f5f440aa7190e526650127553dff095e300dd392d9de99469845e647400",
+          "attempt_id": 0,
+          "contribution_end_byte_offset": 10,
+          "contribution_start_byte_offset": 5,
+          "execution_generation": 0,
+          "handler_registration_index": 0,
+          "host_package": "@earendil-works/pi-coding-agent",
+          "model_invocation_started_at_observation": false,
+          "observation_phase": "post_assignment_readback_pre_dispatch",
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "provider_request_dispatched_at_observation": false,
+          "readback_prompt_chain_byte_length": 10,
+          "readback_prompt_chain_digest": "sha256:1ef48f5f440aa7190e526650127553dff095e300dd392d9de99469845e647400",
+          "request_digest": "sha256:d8ed1aa3a254bfd8e055035a6d66b0da508f2e325615d31ed8031c4cc0323253",
+          "schema": "pi.prompt-chain-application-witness.v1",
+          "witness_digest": "sha256:34257b438b30d064c70aa3ac60ae4874385536802eac2785ef77b2b798fc28e1"
+        }
+      },
+      "handler_registration_index": 0,
+      "id": "valid-single-insertion",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IOKAlCDOuw==",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_reservation",
+          "kind": "reserve",
+          "value": "7"
+        },
+        {
+          "at_hook": "during_prepare",
+          "kind": "prepare_return_base64",
+          "value": "IOKAlCDOuw=="
+        },
+        {
+          "at_hook": "after_apply",
+          "kind": "apply_span",
+          "value": "5:12"
+        },
+        {
+          "at_hook": "after_assignment",
+          "kind": "assign_base64",
+          "value": "Y2Fmw6kg4oCUIM67"
+        },
+        {
+          "at_hook": "after_readback",
+          "kind": "readback_base64",
+          "value": "Y2Fmw6kg4oCUIM67"
+        },
+        {
+          "at_hook": "after_witness",
+          "kind": "issue_witness",
+          "value": "sha256:353193d46506c8acdc935ddb572ed409df935f22490bc99c7be8bb08c05c3ba7"
+        },
+        {
+          "at_hook": "after_applied",
+          "kind": "applied_return_digest",
+          "value": "sha256:ae1b2aabd793232a88165d9fde8c725d5da76e8d642042247141b3ca9e8301ea"
+        },
+        {
+          "at_hook": "after_record_commit",
+          "kind": "commit_record",
+          "value": "sha256:ae03f47de3dd530de4e80dcbe787a9bf8b659ecbefcf7ef748d72ef7ef7d5efc"
+        }
+      ],
+      "expected": {
+        "accepted": true,
+        "acknowledgement_or_null": {
+          "acknowledgement_digest": "sha256:ae1b2aabd793232a88165d9fde8c725d5da76e8d642042247141b3ca9e8301ea",
+          "acknowledgement_outcome": "observed_inserted",
+          "attempt_id": 7,
+          "claim_scope": "prompt_chain_insertion_only",
+          "execution_generation": 2,
+          "handler_registration_index": 1,
+          "issuer": {
+            "id": "pi-ontology-workflows",
+            "kind": "pi_extension_component"
+          },
+          "request_digest": "sha256:8b7b1c9faf6e2a3dcf4b65cd3e80b75979c1dd562562e8c024d9ee0f5764ad1c",
+          "schema": "semantic-pi-insertion-acknowledgement.v1",
+          "witness_digest": "sha256:353193d46506c8acdc935ddb572ed409df935f22490bc99c7be8bb08c05c3ba7"
+        },
+        "error_or_null": null,
+        "record_or_null": {
+          "acknowledgement_digest": "sha256:ae1b2aabd793232a88165d9fde8c725d5da76e8d642042247141b3ca9e8301ea",
+          "attempt_id": 7,
+          "claim_scope": "prompt_chain_insertion_only",
+          "execution_generation": 2,
+          "handler_registration_index": 1,
+          "host_package": "@earendil-works/pi-coding-agent",
+          "insertion_outcome": "observed_inserted",
+          "insertion_record_digest": "sha256:ae03f47de3dd530de4e80dcbe787a9bf8b659ecbefcf7ef748d72ef7ef7d5efc",
+          "model_invocation_started_at_record": false,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "provider_request_dispatched_at_record": false,
+          "record_phase": "acknowledged_pre_dispatch",
+          "request_digest": "sha256:8b7b1c9faf6e2a3dcf4b65cd3e80b75979c1dd562562e8c024d9ee0f5764ad1c",
+          "schema": "pi.prompt-chain-insertion-record.v1",
+          "witness_digest": "sha256:353193d46506c8acdc935ddb572ed409df935f22490bc99c7be8bb08c05c3ba7"
+        },
+        "request_or_null": {
+          "attempt_id": 7,
+          "component_id": "pi-ontology-workflows",
+          "contribution_byte_length": 7,
+          "contribution_digest": "sha256:7791ec07710576322a8df610642bc3a5750f07cf46fb7a578356c3e2ef4b63aa",
+          "execution_generation": 2,
+          "handler_registration_index": 1,
+          "input_prompt_byte_length": 5,
+          "input_prompt_digest": "sha256:0871686d6d4acc3cbf4bee979c8fcca76796701a4ad1189d46a6cb97c0e7051c",
+          "package_name": "@tryinget/pi-ontology-workflows",
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "repository_id": "pi-extensions",
+          "request_digest": "sha256:8b7b1c9faf6e2a3dcf4b65cd3e80b75979c1dd562562e8c024d9ee0f5764ad1c",
+          "schema": "semantic-pi-insertion-request.v1"
+        },
+        "witness_or_null": {
+          "assigned_prompt_chain_byte_length": 12,
+          "assigned_prompt_chain_digest": "sha256:1193aa7c36fe3c194aebba11de9d1717c1dd3d0cf87aeaddd5f47b0780519a50",
+          "attempt_id": 7,
+          "contribution_end_byte_offset": 12,
+          "contribution_start_byte_offset": 5,
+          "execution_generation": 2,
+          "handler_registration_index": 1,
+          "host_package": "@earendil-works/pi-coding-agent",
+          "model_invocation_started_at_observation": false,
+          "observation_phase": "post_assignment_readback_pre_dispatch",
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "provider_request_dispatched_at_observation": false,
+          "readback_prompt_chain_byte_length": 12,
+          "readback_prompt_chain_digest": "sha256:1193aa7c36fe3c194aebba11de9d1717c1dd3d0cf87aeaddd5f47b0780519a50",
+          "request_digest": "sha256:8b7b1c9faf6e2a3dcf4b65cd3e80b75979c1dd562562e8c024d9ee0f5764ad1c",
+          "schema": "pi.prompt-chain-application-witness.v1",
+          "witness_digest": "sha256:353193d46506c8acdc935ddb572ed409df935f22490bc99c7be8bb08c05c3ba7"
+        }
+      },
+      "handler_registration_index": 1,
+      "id": "valid-unicode-nfc-bytes",
+      "initial_generation": 2,
+      "initial_next_attempt_id": 7,
+      "input_bytes_base64": "Y2Fmw6k="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "after_witness",
+          "kind": "clone_witness_json",
+          "value": "true"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "witness_forged",
+          "error_digest": "sha256:c35f20daadde8caa36d0cce3e0afef38da1ff4c6250a6b60ca3e767a1e60726b",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "witness"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "witness-clone",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    },
+    {
+      "contribution_bytes_base64": "IGJldGE=",
+      "deadline_monotonic_ns": 1000,
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "consume_witness_twice",
+          "value": "true"
+        }
+      ],
+      "expected": {
+        "accepted": false,
+        "acknowledgement_or_null": null,
+        "error_or_null": {
+          "attempt_id_or_null": 0,
+          "details": [],
+          "error_code": "witness_reused",
+          "error_digest": "sha256:ed18ca96e1f366906c3e642691f6661b2b48df32df8533c93750922dcefdcebd",
+          "execution_generation": 0,
+          "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+          "schema": "semantic-pi-insertion-error.v1",
+          "stage": "witness"
+        },
+        "record_or_null": null,
+        "request_or_null": null,
+        "witness_or_null": null
+      },
+      "handler_registration_index": 0,
+      "id": "witness-second-use",
+      "initial_generation": 0,
+      "initial_next_attempt_id": 0,
+      "input_bytes_base64": "YWxwaGE="
+    }
+  ],
+  "host_fixtures": [
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "after_assignment",
+          "kind": "assign",
+          "value": "done"
+        },
+        {
+          "at_hook": "after_witness",
+          "kind": "witness_issued",
+          "value": "after_assign"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "dispatch_eligible",
+      "id": "assignment-before-witness"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "completion_attempt",
+          "value": "reentry"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "completion-reentry"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "continuation_attempt",
+          "value": "reentry"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "continuation-reentry"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "defer_applied",
+          "value": "pending"
+        },
+        {
+          "at_hook": "during_applied",
+          "kind": "advance_monotonic_ns",
+          "value": "1000"
+        },
+        {
+          "at_hook": "after_failure",
+          "kind": "settle_applied",
+          "value": "late"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "deferred-applied-after-deadline"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "detached_callback_call",
+          "value": "rejected"
+        }
+      ],
+      "expected_control_results": [
+        {
+          "attempt_id": 0,
+          "entrypoint": "contributor_callback",
+          "execution_generation": 0,
+          "kind": "dispatch_blocked"
+        }
+      ],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "dispatch_eligible",
+      "id": "detached-callback-while-guarded"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "before_record_commit",
+          "kind": "provider_dispatch_attempt",
+          "value": "blocked"
+        },
+        {
+          "at_hook": "before_record_commit",
+          "kind": "model_invocation_attempt",
+          "value": "blocked"
+        },
+        {
+          "at_hook": "after_record_commit",
+          "kind": "record_commit",
+          "value": "done"
+        },
+        {
+          "at_hook": "after_guard_release",
+          "kind": "provider_dispatch_eligibility",
+          "value": "released"
+        }
+      ],
+      "expected_control_results": [
+        {
+          "attempt_id": 0,
+          "entrypoint": "provider_dispatch",
+          "execution_generation": 0,
+          "kind": "dispatch_blocked"
+        },
+        {
+          "attempt_id": 0,
+          "entrypoint": "model_invocation",
+          "execution_generation": 0,
+          "kind": "dispatch_blocked"
+        }
+      ],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "dispatch_eligible",
+      "id": "dispatch-blocked-until-record"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "defer_applied",
+          "value": "pending"
+        },
+        {
+          "at_hook": "during_applied",
+          "kind": "abort_signal",
+          "value": "set"
+        },
+        {
+          "at_hook": "after_failure",
+          "kind": "start_next_attempt",
+          "value": "allowed"
+        },
+        {
+          "at_hook": "after_failure",
+          "kind": "settle_applied",
+          "value": "late"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "next-attempt-after-late-settlement"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "applied_throw",
+          "value": "error"
+        },
+        {
+          "at_hook": "after_failure",
+          "kind": "record_commit",
+          "value": "forbidden"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "no-record-on-applied-failure"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "after_readback",
+          "kind": "readback",
+          "value": "verified"
+        },
+        {
+          "at_hook": "after_witness",
+          "kind": "witness_issued",
+          "value": "after_readback"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "dispatch_eligible",
+      "id": "readback-before-witness"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "during_applied",
+          "kind": "defer_applied",
+          "value": "pending"
+        },
+        {
+          "at_hook": "during_applied",
+          "kind": "reload_generation",
+          "value": "1"
+        },
+        {
+          "at_hook": "after_failure",
+          "kind": "settle_applied",
+          "value": "late"
+        }
+      ],
+      "expected_control_results": [],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "reload-during-applied"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "after_witness",
+          "kind": "witness_issued",
+          "value": "generation0"
+        },
+        {
+          "at_hook": "during_applied",
+          "kind": "reload_generation",
+          "value": "1"
+        },
+        {
+          "at_hook": "after_failure",
+          "kind": "consume_stale_witness",
+          "value": "rejected"
+        }
+      ],
+      "expected_control_results": [
+        {
+          "attempt_id": 0,
+          "entrypoint": "contributor_callback",
+          "execution_generation": 0,
+          "kind": "stale_invocation"
+        }
+      ],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "reload-invalidates-witness"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "before_reservation",
+          "kind": "create_registration_b",
+          "value": "other-component"
+        },
+        {
+          "at_hook": "after_witness",
+          "kind": "witness_issued",
+          "value": "after_readback"
+        },
+        {
+          "at_hook": "during_applied",
+          "kind": "consume_from_registration_b",
+          "value": "rejected"
+        }
+      ],
+      "expected_control_results": [
+        {
+          "attempt_id": 0,
+          "entrypoint": "contributor_callback",
+          "execution_generation": 0,
+          "kind": "stale_invocation"
+        }
+      ],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "same-contributor-only"
+    },
+    {
+      "baseline_case_id": "valid-single-insertion",
+      "events": [
+        {
+          "at_hook": "after_witness",
+          "kind": "witness_issued",
+          "value": "generation0"
+        },
+        {
+          "at_hook": "during_applied",
+          "kind": "reload_generation",
+          "value": "1"
+        },
+        {
+          "at_hook": "after_failure",
+          "kind": "stale_api_call",
+          "value": "rejected"
+        }
+      ],
+      "expected_control_results": [
+        {
+          "attempt_id": 0,
+          "entrypoint": "contributor_callback",
+          "execution_generation": 0,
+          "kind": "stale_invocation"
+        }
+      ],
+      "expected_model_operations_before_record": 0,
+      "expected_provider_operations_before_record": 0,
+      "expected_terminal_state": "failed",
+      "id": "stale-api-after-reload"
+    }
+  ],
+  "protocol_revision": "semantic-pi-insertion-evidence-v1-r1",
+  "schema": "semantic-pi-insertion-vector-set.v1"
+}
