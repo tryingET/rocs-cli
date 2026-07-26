@@ -1,18 +1,18 @@
 ---
-summary: "Converged RFC for pi-ontology-workflows delivery identity, host-resolved application evidence, and a non-authoritative isolated integration proof."
+summary: "Decision 82 r24 RFC for pi-ontology-workflows delivery identity, host-resolved application evidence, and a non-authoritative isolated integration proof."
 read_when:
-  - "Reviewing the Decision 53 successor protocol or Pi host delivery witness."
+  - "Reviewing the Decision 82 r24 successor protocol or Pi host delivery witness."
 system4d:
-  container: "Cross-repo successor RFC for ROCS, pi-ontology-workflows, and Pi host."
+  container: "Cross-repo Decision 82 successor RFC for ROCS, pi-ontology-workflows, and Pi host."
   compass: "Make identity, host observation, owner authorization, and delivery authority independently executable."
   engine: "Content-addressed artifacts -> host application witness -> typed redemption -> owner-current delivery validation or isolated integration proof."
   fog: "Digest cycles, forgeable transcripts, replayed authorization, or fixture authority can create a coherent false claim."
 type: "rfc"
 status: "in_review"
-rfc_revision: "semantic-pi-delivery-v1-r23"
+rfc_revision: "semantic-pi-delivery-v1-r24"
 ---
 
-# RFC — Semantic Pi delivery receipt v1 r23
+# RFC — Semantic Pi delivery receipt v1 r24
 
 ## Decision requested
 
@@ -26,11 +26,13 @@ Accept a successor to the Pi-delivery seam of Decision 53 that:
 
 No code is authorized before a successor ADR and post-ADR execution membrane.
 
-## R23 correction and authority boundary
+## R24 correction and authority boundary
 
-Decision `71`, its accepted r21 ADR, failed implementation task `4230`, and AK evidence `5325` remain immutable predecessor history and cannot authorize corrected bytes. If and only if Decision `80` reaches an accepted superseding ADR, r23 becomes the protocol revision and every packet acceptance, owner appointment, AK decision/task/scope reference, implementation reevaluation, isolated-dogfood authorization, and canonical-ledger anchor binds Decision `80` and that ADR. Before then r23 grants no implementation or execution authority.
+Decision `71`, its accepted r21 ADR, failed implementation task `4230`, and AK evidence `5325`, together with Decision `80`, its accepted r23 ADR, failed implementation task `4250`, and AK evidence `5404`, remain immutable non-authorizing predecessor history and cannot authorize r24 bytes. If and only if Decision `82` reaches an accepted superseding ADR, r24 becomes the protocol revision and every packet acceptance, owner appointment, AK decision/task/scope reference, implementation reevaluation, isolated-dogfood authorization, and canonical-ledger anchor binds Decision `82` and that ADR. Before then r24 grants no implementation or execution authority.
 
-The semantic correction remains narrow. The exact pinned `UnicodeData.txt` contains six required General_Category `Cs` surrogate range-sentinel source rows, while r21 rejected every non-scalar source token. R23 accepts only those six exact sentinel rows as non-emitting source metadata and fixes raw comment preprocessing for the other two pinned Unicode files. It does not admit surrogate decomposition mappings, case-fold mappings, composition exclusions, normalized output, identifiers, or JSON strings; every generated table codepoint and mapping remains a Unicode scalar. All identity, authority, runtime, schema, digest, packet, fixture, host, component, dogfood, live-acquisition, and production contracts otherwise remain byte-semantically unchanged except for the required Decision-80 authority substitution.
+The r24 semantic correction is limited to explicit digest-preimage metadata and its deterministic registry checks. The runtime registry retains all 193 existing rows and preserves each row's first three logical cells exactly, while adding one closed `Preimage kind` cell and closing tuple ordering for the 193 rows across 191 domains. This metadata classifies the already reviewed algorithms; it does not introduce or infer a new digest preimage.
+
+The Unicode correction accepted in r23 remains unchanged. The exact pinned `UnicodeData.txt` still permits only the six named General_Category `Cs` surrogate range-sentinel source rows as non-emitting metadata, raw comment preprocessing for the other two pinned Unicode files is unchanged, and every generated decomposition, case-fold mapping, composition exclusion, normalized output, identifier, and JSON string remains scalar-only. The six independent source-compiler obligations and the three pinned Unicode input identities remain unchanged. The 112 mandatory protocol cases, 115 mandatory-plus-boundary Python/Node protocol cases, 25 Pi-host fixture cases, and 127 rule-coverage rows also remain unchanged; only revision-bearing packet, profile, and valid-case identifiers advance to r24, while Decision-bearing policy, ledger-anchor, and task/scope bindings advance to Decision 82. All other identity, authority, runtime, schema, digest, packet, fixture, host, component, dogfood, live-acquisition, and production semantics remain unchanged except for the required Decision-82 authority substitution.
 
 ## Inputs
 
@@ -126,7 +128,7 @@ Its `package_identity` equals the fixed identity, root/package-artifact `package
 
 ### Dependency tree
 
-R21 requires one precompiled root WebAssembly package entry and no runtime dependency packages: `dependency_manifests` and provenance `dependency_manifest_digests` are empty. Build-time dependencies are not runtime identities. Any WebAssembly import, external package import, runtime dependency row, JS/TS entry, or loader resolution is `unsupported_protocol`.
+The r21 rule, retained unchanged in r24, requires one precompiled root WebAssembly package entry and no runtime dependency packages: `dependency_manifests` and provenance `dependency_manifest_digests` are empty. Build-time dependencies are not runtime identities. Any WebAssembly import, external package import, runtime dependency row, JS/TS entry, or loader resolution is `unsupported_protocol`.
 
 ### Loaded component
 
@@ -149,7 +151,7 @@ It references but does not contain package-tree or provenance bodies, preventing
 
 ## Normative contract annexes
 
-This core RFC and the following ten annexes and reviewed machine-source files are one indivisible normative r23 review object:
+This core RFC and the following ten annexes and reviewed machine-source files are one indivisible normative r24 review object:
 
 - `semantic-pi-delivery-v1-runtime-contracts.md` — host runtime, sealed staging, maps, digest registry, deterministic loading, registrar, attempt, and receipt preimages;
 - `semantic-pi-delivery-v1-authority-contracts.md` — receipt/witness semantics, durable replay, signed attestation, integration authorization, finalizer, canonical ledger, and proof;
@@ -162,7 +164,7 @@ This core RFC and the following ten annexes and reviewed machine-source files ar
 - `semantic-pi-delivery-v1-integration-ledger.sql` — exact SQLite schema bytes for the one-shot integration authorization ledger;
 - `semantic-pi-delivery-v1-production-replay.sql` — exact SQLite schema bytes for the production replay store and immutable exchange index.
 
-No annex or reviewed SQL source is optional, informative, or lower precedence. Definitions occur once across the eleven normative files. A missing source, review-byte mismatch, undefined cross-reference, or contradiction rejects r23. The exact-byte review set additionally includes the problem brief, evidence note, and review plan as reviewed supporting/governance bytes; they are not normative generator inputs. The design-source manifest covers all fourteen reviewed files and marks each row `normative_semantic_source|reviewed_supporting` according to this split.
+No annex or reviewed SQL source is optional, informative, or lower precedence. Definitions occur once across the eleven normative files. A missing source, review-byte mismatch, undefined cross-reference, or contradiction rejects r24. The exact-byte review set additionally includes the problem brief, evidence note, and review plan as reviewed supporting/governance bytes; they are not normative generator inputs. The design-source manifest covers all fourteen reviewed files and marks each row `normative_semantic_source|reviewed_supporting` according to this split.
 
 ## Public surface and cross-repo sequence
 

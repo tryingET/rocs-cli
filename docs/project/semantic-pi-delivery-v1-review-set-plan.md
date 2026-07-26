@@ -1,9 +1,9 @@
 ---
-summary: "Exact-byte multi-lane review plan for the semantic Pi delivery v1 RFC."
+summary: "Exact-byte multi-lane review plan for the Decision 82 semantic Pi delivery v1 r24 RFC."
 read_when:
-  - "Running or synthesizing review of the semantic Pi delivery v1 RFC."
+  - "Running or synthesizing review of the Decision 82 semantic Pi delivery v1 r24 RFC."
 system4d:
-  container: "Review topology and closure contract for the Decision 53 successor."
+  container: "Review topology and closure contract for the Decision 82 r24 successor."
   compass: "Make every authority owner and host seam challenge the same immutable RFC bytes."
   engine: "Freeze commit/digests -> independent lanes -> controlling synthesis -> legal next move."
   fog: "Prior identity reviews or partial lane agreement may be mistaken for v1 ADR readiness."
@@ -11,7 +11,7 @@ type: "review_set_plan"
 status: "active"
 ---
 
-# Review set plan — semantic Pi delivery v1
+# Review set plan — semantic Pi delivery v1 r24
 
 ## Reviewed set
 
@@ -52,9 +52,15 @@ Track verdicts are inputs. Only the latest complete synthesis supplies the decis
 
 No consumer-owner or recovery-owner verdict may be fabricated while those owner products do not exist. Their absence remains a live-gate blocker.
 
-## R23 correction focus
+## R24 correction focus
 
-Every lane must reproduce the three pinned Unicode input hashes, the non-ASCII comment suffixes, and the six exact `UnicodeData.txt` `Cs` source rows. Review must prove that r23 orders raw comment stripping before retained-prefix ASCII validation, accepts only those six rows as non-emitting source metadata, retains scalar-only decomposition/casefold/exclusion/output semantics, and independently closes the six source-compiler conformance obligations without altering the 112/115/127 protocol fixture counts. It must also prove that Decision 71/r21 stays immutable predecessor history, Decision 80 supersession is conditional on an accepted ADR, and every corrected packet/runtime/task/ledger authority binding names Decision 80. Any broader surrogate allowance, ambient Unicode dependency, parser-order ambiguity, Decision-71 execution binding, packet-generation shortcut, or missing failed-task/evidence lineage forces `revise_rfc`.
+Every lane must independently compare the r24 Complete digest registry with frozen r23 and prove that all 193 rows retain their first three logical cells exactly and each has exactly one explicit fourth-cell enum value. Review must reproduce 43 `exact_bytes`, 144 `jcs_object` split into 134 backticked self-digest rows plus 10 `full closed object` rows, and exactly six `jcs_preimage` projections: the two full closed preimages, applied entry, logical realpath identity, filesystem tree, and signed authority statement. It must also reproduce 193 rows across 191 domains, the three reviewed object names sharing `semantic-release.pi-packet-file-bytes.v1`, and generated sorting/uniqueness by `(domain,object_name)` rather than domain alone.
+
+The ROCS and semantic-owner lanes must prove that the fourth cell only classifies existing byte, full-object, self-omitting-object, and bespoke-JCS preimages. The machine compiler must copy that cell directly, emit only `exact_bytes|jcs_object|jcs_preimage`, enforce the exact relational combinations and counts, and obtain byte-identical complete inventories from independent Python and Node implementations without prose, suffix, schema, object-name, or domain-name inference. Validation must reject a missing, unknown, null, extra, count-drifting, self-field-inconsistent, or row-inconsistent value and must recompute the preimage selected by the explicit reviewed row.
+
+Every lane must additionally prove that r24 leaves the three pinned Unicode input hashes, comment preprocessing order, six exact non-emitting `UnicodeData.txt` `Cs` rows, scalar-only decomposition/casefold/exclusion/output semantics, and six source-compiler obligations unchanged. Fixture semantics and counts remain exactly 112 mandatory protocol cases, 115 mandatory-plus-boundary Python/Node protocol cases, 25 Pi-host cases, and 127 rule-coverage rows; revision-bearing packet, profile, and valid-case IDs advance consistently to r24, while Decision-bearing policy, ledger-anchor, and task/scope bindings advance to Decision 82, without changing routes or outcomes.
+
+Decision 71/r21/task 4230/evidence 5325 and Decision 80/r23/failed task 4250/evidence 5404 must remain immutable non-authorizing predecessor history. Decision 82 supersession is conditional on a future accepted ADR, and every r24 packet/runtime/appointment/task/scope/reevaluation/ledger authority binding must name Decision 82. Any inferred classification, altered preimage algorithm, first-three-cell drift, inventory/count mismatch, Unicode or fixture semantic drift, stale active Decision-80 binding, packet-generation shortcut, missing predecessor lineage, or claimed implementation/live authority forces `revise_rfc`.
 
 ## Review prompt
 
@@ -84,7 +90,7 @@ The synthesis cites every lane result and emits one outcome plus legal next move
 
 ## Prior review exclusion
 
-Pi-owner reviews `dispatch-1784658092396`, `dispatch-1784658106914`, and `dispatch-1784658320675` establish the owner identity artifact only. They are evidence inputs, not v1 RFC review lanes.
+Pi-owner reviews `dispatch-1784658092396`, `dispatch-1784658106914`, and `dispatch-1784658320675` establish the owner identity artifact only. They are evidence inputs, not v1 RFC review lanes. Decision-80 r22/r23 lane outputs, controlling syntheses, and the accepted r23 ADR remain immutable predecessor review history; none is a Decision-82 r24 lane result or synthesis.
 
 ## Stop conditions
 
@@ -95,4 +101,4 @@ Stop without synthesis if:
 - a reviewer claims implementation/live authority;
 - a reviewer substitutes passing tests or fixtures for owner facts;
 - the host seam cannot support post-application witnessing;
-- any proposal edits v0 history or aliases `pi-adapter`.
+- any proposal edits v0 or Decision-71/Decision-80 predecessor history, infers a preimage kind, mutates a preimage algorithm, or aliases `pi-adapter`.
