@@ -74,10 +74,14 @@ def run_validator(root: Path, language: str) -> subprocess.CompletedProcess[str]
 
 
 def schema_accepts(instance: object, definition: dict, root: dict) -> bool:
-    if "$ref" in definition:
-        return schema_accepts(instance, resolve_pointer(root, definition["$ref"]), root)  # type: ignore[arg-type]
-    if "oneOf" in definition:
-        return sum(schema_accepts(instance, choice, root) for choice in definition["oneOf"]) == 1
+    if "$ref" in definition and not schema_accepts(
+        instance, resolve_pointer(root, definition["$ref"]), root,  # type: ignore[arg-type]
+    ):
+        return False
+    if "oneOf" in definition and sum(
+        schema_accepts(instance, choice, root) for choice in definition["oneOf"]
+    ) != 1:
+        return False
     if "const" in definition and (type(instance) is not type(definition["const"]) or instance != definition["const"]):
         return False
     if "enum" in definition and instance not in definition["enum"]:
@@ -87,8 +91,13 @@ def schema_accepts(instance: object, definition: dict, root: dict) -> bool:
         return False
     if kind == "object" and not isinstance(instance, dict):
         return False
-    if isinstance(instance, str) and "pattern" in definition and re.search(definition["pattern"], instance) is None:
-        return False
+    if isinstance(instance, str):
+        if len(instance) < definition.get("minLength", 0):
+            return False
+        if len(instance) > definition.get("maxLength", len(instance)):
+            return False
+        if "pattern" in definition and re.search(definition["pattern"], instance) is None:
+            return False
     if isinstance(instance, dict) and ("properties" in definition or "required" in definition):
         properties = definition.get("properties", {})
         if any(key not in instance for key in definition.get("required", [])):
@@ -208,6 +217,52 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
         for event in invalid_host:
             with self.subTest(invalid_host=event):
                 self.assertFalse(schema_accepts(event, host_event, schema))
+
+    def test_schema_six_rejects_noncanonical_base64_unused_bits(self) -> None:
+        schema = json.loads((PACKET / "protocol.schema.json").read_text("utf-8"))
+        vectors = json.loads(VECTORS.read_text("utf-8"))
+        definitions = schema["$defs"][SCHEMA_NAMES[5]]["$defs"]
+        case_schema = definitions["case"]
+        event_schema = definitions["event"]
+        baseline = next(case for case in vectors["cases"] if case["id"] == "valid-single-insertion")
+        canonical = ("AA==", "AQ==", "Ag==", "Aw==", "AAA=", "AAE=", "//8=", "AAAA")
+        noncanonical = ("AB==", "AAB=", "AAC=", "AAD=", "//9=")
+
+        input_schema = case_schema["properties"]["input_bytes_base64"]
+        contribution_schema = case_schema["properties"]["contribution_bytes_base64"]
+        self.assertNotIn("minLength", input_schema)
+        self.assertEqual(input_schema["maxLength"], 22_369_624)
+        self.assertEqual(contribution_schema["minLength"], 4)
+        self.assertEqual(contribution_schema["maxLength"], 22_369_624)
+
+        empty_input = dict(baseline, input_bytes_base64="")
+        empty_contribution = dict(baseline, contribution_bytes_base64="")
+        self.assertTrue(schema_accepts(empty_input, case_schema, schema))
+        self.assertFalse(schema_accepts(empty_contribution, case_schema, schema))
+
+        for field in ("input_bytes_base64", "contribution_bytes_base64"):
+            for value in canonical:
+                with self.subTest(surface=field, canonical=value):
+                    self.assertTrue(schema_accepts(dict(baseline, **{field: value}), case_schema, schema))
+            for value in noncanonical:
+                with self.subTest(surface=field, noncanonical=value):
+                    self.assertFalse(schema_accepts(dict(baseline, **{field: value}), case_schema, schema))
+
+        base64_events = (
+            ("during_prepare", "prepare_return_base64"),
+            ("after_assignment", "assign_base64"),
+            ("after_readback", "readback_base64"),
+            ("after_applied", "inject_ack_bytes_base64"),
+        )
+        for hook, kind in base64_events:
+            for value in canonical:
+                event = {"at_hook": hook, "kind": kind, "value": value}
+                with self.subTest(surface=kind, canonical=value):
+                    self.assertTrue(schema_accepts(event, event_schema, schema))
+            for value in noncanonical:
+                event = {"at_hook": hook, "kind": kind, "value": value}
+                with self.subTest(surface=kind, noncanonical=value):
+                    self.assertFalse(schema_accepts(event, event_schema, schema))
 
     def test_validators_are_independent_stdlib_executors_without_behavior_oracles(self) -> None:
         python_path = PACKET / "validate_vectors.py"
