@@ -103,7 +103,7 @@ The classifier creates and freezes the exact `dispatch_blocked` or `stale_invoca
 
 ## Execution sequence
 
-### R1 — ROCS schema and independent conformance substrate
+### R1b — ROCS schema and independent conformance substrate
 
 Owner: `core/rocs-cli`.
 
@@ -111,11 +111,11 @@ Add only the six-schema Draft 2020-12 bundle, independent stdlib Python and Node
 
 Each validator independently parses frozen source bytes, implements strict JSON/NFC/JCS, eight digest domains, raw-byte hashing, event execution, and the host fixture state machine. Neither imports the other, generated output, ROCS runtime code, expected values, case-ID behavior, or predecessor machinery.
 
-Gate: both independently reproduce 16 cases, 13 host fixtures, 3 accepted cases, all exact hashes, and zero unused events; full ROCS CI passes.
+Gate: both independently reproduce 16 cases, 13 host fixtures, 3 accepted cases, all exact hashes, and zero unused events; focused unittest, scoped Ruff over the two new Python files, and full ROCS CI pass. Repository-wide Ruff is not a task gate because evidence `5590` proves the unchanged baseline has 1,266 out-of-scope violations. Failed clean task `4331` is immutable and replaced by `4342`.
 
 ### H1 — Complete Pi host insertion-evidence capability
 
-Owner: `softwareco/contrib/pi-mono`, package `packages/coding-agent`. Depends on R1.
+Owner: `softwareco/contrib/pi-mono`, package `packages/coding-agent`. Depends on R1b.
 
 Add a small `src/core/extensions/prompt-chain-insertion-evidence.ts` module and integrate the closed ABI, loader provenance, process state, terminal insertion algorithm, strict validation, private frame/witness gateway, all guard seams, assignment/readback, reload invalidation, and in-memory record linearization. Fix the current empty-string assignment discrepancy. Keep provider-native payloads, TUI implementation, session JSONL, databases, recovery, and generic `packages/agent` outside this slice.
 
@@ -125,7 +125,7 @@ Gate: faux-provider tests prove all 16 cases and 13 host fixtures, exact control
 
 ### C1 — Component contribution and exact acknowledgement
 
-Owner: `softwareco/owned/pi-extensions`, package `packages/pi-ontology-workflows`. Depends on R1 and H1.
+Owner: `softwareco/owned/pi-extensions`, package `packages/pi-ontology-workflows`. Depends on R1b and H1.
 
 Register through the closed host ABI. Reuse canonical semantic-preflight rendering but return the complete separator-plus-rendering contribution. Return Schema 3 only from the exact applied callback after private-witness tuple validation. Extend the existing `/ontology-preflight` command with the exact enable/disable actions above; no environment or repository gate exists. Bind pending state to generation/attempt and invalidate on disable/reload/shutdown/abort.
 
@@ -135,7 +135,7 @@ Gate: exactly-once acknowledgement, stale/foreign/clone rejection, callback thro
 
 ### D1 — Workstation development runtime proof
 
-Owner: `softwareco/infra/workstation`, runtime-operation/receipt paths only. Depends on R1, H1, and C1.
+Owner: `softwareco/infra/workstation`, runtime-operation/receipt paths only. Depends on R1b, H1, and C1.
 
 The workstation repo owns the named local runtime lifecycle. Before mutation it runs repo-owned status/admission surfaces (`python3 scripts/phasee/lane-op.py status current-posture`, `python3 scripts/phasee/lane-op.py status raw-backends`, and applicable service health), records a plan-only install/reload diff, and stops if baseline health or coexistence is degraded. After explicit apply admission, a disposable HOME/config/cache receives exact candidate artifacts; D1 runs the host 16/13 harness plus real-component subset, reloads one named development process, exercises one TUI attempt, reads privacy-safe status, then disables/reloads and restores prior coordinates. It never mutates host/component source or baseline services.
 
@@ -145,7 +145,7 @@ Gate: workstation-owned runtime receipt with exact commands, artifacts, before/a
 
 Owner: `core/rocs-cli`, evidence/coordination paths only. Depends on D1.
 
-Verify the immutable R1/H1/C1/D1 receipts, rerun both standalone validators, and bind exact commits/artifacts/results into one replayable integration receipt. V1 performs no install, reload, activation, deployment, or source mutation.
+Verify the immutable R1b/H1/C1/D1 receipts, rerun both standalone validators, and bind exact commits/artifacts/results into one replayable integration receipt. V1 performs no install, reload, activation, deployment, or source mutation.
 
 Gate: receipt consistency, independent result agreement, filesystem invariance, and accepted D1 rollback.
 

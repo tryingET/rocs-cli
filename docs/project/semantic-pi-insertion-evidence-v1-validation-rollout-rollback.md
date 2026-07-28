@@ -44,9 +44,13 @@ PYTHONDONTWRITEBYTECODE=1 python3 docs/project/semantic-pi-insertion-evidence-v1
 node docs/project/semantic-pi-insertion-evidence-v1/validate_vectors.mjs
 uv run --frozen python -m unittest discover -s tests -p 'test_semantic_pi_insertion_conformance.py' -v
 TMPDIR="$HOME/.cache/rocs-ci-tmp" ./scripts/ci/full.sh
-uvx ruff==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ruff"])') check .
+uvx ruff==$(python -c 'import json; print(json.load(open("scripts/tool_versions.json"))["ruff"])') check \
+  docs/project/semantic-pi-insertion-evidence-v1/validate_vectors.py \
+  tests/test_semantic_pi_insertion_conformance.py
 git diff --check
 ```
+
+Evidence `5590` proves repository-wide Ruff currently fails with 1,266 unchanged out-of-scope violations. R1b therefore uses scoped Ruff for its two new Python files plus the focused unittest and full CI gate; baseline debt is neither hidden nor repaired under Decision 85.
 
 ### G1 — Pi host conformance
 
