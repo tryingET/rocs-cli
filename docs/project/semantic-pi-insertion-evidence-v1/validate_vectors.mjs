@@ -323,7 +323,8 @@ const FIXTURE_COMPAT = {
   settle_applied: ["after_failure"], start_next_attempt: ["after_failure"], assign: ["after_assignment"], readback: ["after_readback"], witness_issued: ["after_witness"],
 };
 const EXACT_VALUES = {
-  abort_signal: ["set"], invoke_nested_prompt: ["attempt"], clone_witness_json: ["true"], consume_witness_twice: ["true"],
+  abort_signal: ["set"], replace_ack_issuer: ["other-component"], replace_registration_component_id: ["pi-adapter"],
+  invoke_nested_prompt: ["attempt"], clone_witness_json: ["true"], consume_witness_twice: ["true"],
   stale_api_call: ["rejected"], detached_callback_call: ["rejected"], provider_dispatch_eligibility: ["released"], applied_throw: ["error"],
   create_registration_b: ["other-component"], consume_from_registration_b: ["rejected"], consume_stale_witness: ["rejected"],
   defer_applied: ["pending"], settle_applied: ["late"], start_next_attempt: ["allowed"], assign: ["done"], readback: ["verified"],
@@ -342,6 +343,7 @@ class Schedule {
       requireCondition(Object.hasOwn(compatibility, kind) && compatibility[kind].includes(hook), `hook-incompatible or unknown event: ${hook}/${kind}`);
       requireCondition(!seen.has(`${hook}\0${kind}`), `duplicate event pair: ${hook}/${kind}`);
       seen.add(`${hook}\0${kind}`); positions.push(HOOKS.indexOf(hook)); Schedule.validateValue(kind, value);
+      if (fixture) Schedule.validateFixtureCombination(hook, kind, value);
     });
     requireCondition(positions.every((value, index) => index === 0 || positions[index - 1] <= value), "events are not in hook order");
   }
@@ -358,6 +360,16 @@ class Schedule {
       const allowed = kind === "contributor_callback_attempt" ? ["blocked", "reentry", "stale"] : ["blocked", "reentry"];
       requireCondition(allowed.includes(value), `invalid entrypoint event value: ${kind}=${value}`);
     } else requireCondition(value.length > 0, `empty event value: ${kind}`);
+  }
+  static validateFixtureCombination(hook, kind, value) {
+    const entrypoints = ["prompt_attempt", "continuation_attempt", "completion_attempt", "provider_dispatch_attempt", "model_invocation_attempt", "contributor_callback_attempt"];
+    if (entrypoints.includes(kind)) {
+      const expectedHook = value === "blocked" ? "before_record_commit" : "during_applied";
+      requireCondition(hook === expectedHook, `hook-incompatible fixture event: ${hook}/${kind}=${value}`);
+    } else if (kind === "record_commit") {
+      const expectedHook = value === "done" ? "after_record_commit" : "after_failure";
+      requireCondition(hook === expectedHook, `hook-incompatible fixture event: ${hook}/${kind}=${value}`);
+    }
   }
   take(hook) {
     const rows = [];
@@ -491,7 +503,7 @@ function runAttempt(spec, fixture) {
         requireCondition(facts[event.value] && witnessDone, "witness order assertion failed");
       }
     }
-    if (currentGeneration !== generation) throw new ProtocolFailure("acknowledgement", "stale_generation");
+    predicate("acknowledgement");
     if (cloned) throw new ProtocolFailure("witness", "witness_forged");
 
     state = "acknowledging"; frameActive = true;

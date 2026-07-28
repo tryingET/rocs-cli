@@ -495,81 +495,1043 @@
         }
       },
       "$defs": {
+        "event_decimal_value": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]{0,14}|[1-8][0-9]{15}|900[0-6][0-9]{12}|90070[0-9]{11}|90071[0-8][0-9]{10}|900719[0-8][0-9]{9}|9007199[0-1][0-9]{8}|90071992[0-4][0-9]{7}|900719925[0-3][0-9]{6}|9007199254[0-6][0-9]{5}|90071992547[0-3][0-9]{4}|9007199254740[0-8][0-9]{2}|90071992547409[0-8][0-9]{1}|9007199254740990|9007199254740991)$"
+        },
+        "event_base64_value": {
+          "type": "string",
+          "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+        },
+        "event_digest_value": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "event_span_value": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]{0,14}|[1-8][0-9]{15}|900[0-6][0-9]{12}|90070[0-9]{11}|90071[0-8][0-9]{10}|900719[0-8][0-9]{9}|9007199[0-1][0-9]{8}|90071992[0-4][0-9]{7}|900719925[0-3][0-9]{6}|9007199254[0-6][0-9]{5}|90071992547[0-3][0-9]{4}|9007199254740[0-8][0-9]{2}|90071992547409[0-8][0-9]{1}|9007199254740990|9007199254740991):(?:0|[1-9][0-9]{0,14}|[1-8][0-9]{15}|900[0-6][0-9]{12}|90070[0-9]{11}|90071[0-8][0-9]{10}|900719[0-8][0-9]{9}|9007199[0-1][0-9]{8}|90071992[0-4][0-9]{7}|900719925[0-3][0-9]{6}|9007199254[0-6][0-9]{5}|90071992547[0-3][0-9]{4}|9007199254740[0-8][0-9]{2}|90071992547409[0-8][0-9]{1}|9007199254740990|9007199254740991)$"
+        },
         "event": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "at_hook",
-            "kind",
-            "value"
-          ],
-          "properties": {
-            "at_hook": {
-              "enum": [
-                "before_reservation",
-                "after_reservation",
-                "during_prepare",
-                "after_prepare",
-                "before_apply",
-                "after_apply",
-                "after_assignment",
-                "after_readback",
-                "before_witness",
-                "after_witness",
-                "during_applied",
-                "after_applied",
-                "before_record_commit",
-                "after_record_commit",
-                "after_guard_release",
-                "after_failure"
-              ]
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_reservation"
+                },
+                "kind": {
+                  "const": "reserve"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_decimal_value"
+                }
+              }
             },
-            "kind": {
-              "enum": [
-                "reserve",
-                "prepare_return_base64",
-                "apply_span",
-                "assign_base64",
-                "readback_base64",
-                "issue_witness",
-                "applied_return_digest",
-                "commit_record",
-                "abort_signal",
-                "replace_ack_issuer",
-                "inject_ack_bytes_base64",
-                "invoke_nested_prompt",
-                "reserve_attempt_override",
-                "replace_registration_component_id",
-                "advance_monotonic_ns",
-                "reload_generation",
-                "clone_witness_json",
-                "consume_witness_twice",
-                "prompt_attempt",
-                "continuation_attempt",
-                "completion_attempt",
-                "provider_dispatch_attempt",
-                "model_invocation_attempt",
-                "contributor_callback_attempt",
-                "stale_api_call",
-                "detached_callback_call",
-                "provider_dispatch_eligibility",
-                "applied_throw",
-                "record_commit",
-                "create_registration_b",
-                "consume_from_registration_b",
-                "consume_stale_witness",
-                "defer_applied",
-                "settle_applied",
-                "start_next_attempt",
-                "assign",
-                "readback",
-                "witness_issued"
-              ]
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_prepare"
+                },
+                "kind": {
+                  "const": "prepare_return_base64"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_base64_value"
+                }
+              }
             },
-            "value": {
-              "type": "string"
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_apply"
+                },
+                "kind": {
+                  "const": "apply_span"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_span_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_assignment"
+                },
+                "kind": {
+                  "const": "assign_base64"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_base64_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_readback"
+                },
+                "kind": {
+                  "const": "readback_base64"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_base64_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_witness"
+                },
+                "kind": {
+                  "const": "issue_witness"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_digest_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_applied"
+                },
+                "kind": {
+                  "const": "applied_return_digest"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_digest_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_record_commit"
+                },
+                "kind": {
+                  "const": "commit_record"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_digest_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "enum": [
+                    "before_reservation",
+                    "during_prepare",
+                    "before_apply",
+                    "before_witness",
+                    "during_applied",
+                    "before_record_commit"
+                  ]
+                },
+                "kind": {
+                  "const": "abort_signal"
+                },
+                "value": {
+                  "const": "set"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_applied"
+                },
+                "kind": {
+                  "const": "replace_ack_issuer"
+                },
+                "value": {
+                  "const": "other-component"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_applied"
+                },
+                "kind": {
+                  "const": "inject_ack_bytes_base64"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_base64_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "invoke_nested_prompt"
+                },
+                "value": {
+                  "const": "attempt"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_reservation"
+                },
+                "kind": {
+                  "const": "reserve_attempt_override"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_decimal_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_reservation"
+                },
+                "kind": {
+                  "const": "replace_registration_component_id"
+                },
+                "value": {
+                  "const": "pi-adapter"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "enum": [
+                    "before_reservation",
+                    "after_reservation",
+                    "during_prepare",
+                    "after_prepare",
+                    "before_apply",
+                    "after_apply",
+                    "after_assignment",
+                    "after_readback",
+                    "before_witness",
+                    "after_witness",
+                    "during_applied",
+                    "after_applied",
+                    "before_record_commit",
+                    "after_record_commit",
+                    "after_guard_release",
+                    "after_failure"
+                  ]
+                },
+                "kind": {
+                  "const": "advance_monotonic_ns"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_decimal_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "enum": [
+                    "before_reservation",
+                    "after_reservation",
+                    "during_prepare",
+                    "after_prepare",
+                    "before_apply",
+                    "after_apply",
+                    "after_assignment",
+                    "after_readback",
+                    "before_witness",
+                    "after_witness",
+                    "during_applied",
+                    "after_applied",
+                    "before_record_commit",
+                    "after_record_commit",
+                    "after_guard_release",
+                    "after_failure"
+                  ]
+                },
+                "kind": {
+                  "const": "reload_generation"
+                },
+                "value": {
+                  "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event_decimal_value"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "enum": [
+                    "before_witness",
+                    "after_witness"
+                  ]
+                },
+                "kind": {
+                  "const": "clone_witness_json"
+                },
+                "value": {
+                  "const": "true"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "consume_witness_twice"
+                },
+                "value": {
+                  "const": "true"
+                }
+              }
             }
-          }
+          ]
+        },
+        "fixture_control_event": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_record_commit"
+                },
+                "kind": {
+                  "const": "prompt_attempt"
+                },
+                "value": {
+                  "const": "blocked"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "prompt_attempt"
+                },
+                "value": {
+                  "const": "reentry"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_record_commit"
+                },
+                "kind": {
+                  "const": "continuation_attempt"
+                },
+                "value": {
+                  "const": "blocked"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "continuation_attempt"
+                },
+                "value": {
+                  "const": "reentry"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_record_commit"
+                },
+                "kind": {
+                  "const": "completion_attempt"
+                },
+                "value": {
+                  "const": "blocked"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "completion_attempt"
+                },
+                "value": {
+                  "const": "reentry"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_record_commit"
+                },
+                "kind": {
+                  "const": "provider_dispatch_attempt"
+                },
+                "value": {
+                  "const": "blocked"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "provider_dispatch_attempt"
+                },
+                "value": {
+                  "const": "reentry"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_record_commit"
+                },
+                "kind": {
+                  "const": "model_invocation_attempt"
+                },
+                "value": {
+                  "const": "blocked"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "model_invocation_attempt"
+                },
+                "value": {
+                  "const": "reentry"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_record_commit"
+                },
+                "kind": {
+                  "const": "contributor_callback_attempt"
+                },
+                "value": {
+                  "const": "blocked"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "contributor_callback_attempt"
+                },
+                "value": {
+                  "const": "reentry"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "contributor_callback_attempt"
+                },
+                "value": {
+                  "const": "stale"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_failure"
+                },
+                "kind": {
+                  "const": "stale_api_call"
+                },
+                "value": {
+                  "const": "rejected"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "detached_callback_call"
+                },
+                "value": {
+                  "const": "rejected"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_guard_release"
+                },
+                "kind": {
+                  "const": "provider_dispatch_eligibility"
+                },
+                "value": {
+                  "const": "released"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "applied_throw"
+                },
+                "value": {
+                  "const": "error"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_record_commit"
+                },
+                "kind": {
+                  "const": "record_commit"
+                },
+                "value": {
+                  "const": "done"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_failure"
+                },
+                "kind": {
+                  "const": "record_commit"
+                },
+                "value": {
+                  "const": "forbidden"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "before_reservation"
+                },
+                "kind": {
+                  "const": "create_registration_b"
+                },
+                "value": {
+                  "const": "other-component"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "consume_from_registration_b"
+                },
+                "value": {
+                  "const": "rejected"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_failure"
+                },
+                "kind": {
+                  "const": "consume_stale_witness"
+                },
+                "value": {
+                  "const": "rejected"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "during_applied"
+                },
+                "kind": {
+                  "const": "defer_applied"
+                },
+                "value": {
+                  "const": "pending"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_failure"
+                },
+                "kind": {
+                  "const": "settle_applied"
+                },
+                "value": {
+                  "const": "late"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_failure"
+                },
+                "kind": {
+                  "const": "start_next_attempt"
+                },
+                "value": {
+                  "const": "allowed"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_assignment"
+                },
+                "kind": {
+                  "const": "assign"
+                },
+                "value": {
+                  "const": "done"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_readback"
+                },
+                "kind": {
+                  "const": "readback"
+                },
+                "value": {
+                  "const": "verified"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_witness"
+                },
+                "kind": {
+                  "const": "witness_issued"
+                },
+                "value": {
+                  "const": "after_assign"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_witness"
+                },
+                "kind": {
+                  "const": "witness_issued"
+                },
+                "value": {
+                  "const": "after_readback"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "at_hook",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "at_hook": {
+                  "const": "after_witness"
+                },
+                "kind": {
+                  "const": "witness_issued"
+                },
+                "value": {
+                  "const": "generation0"
+                }
+              }
+            }
+          ]
+        },
+        "host_event": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event"
+            },
+            {
+              "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/fixture_control_event"
+            }
+          ]
         },
         "success_expected": {
           "type": "object",
@@ -768,7 +1730,7 @@
               "minItems": 1,
               "maxItems": 64,
               "items": {
-                "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event"
+                "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/host_event"
               }
             },
             "expected_terminal_state": {

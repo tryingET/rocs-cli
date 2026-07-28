@@ -325,6 +325,8 @@ FIXTURE_COMPAT: dict[str, set[str]] = {
 }
 EXACT_VALUES = {
     "abort_signal": {"set"},
+    "replace_ack_issuer": {"other-component"},
+    "replace_registration_component_id": {"pi-adapter"},
     "invoke_nested_prompt": {"attempt"},
     "clone_witness_json": {"true"},
     "consume_witness_twice": {"true"},
@@ -363,6 +365,8 @@ class Schedule:
             seen.add((hook, kind))
             positions.append(HOOKS.index(hook))
             self._validate_value(kind, value)
+            if fixture:
+                self._validate_fixture_combination(hook, kind, value)
         require(positions == sorted(positions), "events are not in hook order")
 
     @staticmethod
@@ -385,6 +389,19 @@ class Schedule:
             require(value in allowed, f"invalid entrypoint event value: {kind}={value}")
         else:
             require(bool(value), f"empty event value: {kind}")
+
+    @staticmethod
+    def _validate_fixture_combination(hook: str, kind: str, value: str) -> None:
+        entrypoints = {
+            "prompt_attempt", "continuation_attempt", "completion_attempt",
+            "provider_dispatch_attempt", "model_invocation_attempt", "contributor_callback_attempt",
+        }
+        if kind in entrypoints:
+            expected_hook = "before_record_commit" if value == "blocked" else "during_applied"
+            require(hook == expected_hook, f"hook-incompatible fixture event: {hook}/{kind}={value}")
+        elif kind == "record_commit":
+            expected_hook = "after_record_commit" if value == "done" else "after_failure"
+            require(hook == expected_hook, f"hook-incompatible fixture event: {hook}/{kind}={value}")
 
     def take(self, hook: str) -> list[dict[str, str]]:
         rows = []
@@ -669,8 +686,7 @@ def run_attempt(spec: dict[str, Any], fixture: bool) -> tuple[dict[str, Any], di
             elif kind == "witness_issued":
                 facts = {"after_assign": assigned_done, "after_readback": readback_done, "generation0": generation == 0}
                 require(facts[value] and witness_done, "witness order assertion failed")
-        if current_generation != generation:
-            raise ProtocolFailure("acknowledgement", "stale_generation")
+        predicate("acknowledgement")
         if cloned:
             raise ProtocolFailure("witness", "witness_forged")
 

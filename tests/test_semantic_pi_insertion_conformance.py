@@ -73,6 +73,47 @@ def run_validator(root: Path, language: str) -> subprocess.CompletedProcess[str]
     return subprocess.run(command, cwd=root, env=environment, text=True, capture_output=True, check=False)
 
 
+def schema_accepts(instance: object, definition: dict, root: dict) -> bool:
+    if "$ref" in definition:
+        return schema_accepts(instance, resolve_pointer(root, definition["$ref"]), root)  # type: ignore[arg-type]
+    if "oneOf" in definition:
+        return sum(schema_accepts(instance, choice, root) for choice in definition["oneOf"]) == 1
+    if "const" in definition and (type(instance) is not type(definition["const"]) or instance != definition["const"]):
+        return False
+    if "enum" in definition and instance not in definition["enum"]:
+        return False
+    kind = definition.get("type")
+    if kind == "string" and not isinstance(instance, str):
+        return False
+    if kind == "object" and not isinstance(instance, dict):
+        return False
+    if isinstance(instance, str) and "pattern" in definition and re.search(definition["pattern"], instance) is None:
+        return False
+    if isinstance(instance, dict) and ("properties" in definition or "required" in definition):
+        properties = definition.get("properties", {})
+        if any(key not in instance for key in definition.get("required", [])):
+            return False
+        if definition.get("additionalProperties") is False and any(key not in properties for key in instance):
+            return False
+        if any(key in instance and not schema_accepts(instance[key], child, root) for key, child in properties.items()):
+            return False
+    return True
+
+
+def copy_validator_candidate(candidate: Path) -> Path:
+    packet = candidate / "docs" / "project" / "semantic-pi-insertion-evidence-v1"
+    packet.mkdir(parents=True)
+    (candidate / "scripts").mkdir()
+    for name in ("protocol.schema.json", "validate_vectors.py", "validate_vectors.mjs"):
+        shutil.copy2(PACKET / name, packet / name)
+    for name in FROZEN_PATHS:
+        destination = candidate / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / name, destination)
+    shutil.copy2(ROOT / "scripts" / "tool_versions.json", candidate / "scripts" / "tool_versions.json")
+    return candidate / "docs" / "project" / "semantic-pi-insertion-evidence-v1-vectors.json"
+
+
 class SemanticPiInsertionConformanceTests(unittest.TestCase):
     def test_frozen_sources_and_unconditional_node_pin(self) -> None:
         self.assertEqual(hashlib.sha256(VECTORS.read_bytes()).hexdigest(), VECTOR_SHA256)
@@ -115,6 +156,58 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
 
         walk(schema)
         self.assertGreater(object_schema_count, 6)
+
+    def test_schema_six_encodes_closed_event_hook_kind_value_grammar(self) -> None:
+        schema = json.loads((PACKET / "protocol.schema.json").read_text("utf-8"))
+        vectors = json.loads(VECTORS.read_text("utf-8"))
+        definitions = schema["$defs"][SCHEMA_NAMES[5]]["$defs"]
+        protocol_event = definitions["event"]
+        fixture_control = definitions["fixture_control_event"]
+        host_event = definitions["host_event"]
+
+        for grammar in (protocol_event, fixture_control):
+            for production in grammar["oneOf"]:
+                properties = production["properties"]
+                self.assertEqual(set(properties["kind"]), {"const"})
+                self.assertTrue(set(properties["at_hook"]) & {"const", "enum"})
+                value_grammar = properties["value"]
+                if "$ref" in value_grammar:
+                    value_grammar = resolve_pointer(schema, value_grammar["$ref"])
+                self.assertTrue(set(value_grammar) & {"const", "enum", "pattern"})
+
+        for case in vectors["cases"]:
+            for event in case["events"]:
+                with self.subTest(source="case", owner=case["id"], event=event):
+                    self.assertTrue(schema_accepts(event, protocol_event, schema))
+        for fixture in vectors["host_fixtures"]:
+            for event in fixture["events"]:
+                with self.subTest(source="fixture", owner=fixture["id"], event=event):
+                    self.assertTrue(schema_accepts(event, host_event, schema))
+                    matches = int(schema_accepts(event, protocol_event, schema)) + int(schema_accepts(event, fixture_control, schema))
+                    self.assertEqual(matches, 1)
+
+        invalid_protocol = (
+            {"at_hook": "after_applied", "kind": "abort_signal", "value": "set"},
+            {"at_hook": "during_prepare", "kind": "abort_signal", "value": "true"},
+            {"at_hook": "after_witness", "kind": "advance_monotonic_ns", "value": "deadline"},
+            {"at_hook": "after_witness", "kind": "advance_monotonic_ns", "value": "9007199254740992"},
+            {"at_hook": "before_reservation", "kind": "replace_registration_component_id", "value": "another-component"},
+            {"at_hook": "after_applied", "kind": "replace_ack_issuer", "value": "pi-ontology-workflows"},
+            {"at_hook": "during_applied", "kind": "completion_attempt", "value": "reentry"},
+        )
+        invalid_host = (
+            {"at_hook": "during_applied", "kind": "completion_attempt", "value": "blocked"},
+            {"at_hook": "before_record_commit", "kind": "completion_attempt", "value": "reentry"},
+            {"at_hook": "after_failure", "kind": "record_commit", "value": "done"},
+            {"at_hook": "after_record_commit", "kind": "record_commit", "value": "forbidden"},
+            {"at_hook": "during_applied", "kind": "applied_throw", "value": "rejected"},
+        )
+        for event in invalid_protocol:
+            with self.subTest(invalid_protocol=event):
+                self.assertFalse(schema_accepts(event, protocol_event, schema))
+        for event in invalid_host:
+            with self.subTest(invalid_host=event):
+                self.assertFalse(schema_accepts(event, host_event, schema))
 
     def test_validators_are_independent_stdlib_executors_without_behavior_oracles(self) -> None:
         python_path = PACKET / "validate_vectors.py"
@@ -181,18 +274,7 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
     def test_expected_and_case_id_mutations_are_not_behavior_oracles(self) -> None:
         with tempfile.TemporaryDirectory(prefix="semantic-pi-insertion-") as raw:
             candidate = Path(raw) / "repo"
-            packet = candidate / "docs" / "project" / "semantic-pi-insertion-evidence-v1"
-            packet.mkdir(parents=True)
-            (candidate / "scripts").mkdir()
-            for name in ("protocol.schema.json", "validate_vectors.py", "validate_vectors.mjs"):
-                shutil.copy2(PACKET / name, packet / name)
-            for name in FROZEN_PATHS:
-                destination = candidate / name
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(ROOT / name, destination)
-            shutil.copy2(ROOT / "scripts" / "tool_versions.json", candidate / "scripts" / "tool_versions.json")
-
-            vectors_path = candidate / "docs" / "project" / "semantic-pi-insertion-evidence-v1-vectors.json"
+            vectors_path = copy_validator_candidate(candidate)
             pristine = json.loads(vectors_path.read_text("utf-8"))
             wrong_expected = json.loads(json.dumps(pristine))
             wrong_expected["cases"][0]["expected"]["error_or_null"]["error_code"] = "internal_failure"
@@ -211,6 +293,24 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
                     completed = run_validator(candidate, language)
                     self.assertNotEqual(completed.returncode, 0)
                     self.assertIn("frozen vector SHA-256 mismatch", completed.stderr)
+                    self.assertNotIn("case result mismatch", completed.stderr)
+
+    def test_after_witness_deadline_prevents_during_applied_execution(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="semantic-pi-insertion-deadline-") as raw:
+            candidate = Path(raw) / "repo"
+            vectors_path = copy_validator_candidate(candidate)
+            vectors = json.loads(vectors_path.read_text("utf-8"))
+            target = next(case for case in vectors["cases"] if case["id"] == "valid-single-insertion")
+            target["events"] = [
+                {"at_hook": "after_witness", "kind": "advance_monotonic_ns", "value": "1000"},
+                {"at_hook": "during_applied", "kind": "invoke_nested_prompt", "value": "attempt"},
+            ]
+            vectors_path.write_text(json.dumps(vectors, ensure_ascii=False, indent=2) + "\n", "utf-8")
+            for language in ("python", "node"):
+                with self.subTest(language=language):
+                    completed = run_validator(candidate, language)
+                    self.assertNotEqual(completed.returncode, 0)
+                    self.assertIn("unreachable or unused event", completed.stderr)
                     self.assertNotIn("case result mismatch", completed.stderr)
 
 
