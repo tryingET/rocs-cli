@@ -1,0 +1,801 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-society.local/schemas/semantic-pi-insertion-evidence-v1/protocol.schema.json",
+  "title": "Semantic Pi insertion evidence v1 protocol bundle",
+  "x-digest-domains": [
+    "semantic-pi-insertion.request.v1",
+    "pi.prompt-chain-application-witness.v1",
+    "semantic-pi-insertion.acknowledgement.v1",
+    "pi.prompt-chain-insertion-record.v1",
+    "semantic-pi-insertion.error.v1",
+    "semantic-pi-insertion.input-prompt-bytes.v1",
+    "semantic-pi-insertion.contribution-bytes.v1",
+    "pi.prompt-chain-bytes.v1"
+  ],
+  "oneOf": [
+    {
+      "$ref": "#/$defs/semantic-pi-insertion-request.v1"
+    },
+    {
+      "$ref": "#/$defs/pi.prompt-chain-application-witness.v1"
+    },
+    {
+      "$ref": "#/$defs/semantic-pi-insertion-acknowledgement.v1"
+    },
+    {
+      "$ref": "#/$defs/pi.prompt-chain-insertion-record.v1"
+    },
+    {
+      "$ref": "#/$defs/semantic-pi-insertion-error.v1"
+    },
+    {
+      "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1"
+    }
+  ],
+  "$defs": {
+    "semantic-pi-insertion-request.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "protocol_revision",
+        "repository_id",
+        "component_id",
+        "package_name",
+        "execution_generation",
+        "attempt_id",
+        "handler_registration_index",
+        "input_prompt_byte_length",
+        "input_prompt_digest",
+        "contribution_byte_length",
+        "contribution_digest",
+        "request_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-pi-insertion-request.v1"
+        },
+        "protocol_revision": {
+          "const": "semantic-pi-insertion-evidence-v1-r1"
+        },
+        "repository_id": {
+          "const": "pi-extensions"
+        },
+        "component_id": {
+          "const": "pi-ontology-workflows"
+        },
+        "package_name": {
+          "const": "@tryinget/pi-ontology-workflows"
+        },
+        "execution_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "attempt_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "handler_registration_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "input_prompt_byte_length": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "input_prompt_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "contribution_byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "contribution_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "pi.prompt-chain-application-witness.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "host_package",
+        "protocol_revision",
+        "request_digest",
+        "execution_generation",
+        "attempt_id",
+        "handler_registration_index",
+        "assigned_prompt_chain_byte_length",
+        "assigned_prompt_chain_digest",
+        "readback_prompt_chain_byte_length",
+        "readback_prompt_chain_digest",
+        "contribution_start_byte_offset",
+        "contribution_end_byte_offset",
+        "observation_phase",
+        "provider_request_dispatched_at_observation",
+        "model_invocation_started_at_observation",
+        "witness_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "pi.prompt-chain-application-witness.v1"
+        },
+        "host_package": {
+          "const": "@earendil-works/pi-coding-agent"
+        },
+        "protocol_revision": {
+          "const": "semantic-pi-insertion-evidence-v1-r1"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "execution_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "attempt_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "handler_registration_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "assigned_prompt_chain_byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 33554432
+        },
+        "assigned_prompt_chain_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "readback_prompt_chain_byte_length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 33554432
+        },
+        "readback_prompt_chain_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "contribution_start_byte_offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "contribution_end_byte_offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "observation_phase": {
+          "const": "post_assignment_readback_pre_dispatch"
+        },
+        "provider_request_dispatched_at_observation": {
+          "const": false
+        },
+        "model_invocation_started_at_observation": {
+          "const": false
+        },
+        "witness_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "semantic-pi-insertion-acknowledgement.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "issuer",
+        "request_digest",
+        "witness_digest",
+        "execution_generation",
+        "attempt_id",
+        "handler_registration_index",
+        "acknowledgement_outcome",
+        "claim_scope",
+        "acknowledgement_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-pi-insertion-acknowledgement.v1"
+        },
+        "issuer": {
+          "$ref": "#/$defs/semantic-pi-insertion-acknowledgement.v1/$defs/issuer"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "witness_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "execution_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "attempt_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "handler_registration_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "acknowledgement_outcome": {
+          "const": "observed_inserted"
+        },
+        "claim_scope": {
+          "const": "prompt_chain_insertion_only"
+        },
+        "acknowledgement_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "$defs": {
+        "issuer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "pi_extension_component"
+            },
+            "id": {
+              "const": "pi-ontology-workflows"
+            }
+          }
+        }
+      }
+    },
+    "pi.prompt-chain-insertion-record.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "host_package",
+        "protocol_revision",
+        "request_digest",
+        "witness_digest",
+        "acknowledgement_digest",
+        "execution_generation",
+        "attempt_id",
+        "handler_registration_index",
+        "insertion_outcome",
+        "claim_scope",
+        "provider_request_dispatched_at_record",
+        "model_invocation_started_at_record",
+        "record_phase",
+        "insertion_record_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "pi.prompt-chain-insertion-record.v1"
+        },
+        "host_package": {
+          "const": "@earendil-works/pi-coding-agent"
+        },
+        "protocol_revision": {
+          "const": "semantic-pi-insertion-evidence-v1-r1"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "witness_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "acknowledgement_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "execution_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "attempt_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "handler_registration_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "insertion_outcome": {
+          "const": "observed_inserted"
+        },
+        "claim_scope": {
+          "const": "prompt_chain_insertion_only"
+        },
+        "provider_request_dispatched_at_record": {
+          "const": false
+        },
+        "model_invocation_started_at_record": {
+          "const": false
+        },
+        "record_phase": {
+          "const": "acknowledged_pre_dispatch"
+        },
+        "insertion_record_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "semantic-pi-insertion-error.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "protocol_revision",
+        "execution_generation",
+        "attempt_id_or_null",
+        "stage",
+        "error_code",
+        "details",
+        "error_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-pi-insertion-error.v1"
+        },
+        "protocol_revision": {
+          "const": "semantic-pi-insertion-evidence-v1-r1"
+        },
+        "execution_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "attempt_id_or_null": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stage": {
+          "enum": [
+            "registration",
+            "prepare",
+            "apply",
+            "assignment",
+            "readback",
+            "witness",
+            "acknowledgement",
+            "record",
+            "dispatch_guard"
+          ]
+        },
+        "error_code": {
+          "enum": [
+            "malformed_input",
+            "identity_mismatch",
+            "stale_generation",
+            "attempt_reuse",
+            "contribution_not_inserted",
+            "readback_mismatch",
+            "witness_forged",
+            "witness_reused",
+            "acknowledgement_mismatch",
+            "reentry_attempt",
+            "aborted",
+            "deadline_exceeded",
+            "internal_failure"
+          ]
+        },
+        "details": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/semantic-pi-insertion-error.v1/$defs/detail"
+          }
+        },
+        "error_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "$defs": {
+        "detail": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "value"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        }
+      }
+    },
+    "semantic-pi-insertion-vector-set.v1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "protocol_revision",
+        "cases",
+        "host_fixtures",
+        "accepted_object_aggregate_sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-pi-insertion-vector-set.v1"
+        },
+        "protocol_revision": {
+          "const": "semantic-pi-insertion-evidence-v1-r1"
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 16,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/case"
+          }
+        },
+        "host_fixtures": {
+          "type": "array",
+          "minItems": 13,
+          "maxItems": 13,
+          "items": {
+            "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/host_fixture"
+          }
+        },
+        "accepted_object_aggregate_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "$defs": {
+        "event": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "at_hook",
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "at_hook": {
+              "enum": [
+                "before_reservation",
+                "after_reservation",
+                "during_prepare",
+                "after_prepare",
+                "before_apply",
+                "after_apply",
+                "after_assignment",
+                "after_readback",
+                "before_witness",
+                "after_witness",
+                "during_applied",
+                "after_applied",
+                "before_record_commit",
+                "after_record_commit",
+                "after_guard_release",
+                "after_failure"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "reserve",
+                "prepare_return_base64",
+                "apply_span",
+                "assign_base64",
+                "readback_base64",
+                "issue_witness",
+                "applied_return_digest",
+                "commit_record",
+                "abort_signal",
+                "replace_ack_issuer",
+                "inject_ack_bytes_base64",
+                "invoke_nested_prompt",
+                "reserve_attempt_override",
+                "replace_registration_component_id",
+                "advance_monotonic_ns",
+                "reload_generation",
+                "clone_witness_json",
+                "consume_witness_twice",
+                "prompt_attempt",
+                "continuation_attempt",
+                "completion_attempt",
+                "provider_dispatch_attempt",
+                "model_invocation_attempt",
+                "contributor_callback_attempt",
+                "stale_api_call",
+                "detached_callback_call",
+                "provider_dispatch_eligibility",
+                "applied_throw",
+                "record_commit",
+                "create_registration_b",
+                "consume_from_registration_b",
+                "consume_stale_witness",
+                "defer_applied",
+                "settle_applied",
+                "start_next_attempt",
+                "assign",
+                "readback",
+                "witness_issued"
+              ]
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        "success_expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "accepted",
+            "error_or_null",
+            "request_or_null",
+            "witness_or_null",
+            "acknowledgement_or_null",
+            "record_or_null"
+          ],
+          "properties": {
+            "accepted": {
+              "const": true
+            },
+            "error_or_null": {
+              "type": "null"
+            },
+            "request_or_null": {
+              "$ref": "#/$defs/semantic-pi-insertion-request.v1"
+            },
+            "witness_or_null": {
+              "$ref": "#/$defs/pi.prompt-chain-application-witness.v1"
+            },
+            "acknowledgement_or_null": {
+              "$ref": "#/$defs/semantic-pi-insertion-acknowledgement.v1"
+            },
+            "record_or_null": {
+              "$ref": "#/$defs/pi.prompt-chain-insertion-record.v1"
+            }
+          }
+        },
+        "failure_expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "accepted",
+            "error_or_null",
+            "request_or_null",
+            "witness_or_null",
+            "acknowledgement_or_null",
+            "record_or_null"
+          ],
+          "properties": {
+            "accepted": {
+              "const": false
+            },
+            "error_or_null": {
+              "$ref": "#/$defs/semantic-pi-insertion-error.v1"
+            },
+            "request_or_null": {
+              "type": "null"
+            },
+            "witness_or_null": {
+              "type": "null"
+            },
+            "acknowledgement_or_null": {
+              "type": "null"
+            },
+            "record_or_null": {
+              "type": "null"
+            }
+          }
+        },
+        "expected": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/success_expected"
+            },
+            {
+              "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/failure_expected"
+            }
+          ]
+        },
+        "case": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "input_bytes_base64",
+            "contribution_bytes_base64",
+            "initial_generation",
+            "initial_next_attempt_id",
+            "handler_registration_index",
+            "deadline_monotonic_ns",
+            "events",
+            "expected"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "input_bytes_base64": {
+              "type": "string",
+              "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+            },
+            "contribution_bytes_base64": {
+              "type": "string",
+              "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+            },
+            "initial_generation": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "initial_next_attempt_id": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "handler_registration_index": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "deadline_monotonic_ns": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "events": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event"
+              }
+            },
+            "expected": {
+              "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/expected"
+            }
+          }
+        },
+        "control_result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "entrypoint",
+            "execution_generation",
+            "attempt_id"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "dispatch_blocked",
+                "stale_invocation"
+              ]
+            },
+            "entrypoint": {
+              "enum": [
+                "prompt",
+                "continuation",
+                "completion",
+                "provider_dispatch",
+                "model_invocation",
+                "contributor_callback"
+              ]
+            },
+            "execution_generation": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "attempt_id": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "host_fixture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "baseline_case_id",
+            "events",
+            "expected_terminal_state",
+            "expected_provider_operations_before_record",
+            "expected_model_operations_before_record",
+            "expected_control_results"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "baseline_case_id": {
+              "const": "valid-single-insertion"
+            },
+            "events": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/event"
+              }
+            },
+            "expected_terminal_state": {
+              "enum": [
+                "dispatch_eligible",
+                "failed"
+              ]
+            },
+            "expected_provider_operations_before_record": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "expected_model_operations_before_record": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "expected_control_results": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/semantic-pi-insertion-vector-set.v1/$defs/control_result"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
