@@ -22,17 +22,21 @@ status: "proposed"
 2. Host compatibility identity is not insertion evidence.
 3. Self-produced digests are local integrity aids, not public authentication.
 4. A test must run producer then observer sequentially. `Promise.all` cannot prove adjacency or ordering.
-5. The output claim must stop before the host consumes the callback result.
+5. The runtime-record claim must stop at package-local return-value preparation before the source-level return statement; it cannot prove that execution reached or crossed that statement, callback return/promise settlement, or host consumption.
+6. Pi session lifecycle events may reset one existing package runtime; reload/new/resume/fork must not be modeled as proof of host re-instantiation.
+7. Existing semantic-preflight framing replacement and disabled-mode hints cannot be silently re-described as universal exact append or no modification.
 
 ## Prospective evidence target
 
 A future package task may prove:
 
 - exact callback input string received by the package;
-- exact contribution and append operation produced locally;
+- exact contribution and append candidate produced locally;
 - outer package wrapper observed the inner producer's resolved output;
-- local wrapper returned that same value;
-- deterministic local record construction and failure behavior;
-- default-off lifecycle and local generation invalidation.
+- exact return object was constructed and one immutable record-plus-allocator state assignment was the final package operation before the source-level return statement;
+- a separate package harness observed ordinary callback resolution without promoting that fact into each runtime record;
+- deterministic local record construction, exact ID exhaustion, and failure behavior;
+- default-off lifecycle and same-runtime local generation invalidation;
+- non-append replacement behavior and disabled-mode hints remained outside the positive record.
 
-No installation, reload, dogfood, publication, activation, provider/model use, live acquisition, or production action is authorized by this note or Decision 89 before reviewed ADR and fresh owner-scoped tasks.
+No implementation is authorized by this note or Decision 89. Strict review and an accepted ADR are necessary but not sufficient: code or tests require a fresh owner-scoped package task, and installation, reload, dogfood, publication, activation, provider/model use, live acquisition, or production each require later owner authority.

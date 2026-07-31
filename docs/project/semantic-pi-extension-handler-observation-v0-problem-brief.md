@@ -15,15 +15,16 @@ The operator then chose to stop the Pi-host direction and redesign around what `
 
 ## Smallest truthful observation
 
-Inside the package's registered `before_agent_start` callback:
+Inside the package's existing registered `before_agent_start` callback:
 
 1. the outer package handler receives the host-supplied current chained `systemPrompt`;
-2. an inner package producer constructs one canonical contribution and exact appended output;
-3. the outer package handler observes that producer result, records hashes and lengths from immutable local snapshots, and returns the same output object to its caller.
+2. a pure inner producer constructs the current semantic-preflight contribution and output;
+3. only an exact append candidate is eligible for observation; pre-existing replacement/deduplication behavior may continue without a record;
+4. the outer package handler records hashes and lengths from immutable local snapshots, constructs the exact return object, and atomically commits the record plus allocator transition as its final package operation before the source-level return statement.
 
-This proves only package-local producer resolution and forwarding at the extension callback boundary.
+This proves only package-local producer resolution and return-value preparation. The runtime record does not prove execution reached or crossed the return statement, callback return, or promise settlement to its caller.
 
-It does not prove that the host accepted the return value, assigned/read it back, preserved it after later handlers, serialized it into a provider payload, transmitted it, invoked a model with it, influenced a model, authenticated it publicly, or used it in production.
+A package-local harness may separately invoke and await the handler to verify ordinary return behavior. Neither that harness nor the runtime record proves that the host accepted the value, assigned/read it back, preserved it after later handlers, serialized it into a provider payload, transmitted it, invoked a model with it, influenced a model, authenticated it publicly, or used it in production.
 
 ## Ownership
 
@@ -31,7 +32,8 @@ It does not prove that the host accepted the return value, assigned/read it back
 - Implementation: `softwareco/owned/pi-extensions/packages/pi-ontology-workflows` only.
 - Existing host capability `prompt.system.chain.v1`: compatibility gate only, never evidence.
 - No `pi-mono` implementation task or host API change.
+- Existing disabled-mode hints, enabled preflight framing replacement, and same-runtime session lifecycle remain package behavior outside any positive observation claim.
 
 ## Required outcome
 
-A reviewed, executable package-local contract with explicit non-claims, sequential test harness semantics, deterministic local records, and default-off activation. Decision 85 and all failed/rejected tasks remain immutable history and are not reused.
+A reviewed, executable package-local contract with explicit non-claims, sequential test harness semantics, deterministic local records, and default-off activation. Review and an accepted ADR remain non-executing; implementation requires a fresh owner-scoped package task. Decision 85 and all failed/rejected tasks remain immutable history and are not reused.
