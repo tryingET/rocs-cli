@@ -3,14 +3,14 @@ summary: "Accepts extension-local pre-return handler observation with one bounde
 read_when:
   - "Implementing or reviewing Decision 89 extension-local handler observation."
 type: "adr"
-status: "proposed"
+status: "accepted"
 decision_id: 89
 ---
 # ADR — Extension-local prompt-chain handler observation v0
 
 ## Status
 
-Proposed for Decision 89 after strict r4 three-lane convergence. An earlier ADR draft was revised after adversarial review found an unrepresentable historical-link rewrite; r4 now uses AK's supported terminal Decision-85 `superseded` transition. Acceptance requires fresh independent ADR review and AK transition through the Decision-89 membrane.
+Accepted for Decision 89 after strict r4 three-lane convergence and independent ADR reviews `dispatch-1785524971010` and `dispatch-1785524971010-1`. An earlier ADR draft was revised after adversarial review found an unrepresentable historical-link rewrite; r4 uses AK's supported terminal Decision-85 `superseded` transition.
 
 ## Context
 
