@@ -36,4 +36,4 @@ A package-local harness may separately invoke and await the handler to verify or
 
 ## Required outcome
 
-A reviewed, executable package-local contract with explicit non-claims, sequential test harness semantics, one deterministic bounded diagnostic slot, and default-off activation. Review and an accepted ADR remain non-executing; implementation requires a fresh owner-scoped package task. Decision 85 and all failed/rejected tasks remain immutable history and are not reused.
+A reviewed, executable package-local contract with explicit non-claims, sequential test harness semantics, one deterministic bounded diagnostic slot, default-off activation, and a representable AK `superseded` transition for retiring Decision 85. Review and an accepted ADR remain non-executing; implementation requires a fresh owner-scoped package task. Decision 85 and all failed/rejected tasks remain immutable history and are not reused.

@@ -25,6 +25,7 @@ status: "proposed"
 5. The runtime-record claim must stop at package-local return-value preparation before the source-level return statement; it cannot prove that execution reached or crossed that statement, callback return/promise settlement, or host consumption.
 6. Pi session lifecycle events may reset one existing package runtime; reload/new/resume/fork must not be modeled as proof of host re-instantiation.
 7. Existing semantic-preflight framing replacement and disabled-mode hints cannot be silently re-described as universal exact append or no modification.
+8. Operational supersession must use AK's supported terminal `superseded` decision state; already-resolved post-ADR link reevaluations cannot be retroactively rewritten after an unblocked decision.
 
 ## Prospective evidence target
 

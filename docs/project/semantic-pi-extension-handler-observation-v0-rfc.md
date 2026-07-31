@@ -4,7 +4,7 @@ read_when:
   - "Reviewing or implementing extension-local prompt-chain handler observation v0."
 type: "rfc"
 status: "in_review"
-rfc_revision: "pi-ontology-workflows-handler-observation-v0-r3"
+rfc_revision: "pi-ontology-workflows-handler-observation-v0-r4"
 ---
 # RFC — Extension-local prompt-chain handler observation v0
 
@@ -130,7 +130,7 @@ record_digest
 Productions:
 
 - `schema="pi-ontology-workflows.prompt-chain-handler-observation.v0"`;
-- `protocol_revision="pi-ontology-workflows-handler-observation-v0-r3"`;
+- `protocol_revision="pi-ontology-workflows-handler-observation-v0-r4"`;
 - repository/component/package identity equals the fixed identity above;
 - lengths and offsets count UTF-8 bytes;
 - `contribution_start_byte_offset=input_prompt_byte_length`;
@@ -189,7 +189,9 @@ After an accepted ADR, implementation is still unauthorized until a fresh owner-
 
 Decision 89 supersedes Decision 85 as the active implementation direction if accepted. It does not rewrite or invalidate Decision 85's accepted ADR, R1b substrate, failed/rejected tasks, evidence, or frozen artifacts. Tasks `4331`, `4343`, and their downstream graphs are never reopened or reused.
 
-Acceptance is not operational supersession by prose alone. Before Decision 89 can become unblocked or create a package implementation task, the decision owner must use the AK decision membrane to record Decision 85's successor disposition and reevaluate its stopped executable graph. Decision-85 links for failed roots `4331` and `4343` plus their pending executable graphs `4332` through `4339` and `4344` through `4350` must have reevaluation status `cancelled` with notes naming Decision 89 as the successor; task rows and historical artifacts remain intact. The controller must verify the Decision-85 passport no longer presents an unblocked executable direction and exposes no still-valid pending host/component/runtime/release continuation from the stopped graph.
+Acceptance is not operational supersession by prose alone. Before Decision 89 can become unblocked or create a package implementation task, the decision owner must perform the supported AK transition `ak decision advance 85 --state superseded --outcome superseded --evidence-ref docs/adr/2026-07-31-semantic-pi-extension-handler-observation-v0.md --actor <owner>`. The controller must then verify the Decision-85 passport reports state and outcome `superseded`; that terminal state prevents new task links and removes Decision 85 as an active executable direction.
+
+Existing `still_valid` reevaluation values on Decision-85 links remain historical snapshots. AK does not permit retroactive reevaluation of already-resolved post-ADR links after an unblocked decision; Decision 89 therefore does not require or pretend to perform an illegal link rewrite. Failed roots `4331` and `4343` and pending dependent graphs `4332` through `4339` and `4344` through `4350` remain intact, are never reopened or reused, and acquire no authority from their historical link values.
 
 ## Non-authorization
 

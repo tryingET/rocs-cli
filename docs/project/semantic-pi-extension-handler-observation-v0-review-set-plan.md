@@ -51,7 +51,7 @@ Every lane confirms:
 - malformed/failure paths produce no positive record;
 - conformance cases do not drive behavior from IDs/expected values;
 - Decision 85 and tasks `4331`/`4343` remain immutable non-reusable history;
-- accepted supersession requires AK successor disposition plus `cancelled` reevaluation of Decision-85 failed-root/pending-graph links `4331` through `4339` and `4343` through `4350`, and its passport must no longer present an unblocked executable direction before Decision 89 unblocks;
+- accepted supersession requires the supported AK transition of Decision 85 to state/outcome `superseded`; already-resolved link reevaluation values remain historical and the stopped task graphs are never reopened or reused;
 - review and accepted ADR remain non-executing; implementation requires a fresh owner-scoped package task and later runtime/release actions require their own authority.
 
 ## Legal next move
