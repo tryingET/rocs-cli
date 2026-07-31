@@ -33,10 +33,10 @@ A future package task may prove:
 - exact callback input string received by the package;
 - exact contribution and append candidate produced locally;
 - outer package wrapper observed the inner producer's resolved output;
-- exact return object was constructed and one immutable record-plus-allocator state assignment was the final package operation before the source-level return statement;
+- exact return object was constructed and one bounded diagnostic-slot assignment was the final package operation before the source-level return statement;
 - a separate package harness observed ordinary callback resolution without promoting that fact into each runtime record;
-- deterministic local record construction, exact ID exhaustion, and failure behavior;
-- default-off lifecycle and same-runtime local generation invalidation;
+- deterministic single-slot record construction, replacement/clearing, and failure behavior;
+- default-off lifecycle and same-runtime grant invalidation without a second lineage state machine;
 - non-append replacement behavior and disabled-mode hints remained outside the positive record.
 
 No implementation is authorized by this note or Decision 89. Strict review and an accepted ADR are necessary but not sufficient: code or tests require a fresh owner-scoped package task, and installation, reload, dogfood, publication, activation, provider/model use, live acquisition, or production each require later owner authority.

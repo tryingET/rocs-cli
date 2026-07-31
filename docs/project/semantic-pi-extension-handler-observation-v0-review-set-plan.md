@@ -37,13 +37,13 @@ These are conceptual subreviews, not three invented AK runtime tracks. The desig
 Every lane confirms:
 
 - exact fixed package identity and no `pi-adapter` alias;
-- outer handler observes only inner producer resolution, prepares the same value, and atomically commits record plus allocator transition as its final package operation before the source-level return statement;
+- outer handler observes only inner producer resolution, prepares the same value, and assigns one immutable bounded diagnostic slot as its final package operation before the source-level return statement;
 - runtime records claim no execution of that return statement, callback return, or promise settlement; separate package-harness evidence stays separate;
 - sequential execution with no `Promise.all` supplying acceptance evidence;
 - exact append boundary with no substring search, while current non-append framing replacement remains unrecorded and behaviorally preserved;
 - disabled observation preserves existing disabled-mode handler behavior and creates no record;
-- same-runtime reload/new/resume/fork generation invalidation is explicit and makes no re-instantiation claim;
-- exact protocol revision, same-generation ID reset/increment/exhaustion, concurrent post-settlement linearization, grant replacement, observed expiry, record clearing, and duplicate-ID behavior are closed;
+- same-runtime reload/new/resume/fork slot clearing is explicit and makes no re-instantiation claim;
+- exact protocol revision, single-slot replacement/clearing, concurrent post-settlement linearization, grant replacement, and observed expiry are closed without an observation ID/generation/history protocol;
 - no host acceptance/assignment/readback/final-chain claim;
 - no universal guard, stale-host, provider transmission, model influence, public authentication, publication, activation, or production claim;
 - compatibility token is not evidence;
@@ -51,6 +51,7 @@ Every lane confirms:
 - malformed/failure paths produce no positive record;
 - conformance cases do not drive behavior from IDs/expected values;
 - Decision 85 and tasks `4331`/`4343` remain immutable non-reusable history;
+- accepted supersession requires AK successor disposition plus `cancelled` reevaluation of Decision-85 failed-root/pending-graph links `4331` through `4339` and `4343` through `4350`, and its passport must no longer present an unblocked executable direction before Decision 89 unblocks;
 - review and accepted ADR remain non-executing; implementation requires a fresh owner-scoped package task and later runtime/release actions require their own authority.
 
 ## Legal next move

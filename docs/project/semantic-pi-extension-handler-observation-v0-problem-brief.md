@@ -20,7 +20,7 @@ Inside the package's existing registered `before_agent_start` callback:
 1. the outer package handler receives the host-supplied current chained `systemPrompt`;
 2. a pure inner producer constructs the current semantic-preflight contribution and output;
 3. only an exact append candidate is eligible for observation; pre-existing replacement/deduplication behavior may continue without a record;
-4. the outer package handler records hashes and lengths from immutable local snapshots, constructs the exact return object, and atomically commits the record plus allocator transition as its final package operation before the source-level return statement.
+4. the outer package handler records hashes and lengths from immutable local snapshots, constructs the exact return object, and replaces one bounded package-local diagnostic slot with the immutable record as its final package operation before the source-level return statement.
 
 This proves only package-local producer resolution and return-value preparation. The runtime record does not prove execution reached or crossed the return statement, callback return, or promise settlement to its caller.
 
@@ -36,4 +36,4 @@ A package-local harness may separately invoke and await the handler to verify or
 
 ## Required outcome
 
-A reviewed, executable package-local contract with explicit non-claims, sequential test harness semantics, deterministic local records, and default-off activation. Review and an accepted ADR remain non-executing; implementation requires a fresh owner-scoped package task. Decision 85 and all failed/rejected tasks remain immutable history and are not reused.
+A reviewed, executable package-local contract with explicit non-claims, sequential test harness semantics, one deterministic bounded diagnostic slot, and default-off activation. Review and an accepted ADR remain non-executing; implementation requires a fresh owner-scoped package task. Decision 85 and all failed/rejected tasks remain immutable history and are not reused.

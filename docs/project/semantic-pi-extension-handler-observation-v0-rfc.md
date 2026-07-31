@@ -4,7 +4,7 @@ read_when:
   - "Reviewing or implementing extension-local prompt-chain handler observation v0."
 type: "rfc"
 status: "in_review"
-rfc_revision: "pi-ontology-workflows-handler-observation-v0-r2"
+rfc_revision: "pi-ontology-workflows-handler-observation-v0-r3"
 ---
 # RFC — Extension-local prompt-chain handler observation v0
 
@@ -28,7 +28,7 @@ An accepted local record means only:
 2. the package inner producer resolved one contribution and one output string;
 3. output was exactly input followed by contribution, with no other byte change;
 4. the package outer handler observed immutable snapshots of those three strings;
-5. the outer handler constructed `{systemPrompt: output}` and atomically replaced the immutable observation-state snapshot with one containing both the new record and its allocator transition; that single commit is the final package operation before the source-level return statement.
+5. the outer handler constructed `{systemPrompt: output}` and atomically replaced its single package-local diagnostic slot with the new immutable record; that assignment is the final package operation before the source-level return statement.
 
 The record does **not** prove that execution reached or crossed the return statement, that the callback returned to its caller, or that its promise settled. A package-local conformance harness may independently invoke and await the handler to prove ordinary return behavior, but that test result is not encoded into an individual runtime record.
 
@@ -62,24 +62,23 @@ The registered handler is one outer package function. For an exact-append observ
 6. Verify `contribution` is nonempty and `output === input + contribution` by JavaScript string equality and UTF-8 byte equality.
 7. Snapshot UTF-8 bytes after rejecting lone surrogates; no Unicode normalization is performed.
 8. Construct the exact plain-data return value `{systemPrompt: output}`.
-9. Build an immutable next observation-state snapshot containing the record and allocator transition, then commit it with one synchronous state-reference assignment.
+9. Replace the single package-local diagnostic slot with the immutable record using one synchronous state-reference assignment.
 10. Immediately return the already-constructed value, with no intervening package code.
 
 No `Promise.all`, detached observer, event bus, later lifecycle hook, substring search, inferred offset, host callback, or persistence participates in acceptance.
 
-Producer failure, malformed output, a non-append transformation, or observation-record failure creates no positive record. When a valid pre-existing handler result has already been prepared, any observation-only validation or record failure is caught and returns that exact prepared result. Producer failure follows the already reviewed semantic-preflight behavior outside this observation claim.
+Producer failure, malformed output, a non-append transformation, or observation-record failure creates no positive record. Each such completed observation attempt clears the diagnostic slot. When a valid pre-existing handler result has already been prepared, observation-only validation or record failure is caught, the slot is cleared with one assignment, and the exact prepared result returns. Producer failure otherwise follows the already reviewed semantic-preflight behavior.
 
-## Local generation, grant, and attempt
+## Bounded diagnostic state and grant lifecycle
 
-- One package runtime object starts `local_generation=0`, `next_observation_id=0`, `observation_id_exhausted=false`, and an empty record set. These are observation-local values, not the Pi host's generation identity.
-- Before handling a later prompt, each `session_start` for startup/reload/new/resume/fork and each `session_shutdown` clears records and advances `local_generation`. These events do not claim that the host created a new extension instance.
-- Explicit disable clears records and advances generation synchronously. Successful grant enablement or replacement clears records, advances generation, and resets `next_observation_id=0` before the new grant becomes observation-eligible. Expiry or other grant invalidity clears and advances when the package next synchronously evaluates grant validity; no wall-clock timer or immediate idle-time erasure is claimed.
-- If an actual extension reload creates a new runtime object, its namespace starts again at zero. No value is globally unique, and records from different runtime objects or generations are never compared as one lineage.
-- `local_generation` and `observation_id` are integers in `0..9007199254740991`. An advance at maximum clears records and permanently disables further observation in that runtime object rather than incrementing.
-- Within every new generation, `next_observation_id` starts at `0`. After producer settlement, one no-`await` critical section rechecks current generation/grant and uses the current ID to build, without mutation, an immutable next observation-state snapshot containing the candidate record plus `next_observation_id=id+1`; allocation of `9007199254740991` instead carries `observation_id_exhausted=true` without an increment. One state-reference assignment atomically commits both record and allocator transition. Any failure before that assignment leaves the current state and ID unchanged. A later attempt in an exhausted generation may still complete the pre-existing producer behavior but creates no record.
-- Concurrent callbacks may run or coalesce the existing producer work. Their accepted records linearize only in the synchronous post-settlement critical section and therefore receive distinct IDs. A reused, non-current, or already-committed ID rejects without a positive record.
-- Records are non-evicting only within the current observation generation, are cleared on the invalidations above, and disappear with the runtime object.
-- No database, recovery actor, cross-process replay, or public ledger exists.
+- One package runtime object owns exactly one `latest_observation_record` slot, initially empty. There is no observation generation, attempt ID, collection, queue, history, ordering identity, uniqueness claim, or cross-record lineage.
+- The slot exists only to expose the latest completed exact-append observation to package-local development diagnostics and conformance tests. A later completed attempt replaces or clears it; replacement is intentional and is not retention evidence.
+- `session_start` for startup/reload/new/resume/fork, `session_shutdown`, explicit disable, and successful grant enablement or replacement clear the slot. These events reuse the existing package runtime lifecycle and do not claim host re-instantiation.
+- Expiry or other grant invalidity clears the slot when the package next synchronously evaluates grant validity; no wall-clock timer or immediate idle-time erasure is claimed.
+- After producer settlement, the outer handler first rechecks the existing generation/grant/cwd/compatibility boundary. If it is non-current, one assignment clears the slot and the handler follows the existing stale-completion path: visible unavailability and no prompt modification. This invalidation transition is not an observation-construction failure.
+- After a successful current-boundary recheck, record construction is mutation-free. Success assigns the immutable record to the slot once as the final package operation before return. Construction or validation failure assigns `undefined` once, then returns the exact prepared existing result. No `await` occurs between the recheck and assignment.
+- Concurrent callbacks may run or coalesce existing producer work. Their post-settlement slot assignments linearize under JavaScript run-to-completion; the last completed assignment wins. No record order, completeness, or durability is claimed.
+- The single fixed-size record disappears with the runtime object. No database, recovery actor, cross-process replay, public ledger, or unbounded retention exists.
 
 ## Encoding and digests
 
@@ -110,8 +109,6 @@ protocol_revision
 repository_id
 component_id
 package_name
-local_generation
-observation_id
 input_prompt_byte_length
 input_prompt_digest
 contribution_byte_length
@@ -133,7 +130,7 @@ record_digest
 Productions:
 
 - `schema="pi-ontology-workflows.prompt-chain-handler-observation.v0"`;
-- `protocol_revision="pi-ontology-workflows-handler-observation-v0-r2"`;
+- `protocol_revision="pi-ontology-workflows-handler-observation-v0-r3"`;
 - repository/component/package identity equals the fixed identity above;
 - lengths and offsets count UTF-8 bytes;
 - `contribution_start_byte_offset=input_prompt_byte_length`;
@@ -149,7 +146,7 @@ The record is a package-local diagnostic object. It is not signed, host-issued, 
 
 ## Default-off gate
 
-Observation recording remains disabled by default and reuses the package's existing bounded TUI-only development grant: `/ontology-preflight enable-development`, fresh UI confirmation, immutable closed host compatibility, current generation/cwd binding, and expiry. It adds no second activation source. Explicit disable synchronously disables observation and clears records. Expiry or other invalidity does so when the package next evaluates grant validity; successful grant replacement clears the prior observation generation before eligibility. Each preserves the package's already reviewed disabled-mode behavior. Repository files, prompt text, model output, and environment variables cannot silently enable it. Production activation requires a separate post-ADR task and evidence.
+Observation recording remains disabled by default and reuses the package's existing bounded TUI-only development grant: `/ontology-preflight enable-development`, fresh UI confirmation, immutable closed host compatibility, current generation/cwd binding, and expiry. It adds no second activation source. Explicit disable synchronously disables observation and clears the slot. Expiry or other invalidity does so when the package next evaluates grant validity; successful grant replacement clears the slot before eligibility. Each preserves the package's already reviewed disabled-mode behavior. Repository files, prompt text, model output, and environment variables cannot silently enable it. Production activation requires a separate post-ADR task and evidence.
 
 ## Executable conformance matrix
 
@@ -165,18 +162,15 @@ A package implementation must independently test at least these exact behaviors:
 | `wrong-output` | output differs from `input+contribution` | rejected, no record |
 | `lone-surrogate-input` | malformed JS string | rejected, no record |
 | `producer-throw` | producer throws/rejects | rejected, no record |
-| `replacement-transform` | existing owner frame causes non-append output | exact existing result forwards, no record |
-| `observer-throw` | record construction fails after a valid result is prepared | exact prepared result forwards, no record, ID unchanged |
-| `duplicate-id` | forced current-generation ID reuse | rejected, no second record |
-| `concurrent-ids` | two callbacks settle producer work before either commits | synchronous commits receive distinct increasing IDs |
-| `id-maximum` | allocate `9007199254740991`, then attempt again | maximum accepted once; later existing result may forward with no record |
-| `generation-maximum` | invalidate generation `9007199254740991` | records clear; runtime observation permanently disabled |
-| `grant-replacement` | enable a new grant in the same session lifecycle | prior records clear; generation advances; ID resets to `0` |
-| `idle-expiry` | grant expires with no package action | no timer claim; records clear on next validity evaluation before observation |
-| `disabled` | observation gate disabled | existing handler behavior unchanged; no observation record |
-| `sequential-order` | delayed producer and observer probes | producer settles before observer; one record-plus-allocator state assignment is the final operation before the source-level return statement |
+| `replacement-transform` | existing owner frame causes non-append output | exact existing result forwards; slot clears |
+| `observer-throw` | record construction fails after a valid result is prepared | exact prepared result forwards; slot clears |
+| `grant-replacement` | enable a new grant in the same session lifecycle | prior slot clears before new eligibility |
+| `idle-expiry` | grant expires with no package action | no timer claim; slot clears on next validity evaluation before observation |
+| `disabled` | observation gate disabled | existing handler behavior unchanged; slot empty |
+| `sequential-order` | delayed producer and observer probes | producer settles before observer; successful slot assignment is the final package operation before the source-level return statement |
+| `concurrent-latest` | two callbacks settle and complete in either order | assignments do not interleave; last completed assignment alone occupies the slot |
 | `return-resolution-harness` | package harness invokes and awaits handler | resolved value equals prepared return; runtime record still claims no return-statement execution or settlement |
-| `lifecycle-same-instance` | repeated reload/new/resume/fork events on one runtime | generation advances, ID resets, and prior records clear without re-instantiation claim |
+| `lifecycle-same-instance` | repeated reload/new/resume/fork events on one runtime | slot clears without re-instantiation claim |
 | `later-handler-removal` | separate simulated later handler removes output | local record remains local only and must not be interpreted as final-chain evidence |
 
 Tests compare actual independently computed outputs after execution. Case IDs and expected rows may not select implementation behavior. The lifecycle harness must execute producer and observer sequentially, never with `Promise.all`. Concurrent behavior may be tested separately, but it cannot supply ordering evidence for an accepted record.
@@ -194,6 +188,8 @@ After an accepted ADR, implementation is still unauthorized until a fresh owner-
 ## Supersession
 
 Decision 89 supersedes Decision 85 as the active implementation direction if accepted. It does not rewrite or invalidate Decision 85's accepted ADR, R1b substrate, failed/rejected tasks, evidence, or frozen artifacts. Tasks `4331`, `4343`, and their downstream graphs are never reopened or reused.
+
+Acceptance is not operational supersession by prose alone. Before Decision 89 can become unblocked or create a package implementation task, the decision owner must use the AK decision membrane to record Decision 85's successor disposition and reevaluate its stopped executable graph. Decision-85 links for failed roots `4331` and `4343` plus their pending executable graphs `4332` through `4339` and `4344` through `4350` must have reevaluation status `cancelled` with notes naming Decision 89 as the successor; task rows and historical artifacts remain intact. The controller must verify the Decision-85 passport no longer presents an unblocked executable direction and exposes no still-valid pending host/component/runtime/release continuation from the stopped graph.
 
 ## Non-authorization
 
