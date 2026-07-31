@@ -10,7 +10,7 @@ decision_id: 89
 
 ## Status
 
-Proposed for Decision 89 after strict three-lane convergence. Acceptance requires independent ADR review and AK transition through the Decision-89 membrane.
+Proposed for Decision 89 after strict r4 three-lane convergence. An earlier ADR draft was revised after adversarial review found an unrepresentable historical-link rewrite; r4 now uses AK's supported terminal Decision-85 `superseded` transition. Acceptance requires fresh independent ADR review and AK transition through the Decision-89 membrane.
 
 ## Context
 
@@ -18,16 +18,16 @@ Decision 85 accepted a Pi-host insertion-evidence direction. Its corrected packa
 
 Decision 89 froze and reviewed:
 
-- commit `0dc38375e60c39a1a4040c228907ed999347d013`;
-- tree `14210c26461ae0b50d62f6178e1c003fb00df803`;
-- four-file aggregate `7415690b19a9ce63a6f0e016680ca51fd9a0e45f1bbb2cb65b8777548144c7b2`;
-- RFC revision `pi-ontology-workflows-handler-observation-v0-r3`.
+- commit `53e565b078ccc5bd2dff518a776704993e0b8212`;
+- tree `702d181b1ea49166c2fdc66459dffa0d4768dba3`;
+- four-file aggregate `5bb5070d08f79e380e2b0a9762ed783e73f30c9e93d99187944bee10578c664a`;
+- RFC revision `pi-ontology-workflows-handler-observation-v0-r4`.
 
-Pi-component implementability, governance/security, and scope/debt lanes all returned `ready_for_adr` with zero blockers and zero unresolved material findings. The controlling record is `docs/project/semantic-pi-extension-handler-observation-v0-review-synthesis-r3.md`.
+Pi-component implementability, governance/security, and scope/debt lanes all returned `ready_for_adr` with zero blockers and zero unresolved material findings. The controlling record is `docs/project/semantic-pi-extension-handler-observation-v0-review-synthesis-r4.md`.
 
 ## Decision
 
-Accept `pi-ontology-workflows-handler-observation-v0-r3` as the successor architecture for this seam.
+Accept `pi-ontology-workflows-handler-observation-v0-r4` as the successor architecture for this seam.
 
 The package may, under separately authorized future work:
 
@@ -36,7 +36,7 @@ The package may, under separately authorized future work:
 3. accept an observation only when output is exactly input followed by the canonical contribution;
 4. preserve existing disabled hints and non-append framing replacement without a positive record;
 5. construct the exact callback return object and assign one immutable record to one replaceable package-local diagnostic slot as the final package operation before the source-level return statement;
-6. clear that slot on failure, non-append results, lifecycle/grant invalidation, disable, or replacement;
+6. clear that slot on failure, non-append framing replacement, lifecycle/grant invalidation, explicit disable, or successful grant replacement; a later successful exact-append observation instead replaces the slot with its new record;
 7. reuse existing generation/grant/cwd/compatibility checks without adding a host API, second host-ordered handler, observation lineage, queue, history, persistence, or unbounded retention.
 
 An accepted local record proves only exact package-local append and return-value preparation. It does not prove execution of the return statement, callback return or promise settlement, host acceptance/assignment/readback, final-chain retention, provider transmission, model invocation/input/influence, public authenticity, semantic correctness, adoption, publication, activation, live acquisition, or production use. Compatibility tokens and self-produced digests remain non-authoritative.
@@ -53,7 +53,9 @@ An accepted local record proves only exact package-local append and return-value
 
 Decision 85, its accepted ADR, completed R1b substrate, frozen artifacts, failed tasks, evidence, and reviews remain immutable history. Decision 89 supersedes only its active implementation direction.
 
-ADR acceptance is not operational supersession by prose alone. Before Decision 89 can become unblocked or create an implementation task, the decision owner must record the successor disposition through AK. Decision-85 links for failed roots `4331` and `4343` plus pending executable graphs `4332` through `4339` and `4344` through `4350` must receive reevaluation status `cancelled` with notes naming Decision 89; task rows and historical artifacts remain intact. The Decision-85 passport must no longer present an unblocked executable direction or a still-valid pending continuation from either stopped graph.
+ADR acceptance is not operational supersession by prose alone. Before Decision 89 can become unblocked or create an implementation task, the owner must execute the supported transition `ak decision advance 85 --state superseded --outcome superseded --evidence-ref docs/adr/2026-07-31-semantic-pi-extension-handler-observation-v0.md --actor <owner>` and verify the Decision-85 passport reports state/outcome `superseded`. That terminal state rejects new task links and removes Decision 85 as an active executable direction.
+
+Existing `still_valid` reevaluation values remain historical snapshots: AK does not permit retroactive rewriting of already-resolved post-ADR links after an unblocked decision. Failed roots `4331` and `4343`, pending dependent graphs `4332` through `4339` and `4344` through `4350`, task rows, and historical artifacts remain intact and are never reopened or reused.
 
 ## Rollback
 
