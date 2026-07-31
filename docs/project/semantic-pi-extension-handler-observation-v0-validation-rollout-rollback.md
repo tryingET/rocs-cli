@@ -3,7 +3,7 @@ summary: "Validation, rollout, and rollback contract for Decision 89 package-loc
 read_when:
   - "Validating or sequencing Decision 89 implementation and later runtime proof."
 type: "validation_rollout_rollback"
-status: "proposed"
+status: "accepted"
 decision_id: 89
 ---
 # Validation, rollout, and rollback — extension-local handler observation v0 r4
@@ -11,6 +11,8 @@ decision_id: 89
 ## Validation authority
 
 This contract follows the accepted Decision-89 ADR and implementation plan. It authorizes package validation only under a fresh owner-scoped `pi-extensions` implementation task. It does not authorize installation, reload, dogfood, publication, activation, provider/model use, or production behavior.
+
+Independent plan reviews `dispatch-1785527027260` and `dispatch-1785527027261` approved the exact proposed-plan commit `8c03b0ce20d14d4d83dfaa27220e8f68aa749dc8` with zero blockers or material findings.
 
 ## Required conformance
 

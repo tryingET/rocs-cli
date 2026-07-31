@@ -3,7 +3,7 @@ summary: "Owner-scoped implementation plan for Decision 89 package-local handler
 read_when:
   - "Planning or implementing Decision 89 in pi-ontology-workflows."
 type: "implementation_plan"
-status: "proposed"
+status: "accepted"
 decision_id: 89
 ---
 # Implementation plan — extension-local handler observation v0 r4
@@ -16,6 +16,8 @@ Governing artifacts:
 - frozen RFC commit: `53e565b078ccc5bd2dff518a776704993e0b8212`;
 - frozen four-file aggregate: `5bb5070d08f79e380e2b0a9762ed783e73f30c9e93d99187944bee10578c664a`;
 - controlling synthesis: `docs/project/semantic-pi-extension-handler-observation-v0-review-synthesis-r4.md`.
+
+Independent execution-plan reviews `dispatch-1785527027260` and `dispatch-1785527027261` returned `approve_plan` with zero blockers or material findings against commit `8c03b0ce20d14d4d83dfaa27220e8f68aa749dc8`.
 
 Observed owner baseline is `softwareco/owned/pi-extensions` commit `f445c5b437456cab789b75b19d12e9290a846358`, package subtree `38b7ffb6194c1619e34f819c258f07f064533656` at `packages/pi-ontology-workflows`. The subtree is byte-identical to the earlier reviewed `a340f9a1` baseline and tracked-clean; unrelated root-level untracked paths are not implementation inputs. The owner task must bind the then-current commit and reverify this subtree identity before mutation.
 
