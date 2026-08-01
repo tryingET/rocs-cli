@@ -161,14 +161,14 @@ Exact output states are:
 
 ```text
 semantic-preflight-observation protocol=pi-ontology-workflows-agent-prompt-observation-v0-r2 state=disabled
-semantic-preflight-observation protocol=... state=enabled outcome=none
-semantic-preflight-observation protocol=... state=prepared claim=pre-return-only
-semantic-preflight-observation protocol=... state=terminal outcome=exact_match claim=pi-agent-state-only provider=false model=false
-semantic-preflight-observation protocol=... state=terminal outcome=mismatch claim=pi-agent-state-only contribution_survival=unknown provider=false model=false
-semantic-preflight-observation protocol=... state=unsupported-host
+semantic-preflight-observation protocol=pi-ontology-workflows-agent-prompt-observation-v0-r2 state=enabled outcome=none
+semantic-preflight-observation protocol=pi-ontology-workflows-agent-prompt-observation-v0-r2 state=prepared claim=pre-return-only
+semantic-preflight-observation protocol=pi-ontology-workflows-agent-prompt-observation-v0-r2 state=terminal outcome=exact_match claim=pi-agent-state-only provider=false model=false
+semantic-preflight-observation protocol=pi-ontology-workflows-agent-prompt-observation-v0-r2 state=terminal outcome=mismatch claim=pi-agent-state-only contribution_survival=unknown provider=false model=false
+semantic-preflight-observation protocol=pi-ontology-workflows-agent-prompt-observation-v0-r2 state=unsupported-host
 ```
 
-Before readback the runtime evaluates current generation/grant/cwd/compatibility and clears stale state. Output contains no prompt-derived digest, byte length, run token, prompt text, ontology prose, path, environment, session/provider/model identity, or secret. The command uses TUI notification only and never appends a session entry or log.
+State precedence is exact: `unsupported-host` wins whenever the capability token is absent; otherwise `disabled` wins without a current grant; with a current grant the state is `prepared`, terminal, or `enabled outcome=none` in that order. Before readback the runtime evaluates current generation/grant/cwd/compatibility and clears stale state. Output contains no prompt-derived digest, byte length, run token, prompt text, ontology prose, path, environment, session/provider/model identity, or secret. The command uses TUI notification only and never appends a session entry or log.
 
 The fixed protocol string proves only which command implementation responded. R1 separately inspects loaded resource provenance and duplicate commands across global/project settings.
 
@@ -209,7 +209,7 @@ Install neither global nor project package. Use a host SDK/runner harness with d
 
 ### R1b — live TUI canary
 
-A separate runtime task explicitly authorizes one pinned provider/model call. It records all global/project package settings and source realpaths; preserves exact settings bytes/order/mode; replaces the old source so exactly one package instance is configured and one unsuffixed command/tool provenance resolves to the candidate; starts/reloads Pi; verifies disabled/none/prepared/terminal/disable states; and exercises rollback.
+A separate runtime task explicitly authorizes one pinned provider/model call. It records all global/project package settings and source realpaths; preserves exact settings bytes/order/mode; replaces the old source so exactly one package instance is configured and one unsuffixed command/tool provenance resolves to the candidate; starts/reloads Pi; verifies unsupported-host when applicable, disabled, enabled-none, terminal, and disable/reset states; and exercises rollback. The transient `prepared` state is required only in deterministic R1a harness tests because live Pi provides no operator scheduling boundary before `agent_prompt_ready`.
 
 Rollback restores the exact settings snapshot, source order, prior sole package, and fresh runtime generation; proves no candidate command/handler remains loaded; and never deletes unrelated cache, worktree, session, or repository state.
 
