@@ -8,7 +8,7 @@ decision_id: 102
 ---
 # Semantic router v0 implementation plan
 
-## Authority
+## Authority and readiness
 
 Accepted ADR: `docs/adr/2026-08-01-abstaining-semantic-router-v0.md` at commit `04585ac18ed0c52bed9ce1453a9a8481364070a6`.
 
@@ -16,163 +16,200 @@ Normative packet:
 
 - packet commit `52454f5dd86582290db642b73acc6c5cab8e9e1d`;
 - aggregate `417ee5c7148573f80b841a0ae0d22f12ab8152c020c765f9a2a32976a001ba53`;
-- schema `docs/project/semantic-router-v0/protocol.schema.json`;
-- invariants `docs/project/semantic-router-v0/invariants.md`;
-- compatibility baseline `docs/project/semantic-router-v0/discovery-compatibility-baseline.json`.
+- packet manifest SHA-256 `0fad833e48d6d2c198ee4f5f8c39d6fea67d59a20a758969b623dbe44fd09d68`;
+- compatibility base `0a9d9eed00c4c2875d6a7dd870b8978032c95875`.
 
-Implementation authority is limited to ROCS development mechanics and conspicuously synthetic fixtures. Every result is development evidence only.
+Before S0, the controller records the exact reviewed implementation-plan commit as `implementation_base_commit` and verifies the Decision 102 passport is `unblocked`, accepted, ADR-recorded, and ready for post-ADR execution. S0 bases exactly on that commit.
+
+Implementation authority is limited to ROCS development mechanics and task-authorized synthetic fixtures. Every result is development evidence only.
+
+## Protected inputs
+
+No implementation task may modify:
+
+- any of the eight paths listed in `docs/project/semantic-router-v0/packet-manifest.json`;
+- `docs/project/semantic-router-v0/packet-manifest.json` itself;
+- any path in `docs/project/semantic-router-v0/discovery-compatibility-baseline.json`.
+
+Every slice verifies before and after:
+
+- packet commit is an ancestor;
+- all manifest byte lengths and hashes;
+- packet aggregate `417ee5c7148573f80b841a0ae0d22f12ab8152c020c765f9a2a32976a001ba53`;
+- packet-manifest SHA-256;
+- all protected discovery hashes.
+
+New implementation fixtures are exactly:
+
+- `docs/project/semantic-router-v0/golden-fixtures.json`;
+- `docs/project/semantic-router-v0/differential-fixtures.json`.
+
+They are not normative packet members and may contain only conspicuously synthetic concepts/policy. Every implementer records B0 exposure. An independent review confirms fixtures are not derived from B0 or real ontology policy.
 
 ## Non-authorized work
 
-Do not:
+Do not change protected discovery behavior, tune or execute B0, author real ontology policy, implement adopted/publication semantics, create or execute D/U/O, integrate a consumer/Pi, project prompt context, or introduce providers/models/embeddings/network/learned logic.
 
-- change protected discovery files or behavior;
-- tune or execute B0;
-- author real ontology policy;
-- implement adopted/publication/currentness semantics;
-- create D/U/O datasets or execute them;
-- integrate Pi or another consumer;
-- project prompt context;
-- introduce provider, model, embedding, network, or learned logic.
+## Exact verifier surfaces
+
+New checked-in verifiers:
+
+- `tests/verify_semantic_router_golden.mjs` — independent Node stdlib parser, JCS encoder, route/provenance/request/effective/result digest recomputation, tokenizer/matcher, ordering, state/reason, safe-error, and fixture oracle;
+- `tests/verify_semantic_router_compatibility.py` — packet/manifest/protected-hash verification, baseline placeholder substitution, capabilities receipt, existing CLI parser signature, direct discovery normal/error behavior, and protected test execution.
+
+Exact commands from the candidate root:
+
+```bash
+node tests/verify_semantic_router_golden.mjs
+uv run --frozen python tests/verify_semantic_router_compatibility.py \
+  --base 0a9d9eed00c4c2875d6a7dd870b8978032c95875 \
+  --packet-aggregate 417ee5c7148573f80b841a0ae0d22f12ab8152c020c765f9a2a32976a001ba53
+uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q
+./scripts/ci/full.sh
+```
+
+The compatibility verifier resolves baseline `<candidate>` to the current root and `<python>` to the interpreter executing the verifier; it rejects every other placeholder. It uses a closed environment and checks expected exit/stdout/stderr hashes where the baseline defines them.
+
+It also constructs a fixed synthetic corpus/request for exact normal and malformed-error discovery bytes and compares candidate output with output from an isolated checkout at the exact compatibility base under the same interpreter/environment. It compares existing command parser signatures, including safe-error and `--debug` behavior.
 
 ## Implementation slices
+
+Slices have mandatory AK dependency edges and predecessor evidence:
+
+```text
+S0 <- implementation-plan task
+S1 <- S0 accepted review
+S2 <- S1 accepted review
+S3 <- S2 accepted review
+S4 <- S3 accepted review
+```
+
+No task opens until its predecessor is completed and independently accepted.
 
 ### S0 — Route protocol substrate
 
 New files:
 
-- `src/rocs_cli/_semantic_router_schema.py` — generated exact embedded route schema;
-- `src/rocs_cli/semantic_router_protocol.py` — offline schema registry, strict I-JSON/JCS validation, route digest domains, sequence tokenizer, canonical object verification;
-- `src/rocs_cli/semantic_router_invariants.py` — cross-field policy/provenance/effective/result invariants.
-
-Tests:
-
+- `src/rocs_cli/_semantic_router_schema.py`;
+- `src/rocs_cli/semantic_router_protocol.py`;
+- `src/rocs_cli/semantic_router_invariants.py`;
+- `docs/project/semantic-router-v0/golden-fixtures.json`;
+- `docs/project/semantic-router-v0/differential-fixtures.json`;
 - `tests/test_semantic_router_protocol.py`;
 - `tests/verify_semantic_router_golden.mjs`;
-- exact synthetic golden and differential fixtures under `docs/project/semantic-router-v0/`.
+- `tests/verify_semantic_router_compatibility.py`.
 
 Acceptance:
 
-- packaged schema is exact;
-- Python and Node agree on all route/provenance/request/effective/result digests;
-- duplicate keys, floats, non-I-JSON integers, unknown fields, non-canonical arrays, and invalid external schema IDs fail closed;
-- sequence tokenizer preserves duplicates and canonical witness positions;
-- no protected discovery hash changes.
+- embedded schema exact;
+- Python and independent Node agree on schema validation, strict I-JSON, canonical bytes, all four route digests plus provenance digest, tokenizer, witnesses, orderings, evidence schedule, admission/routing matrices, capabilities, and safe errors;
+- Node computes its own expectations from normative fixtures rather than consuming Python-generated expected values;
+- malformed request/policy/provenance/effective/result/nested-discovery objects fail closed;
+- parser matrix covers UTF-8/BOM/surrogate failures, whitespace-only exhaustion, max/max+1 bytes, depth/items, trailing JSON, huge scalars, integer syntax/range, duplicate keys, and byte-versus-codepoint query limits;
+- exact `invalid_request`, `invalid_policy`, `resource_exhausted`, and `incompatible` mappings;
+- packet and discovery protection pass.
 
 ### S1 — Policy, provenance, and source capture
 
 New files:
 
-- `src/rocs_cli/semantic_router_policy.py` — bounded descriptor-anchored policy/provenance capture, owner Git blob verification, policy/provenance schema and invariant validation.
-
-Tests:
-
+- `src/rocs_cli/semantic_router_policy.py`;
 - `tests/test_semantic_router_policy.py`.
 
 Acceptance:
 
-- absolute, symlink, `.`/`..`, backslash, empty-segment, alias, root-escape, wrong-repository, absent-revision, and digest-drift cases fail safely;
-- policy and provenance preparse limits apply before untrusted values;
+- descriptor-anchored policy/provenance capture with intermediate/final rechecks;
+- absolute, symlink, hardlink, non-regular, `.`/`..`, backslash, empty segment, alias, root escape, root overlap, same-content inode replacement, and race cases fail safely;
+- policy/provenance absolute preparse maxima apply before request values;
 - every alternative has exactly one provenance record;
-- source blobs come from the supplied local Git object database, never the worktree;
-- snapshot changes and cleanup failures are distinct safe errors.
+- Git subprocess uses a closed environment, `--no-replace-objects`, no global/system config, no hooks, and no network;
+- reject replace refs, alternates, shallow, partial, or promisor repositories and missing objects;
+- source bytes come only from the supplied local object database, never worktree files;
+- controlled identity/content change is `snapshot_changed`; other operational failures do not become abstention;
+- packet and discovery protection pass.
 
 ### S2 — Deterministic interpreter
 
 New files:
 
-- `src/rocs_cli/semantic_router.py` — clause matching, exact evidence schedule, admission matrix, concept state, joint-route state machine, nested discovery composition, effective execution, result digest.
-
-Tests:
-
+- `src/rocs_cli/semantic_router.py`;
 - `tests/test_semantic_router.py`.
 
 Acceptance:
 
-- every state/reason matrix row is covered;
-- evidence is omission-free, extra-free, correctly scoped, canonically ordered, and query-witnessed;
-- lexical scores never influence admission/selection;
-- unchanged discovery executes exactly once and is nested exactly;
-- synthetic-only test policies cover single, multi, ambiguity, no support, domain exclusion/conflict, concept conflict, and joint exclusion;
-- repeat bytes are identical.
+- every admission/routing state/reason row covered;
+- exact evidence schedule is omission-free, extra-free, scoped, ordered, and query-witnessed;
+- tests cover exclusion-only unsupported concepts, non-exact joint routes, exact joint positive/exclusion combinations, and no-joint ambiguity;
+- all cumulative budgets are tested alone and simultaneously: clauses, groups, alternatives, normalized bytes, matching work, evidence, witnesses, collection items, parser depth, nested result bytes, and complete result bytes;
+- every nested discovery lineage equality is tested;
+- observable call-count oracle proves unchanged discovery executes exactly once per successful route invocation and never recursively;
+- lexical scores never influence selection;
+- fixed safe errors leak no query/path/policy/exception/environment content;
+- operational errors never become abstention;
+- deterministic repeat bytes exact;
+- packet and discovery protection pass.
 
-### S3 — CLI and capability surface
+### S3 — CLI, parser extraction, and contracts
 
-New file:
+New files:
 
-- `src/rocs_cli/cli_semantic_router.py`.
+- `src/rocs_cli/cli_semantic_router.py`;
+- `src/rocs_cli/cli_semantic_commands.py`;
+- `tests/test_semantic_router_cli.py`.
 
-Bounded existing-file additions:
+Bounded existing changes:
 
-- `src/rocs_cli/cli.py` — `route` and `route-capabilities` parser/dispatch only;
-- `src/rocs_cli/contracts.py` — effect-free command contracts;
-- `README.md` — development-only command and authority boundary.
+- `src/rocs_cli/cli.py`;
+- `src/rocs_cli/contracts.py`;
+- `README.md`.
 
-Tests:
-
-- `tests/test_semantic_router_cli.py`;
-- existing README/CLI and contract tests.
-
-Acceptance:
-
-- automatic route request is stdin-only;
-- exact required flags and safe error envelopes;
-- no environment file, cache, loose refs, network, or ambient owner root;
-- route capabilities are separate;
-- existing discover capabilities and direct discovery bytes remain unchanged.
-
-### S4 — Compatibility and full gate
-
-Run:
-
-- protected-file hash verifier from `discovery-compatibility-baseline.json`;
-- exact capabilities and independent Node behavior vectors;
-- existing discovery protocol, discovery, and CLI tests;
-- all new router tests and independent verifier;
-- `uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q`;
-- `scripts/ci/full.sh`.
+`cli_semantic_commands.py` receives behavior-preserving registration for existing discover/discover-capabilities/pack commands plus new route commands. `cli.py` replaces the extracted block with one narrow registration call and must finish below 500 LOC, never larger than its S3 starting LOC. Existing command signatures and behavior are compatibility-gated.
 
 Acceptance:
 
-- all gates pass;
-- only authorized files differ from the accepted base;
-- no ignored or generated residue beyond repo-owned exclusions;
-- independent review accepts implementation and compatibility evidence.
+- stdin-only route request and exact required flags;
+- separate route capabilities;
+- closed environment, no env file/cache/loose refs/network/ambient owner root;
+- parser signatures, `--debug`, safe stderr, and all existing commands unchanged;
+- README and command contracts exact;
+- packet and discovery protection pass.
 
-## Task decomposition
+### S4 — Full evidence and rollback rehearsal
 
-Create one fresh scoped AK task per slice. Each task:
+Run all exact verifier commands and repository gates.
 
-- bases on the exact accepted predecessor commit;
-- limits allowed and required paths;
-- records protected-baseline identities before mutation;
-- commits only its authorized slice;
-- receives independent review before the next slice opens;
-- never mechanically retries an indeterminate effect.
+Additionally:
 
-Recommended order: `S0 -> S1 -> S2 -> S3 -> S4`.
+- verify only authorized implementation files differ from `implementation_base_commit`;
+- verify all modules/tests remain within file-size budgets;
+- run the complete parser, filesystem/Git, resource, lineage, error, compatibility, and repeat matrices;
+- independently review implementation and receipts;
+- in a fresh isolated clone, revert S3, S2, S1, and S0 in reverse order, running packet/protected checks and relevant tests after each revert;
+- final rehearsal target must equal `implementation_base_commit` tree exactly;
+- preserve the rehearsal log and remove only owned scratch.
 
-S0–S3 may use targeted tests. S4 owns the full gate and final implementation evidence. No later owner stage opens from implementation completion.
+S4 commits no semantic policy or activation artifact.
 
 ## File-size discipline
 
-Keep each new code module below 500 LOC/50KB and each new test file below 1,000 LOC/80KB. Split before crossing the budget. Do not expand existing over-budget `src/rocs_cli/cli.py`; route parser/adapter logic belongs in the new CLI module and existing edits remain narrow registration calls.
+Each new code module stays below 500 LOC/50KB and each test below 1,000 LOC/80KB. S3 must reduce `src/rocs_cli/cli.py` below 500 LOC through the declared behavior-preserving parser extraction. No code-size exception is authorized.
+
+## Task scope template
+
+Each fresh slice task:
+
+- names every allowed path and exact required outputs;
+- forbids every packet-manifest and protected-discovery path;
+- declares its exact predecessor dependency;
+- records `implementation_base_commit`, predecessor commit/tree, packet aggregate, and protected hashes before mutation;
+- commits only its slice;
+- receives independent review before completion;
+- never mechanically retries an indeterminate effect.
 
 ## Rollback
 
-Each slice is additive and individually revertible. Final rollback reverts S3 through S0 in reverse order. Protected discovery requires no migration. Preserve task evidence, failed tests, and review records.
+Each slice is additive and individually revertible. S4 proves reverse rollback to the exact implementation-base tree. Existing discovery requires no migration. Preserve failed tests, task evidence, and review records.
 
 ## Stop conditions
 
-Stop on:
-
-- protected discovery drift;
-- policy meaning authored outside synthetic fixtures;
-- any adopted/non-synthetic claim;
-- mismatch between schema and embedded copy;
-- cross-language digest disagreement;
-- ambiguous evidence schedule;
-- unbounded parser/capture behavior;
-- unexpected filesystem mutation;
-- consumer/Pi/provider/model work;
-- restoration uncertainty.
+Stop on packet/protected drift, policy meaning outside authorized synthetic fixtures, B0-derived fixture content, schema/embed or cross-language disagreement, unbounded capture, missing security oracle, unexpected mutation, consumer/Pi/provider/model work, dependency bypass, or restoration uncertainty.
