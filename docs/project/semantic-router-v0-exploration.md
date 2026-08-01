@@ -9,7 +9,7 @@ status: "draft"
 
 ## Evidence boundary
 
-This exploration uses Decision 98 B0 only to diagnose the architectural failure class. It does not derive a threshold, alias, clause, or acceptance floor from individual B0 failures. The frozen B0 corpus, prompts, labels, scores, and report are prohibited development inputs for the replacement.
+Decision 98 B0 is immutable contaminated historical evidence, not unseen or sealed data. This exploration intentionally inspected row-specific IDs and scores to falsify score/margin admission and diagnose the architectural failure class. It does not derive an alias, policy clause, acceptance floor, or implementation fixture from those rows. The frozen B0 corpus, prompts, labels, scores, and report are prohibited development and acceptance inputs for the replacement. Every later participant and clause must carry explicit contamination/provenance records under the validation plan.
 
 The code boundary is equally clear:
 
@@ -69,7 +69,7 @@ Validate request, corpus, routing-policy, runtime, identities, limits, and diges
 Evaluate explicit positive and exclusion clauses over normalized query tokens.
 
 - Positive only: admitted.
-- No positive support: abstained with `no_domain_support`.
+- No positive support: abstained with `no_policy_domain_support`, scoped only to the exact policy/corpus/profile coordinate.
 - Exclusion only: abstained with `explicit_domain_exclusion`.
 - Both: abstained with `domain_support_exclusion_conflict`.
 
@@ -90,14 +90,14 @@ Existing ontology `anti_examples` are not routing exclusions. They explain conce
 - Any supported/excluded conflict: abstain.
 - Zero supported concepts: abstain.
 - One supported concept: single route.
-- Multiple supported concepts with independently witnessed support: multi-route.
-- Overlapping support that cannot establish complete independent intent: ambiguous and abstained.
+- Multiple supported concepts route only through one exact owner-authored joint route whose ontology-ID set equals the complete supported set and whose positive clause matches without exclusion.
+- Multiple supported concepts without that exact joint route are ambiguous and select nothing.
 
-The exact independent-evidence rule is a decision point requiring adversarial review. V0 must not infer multi-intent merely because multiple clauses match the same words.
+V0 rejects inferred independent-evidence heuristics. Multi-intent is explicit policy meaning rather than code inference.
 
 ### Layer 5 — Candidate diagnostics
 
-Run unchanged `rocs-lexical-v0` for diagnostic ordering. The router candidate view is the union of legacy lexical candidates and symbolically supported concepts. Symbolic-only candidates receive lexical score `0`. Scores and margins never authorize admission or selection.
+Derive and execute unchanged `rocs-lexical-v0` exactly once and nest its complete unchanged result. Symbolic support remains separate routing evidence; the router does not fabricate score-zero discovery candidates. Scores and margins never authorize admission or selection.
 
 ### Layer 6 — Consumer projection
 
@@ -113,10 +113,11 @@ A consumer may not convert abstention into routing or reinterpret operational er
 
 `semantic-routing-policy.v0` is a closed object containing:
 
-- policy and domain identity;
+- exact policy, authority/provenance, and domain identity;
 - Unicode and normalization coordinates;
 - domain `admit_any` and `exclude_any` clauses;
 - per-concept `support_any` and `exclude_any` clauses;
+- explicit joint routes with non-empty positive clauses;
 - a canonical policy digest.
 
 A clause is a conjunction of groups. Each group is a disjunction of exact normalized token or contiguous phrase alternatives. No stemming, embeddings, inferred synonyms, ambient stopword list, or floating-point score exists in v0.
@@ -132,10 +133,10 @@ Use a separate `semantic-route-result.v0` with its own digest domain. It contain
 - admission state, closed reason, support clauses, and exclusion clauses;
 - routing state, closed reason, selected/supported/conflicted concept IDs;
 - canonical witness evidence;
-- diagnostic candidates;
-- truncation and result digest.
+- the complete nested unchanged `semantic-discovery-result.v0`;
+- result digest covering all routing and nested lexical evidence.
 
-The unchanged `semantic-discovery-result.v0` must remain independently retrievable and verifiable. Router abstention suppresses selection, not historical lexical evidence.
+Router abstention suppresses selection, not historical lexical evidence. A bare lexical-result digest is rejected because no immutable content store or availability contract exists.
 
 ## Compatibility implications
 
@@ -143,13 +144,13 @@ Additive implementation likely requires new modules for policy parsing, router p
 
 Existing discovery schema, generated embedding, digest domains, golden fixtures, differential fixtures, implementation, and tests are compatibility anchors and must remain byte-identical unless a separate decision explicitly authorizes otherwise.
 
-## Unresolved design questions
+## Closed design choices
 
-1. Is the routing policy embedded in the ontology corpus, supplied as a separate exact file, or bound by semantic release? The recommended v0 development path uses a separate exact policy file and digest; production adoption remains gated.
-2. What constitutes independent evidence for a multi-route without creating hidden statistical judgment?
-3. Should pre-discovery abstention be supported in v0, or should v0 always retain a lexical result for lineage? The compatibility-safe default is post-discovery routing over unchanged evidence.
-4. Which repository owns reusable policy schema versus concrete policy instances? ROCS may own the schema/interpreter; ontology owners must own instances.
-5. What is the maximum policy, clause, group, alternative, witness, and diagnostic-candidate budget? These must be closed before implementation.
+1. Development uses a descriptor-anchored exact policy file with owner/provenance coordinates. Only conspicuously synthetic policy is allowed in ROCS implementation fixtures. Production publication remains an exact semantic-owner action.
+2. Multi-route meaning is expressed only by explicit owner-authored joint routes; code does not infer independent intent.
+3. V0 always derives and nests one unchanged lexical result, including on policy abstention.
+4. ROCS owns reusable schema/interpreter mechanics. Exact ontology owners own every non-synthetic policy instance and publication decision.
+5. Cumulative resource, matching-work, result-byte, witness, clause, group, and alternative bounds are closed in the normative schema and invariants.
 
 ## Recommended decision
 

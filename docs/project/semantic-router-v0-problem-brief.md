@@ -67,11 +67,12 @@ Semantic-router-v0 does not:
 
 ## Authority split
 
-- Ontology/semantic owners author and review routing clauses and exclusions.
-- ROCS validates and deterministically interprets exact policy and corpus coordinates.
-- Semantic-release owners bind adopted corpus and policy digests.
-- Consumers such as Pi validate results and choose whether to project a routed result; they may not override abstention or silently rerank.
-- AK owns decision, task, evidence, rollout, and rollback lineage.
+- The exact ontology/semantic owner authors, reviews, publishes, and withdraws concrete routing clauses and exclusions.
+- ROCS owns policy-language mechanics, validation, deterministic interpretation, and receipts—not policy approval.
+- The exact consumer owner owns adoption intent, suppression policy, activation, deactivation, and rollback.
+- Pi, where used, owns bounded invocation, timeout, rendering, and delivery/suppression/failure attestation.
+- AK owns decision, task, evidence, lineage, and coordination records only.
+- DSPx/Oracle or another named independent empirical owner controls sealed acceptance analysis.
 
 ## Success condition
 

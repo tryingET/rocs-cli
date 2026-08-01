@@ -1,0 +1,42 @@
+{
+  "schema": "semantic-router-v0-packet-manifest-v1",
+  "aggregate_algorithm": "sha256(path<TAB>canonical_decimal_byte_length<TAB>lowercase_sha256<LF> rows in UTF-8 path byte order; no header; final LF included)",
+  "files": [
+    {
+      "path": "docs/project/semantic-router-v0-exploration.md",
+      "bytes": 9544,
+      "sha256": "53239a133c24cc1b9be121d1b24bc088170fe46d12bd85e8c680ac9047903e6e"
+    },
+    {
+      "path": "docs/project/semantic-router-v0-problem-brief.md",
+      "bytes": 4421,
+      "sha256": "a7e1613ed439296c2038716cc8ab40e99fae4738a8ed6864998630a94aa65818"
+    },
+    {
+      "path": "docs/project/semantic-router-v0-review-set-plan.md",
+      "bytes": 5062,
+      "sha256": "f863f848427697d91c9e381ae8265bd0e0b3b168c51671d89e12d22316984d54"
+    },
+    {
+      "path": "docs/project/semantic-router-v0-rfc.md",
+      "bytes": 11945,
+      "sha256": "e0d668bcc14143b1c6aed8d930a70882f6a021337c21c47ecd7ef333d9559bdf"
+    },
+    {
+      "path": "docs/project/semantic-router-v0-validation-rollout-rollback.md",
+      "bytes": 13654,
+      "sha256": "14888b7727f3866722144a68a2a9e6db6212db1165feb1c141839404a05267e8"
+    },
+    {
+      "path": "docs/project/semantic-router-v0/invariants.md",
+      "bytes": 12142,
+      "sha256": "587fc890d67717ef77efd7e98f43b86d41ed62c163b4c4e9c0433411d344c419"
+    },
+    {
+      "path": "docs/project/semantic-router-v0/protocol.schema.json",
+      "bytes": 18554,
+      "sha256": "aeebfdbe31ad5c76edbc8625cf0da9a3d2de4af3349335ed01f5f423e5979aed"
+    }
+  ],
+  "packet_aggregate_sha256": "9b7b32b303325b80095b2e3e4c1e56e2a38690d38165f6ce95d612b561f1d766"
+}

@@ -15,9 +15,19 @@ Review the exact aggregate of:
 - `docs/project/semantic-router-v0-exploration.md`;
 - `docs/project/semantic-router-v0-rfc.md`;
 - `docs/project/semantic-router-v0-validation-rollout-rollback.md`;
+- `docs/project/semantic-router-v0/protocol.schema.json`;
+- `docs/project/semantic-router-v0/invariants.md`;
 - this review-set plan.
 
-The review commit and aggregate SHA-256 must be recorded before reviews begin. Any packet mutation invalidates prior verdicts.
+`docs/project/semantic-router-v0/packet-manifest.json` is the derived identity envelope and is not itself in the aggregate.
+
+The manifest lists each reviewed path in UTF-8 byte order with canonical decimal byte length and lowercase SHA-256. The aggregate preimage is the concatenation of UTF-8 rows:
+
+```text
+path<TAB>canonical_decimal_byte_length<TAB>lowercase_sha256<LF>
+```
+
+There is no header or trailing data after the final LF. Ordinary SHA-256 of that preimage is `packet_aggregate_sha256`. The review commit, inventory, per-file identities, and aggregate must be recorded before reviews begin. Any packet mutation invalidates prior verdicts.
 
 ## Closure mode
 
@@ -39,7 +49,7 @@ Questions:
 
 - Does ontology-owner-authored policy preserve source-owner authority?
 - Does ROCS interpret rather than invent meaning?
-- Is `no_domain_support` scoped as policy abstention rather than universal truth?
+- Is `no_policy_domain_support` scoped to the exact policy coordinate rather than universal truth?
 - Are anti-examples and routing exclusions lawfully distinct?
 - Does consumer projection preserve rather than override router evidence?
 - Is a separate development policy file an acceptable coordinate?
@@ -63,7 +73,7 @@ Blockers include in-place mutation of discovery v0, ambiguous canonicalization, 
 
 Questions:
 
-- Is B0 sealed strongly enough to prevent post-result tuning?
+- Is B0 truthfully treated as contaminated historical evidence with auditable exposure and clause provenance?
 - Are D/U/O independent and sufficiently adversarial?
 - Do safety gates prevent trivial routing while utility gates prevent trivial abstention?
 - Are annotation and leakage rules independently auditable?
@@ -76,11 +86,11 @@ Blockers include B0-derived clauses, implementer access to sealed U/O, missing n
 
 Every lane must address:
 
-1. Whether explicit joint routes are preferable to inferred independent-evidence heuristics.
-2. Whether `semantic-route-result.v0` should nest the unchanged discovery result or reference its exact digest.
-3. Whether the proposed resource maxima are safe and usable.
-4. Whether development-only implementation is authorized before any concrete ontology policy instance exists.
-5. Whether the packet's proposed decision scope must be repo or cross-repo.
+1. Verify the selected explicit owner-authored joint-route design; inferred independent-evidence heuristics are excluded.
+2. Verify the selected complete nested unchanged discovery result; digest-only lineage is excluded.
+3. Verify cumulative resource and matching-work maxima against the complete schema/invariants.
+4. Verify that an accepted ADR authorizes only ROCS development mechanics with conspicuously synthetic fixtures before any concrete policy exists.
+5. Verify cross-repo Decision 102 scope while preserving separate owner-local tasks and gates for every later effect.
 
 ## Verdict vocabulary
 

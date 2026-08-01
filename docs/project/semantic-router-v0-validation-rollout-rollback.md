@@ -7,56 +7,73 @@ status: "proposed"
 ---
 # Semantic router v0 validation, rollout, and rollback
 
-## Evidence rule
+## B0 contamination truth
 
-Decision 98 B0 is sealed historical evidence. Its corpus, prompts, labels, row scores, failures, aliases, and floors may not be used for:
+Decision 98 B0 is immutable contaminated historical evidence, not unseen or sealed data. Its prompts, corpus, labels, scores, report, and failure rows are repository-readable.
 
-- policy authoring;
-- feature or clause selection;
-- threshold selection;
-- regression acceptance;
-- release gating;
-- fresh evidence claims.
+This design wave deliberately consulted:
 
-B0 may be used only to state the already-established failure class: deterministic lexical candidate generation can over-route. The router must never be executed against B0 as a fresh acceptance test.
+- B0 preregistration commit, lock, corpus, dataset, evaluator, and report;
+- aggregate metrics and failed gates;
+- row IDs and scores including N02, N04, N05, P03, P04, P06, and A06;
+- the conclusion that score/margin admission is falsified on B0.
+
+Exposure for the controller and exploration/review agents in tasks 4452/Decision 102 is `confirmed`. Future implementers, policy authors, dataset authors, annotators, adjudicators, and custodians must record `confirmed | possible | disproven` B0 exposure with evidence and date before participation.
+
+B0 is permanently prohibited as:
+
+- policy or clause source;
+- feature, threshold, alias, or fixture source;
+- development, regression, or release dataset;
+- fresh router execution evidence;
+- metric or floor estimator.
+
+Any B0-derived policy content or acceptance coordinate invalidates the policy and requires replacement data, policy, and preregistration.
+
+## Clause provenance
+
+Every policy clause and alternative carries a digest-bound provenance record outside the policy result:
+
+- clause and alternative ID;
+- exact semantic-owner repository, revision, source path, and source-text digest;
+- author and creation time;
+- owner review reference;
+- B0 exposure declaration;
+- D source case IDs, if development-derived;
+- contamination scan receipt.
+
+An independent contamination reviewer accepts the manifest before policy freeze. Renamed concepts, copied documents, translated scenarios, and semantic paraphrases of B0 are prohibited even when deterministic lexical overlap is low.
 
 ## Validation phases
 
 ### V0 — Contract and compatibility
 
-Before semantic evaluation:
+Before any semantic dataset execution:
 
-- new schemas validate and reject unknown fields;
-- canonical digests and orderings pass Python and independent Node golden verification;
-- malformed requests, policies, witnesses, joint routes, and results fail closed;
-- existing discovery source behavior, schemas, generated assets, golden fixtures, differential fixtures, capabilities, and direct CLI output remain unchanged;
-- no network, provider, model, embedding, or ambient environment input exists;
+- every new object validates against the separate route schema and invariants;
+- Python and independent Node verification agree on schema, canonical bytes, digests, ordering, matching, state matrices, and errors;
+- malformed and non-canonical requests, policies, witnesses, joint routes, results, and nested discovery objects fail closed;
+- every protected discovery-v0 file and payload in the RFC remains byte-identical;
+- direct discovery output remains byte-compatible on a frozen compatibility corpus;
+- no network, provider, model, embedding, environment file, or cache dependence exists;
 - repository full gate passes.
+
+V0 uses only conspicuously synthetic policy and corpus fixtures. It makes no real-domain routing claim.
 
 ### V1 — Visible development set D
 
-D is visible to implementers and may be used for clause authoring and defect correction.
+D contains exactly 360 semantic rows: 30 in each of 12 strata, with 180 applicable and 180 null/adversarial rows.
 
-Minimum:
-
-- 360 semantic cases, 30 per stratum;
-- corpus distinct from B0 with no B0 concept ID or document hash;
-- at least 60 concepts;
-- no concept supplies more than five applicable cases;
-- explicit policy identity and digest.
-
-Strata:
-
-Applicable:
+Applicable strata:
 
 1. exact label or declared alias;
-2. independently authored paraphrase;
+2. independent paraphrase;
 3. explicit joint-route intent;
 4. near-neighbor concepts requiring discriminating evidence;
 5. sparse/noisy Unicode and benign typo input;
 6. indirect task language with reviewed support.
 
-Null/adversarial:
+Null/adversarial strata:
 
 7. clearly out of domain;
 8. lexical collision/polysemy;
@@ -65,39 +82,26 @@ Null/adversarial:
 11. high-overlap boilerplate and decoy terms;
 12. irreducible ambiguity or conflicting intent.
 
-D results support implementation only. They confer no release claim.
+Policy authors may inspect D and tune clauses from D under semantic-owner review. D results confer no acceptance or release claim.
 
-### V2 — Sealed acceptance set U
+### V2 — Untouched acceptance set U
 
-U is owned by an independent custodian and remains inaccessible to implementers until policy, runtime, evaluator, metrics, floors, and stop rules are immutable.
+U contains exactly 600 semantic rows: 50 per D stratum, with 300 applicable and 300 null/adversarial rows.
 
-Minimum:
+The semantic owner freezes the complete eligible corpus, concept inventory, meanings, and source coordinates before D policy work. Independent custodians construct and seal U before D outputs can influence U prompts. U authors derive prompts from ontology source material while blind to routing clauses and router output.
 
-- 600 semantic cases, 50 per D stratum;
-- same corpus-diversity rules as D;
-- no B0 or D query, target ID, document hash, or prompt-template derivative;
-- two independent annotators and one adjudicator;
-- no router output observed before labels freeze.
+Applicable U rows are split in every applicable stratum:
 
-Required labels:
+- 25 query-holdout rows over concepts seen as D targets;
+- 25 concept-holdout rows over concepts never used as D targets.
 
-- expected action: `route | abstain | error`;
-- required selected IDs;
-- acceptable selected IDs;
-- forbidden selected IDs;
-- ambiguity or exclusion rationale.
+Policy authors may know the frozen concept inventory and semantic-owner source documents but never U prompts, labels, target assignment, or row output. The policy must cover owner meaning rather than U wording.
 
-Dataset readiness:
+No concept supplies more than five applicable U rows. Author/template-family caps and seen/held-out allocations are locked before annotation.
 
-- Cohen's kappa for expected action `>= 0.80`;
-- mean set Jaccard for applicable labels `>= 0.80`;
-- every disagreement adjudicated before locking.
+### V3 — Untouched operational set O
 
-Failure of annotation readiness is indeterminate, not a router failure.
-
-### V3 — Sealed operational challenge set O
-
-At least 96 cases, 12 per class:
+O contains exactly 96 rows: 12 in each class:
 
 1. malformed and unknown schemas;
 2. empty, punctuation-only, and byte-limit boundaries;
@@ -108,125 +112,159 @@ At least 96 cases, 12 per class:
 7. output collision and private-temp cleanup failures;
 8. locale, enumeration, cache-state, and repeat metamorphics.
 
-Controlled fault injection is evaluated behavior. Uncontrolled environment drift is indeterminate.
+Every O row freezes its fault-injection mechanism, expected action or error kind, expected safe envelope, filesystem invariants, cleanup state, and mutation allowance.
 
-## Anti-leakage
+U and O are independently custodied by DSPx/Oracle or another named empirical owner. Their prompts, labels, and row outputs remain inaccessible to implementers and policy authors until the immutable verdict is fixed. Any exposure permanently retires the affected set and requires a replacement set and new preregistration.
 
-Before U locks, reject:
+## Dataset roles and independence
 
-- exact byte or NFKC-casefold query overlap with B0 or D;
-- identical token multisets;
-- B0 target IDs and corpus document hashes;
-- prompt-template transformations of B0 cases.
+- Semantic owner: freezes ontology sampling frame and confirms adjudicated meaning without changing locked rows.
+- Policy authors: use D only; no U/O access.
+- U/O custodian: owns sampling, locking, execution input, and report publication; does not author policy.
+- Two annotators: independent of implementation and policy authorship, blind to clauses and router outputs.
+- Adjudicator: independent of implementation/policy, resolves every disagreement while blind to output.
+- Implementers: receive only D and aggregate U/O verdict after execution.
 
-Token-set Jaccard above `0.80` or character-five-gram Jaccard above `0.85` requires independent adjudication. Custodians attest that labels were created without router outputs. U row details remain sealed until the verdict is fixed.
+Every row records unique ID, stratum/class, author/template family, semantic-owner source coordinates, expected action, allowed selected sets, rationale, and provenance.
 
-Any premature access to U prompts, labels, or row output invalidates U. A replacement set and new preregistration are required.
+## Anti-overlap procedure
 
-## Metrics and proposed acceptance floors
+Apply to B0, D, U, policy alternatives/exclusions/aliases, source examples, and prompt templates.
 
-These floors are design proposals, not B0-derived estimates. They may change only before any U/O observation.
+Compare:
 
-### Semantic safety
+1. exact UTF-8 bytes;
+2. NFKC → full casefold → whitespace collapse;
+3. exact normalized token sequence;
+4. exact normalized token multiset;
+5. token-set Jaccard;
+6. normalized character-five-gram Jaccard;
+7. manual semantic/template derivation.
+
+Tokenization uses the frozen route tokenizer. Token-set Jaccard is `|A∩B| / |A∪B|`; two empty sets count as exact overlap. Five-gram Jaccard uses normalized Unicode code-point five-gram sets; strings shorter than five use the complete normalized string as one gram, and two empty strings count as exact overlap.
+
+Reject automatically on exact bytes, normalized equality, token-sequence equality, token-multiset equality, known template derivation, B0 document-copy lineage, or B0 semantic scenario reuse. Token Jaccard `>0.80` or five-gram Jaccard `>0.85` requires independent documented adjudication before lock.
+
+Run the same duplicate/derivative checks within U. Record every comparison, adjudication, and waiver in a digest-bound contamination manifest.
+
+## Annotation
+
+U expected actions are fixed by stratum:
+
+- strata 1–6: `route`;
+- strata 7–12: `abstain`;
+- no well-formed U row expects `error`.
+
+O may expect `route | abstain | error`, fixed per row.
+
+A routed row contains one or more exact `allowed_selected_sets`. A route is correct only when the actual selected set exactly equals one allowed set. Unlisted or forbidden selected IDs make the route incorrect. Abstain and error rows require an empty selected set.
+
+For the two pre-adjudication U annotations:
+
+- compute expected-action Cohen's kappa over all rows;
+- require `kappa >= 0.80`;
+- if expected agreement `p_e = 1`, readiness is indeterminate;
+- for every row where either annotator chooses route, treat the other annotator's abstention as an empty set and compute set Jaccard;
+- require mean set Jaccard `>= 0.80`;
+- report agreement by stratum and seen/held-out subset;
+- adjudicate every disagreement before lock without rewriting pre-adjudication metrics.
+
+## Actual-action classification
+
+Each row produces exactly one actual action:
+
+- `route`: valid result state `single | multi` with non-empty selected set;
+- `abstain`: valid no-selection result, including explicit ambiguity;
+- `error`: valid operational error envelope, absent result, or structurally invalid result.
+
+A malformed attributable result is also an automatic gate failure. Build the exact expected/actual confusion matrix.
+
+Rules:
+
+- an expected abstention returned as error is not a safe abstention;
+- an expected route returned as error is not coverage;
+- a null route is a false route regardless of selected IDs;
+- an applicable abstention is a coverage miss;
+- an applicable wrong selected set is a coverage miss and an imprecise route;
+- an expected O error returned as route or abstain fails;
+- no unexpected errors are allowed on well-formed U rows.
+
+## Metrics and floors
+
+These proposals are not B0-derived estimates. They freeze before U/O observation.
+
+Let U contain 300 applicable rows `R` and 300 expected-abstain rows `A`. Let `q_i = 1` only when row `i` routes and its selected set exactly equals one allowed set.
+
+### Safety
 
 | Gate | Floor |
 |---|---:|
-| Overall null false-route rate | `<= 3/300` and one-sided 95% Wilson upper bound `<= 2.5%` |
-| Negated/metalinguistic false routes | `0/50` |
-| Irreducible-ambiguity false routes | `0/50` |
-| Selective route precision | point `>= 97%` and one-sided 95% Wilson lower bound `>= 94%` |
-| Error/unavailable/exhausted converted to route or abstain | `0` |
+| False routes on A | `<= 3/300` |
+| One-sided 95% Wilson upper bound for false-route rate | `<= 2.5%` |
+| Successful abstention on A | `>= 297/300` |
+| Unexpected errors on well-formed U | `0/600` |
+| Negated/metalinguistic false routes | `0/50` and Wilson upper `<= 5.2%` |
+| Irreducible-ambiguity false routes | `0/50` and Wilson upper `<= 5.2%` |
+| Correct routes / all actual routes | point `>= 97%`, Wilson lower `>= 94%` |
+| Expected O error returned as route or abstain | `0` |
+
+Use one-sided 95% Wilson without continuity correction, `z = 1.6448536269514722`, binary64 arithmetic, full-precision comparisons, and report 12 decimal places without using rounded values for gates.
 
 ### Utility and anti-trivial-abstention
 
 | Gate | Floor |
 |---|---:|
-| Correct-route coverage over applicable cases | `>= 80%` |
-| Each applicable stratum correct-route coverage | `>= 70%` |
-| Exact label/alias positive control | `>= 49/50` |
-| End-to-end complete recall@3 with abstentions scored zero | `>= 80%` |
-| End-to-end MRR with abstentions scored zero | `>= 0.80` |
-| Selected-ID precision on routed applicable cases | `>= 97%` |
+| Correct-route coverage `sum(q_i)/300` | `>= 80%` |
+| Each applicable stratum `sum(q_i)/50` | `>= 70%` |
+| Exact-label/alias correct routes | `>= 49/50` |
+| Query-holdout correct-route coverage | `>= 80%` |
+| Concept-holdout correct-route coverage | `>= 70%` |
+| Exact selected-set precision on routed applicable rows | `>= 97%` |
+
+Lexical MRR and recall are diagnostic only. Router selection is an unordered exact set; no MRR gate is defined. Abstention cannot pass utility gates.
 
 ### Determinism and operation
 
 | Gate | Floor |
 |---|---:|
 | Byte-identical immediate repeat | `1.00` |
-| Timeout rate | `0.00` |
+| Uncontrolled timeout rate | `0.00` |
 | Policy/corpus/runtime mutation | `0` |
 | Invalid result accepted | `0` |
-| Cold p95 | preregistered from D before U |
-| Warm p95 | preregistered from D before U |
+| Every O class exact oracle | `12/12` |
+| Cold/warm p95 | frozen from D before U/O |
 
-All mandatory strata and operational classes must pass. No averaging may conceal a failed safety class.
+Every mandatory stratum, seen/held-out subset, and O class passes independently.
 
-## Evaluation identity
+## Identity and one-shot execution
 
-The U/O preregistration freezes:
+The preregistration freezes source/evaluator commits and trees, runtime and native identities, schema/generated-asset digests, corpus/policy/D/U/O/contamination-manifest digests, limits, metrics, floors, Wilson method, report path, mutation boundaries, exact command, and rollback procedure.
 
-- source and evaluator commits and trees;
-- exact runtime, interpreter, dependency, base-Python, and native-library identities;
-- schema and generated-asset digests;
-- corpus and policy digests;
-- D/U/O dataset digests;
-- limits, metrics, floors, confidence method, and report path;
-- exact output and transient mutation boundaries;
-- exact one-shot command and rollback procedure.
+U/O execution occurs once. Row output remains sealed until the report verdict is immutable.
 
-The evaluator runs once. A failed semantic report is retained. An indeterminate effect is never mechanically retried.
+## Outcome classification
 
-## Decision rule
-
-- **Pass:** every semantic, utility, determinism, compatibility, and operational gate passes; independent review accepts the immutable report.
-- **Fail:** a well-formed report fails any numerical gate; retain it and stop without same-task policy or dataset changes.
-- **Indeterminate:** identity drift, leakage, annotation unreadiness, uncontrolled timeout, mutation, collision, cleanup failure, malformed output, or restoration uncertainty; stop and require a fresh authorized task.
-
-Provider/model benefit work and consumer activation remain blocked even after a router pass until separately authorized.
+- **Pass:** valid complete report and every semantic, utility, compatibility, determinism, and O gate passes; independent review accepts it.
+- **Semantic/operational fail:** valid complete report fails any numerical gate, returns any unexpected U error, or mismatches a controlled O oracle; retain report and stop without same-task changes.
+- **Indeterminate:** annotation unreadiness, leakage, unauthorized exposure, identity drift, evaluator cannot classify output, malformed report, uncontrolled environment timeout, mutation, collision, cleanup failure, or restoration uncertainty; stop without mechanical retry.
 
 ## Rollout
 
-1. Land development-only protocol/interpreter and compatibility tests.
-2. Author D policy and fixtures through ontology-owner review.
-3. Freeze and execute U/O under a fresh task.
-4. If accepted, create an adopted semantic-release coordinate.
-5. Run a no-injection consumer shadow that records route/abstain receipts only.
-6. Review shadow evidence.
-7. Open a separate decision for any Pi prompt projection.
+1. Accepted ADR may authorize only ROCS protocol/interpreter implementation with synthetic fixtures.
+2. Separate semantic-owner task authors and reviews non-synthetic policy using D.
+3. Separate empirical-owner task freezes and executes U/O.
+4. Separate semantic-owner gate publishes an adopted coordinate.
+5. Separate consumer-owner decision may authorize a no-injection shadow.
+6. Separate review may authorize any prompt projection.
 
-No stage is implied by the previous stage.
+No stage is implied by the prior stage.
 
 ## Rollback
 
-Development rollback:
+ROCS development rollback reverts the additive router commit. Existing discovery remains unchanged; no migration or data rewrite exists.
 
-- remove or revert the additive router commit;
-- existing discovery remains unchanged and available;
-- no migration or data rewrite is required.
-
-Shadow rollback:
-
-- disable router invocation;
-- delete only private transient state created by the shadow task;
-- preserve immutable receipts and failed reports;
-- verify normal Pi settings, executable, launcher, cache, and discovery behavior remain unchanged.
-
-Adopted-coordinate rollback, if ever authorized:
-
-- restore the previous semantic-release coordinate;
-- retain the failed coordinate and evidence;
-- do not rewrite or delete policy history.
+Any later owner-local rollback is owned by that consumer or semantic owner, preserves immutable receipts and failed reports, restores the previous adopted coordinate or disables invocation, and does not rewrite policy history.
 
 ## Stop conditions
 
-Stop immediately on:
-
-- any existing discovery fixture or byte output change;
-- policy ownership ambiguity;
-- B0-derived policy content;
-- leaked U/O content;
-- route selection without positive policy support;
-- error converted to abstention;
-- consumer override of abstention;
-- unexpected network, provider, model, or normal Pi mutation;
-- restoration uncertainty.
+Stop on any protected discovery change, policy authority ambiguity, B0-derived clause, U/O exposure, route without positive policy support, error converted to abstention, consumer override, unexpected network/provider/model/Pi mutation, or restoration uncertainty.
