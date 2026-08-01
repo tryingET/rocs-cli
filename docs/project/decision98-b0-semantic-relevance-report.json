@@ -1,0 +1,1714 @@
+{
+  "corpus_sha256": "021278da7cb1fe4ecb86857ae2510c934fe53172c952a7b1c05885c4f6d88d40",
+  "dataset_sha256": "e85b7bbebbdc355c4f33a3fa2b66b58b8c045c5d1a836fe05c1f96a0e11413a5",
+  "floors": {
+    "applicable_stratum_recall_at_3": 0.8,
+    "cold_p95_ms": 750.0,
+    "deterministic_repeat_rate": 1.0,
+    "mrr": 0.85,
+    "null_rejection_rate": 0.9,
+    "recall_at_3": 0.9,
+    "timeout_rate": 0.0,
+    "warm_p95_ms": 500.0
+  },
+  "gates": {
+    "applicable_stratum_recall_at_3": true,
+    "cold_p95_ms": true,
+    "deterministic_repeat_rate": true,
+    "mrr": false,
+    "null_rejection_rate": false,
+    "recall_at_3": true,
+    "timeout_rate": true,
+    "warm_p95_ms": true
+  },
+  "metrics": {
+    "applicable_stratum_recall_at_3": {
+      "ambiguity_distractor": 0.8,
+      "exact_terminology": 1.0,
+      "multi_concept": 1.0,
+      "paraphrase_synonym": 0.8
+    },
+    "cold_p95_ms": 146.713974,
+    "deterministic_repeat_rate": 1.0,
+    "mrr": 0.8458333333333334,
+    "null_rejection_rate": 0.1,
+    "recall_at_3": 0.9,
+    "timeout_rate": 0.0,
+    "warm_p95_ms": 148.689816
+  },
+  "passed": false,
+  "preregistration": {
+    "commit": "286773ee6a88b9fd2276f8008898c57ff9a073b9",
+    "document_sha256": "9306745c78e3ed43dd7272e891045f0ff7c275c4eb9bc97051981f6db53b4c1f",
+    "evaluator_sha256": "deb9b9b7c7ff06e0ff2b824773d165cde73c284dff72304638473fea6892c34f",
+    "lock_sha256": "32205d30e6bdbe78c1de9c4df7068528b5ff6ff1757cba7ea1e67494d6fe0dd2"
+  },
+  "prompt_counts": {
+    "applicable": 40,
+    "null": 10,
+    "total": 50
+  },
+  "rows": [
+    {
+      "applicable": true,
+      "cold_ms": 140.290122,
+      "cold_result_sha256": "cd96b5a543ef8ed04ae8910f11ddeee88b1fa1125378bcc60f63f8efbec0cbe3",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.AuthorityBoundary"
+      ],
+      "id": "E01",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 1800
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 350
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 100
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 136.309205,
+      "warm_result_sha256": "cd96b5a543ef8ed04ae8910f11ddeee88b1fa1125378bcc60f63f8efbec0cbe3",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 140.719698,
+      "cold_result_sha256": "3d4f4febbf7495cace772f86420789ac4cf3926969b74fc393bedbbf0d06d070",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.PromptRetention"
+      ],
+      "id": "E02",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 2350
+        },
+        {
+          "ont_id": "core.CapabilityNegotiation",
+          "score": 150
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 143.39831,
+      "warm_result_sha256": "3d4f4febbf7495cace772f86420789ac4cf3926969b74fc393bedbbf0d06d070",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 138.138612,
+      "cold_result_sha256": "d7f5709303abb42ddc748e90a03887bcac00c655e50957d018e61d33f28e1977",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.RuntimeRollback"
+      ],
+      "id": "E03",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 1050
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 140.924379,
+      "warm_result_sha256": "d7f5709303abb42ddc748e90a03887bcac00c655e50957d018e61d33f28e1977",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 144.366888,
+      "cold_result_sha256": "a96766e0586c8653e0a3d0b5339041b951003f8dd01c4009e6646438c1cde7de",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.SemanticDiscovery"
+      ],
+      "id": "E04",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 1650
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 1200
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 100
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 143.284312,
+      "warm_result_sha256": "a96766e0586c8653e0a3d0b5339041b951003f8dd01c4009e6646438c1cde7de",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 141.625612,
+      "cold_result_sha256": "169a08ea55a95a184c5cbba531721fc353e4360516e31099465ac46d6db241b0",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.EvidenceScope"
+      ],
+      "id": "E05",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 2000
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 400
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 200
+        },
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 100
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 141.122566,
+      "warm_result_sha256": "169a08ea55a95a184c5cbba531721fc353e4360516e31099465ac46d6db241b0",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 140.864428,
+      "cold_result_sha256": "9e0c2ed754b58d39417bc6b56d535a69045331bad0140bc24b5a649b8d29246d",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.CapabilityNegotiation"
+      ],
+      "id": "E06",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.CapabilityNegotiation",
+          "score": 1750
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 138.983654,
+      "warm_result_sha256": "9e0c2ed754b58d39417bc6b56d535a69045331bad0140bc24b5a649b8d29246d",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 142.579397,
+      "cold_result_sha256": "8e4216124ec0f810c74b110b472634a188963566e28d4e65ed5ccd07fcea73fb",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.ContextPacking"
+      ],
+      "id": "E07",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 2250
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 135.586627,
+      "warm_result_sha256": "8e4216124ec0f810c74b110b472634a188963566e28d4e65ed5ccd07fcea73fb",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 148.102251,
+      "cold_result_sha256": "38a78e2be404e8f29cbd8f4e5a7a094eb7d985e345bff8461f70557d408dcf8f",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.DecisionLifecycle"
+      ],
+      "id": "E08",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 2350
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 200
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 145.951551,
+      "warm_result_sha256": "38a78e2be404e8f29cbd8f4e5a7a094eb7d985e345bff8461f70557d408dcf8f",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 145.028295,
+      "cold_result_sha256": "81a1a2ff57d8287d472f8b83bf30b172a14b6dc2128359fbafbcd2ac54e64bf3",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.ProviderTransmission"
+      ],
+      "id": "E09",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 2150
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 141.887288,
+      "warm_result_sha256": "81a1a2ff57d8287d472f8b83bf30b172a14b6dc2128359fbafbcd2ac54e64bf3",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 144.382236,
+      "cold_result_sha256": "062370226d31961076fd04d99028ad8c22a0dd8fc3e24dfc999ed5f56f6d9e19",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.OntologyValidation"
+      ],
+      "id": "E10",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 1850
+        },
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 450
+        }
+      ],
+      "stratum": "exact_terminology",
+      "warm_ms": 141.825429,
+      "warm_result_sha256": "062370226d31961076fd04d99028ad8c22a0dd8fc3e24dfc999ed5f56f6d9e19",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 138.398764,
+      "cold_result_sha256": "a1cb4a89fcd3c5ae6799bc3ff6ba0921029cbb2400011b1cd42d231dfcd1cecb",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.AuthorityBoundary"
+      ],
+      "id": "P01",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.5,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 350
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 150
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 142.143428,
+      "warm_result_sha256": "a1cb4a89fcd3c5ae6799bc3ff6ba0921029cbb2400011b1cd42d231dfcd1cecb",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 145.038995,
+      "cold_result_sha256": "7494009d31c710b045b48f4fb4018098ea842d050c37ca395e70b9c5b793ee59",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.PromptRetention"
+      ],
+      "id": "P02",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 750
+        },
+        {
+          "ont_id": "core.CapabilityNegotiation",
+          "score": 150
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 141.752951,
+      "warm_result_sha256": "7494009d31c710b045b48f4fb4018098ea842d050c37ca395e70b9c5b793ee59",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 138.672214,
+      "cold_result_sha256": "9aa8f7f39f561d47700b8287cdacf90b98c3efedafe8e755e36aeab2dd8aff63",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.RuntimeRollback"
+      ],
+      "id": "P03",
+      "null_rejected": null,
+      "recall_at_3": 0.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 400
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 150
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 138.422981,
+      "warm_result_sha256": "9aa8f7f39f561d47700b8287cdacf90b98c3efedafe8e755e36aeab2dd8aff63",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 139.00637,
+      "cold_result_sha256": "21f92fa2fa9f9d274336be39ade8c0369b7ccaea53f64ff49449f9912f6aef37",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.SemanticDiscovery"
+      ],
+      "id": "P04",
+      "null_rejected": null,
+      "recall_at_3": 0.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 139.226982,
+      "warm_result_sha256": "21f92fa2fa9f9d274336be39ade8c0369b7ccaea53f64ff49449f9912f6aef37",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 140.83116,
+      "cold_result_sha256": "3d320ff9f517a0d897b6cf75c6532bc3d0a000ef53d936338c135bad835be65f",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.EvidenceScope"
+      ],
+      "id": "P05",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.3333333333333333,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 144.638839,
+      "warm_result_sha256": "3d320ff9f517a0d897b6cf75c6532bc3d0a000ef53d936338c135bad835be65f",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 140.107784,
+      "cold_result_sha256": "45c6607c98f9c6462de07a9730ef5d6aa63f1fcbcf580dac0614ea2894e7e30b",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.CapabilityNegotiation"
+      ],
+      "id": "P06",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.CapabilityNegotiation",
+          "score": 250
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 200
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 139.515514,
+      "warm_result_sha256": "45c6607c98f9c6462de07a9730ef5d6aa63f1fcbcf580dac0614ea2894e7e30b",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 141.614386,
+      "cold_result_sha256": "69e033d5ee60d33085635ad50e54b7c45d89e68c3468fe7e787071a87caee1e7",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.ContextPacking"
+      ],
+      "id": "P07",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.3333333333333333,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 650
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 140.979386,
+      "warm_result_sha256": "69e033d5ee60d33085635ad50e54b7c45d89e68c3468fe7e787071a87caee1e7",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 136.042203,
+      "cold_result_sha256": "bb562437dbc9aada94a038d6bdef415855ce5b7c8bfa5874f9eb2b7a2e719874",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.DecisionLifecycle"
+      ],
+      "id": "P08",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.3333333333333333,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 200
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 139.271562,
+      "warm_result_sha256": "bb562437dbc9aada94a038d6bdef415855ce5b7c8bfa5874f9eb2b7a2e719874",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 144.36446,
+      "cold_result_sha256": "a3b297591dfab1aa4f34e523260c06c6f3ad2b7d4d649a27b636fb0784385afe",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.ProviderTransmission"
+      ],
+      "id": "P09",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.3333333333333333,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 650
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 250
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 250
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 151.387777,
+      "warm_result_sha256": "a3b297591dfab1aa4f34e523260c06c6f3ad2b7d4d649a27b636fb0784385afe",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 143.14568,
+      "cold_result_sha256": "aa77599d9c5786d2a00b2a3e965a08d052607b58e781c8c3eb6fa64f001138b2",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.OntologyValidation"
+      ],
+      "id": "P10",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 300
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 250
+        },
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 100
+        }
+      ],
+      "stratum": "paraphrase_synonym",
+      "warm_ms": 148.689816,
+      "warm_result_sha256": "aa77599d9c5786d2a00b2a3e965a08d052607b58e781c8c3eb6fa64f001138b2",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 141.305159,
+      "cold_result_sha256": "f08e2a589502f86a001dd0ad5a22e27b58f0f55cc5f513f0717ee3e75beeece6",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.AuthorityBoundary",
+        "core.EvidenceScope"
+      ],
+      "id": "M01",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 1300
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 1050
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 250
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 200
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 200
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 151.51351,
+      "warm_result_sha256": "f08e2a589502f86a001dd0ad5a22e27b58f0f55cc5f513f0717ee3e75beeece6",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 137.794999,
+      "cold_result_sha256": "bdb48be0ef8f4aa8b69d53bfe5f82a5493034e069a5085258cf155951e0518d3",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.PromptRetention",
+        "core.ProviderTransmission"
+      ],
+      "id": "M02",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 1450
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 1050
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 100
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 143.360806,
+      "warm_result_sha256": "bdb48be0ef8f4aa8b69d53bfe5f82a5493034e069a5085258cf155951e0518d3",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 152.461013,
+      "cold_result_sha256": "5bf61d0371909c4157832b4a04853adbe15b2aa5173f348dd4b64821afd57c51",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.CapabilityNegotiation",
+        "core.RuntimeRollback"
+      ],
+      "id": "M03",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.CapabilityNegotiation",
+          "score": 1650
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 400
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 141.816297,
+      "warm_result_sha256": "5bf61d0371909c4157832b4a04853adbe15b2aa5173f348dd4b64821afd57c51",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 142.380667,
+      "cold_result_sha256": "91a9e7e28f62c465cb816bbe5826e357c43c4f5c6b8538d3b1ed835a846a780c",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.ContextPacking",
+        "core.SemanticDiscovery"
+      ],
+      "id": "M04",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 2250
+        },
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 1200
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 350
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 145.364129,
+      "warm_result_sha256": "91a9e7e28f62c465cb816bbe5826e357c43c4f5c6b8538d3b1ed835a846a780c",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 139.189777,
+      "cold_result_sha256": "76478a73b2a04099810b65ce77074307dd9631f4c8343d2dcf3df99819d1a73e",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.AuthorityBoundary",
+        "core.DecisionLifecycle"
+      ],
+      "id": "M05",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 1750
+        },
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 1300
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 550
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 100
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 143.392869,
+      "warm_result_sha256": "76478a73b2a04099810b65ce77074307dd9631f4c8343d2dcf3df99819d1a73e",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 143.505458,
+      "cold_result_sha256": "1f4c4e958d86260ee57fc69b1ba55c0c1418e237702f64d0845f39cceb70d900",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.EvidenceScope",
+        "core.OntologyValidation"
+      ],
+      "id": "M06",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 1250
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 850
+        },
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 400
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 200
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 141.944003,
+      "warm_result_sha256": "1f4c4e958d86260ee57fc69b1ba55c0c1418e237702f64d0845f39cceb70d900",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 139.844791,
+      "cold_result_sha256": "0eea4de6ae6e685cfbb385fec55f63dd05f0b0d8c0d2e7e022c8f0faa968b687",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.DecisionLifecycle",
+        "core.ProviderTransmission"
+      ],
+      "id": "M07",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 1650
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 1350
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 250
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 142.7199,
+      "warm_result_sha256": "0eea4de6ae6e685cfbb385fec55f63dd05f0b0d8c0d2e7e022c8f0faa968b687",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 138.639054,
+      "cold_result_sha256": "aa9c815ffbc554e9e3b1fe7f84ca304f84ad739ae1f9ffb1655395301352e8ce",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.PromptRetention",
+        "core.RuntimeRollback"
+      ],
+      "id": "M08",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 1750
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 800
+        },
+        {
+          "ont_id": "core.CapabilityNegotiation",
+          "score": 100
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 140.922342,
+      "warm_result_sha256": "aa9c815ffbc554e9e3b1fe7f84ca304f84ad739ae1f9ffb1655395301352e8ce",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 144.748038,
+      "cold_result_sha256": "7a3467e2bafd86f1b38276ca18e2eb842f4f5fb374bea3029ee9b46865c8aecf",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.CapabilityNegotiation",
+        "core.SemanticDiscovery"
+      ],
+      "id": "M09",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.CapabilityNegotiation",
+          "score": 1600
+        },
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 1100
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 350
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 140.092156,
+      "warm_result_sha256": "7a3467e2bafd86f1b38276ca18e2eb842f4f5fb374bea3029ee9b46865c8aecf",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 136.564829,
+      "cold_result_sha256": "74761fff0cdcf7fa827cfd4ca1705bb6f71d009d001520f1ee6d604820aa95a7",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.ContextPacking",
+        "core.OntologyValidation"
+      ],
+      "id": "M10",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 1250
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 850
+        },
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 550
+        }
+      ],
+      "stratum": "multi_concept",
+      "warm_ms": 134.8345,
+      "warm_result_sha256": "74761fff0cdcf7fa827cfd4ca1705bb6f71d009d001520f1ee6d604820aa95a7",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 140.699539,
+      "cold_result_sha256": "fbb3a01491a1735aee197992e9e7906f693180e12a995108a87e70848b8b6591",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.AuthorityBoundary"
+      ],
+      "id": "A01",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 600
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 139.551608,
+      "warm_result_sha256": "fbb3a01491a1735aee197992e9e7906f693180e12a995108a87e70848b8b6591",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 140.461644,
+      "cold_result_sha256": "804a69754e3a5849879829a78f20ac3a0092fb78efb52d689288841b015eaa30",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.PromptRetention",
+        "core.ProviderTransmission"
+      ],
+      "id": "A02",
+      "null_rejected": null,
+      "recall_at_3": 0.5,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 600
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 250
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 145.151868,
+      "warm_result_sha256": "804a69754e3a5849879829a78f20ac3a0092fb78efb52d689288841b015eaa30",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 146.713974,
+      "cold_result_sha256": "104cd31df59ca33eb678e53f8fd5aa151517ee0abcfc5576587324b15dbaf5ba",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.RuntimeRollback"
+      ],
+      "id": "A03",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 700
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 400
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 250
+        },
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 250
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 200
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 144.24763,
+      "warm_result_sha256": "104cd31df59ca33eb678e53f8fd5aa151517ee0abcfc5576587324b15dbaf5ba",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 137.534118,
+      "cold_result_sha256": "7dbfdcc2c2513261490804c1f762c1c5ae45fc230593ba017b203dd9162dfd6b",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.SemanticDiscovery"
+      ],
+      "id": "A04",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 450
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 139.96457,
+      "warm_result_sha256": "7dbfdcc2c2513261490804c1f762c1c5ae45fc230593ba017b203dd9162dfd6b",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 140.128718,
+      "cold_result_sha256": "a453b705f77a2b48d10cf7d489899fa4ca18a8427337222efc1827570b13760e",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.EvidenceScope"
+      ],
+      "id": "A05",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 400
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 138.75818,
+      "warm_result_sha256": "a453b705f77a2b48d10cf7d489899fa4ca18a8427337222efc1827570b13760e",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 137.520231,
+      "cold_result_sha256": "1317de017405efda0a8273d0ce19759544ee9381ab3b38c1f1a82492a5e888db",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.CapabilityNegotiation"
+      ],
+      "id": "A06",
+      "null_rejected": null,
+      "recall_at_3": 0.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 134.480366,
+      "warm_result_sha256": "1317de017405efda0a8273d0ce19759544ee9381ab3b38c1f1a82492a5e888db",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 135.351584,
+      "cold_result_sha256": "26f054bb4986b3f0f748970802a1bfeb25fe31cccda822feb4c63b594b4eb601",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.ContextPacking"
+      ],
+      "id": "A07",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 700
+        },
+        {
+          "ont_id": "core.SemanticDiscovery",
+          "score": 450
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 139.498432,
+      "warm_result_sha256": "26f054bb4986b3f0f748970802a1bfeb25fe31cccda822feb4c63b594b4eb601",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 142.910347,
+      "cold_result_sha256": "8970d34b0fdac89c45b2a4111add9b7b0d9691970e7fd243dd24cec660e2c9bd",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.DecisionLifecycle"
+      ],
+      "id": "A08",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 350
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 141.397688,
+      "warm_result_sha256": "8970d34b0fdac89c45b2a4111add9b7b0d9691970e7fd243dd24cec660e2c9bd",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 136.401795,
+      "cold_result_sha256": "74211958a17bfecbe75ca3a872f7dc7097a01d822ab0db53856207db379a072a",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.EvidenceScope",
+        "core.ProviderTransmission"
+      ],
+      "id": "A09",
+      "null_rejected": null,
+      "recall_at_3": 0.5,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 1250
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 100
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 145.199968,
+      "warm_result_sha256": "74211958a17bfecbe75ca3a872f7dc7097a01d822ab0db53856207db379a072a",
+      "warm_timeout": false
+    },
+    {
+      "applicable": true,
+      "cold_ms": 143.539144,
+      "cold_result_sha256": "ebfa87a63c4f3218f3baf922d178f0b0030206072bf88d2f0378e72be7e9e523",
+      "cold_timeout": false,
+      "gold_ont_ids": [
+        "core.OntologyValidation"
+      ],
+      "id": "A10",
+      "null_rejected": null,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 850
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 150
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 100
+        }
+      ],
+      "stratum": "ambiguity_distractor",
+      "warm_ms": 141.678489,
+      "warm_result_sha256": "ebfa87a63c4f3218f3baf922d178f0b0030206072bf88d2f0378e72be7e9e523",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 138.909611,
+      "cold_result_sha256": "85833c289291c5c1af465022268d556763e7232240a7cdab6365f35b1fbdef73",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N01",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 550
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 138.556031,
+      "warm_result_sha256": "85833c289291c5c1af465022268d556763e7232240a7cdab6365f35b1fbdef73",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 141.268868,
+      "cold_result_sha256": "0b95394ee4a6a89c21f8d9b080fd4f18056154c34c1b148e53d4ffc1a959f758",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N02",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 1000
+        },
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 137.552947,
+      "warm_result_sha256": "0b95394ee4a6a89c21f8d9b080fd4f18056154c34c1b148e53d4ffc1a959f758",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 139.439911,
+      "cold_result_sha256": "b4edf76a8c4fd27f303772c418546fea408ba7449ad7dfaf7f781124435797e8",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N03",
+      "null_rejected": true,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 133.648594,
+      "warm_result_sha256": "b4edf76a8c4fd27f303772c418546fea408ba7449ad7dfaf7f781124435797e8",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 137.633298,
+      "cold_result_sha256": "e1287497a7978b925316f5916c496f823af5de27b77e586d1017c972349216f2",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N04",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 800
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 135.624801,
+      "warm_result_sha256": "e1287497a7978b925316f5916c496f823af5de27b77e586d1017c972349216f2",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 139.078939,
+      "cold_result_sha256": "5e80fb76c0902bc133c6e8d7dcdfd1c1f0eeb7f02ed3b068b54e367a16a4990d",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N05",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 850
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 138.638811,
+      "warm_result_sha256": "5e80fb76c0902bc133c6e8d7dcdfd1c1f0eeb7f02ed3b068b54e367a16a4990d",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 141.36049,
+      "cold_result_sha256": "9f1e032c1e06b89a8c171e6c1bf2d62e0124f5ab6870755885e090552a8421dd",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N06",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.OntologyValidation",
+          "score": 150
+        },
+        {
+          "ont_id": "core.RuntimeRollback",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.DecisionLifecycle",
+          "score": 100
+        },
+        {
+          "ont_id": "core.EvidenceScope",
+          "score": 100
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 144.864793,
+      "warm_result_sha256": "9f1e032c1e06b89a8c171e6c1bf2d62e0124f5ab6870755885e090552a8421dd",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 139.914168,
+      "cold_result_sha256": "dd908e4bb093e6aa17dae6348119a805af51935b2dc3048454f796c30562cbe2",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N07",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 137.883618,
+      "warm_result_sha256": "dd908e4bb093e6aa17dae6348119a805af51935b2dc3048454f796c30562cbe2",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 136.153179,
+      "cold_result_sha256": "79cf34f2c95d6580fcc57d1a922fe778061775ea38ab6256cbf4e2f2869638b9",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N08",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 135.968792,
+      "warm_result_sha256": "79cf34f2c95d6580fcc57d1a922fe778061775ea38ab6256cbf4e2f2869638b9",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 134.165967,
+      "cold_result_sha256": "6291766d47c9b6e350cc6e03d7f669e62f32b2e6768ad4a24a2dfaabe695bb9a",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N09",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.AuthorityBoundary",
+          "score": 150
+        },
+        {
+          "ont_id": "core.ContextPacking",
+          "score": 100
+        },
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        },
+        {
+          "ont_id": "core.ProviderTransmission",
+          "score": 100
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 137.378973,
+      "warm_result_sha256": "6291766d47c9b6e350cc6e03d7f669e62f32b2e6768ad4a24a2dfaabe695bb9a",
+      "warm_timeout": false
+    },
+    {
+      "applicable": false,
+      "cold_ms": 141.811421,
+      "cold_result_sha256": "da9991d3099712fc8cf1b77e793632fce02dd35e78e0a5fe1c1b2b25ccb0e932",
+      "cold_timeout": false,
+      "gold_ont_ids": [],
+      "id": "N10",
+      "null_rejected": false,
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 0.0,
+      "repeat_equal": true,
+      "returned": [
+        {
+          "ont_id": "core.PromptRetention",
+          "score": 100
+        }
+      ],
+      "stratum": "null_out_of_domain",
+      "warm_ms": 137.859996,
+      "warm_result_sha256": "da9991d3099712fc8cf1b77e793632fce02dd35e78e0a5fe1c1b2b25ccb0e932",
+      "warm_timeout": false
+    }
+  ],
+  "runtime": {
+    "algorithm": "rocs-lexical-v0",
+    "commit": "c0cfb1297ba78f4ca1fe53f488bcb15ad79b7843",
+    "dependencies": {
+      "PyYAML": "6.0.3",
+      "Pygments": "2.19.2",
+      "markdown-it-py": "4.0.0",
+      "mdurl": "0.1.2",
+      "rich": "14.2.0"
+    },
+    "implementation": "CPython",
+    "index_cache": false,
+    "profile": "review",
+    "python": "3.12.12",
+    "pyvenv_cfg_sha256": "b88c80de60f13be36bf53c717188e1dfa926730b9ef1102c3e169a3d1541c565",
+    "tool_manifest_digest": "sha256:21b12397aaaacf3d3a748242185d1f83b9728e960cee30f11940abf65ce04e9c",
+    "uv_lock_sha256": "bdde23353d71df100b63fadcb9b35ddca54add02412276ee3395b11af33bda6b"
+  },
+  "schema": "decision98-b0-semantic-relevance-report-v1"
+}
