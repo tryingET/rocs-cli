@@ -60,19 +60,13 @@ The schema and invariant document close the object shapes, digest preimages, ord
 
 AK records authority movement; it does not own rollout or rollback behavior. A local file path and digest prove byte identity, not semantic-owner approval.
 
-Adopted use requires a currently published semantic-owner coordinate and publication receipt binding policy, provenance manifest, corpus, and owner source. Owner withdrawal makes the coordinate ineligible for new invocation and triggers the consumer owner's separately authorized deactivation/rollback gate; withdrawal never counts as publication eligibility.
+Semantic Router Protocol v0 is development-only and represents neither publication currentness nor withdrawal. Any adopted-coordinate protocol must later bind a currently published owner receipt and withdrawal status under separate cross-repo review; no v0 field may be interpreted as that proof.
 
 ## Development policy boundary
 
 ROCS development may use only conspicuously synthetic policies carrying exact repository, revision, path, raw source-content digest, review reference, and provenance-manifest digest. Synthetic fixtures assert grammar behavior, not real-domain authority.
 
-Any non-synthetic policy requires:
-
-- exact semantic-owner repository and revision;
-- owner-controlled path and content digest;
-- owner review fact;
-- separate owner task;
-- owner publication/adoption gate before consumer use.
+Any non-synthetic policy requires a separate ontology-owner task and a future adopted-policy protocol. It is non-executable under v0 even when its path and digest are known.
 
 ## Protocol family
 
@@ -98,7 +92,7 @@ New digest separators and preimages are specified in the invariant document. Exi
 The closed request contains:
 
 - schema and raw query;
-- corpus identity selector and profile;
+- development-snapshot identity selector and profile;
 - exact router and candidate algorithms;
 - mandatory expected routing-policy and provenance-manifest digests;
 - separate discovery and route limits.
@@ -110,6 +104,8 @@ Development CLI:
 ```text
 rocs route \
   --repo <corpus-root> \
+  --policy-owner-repo-id <synthetic-owner-id> \
+  --policy-owner-repo-root <existing-local-git-root> \
   --routing-policy-root <existing-local-directory> \
   --routing-policy <root-relative-file> \
   --routing-provenance <root-relative-file> \
@@ -119,7 +115,7 @@ rocs route \
   --json --no-index-cache --no-env-file
 ```
 
-Automatic use is stdin-only. The raw request is capped at 262,144 bytes and parsed under absolute depth/item limits before request fields are trusted. Policy and provenance capture are descriptor-anchored and no-follow. Ref resolution is disabled. Any future ref support requires explicit workspace root, strict mode, and separate authorization. No network resolver exists.
+Automatic use is stdin-only. The raw request is capped at 262,144 bytes and parsed under absolute depth/item limits before request fields are trusted. Policy and provenance capture are descriptor-anchored and no-follow. Owner source blobs resolve only from the explicitly supplied local Git object database using canonical repository-relative POSIX paths; every v0 source owner ID must equal the supplied ID. Ref resolution, cross-repository source mapping, and adopted selectors are absent. No network resolver exists.
 
 ## Routing policy
 
@@ -217,6 +213,7 @@ Hard maxima are closed in the route schema:
 | Resource | Maximum |
 |---|---:|
 | Policy bytes | `1,048,576` |
+| Provenance bytes | `8,388,608` |
 | Concepts | `1,000` |
 | Total clauses | `4,096` |
 | Groups per clause | `8` |
@@ -248,12 +245,13 @@ An accepted ADR permits only ROCS synthetic development implementation. It does 
 
 Later stages require separate owner tasks:
 
-1. ontology-owner policy authoring and review;
-2. independent D/U/O custody and preregistration;
-3. one-shot U/O execution and review;
-4. semantic-owner publication/adoption;
-5. consumer-owner no-injection shadow authorization;
-6. separate consumer-owner prompt-projection decision and owner gate.
+1. separate architecture work defines and reviews an adopted-policy/publication protocol; v0 cannot execute non-synthetic policy;
+2. ontology-owner policy authoring and review under that future protocol;
+3. independent D/U/O custody and preregistration;
+4. one-shot U/O execution and review;
+5. semantic-owner publication/adoption with currentness and withdrawal proof;
+6. consumer-owner no-injection shadow authorization;
+7. separate consumer-owner prompt-projection decision and owner gate.
 
 No stage is implied by the previous stage.
 

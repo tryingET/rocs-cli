@@ -19,6 +19,12 @@
       "maxLength": 256,
       "pattern": "^[A-Za-z0-9_-]+$"
     },
+    "repoPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*//)[A-Za-z0-9._/-]+$"
+    },
     "ontId": {
       "type": "string",
       "minLength": 3,
@@ -32,27 +38,6 @@
       "properties": {
         "kind": {"const": "development_snapshot"}
       }
-    },
-    "releaseSelector": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["kind", "coordinate", "expected_corpus_snapshot_digest"],
-      "properties": {
-        "kind": {"const": "semantic_release_coordinate"},
-        "coordinate": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512,
-          "pattern": "^[^\\s\\u0000]+$"
-        },
-        "expected_corpus_snapshot_digest": {"$ref": "#/$defs/digest"}
-      }
-    },
-    "identitySelector": {
-      "oneOf": [
-        {"$ref": "#/$defs/developmentSelector"},
-        {"$ref": "#/$defs/releaseSelector"}
-      ]
     },
     "discoveryLimits": {
       "type": "object",
@@ -83,6 +68,7 @@
       "additionalProperties": false,
       "required": [
         "policy_bytes",
+        "provenance_bytes",
         "concepts",
         "clauses",
         "groups_per_clause",
@@ -99,6 +85,7 @@
       ],
       "properties": {
         "policy_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576},
+        "provenance_bytes": {"type": "integer", "minimum": 1, "maximum": 8388608},
         "concepts": {"type": "integer", "minimum": 1, "maximum": 1000},
         "clauses": {"type": "integer", "minimum": 1, "maximum": 4096},
         "groups_per_clause": {"type": "integer", "minimum": 1, "maximum": 8},
@@ -132,7 +119,7 @@
       "properties": {
         "schema": {"const": "semantic-route-request.v0"},
         "query": {"type": "string", "minLength": 1, "maxLength": 16384},
-        "identity_selector": {"$ref": "#/$defs/identitySelector"},
+        "identity_selector": {"$ref": "#/$defs/developmentSelector"},
         "profile": {"$ref": "#/$defs/name"},
         "router_algorithm": {"const": "rocs-symbolic-router-v0"},
         "candidate_algorithm": {"const": "rocs-lexical-v0"},
@@ -271,7 +258,7 @@
           "properties": {
             "owner_repo": {"type": "string", "minLength": 1, "maxLength": 512},
             "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-            "path": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^\\u0000]+$"},
+            "path": {"$ref": "#/$defs/repoPath"},
             "source_content_digest": {"$ref": "#/$defs/digest"},
             "review_ref": {"type": "string", "minLength": 1, "maxLength": 1024}
           }
@@ -318,7 +305,7 @@
         "value": {"type": "string", "minLength": 1, "maxLength": 256},
         "source_owner_repo": {"type": "string", "minLength": 1, "maxLength": 512},
         "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "source_path": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^\\u0000]+$"},
+        "source_path": {"$ref": "#/$defs/repoPath"},
         "source_content_digest": {"$ref": "#/$defs/digest"},
         "author": {"type": "string", "minLength": 1, "maxLength": 256},
         "created_at": {"type": "string", "format": "date-time"},
@@ -350,7 +337,7 @@
         "policy_id": {"$ref": "#/$defs/identifier"},
         "policy_owner_repo": {"type": "string", "minLength": 1, "maxLength": 512},
         "policy_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "policy_path": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^\\u0000]+$"},
+        "policy_path": {"$ref": "#/$defs/repoPath"},
         "policy_source_content_digest": {"$ref": "#/$defs/digest"},
         "records": {
           "type": "array",
@@ -366,7 +353,7 @@
       "additionalProperties": false,
       "required": ["kind", "manifest_digest", "python_version", "unicode_data", "digest"],
       "properties": {
-        "kind": {"enum": ["development_runtime", "adopted_runtime"]},
+        "kind": {"const": "development_runtime"},
         "manifest_digest": {"$ref": "#/$defs/digest"},
         "python_version": {"type": "string", "pattern": "^3\\.12\\.[0-9]+$"},
         "unicode_data": {"const": "15.0.0"},

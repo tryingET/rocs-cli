@@ -60,6 +60,8 @@ Before any semantic dataset execution:
 
 V0 uses only conspicuously synthetic policy and corpus fixtures. It makes no real-domain routing claim.
 
+V1–V3 specify mandatory evidence for a future adopted-policy protocol. They are not executable or authorized under development-only semantic-router-v0.
+
 ### V1 — Visible development set D
 
 D contains exactly 360 semantic rows: 30 in each of 12 strata, with 180 applicable and 180 null/adversarial rows.
@@ -246,20 +248,23 @@ U/O execution occurs once. Row output remains sealed until the report verdict is
 
 ## Outcome classification
 
-- **Pass:** valid complete report and every numerical, semantic, utility, compatibility, protected-discovery, determinism, and O gate passes; independent review accepts evidence integrity and the pass verdict.
-- **Semantic/operational fail:** valid complete report fails any mandatory gate or stop condition, including non-numerical compatibility/protected-discovery mismatch, unexpected U error, controlled O mismatch, or independent review that accepts evidence integrity but rejects the pass verdict; retain report and stop without same-task changes.
-- **Indeterminate:** annotation unreadiness, leakage, unauthorized exposure, identity drift, evaluator cannot classify output, malformed report, uncontrolled environment timeout, mutation, collision, cleanup failure, restoration uncertainty, or independent review unable to accept evidence integrity; stop without mechanical retry.
+Apply this mutually exclusive precedence:
 
-Every mandatory gate, stop condition, and independent-review disposition maps to exactly one terminal outcome above.
+1. **Indeterminate first:** any loss of evidence integrity or execution validity—annotation unreadiness, leakage, unauthorized exposure, identity drift, evaluator inability to classify output, malformed/incomplete report, uncontrolled environment timeout, uncontrolled mutation, collision, cleanup failure, restoration uncertainty, or independent review unable to accept evidence integrity. Stop without mechanical retry; no gate verdict is computed from invalid evidence.
+2. **Semantic/operational fail second:** only when evidence is valid and the report is complete, failure of any numerical, semantic, utility, compatibility, protected-discovery, determinism, or controlled-O gate, including unexpected U error, route without support, error converted to abstention, or independent review that accepts evidence integrity but rejects the pass verdict. Retain the report and stop without same-task changes.
+3. **Pass last:** only when evidence is valid, the report is complete, every mandatory gate passes, and independent review accepts both evidence integrity and the pass verdict.
+
+Controlled O timeout/collision/cleanup injections are scored under step 2 against their frozen oracle. Uncontrolled occurrences are step-1 indeterminate. Every stop condition and review disposition maps through this precedence exactly once.
 
 ## Rollout
 
 1. Accepted ADR may authorize only ROCS protocol/interpreter implementation with synthetic fixtures.
-2. Separate semantic-owner task authors and reviews non-synthetic policy using D.
-3. Separate empirical-owner task freezes and executes U/O.
-4. Separate semantic-owner gate publishes an adopted coordinate.
-5. Separate consumer-owner decision may authorize a no-injection shadow.
-6. Separate consumer-owner decision and owner gate may authorize any prompt projection.
+2. Separate architecture work defines an adopted-policy/publication protocol; v0 cannot execute non-synthetic policy.
+3. Separate semantic-owner task authors and reviews policy using D under that future protocol.
+4. Separate empirical-owner task freezes and executes U/O.
+5. Separate semantic-owner gate publishes an adopted coordinate with currentness/withdrawal proof.
+6. Separate consumer-owner decision may authorize a no-injection shadow.
+7. Separate consumer-owner decision and owner gate may authorize any prompt projection.
 
 No stage is implied by the prior stage.
 

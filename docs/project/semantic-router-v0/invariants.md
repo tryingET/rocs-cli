@@ -49,9 +49,11 @@ A policy `token` alternative must already equal exactly one canonical token. A `
 
 A policy authority object binds exact owner repository, 40-hex Git revision, repository-relative source path, source content digest, and owner review reference. `source_content_digest` is `sha256:` plus lowercase SHA-256 of the exact raw Git blob bytes resolved by `revision:path`; it is not the policy-file digest and has no recursive preimage. These coordinates establish provenance, not adoption by themselves.
 
-Adopted use requires a currently published owner-local coordinate and publication receipt for the exact policy, provenance-manifest, corpus, and owner source digests. Owner withdrawal makes the coordinate immediately ineligible for new invocation and triggers the consumer owner's separately authorized deactivation/rollback gate. Withdrawal never satisfies publication eligibility. ROCS records and enforces supplied adopted-coordinate status but does not publish, withdraw, activate, or roll back. A local path and digest alone never establish semantic authority.
+Semantic Router Protocol v0 accepts only `development_snapshot` and `development_runtime` identities. It has no adopted-coordinate, publication-status, withdrawal, or consumer-activation representation. Those semantics are explicitly deferred to a future owner-reviewed protocol and cannot be inferred from v0 fields.
 
-Development implementation may use only conspicuously synthetic policies. A synthetic fixture still carries exact repository/revision/path/digest coordinates but cannot claim real-domain authority. Any non-synthetic policy instance requires a separate ontology-owner task and review.
+Development implementation may use only conspicuously synthetic policies. A synthetic fixture still carries exact repository/revision/path/digest coordinates but cannot claim real-domain authority. Any non-synthetic policy instance requires a separate ontology-owner task and review and remains non-executable under v0.
+
+V0 receives `--policy-owner-repo-id` and an existing local `--policy-owner-repo-root`. Every policy and provenance owner-repository field must equal that exact ID. Every source revision must exist in the supplied local Git object database. Source paths are canonical repository-relative POSIX paths: no absolute path, backslash, empty segment, `.` segment, or `..` segment. ROCS reads exact raw blob bytes with the Git object identity `revision:path`, never from the worktree, and verifies every source digest. Network fetch and cross-repository source mapping are absent in v0.
 
 ## Policy identity and ordering
 
@@ -99,7 +101,7 @@ Policy, manifest, request, effective execution, and result provenance digests mu
 
 Before JSON parsing, the CLI reads at most `262,145` bytes from stdin. A route request envelope larger than `262,144` bytes is `invalid_request`. A bounded duplicate-detecting parser enforces absolute pre-request maxima of depth `32` and collection items `20,000` before any request-supplied limit is trusted. Invalid UTF-8, duplicate keys, non-I-JSON numbers, excessive whitespace bytes, unknown structure, depth exhaustion, and item exhaustion fail safely without consulting request fields.
 
-The same absolute pre-parse discipline applies independently to policy and provenance files, using the hard protocol maxima before their internal limits or identities are trusted.
+Before parsing, policy input is capped at `1,048,576` bytes plus one sentinel byte and provenance input at `8,388,608` bytes plus one sentinel byte. These absolute maxima are enforced before request-supplied `policy_bytes` or `provenance_bytes` values are trusted. Both files also use the absolute depth `32` and collection-item `20,000` parser ceilings.
 
 ## Resource accounting
 
@@ -192,7 +194,18 @@ Evidence scope coordinates are closed:
 - `concept`: `ont_id` is a valid policy concept and `joint_route_id` is null;
 - `joint_route`: `ont_id` is null and `joint_route_id` is a valid policy joint-route ID.
 
-Every evidence clause belongs to the stated policy scope and polarity. Every witness group belongs to that clause. Every witness kind/value is an exact alternative in that group, and its span matches the query token sequence. The evidence array contains exactly one object for every matched positive and exclusion clause used to derive domain, concept, and evaluated joint-route state, with no omission, duplicate, or extra object. Admission clause arrays exactly equal matched domain evidence IDs. Supported/conflicted arrays exactly equal policy evaluation. A fabricated or misattributed evidence object invalidates the result.
+Every evidence clause belongs to the stated policy scope and polarity. Every witness group belongs to that clause. Every witness kind/value is an exact alternative in that group, and its span matches the query token sequence. Admission clause arrays exactly equal matched domain evidence IDs. Supported/conflicted arrays exactly equal policy evaluation. A fabricated or misattributed evidence object invalidates the result.
+
+The evaluation and evidence schedule is exact:
+
+1. Evaluate every domain positive and exclusion clause and emit every matched domain clause.
+2. If admission abstains, evaluate no concept or joint-route clause and emit no concept or joint-route evidence.
+3. If admitted, evaluate every positive and exclusion clause for every policy concept and emit every matched clause, including exclusion-only evidence for unsupported concepts.
+4. If conflicts exist or `|S| <= 1`, evaluate no joint-route clause.
+5. If `|S| > 1`, locate only the unique joint route whose ontology-ID set exactly equals `S`. Non-exact joint routes are not evaluated.
+6. If no exact joint route exists, emit no joint-route evidence. If it exists, evaluate every positive and exclusion clause for that one route and emit every matched clause, including exclusions when no positive clause matches.
+
+The evidence array contains exactly the matches required by this schedule, with no omission, duplicate, or extra object.
 
 ## Admission matrix
 
@@ -245,6 +258,7 @@ The effective execution binds:
 - route caller-request digest;
 - corpus snapshot digest;
 - routing-policy digest;
+- provenance-manifest digest;
 - tool identity;
 - route algorithm coordinates;
 - exact discovery and route limits;
@@ -262,7 +276,7 @@ Safe error messages are fixed by implementation and contain no path, query, poli
 - changed corpus or policy capture: `snapshot_changed`;
 - any budget exceeded: `resource_exhausted`;
 - runtime/Unicode/schema incompatibility: `incompatible`;
-- unsupported adopted identity: `unsupported_identity`;
+- unsupported selector or tool identity: `unsupported_identity`;
 - otherwise: `internal`.
 
 Errors never carry admission or routing state and never count as successful abstention.
