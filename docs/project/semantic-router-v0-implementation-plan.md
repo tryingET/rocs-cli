@@ -125,6 +125,7 @@ Acceptance:
 - Git subprocess uses a closed environment, `--no-replace-objects`, no global/system config, no hooks, and no network;
 - reject replace refs, alternates, shallow, partial, or promisor repositories and missing objects;
 - source bytes come only from the supplied local object database, never worktree files;
+- inspect each Git blob size through `git cat-file --batch-check` before content read and reject any source blob larger than the request's `route_limits.policy_bytes` as `resource_exhausted`; total source bytes read across all provenance records must also not exceed that same bound;
 - controlled identity/content change is `snapshot_changed`; other operational failures do not become abstention;
 - packet and discovery protection pass.
 
@@ -181,10 +182,10 @@ Run all exact verifier commands and repository gates.
 Additionally:
 
 - verify only authorized implementation files differ from `implementation_base_commit`;
-- verify all modules/tests remain within file-size budgets;
+- verify every newly created or modified code/test file remains within its applicable file-size budget; untouched brownfield files outside authorized slice paths are reported but do not fail this task;
 - run the complete parser, filesystem/Git, resource, lineage, error, compatibility, and repeat matrices;
 - independently review implementation and receipts;
-- in a fresh isolated clone, revert S3, S2, S1, and S0 in reverse order, running packet/protected checks and relevant tests after each revert;
+- before rollback, copy `tests/verify_semantic_router_compatibility.py` to a private managed-TMPDIR controller path, record its SHA-256, and require its `--candidate-root` argument; in a fresh isolated clone, revert S3, S2, S1, and S0 in reverse order while running that external verifier plus relevant surviving tests after each revert;
 - final rehearsal target must equal `implementation_base_commit` tree exactly;
 - preserve the rehearsal log and remove only owned scratch.
 
@@ -192,7 +193,7 @@ S4 commits no semantic policy or activation artifact.
 
 ## File-size discipline
 
-Each new code module stays below 500 LOC/50KB and each test below 1,000 LOC/80KB. S3 must reduce `src/rocs_cli/cli.py` below 500 LOC through the declared behavior-preserving parser extraction. No code-size exception is authorized.
+Each newly created or modified code module stays below 500 LOC/50KB and each newly created or modified test below 1,000 LOC/80KB. Untouched brownfield files outside task scope are not silently accepted as healthy but are not newly created failures. S3 must reduce `src/rocs_cli/cli.py` below 500 LOC through the declared behavior-preserving parser extraction. No code-size exception is authorized.
 
 ## Task scope template
 
@@ -208,7 +209,7 @@ Each fresh slice task:
 
 ## Rollback
 
-Each slice is additive and individually revertible. S4 proves reverse rollback to the exact implementation-base tree. Existing discovery requires no migration. Preserve failed tests, task evidence, and review records.
+Each slice is additive and individually revertible. S4 proves reverse rollback to the exact implementation-base tree using the retained external compatibility verifier after S0's in-repo copy disappears. Existing discovery requires no migration. Preserve failed tests, task evidence, and review records.
 
 ## Stop conditions
 
