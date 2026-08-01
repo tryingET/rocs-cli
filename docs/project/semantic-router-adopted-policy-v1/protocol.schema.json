@@ -88,6 +88,18 @@
       "$ref": "#/$defs/rollbackPlan"
     },
     {
+      "$ref": "#/$defs/approvalAttestationBody"
+    },
+    {
+      "$ref": "#/$defs/verdictApprovalSubject"
+    },
+    {
+      "$ref": "#/$defs/publicationApprovalSubject"
+    },
+    {
+      "$ref": "#/$defs/authorityCredential"
+    },
+    {
       "$ref": "#/$defs/error"
     }
   ],
@@ -148,7 +160,7 @@
         "repository_id",
         "git_commit",
         "git_tree",
-        "artifact_digest",
+        "authority_credential_digest",
         "principal_id",
         "authority_role"
       ],
@@ -161,9 +173,6 @@
         },
         "git_tree": {
           "$ref": "#/$defs/gitObject"
-        },
-        "artifact_digest": {
-          "$ref": "#/$defs/digest"
         },
         "principal_id": {
           "$ref": "#/$defs/identifier"
@@ -182,6 +191,9 @@
             "evaluator_operator",
             "implementer"
           ]
+        },
+        "authority_credential_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -308,6 +320,8 @@
         "execution_attempt_digest",
         "custodian_approval",
         "independent_review_approval",
+        "verdict_approval_subject",
+        "verdict_approval_subject_digest",
         "verdict_digest"
       ],
       "properties": {
@@ -420,6 +434,12 @@
         },
         "independent_review_approval": {
           "$ref": "#/$defs/approvalArtifact"
+        },
+        "verdict_approval_subject": {
+          "$ref": "#/$defs/verdictApprovalSubject"
+        },
+        "verdict_approval_subject_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -436,6 +456,9 @@
         "verdict_digest",
         "owner_approval",
         "reason_code",
+        "semantic_owner_authority",
+        "publication_approval_subject",
+        "publication_approval_subject_digest",
         "issued_at",
         "event_digest"
       ],
@@ -490,6 +513,15 @@
         },
         "owner_approval": {
           "$ref": "#/$defs/approvalArtifact"
+        },
+        "semantic_owner_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "publication_approval_subject": {
+          "$ref": "#/$defs/publicationApprovalSubject"
+        },
+        "publication_approval_subject_digest": {
+          "$ref": "#/$defs/digest"
         }
       },
       "allOf": [
@@ -637,6 +669,7 @@
         "attestation_body",
         "issuer_attestation",
         "issuer_attestation_digest",
+        "descriptor_anchored_no_follow",
         "receipt_digest"
       ],
       "properties": {
@@ -730,6 +763,9 @@
         },
         "attestation_body": {
           "$ref": "#/$defs/receiptAttestationBody"
+        },
+        "descriptor_anchored_no_follow": {
+          "const": true
         }
       }
     },
@@ -2230,6 +2266,11 @@
         "valid_from",
         "valid_until",
         "revoked",
+        "trust_root_digest",
+        "public_key_digest",
+        "attestation_body",
+        "signature_algorithm",
+        "signature_base64",
         "artifact_digest"
       ],
       "properties": {
@@ -2270,6 +2311,24 @@
         },
         "artifact_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attestation_body": {
+          "$ref": "#/$defs/approvalAttestationBody"
+        },
+        "signature_algorithm": {
+          "const": "ed25519"
+        },
+        "signature_base64": {
+          "type": "string",
+          "minLength": 80,
+          "maxLength": 96,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
         }
       }
     },
@@ -2279,6 +2338,7 @@
       "required": [
         "schema",
         "issuer",
+        "issuer_credential",
         "trust_root_digest",
         "capability_approval",
         "clock_approval",
@@ -2318,6 +2378,9 @@
         },
         "consumption_store_approval": {
           "$ref": "#/$defs/approvalArtifact"
+        },
+        "issuer_credential": {
+          "$ref": "#/$defs/authorityCredential"
         }
       }
     },
@@ -2652,6 +2715,21 @@
         "consumption_issuer_trust_digest",
         "single_use_store_id",
         "consumption_public_key_digest",
+        "expected_custodian_authority",
+        "expected_independent_review_authority",
+        "expected_semantic_owner_authority",
+        "custodian_approval_digest",
+        "independent_review_approval_digest",
+        "terminal_owner_approval_digest",
+        "custodian_trust_root_digest",
+        "independent_review_trust_root_digest",
+        "semantic_owner_trust_root_digest",
+        "custodian_public_key_digest",
+        "independent_review_public_key_digest",
+        "semantic_owner_public_key_digest",
+        "expected_custodian_credential",
+        "expected_independent_review_credential",
+        "expected_semantic_owner_credential",
         "request_digest"
       ],
       "properties": {
@@ -2732,6 +2810,51 @@
         },
         "consumption_public_key_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "expected_custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "expected_independent_review_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "expected_semantic_owner_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "custodian_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "independent_review_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "terminal_owner_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "independent_review_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "semantic_owner_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "independent_review_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "semantic_owner_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_custodian_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "expected_independent_review_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "expected_semantic_owner_credential": {
+          "$ref": "#/$defs/authorityCredential"
         }
       }
     },
@@ -3000,6 +3123,13 @@
         "owner_store_id",
         "authoritative_ref",
         "trusted_channel_id",
+        "closed_environment",
+        "network_used",
+        "stable_final_recheck",
+        "owner",
+        "publication_history_bytes",
+        "clock_uncertainty_ms",
+        "descriptor_anchored_no_follow",
         "body_digest"
       ],
       "properties": {
@@ -3061,6 +3191,31 @@
         },
         "body_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "closed_environment": {
+          "const": true
+        },
+        "network_used": {
+          "const": false
+        },
+        "stable_final_recheck": {
+          "const": true
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "publication_history_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "clock_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "descriptor_anchored_no_follow": {
+          "const": true
         }
       }
     },
@@ -3352,6 +3507,313 @@
           "$ref": "#/$defs/digest"
         },
         "plan_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "approvalAttestationBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "issuer",
+        "subject_digest",
+        "purpose",
+        "valid_from",
+        "valid_until",
+        "revoked",
+        "trust_root_digest",
+        "public_key_digest",
+        "body_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-approval-attestation-body.v1"
+        },
+        "issuer": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "purpose": {
+          "enum": [
+            "acquisition_capability",
+            "clock_source",
+            "owner_store_channel",
+            "custody",
+            "preregistration",
+            "independent_review",
+            "issuer_signing_key",
+            "semantic_publication",
+            "semantic_withdrawal",
+            "semantic_revocation",
+            "challenge_consumption",
+            "consumption_signing_key",
+            "single_use_challenge_store"
+          ]
+        },
+        "valid_from": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "revoked": {
+          "const": false
+        },
+        "trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "body_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "verdictApprovalSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "verdict_id",
+        "candidate_digest",
+        "evaluator_git_commit",
+        "evaluator_git_tree",
+        "evaluator_tool_digest",
+        "preregistration_digest",
+        "development_dataset_digest",
+        "acceptance_dataset_digest",
+        "operational_dataset_digest",
+        "contamination_manifest_digest",
+        "custody_policy_digest",
+        "attempt_envelope_digest",
+        "execution_attempt_digest",
+        "execution_receipt_digest",
+        "metrics_digest",
+        "outcome",
+        "custodian_authority",
+        "independent_review_authority",
+        "issued_at",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-verdict-approval-subject.v1"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "evaluator_git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "evaluator_tool_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "development_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "contamination_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custody_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_attempt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "metrics_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail",
+            "indeterminate"
+          ]
+        },
+        "custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "independent_review_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "verdict_id": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "publicationApprovalSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "owner",
+        "semantic_owner_authority",
+        "sequence",
+        "previous_event_digest",
+        "action",
+        "candidate_digest",
+        "verdict_digest",
+        "reason_code",
+        "issued_at",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-publication-approval-subject.v1"
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "semantic_owner_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "previous_event_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "action": {
+          "enum": [
+            "publish",
+            "withdraw",
+            "revoke"
+          ]
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "verdict_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reason_code": {
+          "enum": [
+            "accepted_offline_verdict",
+            "owner_withdrawal",
+            "integrity_revocation",
+            "semantic_supersession"
+          ]
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "authorityCredential": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "repository_id",
+        "git_commit",
+        "git_tree",
+        "principal_id",
+        "authority_role",
+        "trust_root_digest",
+        "public_key_encoding",
+        "public_key_base64",
+        "public_key_digest",
+        "valid_from",
+        "valid_until",
+        "revoked",
+        "credential_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-authority-credential.v1"
+        },
+        "repository_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authority_role": {
+          "enum": [
+            "semantic_owner",
+            "policy_author",
+            "development_author",
+            "acceptance_author",
+            "operational_author",
+            "annotator",
+            "adjudicator",
+            "custodian",
+            "independent_reviewer",
+            "evaluator_operator",
+            "implementer"
+          ]
+        },
+        "trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "public_key_encoding": {
+          "const": "ed25519-raw-32"
+        },
+        "public_key_base64": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44,
+          "pattern": "^[A-Za-z0-9+/]{43}=$"
+        },
+        "public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "valid_from": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "revoked": {
+          "const": false
+        },
+        "credential_digest": {
           "$ref": "#/$defs/digest"
         }
       }

@@ -39,7 +39,9 @@ Reviewer assesses:
 - no-follow, local-only, bounded acquisition expectations with closed issuer/approval/channel/store trust;
 - fresh single-use caller challenge/action binding, separate caller verification request, approved Ed25519 key/signature with non-circular attestation body, and authenticated challenge-consumption body/receipt whose issuer trust, store, key, and digest are externally pinned;
 - unidirectional checkpoint→head commitment plus a contiguous monotonic checkpoint chain from the caller pin;
-- exact equality joins across policy binding, candidate, verdict, envelope, attempt, closed approvals, event, history, head, checkpoint, receipt, commit/tree, and proof;
+- exact equality joins across policy binding, candidate, verdict, envelope, attempt, non-circular verdict/publication approval subjects, signed approval attestation bodies, event, history, head, checkpoint, receipt, commit/tree, and proof;
+- the external request pins exact custodian, reviewer, and semantic-owner authority coordinates, separate non-circular authority credentials, signed approval digests, trust roots, and canonical raw-32-byte Ed25519 public keys; repository strings or self-digests cannot issue authority;
+- the signed receipt body authenticates descriptor-anchored no-follow capture, closed-environment, no-network, and stable-final-recheck guarantees as well as identity, challenge, checkpoint, and time;
 - stale H1 replay after H2, forked, absent, withdrawn, revoked, or mismatched heads fail closed;
 - rollback disables invocation or returns to a separately current prior release without rewriting history;
 - no network, live signing/key provisioning, provider/model, or live capability is implied.
