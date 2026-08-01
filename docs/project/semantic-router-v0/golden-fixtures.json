@@ -1,0 +1,505 @@
+{
+  "b0_exposure": "confirmed",
+  "canonicalization": "RFC8785 with integer-only I-JSON restriction",
+  "digests": {
+    "caller_request_digest": "sha256:caf854675a3eae369b41a2e223bd08aef86bdd890e375a00f0bddfe6ef28a586",
+    "effective_execution_digest": "sha256:437f18069f6b79b11ad90fcf3a83ce352e757910faae450ebe0074aa67f334d9",
+    "provenance_manifest_digest": "sha256:4e8cf2bc8f7032c86eb4e35c44a63bfcd238a9177984285220075d8a8ecbfca3",
+    "result_digest": "sha256:e145fc5a6738d066fdc206875617072b9c9db203b1e8c2c5c248abbb4ec8773f",
+    "routing_policy_digest": "sha256:6196361c03a2dc5d5dbb47bedbd6fc7b37f36fd11712b9562bbb246a7743e629"
+  },
+  "schema": "semantic-router-golden-fixtures.v0",
+  "synthetic_only": true,
+  "valid": {
+    "capabilities": {
+      "candidate_algorithms": [
+        "rocs-lexical-v0"
+      ],
+      "error_schemas": [
+        "semantic-route-error.v0"
+      ],
+      "normalization": [
+        "nfkc-casefold-ws-v0"
+      ],
+      "platforms": [
+        "linux"
+      ],
+      "policy_schemas": [
+        "semantic-routing-policy.v0"
+      ],
+      "provenance_schemas": [
+        "semantic-routing-provenance.v0"
+      ],
+      "request_schemas": [
+        "semantic-route-request.v0"
+      ],
+      "result_schemas": [
+        "semantic-route-result.v0"
+      ],
+      "router_algorithms": [
+        "rocs-symbolic-router-v0"
+      ],
+      "schema": "semantic-route-capabilities.v0",
+      "tokenization": [
+        "unicode-ln-sequence-v0"
+      ],
+      "unicode_data": [
+        "15.0.0"
+      ]
+    },
+    "discovery_effective_execution": {
+      "algorithm": {
+        "id": "rocs-lexical-v0",
+        "unicode_data": "15.0.0"
+      },
+      "caller_request_digest": "sha256:d060c07a05c7510a00f9a10ed02509b685d428ce851acc0b6c37534db31e1e03",
+      "corpus_snapshot_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "effective_execution_digest": "sha256:bf5cfc0e4da9cb38020e285ae5cbe125dc26f4db47d5fbac5e108113e2d48ae2",
+      "effective_limits": {
+        "candidates": 12,
+        "collection_items": 10000,
+        "corpus_bytes": 33554432,
+        "corpus_files": 5000,
+        "file_bytes": 1048576,
+        "parser_depth": 32,
+        "query_bytes": 16384,
+        "result_bytes": 65536
+      },
+      "schema": "semantic-effective-execution.v0",
+      "tool_identity": {
+        "digest": "sha256:31083e71695f1dfe1a891264f8162e9461b3fcfa7460c785a3c19f9a07e691d7",
+        "kind": "development_runtime",
+        "manifest_digest": "sha256:45bb426eafef58535b5738b86a7b6342915a53f5c6aa4c86ad98a375a259eb0b",
+        "python_version": "3.12.12",
+        "unicode_data": "15.0.0"
+      }
+    },
+    "effective_execution": {
+      "algorithm": {
+        "candidate_algorithm": "rocs-lexical-v0",
+        "id": "rocs-symbolic-router-v0",
+        "normalization": "nfkc-casefold-ws-v0",
+        "tokenization": "unicode-ln-sequence-v0",
+        "unicode_data": "15.0.0"
+      },
+      "caller_request_digest": "sha256:caf854675a3eae369b41a2e223bd08aef86bdd890e375a00f0bddfe6ef28a586",
+      "corpus_snapshot_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "discovery_limits": {
+        "candidates": 12,
+        "collection_items": 10000,
+        "corpus_bytes": 33554432,
+        "corpus_files": 5000,
+        "file_bytes": 1048576,
+        "parser_depth": 32,
+        "query_bytes": 16384,
+        "result_bytes": 65536
+      },
+      "effective_execution_digest": "sha256:437f18069f6b79b11ad90fcf3a83ce352e757910faae450ebe0074aa67f334d9",
+      "nested_discovery_effective_execution_digest": "sha256:bf5cfc0e4da9cb38020e285ae5cbe125dc26f4db47d5fbac5e108113e2d48ae2",
+      "provenance_manifest_digest": "sha256:4e8cf2bc8f7032c86eb4e35c44a63bfcd238a9177984285220075d8a8ecbfca3",
+      "route_limits": {
+        "alternatives_per_group": 16,
+        "clauses": 4096,
+        "collection_items": 20000,
+        "concepts": 1000,
+        "evidence_entries": 2048,
+        "groups_per_clause": 8,
+        "joint_routes": 1000,
+        "matching_work": 2000000,
+        "normalized_alternative_bytes": 524288,
+        "parser_depth": 32,
+        "policy_bytes": 1048576,
+        "provenance_bytes": 8388608,
+        "result_bytes": 262144,
+        "total_alternatives": 16384,
+        "witnesses": 8192
+      },
+      "routing_policy_digest": "sha256:6196361c03a2dc5d5dbb47bedbd6fc7b37f36fd11712b9562bbb246a7743e629",
+      "schema": "semantic-route-effective-execution.v0",
+      "tool_identity": {
+        "digest": "sha256:31083e71695f1dfe1a891264f8162e9461b3fcfa7460c785a3c19f9a07e691d7",
+        "kind": "development_runtime",
+        "manifest_digest": "sha256:45bb426eafef58535b5738b86a7b6342915a53f5c6aa4c86ad98a375a259eb0b",
+        "python_version": "3.12.12",
+        "unicode_data": "15.0.0"
+      }
+    },
+    "error": {
+      "error": {
+        "caller_request_digest": null,
+        "kind": "invalid_request",
+        "message": "route request is invalid",
+        "schema": "semantic-route-error.v0"
+      },
+      "ok": false
+    },
+    "policy": {
+      "authority": {
+        "owner_repo": "synthetic-owner",
+        "path": "fixtures/policy.json",
+        "review_ref": "synthetic-review-s0",
+        "revision": "1111111111111111111111111111111111111111",
+        "source_content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "concepts": [
+        {
+          "exclude_any": [],
+          "ont_id": "synthetic.Alpha",
+          "support_any": [
+            {
+              "all_of": [
+                {
+                  "any_of": [
+                    {
+                      "kind": "token",
+                      "value": "alpha"
+                    }
+                  ],
+                  "group_id": "g.alpha"
+                }
+              ],
+              "clause_id": "c.alpha"
+            }
+          ]
+        },
+        {
+          "exclude_any": [],
+          "ont_id": "synthetic.Beta",
+          "support_any": [
+            {
+              "all_of": [
+                {
+                  "any_of": [
+                    {
+                      "kind": "token",
+                      "value": "beta"
+                    }
+                  ],
+                  "group_id": "g.beta"
+                }
+              ],
+              "clause_id": "c.beta"
+            }
+          ]
+        }
+      ],
+      "domain": {
+        "admit_any": [
+          {
+            "all_of": [
+              {
+                "any_of": [
+                  {
+                    "kind": "token",
+                    "value": "synthetic"
+                  }
+                ],
+                "group_id": "g.domain"
+              }
+            ],
+            "clause_id": "d.support"
+          }
+        ],
+        "domain_id": "synthetic-domain",
+        "exclude_any": []
+      },
+      "joint_routes": [
+        {
+          "exclude_any": [],
+          "joint_route_id": "j.alpha-beta",
+          "ont_ids": [
+            "synthetic.Alpha",
+            "synthetic.Beta"
+          ],
+          "support_any": [
+            {
+              "all_of": [
+                {
+                  "any_of": [
+                    {
+                      "kind": "phrase",
+                      "value": "alpha bridge synthetic beta"
+                    }
+                  ],
+                  "group_id": "g.joint"
+                }
+              ],
+              "clause_id": "j.both"
+            }
+          ]
+        }
+      ],
+      "normalization": "nfkc-casefold-ws-v0",
+      "policy_id": "synthetic-router-s0",
+      "provenance_manifest_digest": "sha256:4e8cf2bc8f7032c86eb4e35c44a63bfcd238a9177984285220075d8a8ecbfca3",
+      "routing_policy_digest": "sha256:6196361c03a2dc5d5dbb47bedbd6fc7b37f36fd11712b9562bbb246a7743e629",
+      "schema": "semantic-routing-policy.v0",
+      "tokenization": "unicode-ln-sequence-v0",
+      "unicode_data": "15.0.0"
+    },
+    "provenance": {
+      "policy_id": "synthetic-router-s0",
+      "policy_owner_repo": "synthetic-owner",
+      "policy_path": "fixtures/policy.json",
+      "policy_revision": "1111111111111111111111111111111111111111",
+      "policy_source_content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "provenance_manifest_digest": "sha256:4e8cf2bc8f7032c86eb4e35c44a63bfcd238a9177984285220075d8a8ecbfca3",
+      "records": [
+        {
+          "author": "synthetic-s0-author",
+          "b0_exposure": "confirmed",
+          "clause_id": "c.alpha",
+          "contamination_scan_receipt": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "created_at": "2026-08-01T00:00:00Z",
+          "development_case_ids": [
+            "SYNTHETIC_S0"
+          ],
+          "group_id": "g.alpha",
+          "kind": "token",
+          "review_ref": "synthetic-review-s0",
+          "source_content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_owner_repo": "synthetic-owner",
+          "source_path": "fixtures/source.txt",
+          "source_revision": "1111111111111111111111111111111111111111",
+          "value": "alpha"
+        },
+        {
+          "author": "synthetic-s0-author",
+          "b0_exposure": "confirmed",
+          "clause_id": "c.beta",
+          "contamination_scan_receipt": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "created_at": "2026-08-01T00:00:00Z",
+          "development_case_ids": [
+            "SYNTHETIC_S0"
+          ],
+          "group_id": "g.beta",
+          "kind": "token",
+          "review_ref": "synthetic-review-s0",
+          "source_content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_owner_repo": "synthetic-owner",
+          "source_path": "fixtures/source.txt",
+          "source_revision": "1111111111111111111111111111111111111111",
+          "value": "beta"
+        },
+        {
+          "author": "synthetic-s0-author",
+          "b0_exposure": "confirmed",
+          "clause_id": "d.support",
+          "contamination_scan_receipt": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "created_at": "2026-08-01T00:00:00Z",
+          "development_case_ids": [
+            "SYNTHETIC_S0"
+          ],
+          "group_id": "g.domain",
+          "kind": "token",
+          "review_ref": "synthetic-review-s0",
+          "source_content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_owner_repo": "synthetic-owner",
+          "source_path": "fixtures/source.txt",
+          "source_revision": "1111111111111111111111111111111111111111",
+          "value": "synthetic"
+        },
+        {
+          "author": "synthetic-s0-author",
+          "b0_exposure": "confirmed",
+          "clause_id": "j.both",
+          "contamination_scan_receipt": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "created_at": "2026-08-01T00:00:00Z",
+          "development_case_ids": [
+            "SYNTHETIC_S0"
+          ],
+          "group_id": "g.joint",
+          "kind": "phrase",
+          "review_ref": "synthetic-review-s0",
+          "source_content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_owner_repo": "synthetic-owner",
+          "source_path": "fixtures/source.txt",
+          "source_revision": "1111111111111111111111111111111111111111",
+          "value": "alpha bridge synthetic beta"
+        }
+      ],
+      "schema": "semantic-routing-provenance.v0"
+    },
+    "request": {
+      "candidate_algorithm": "rocs-lexical-v0",
+      "discovery_limits": {
+        "candidates": 12,
+        "collection_items": 10000,
+        "corpus_bytes": 33554432,
+        "corpus_files": 5000,
+        "file_bytes": 1048576,
+        "parser_depth": 32,
+        "query_bytes": 16384,
+        "result_bytes": 65536
+      },
+      "expected_provenance_manifest_digest": "sha256:4e8cf2bc8f7032c86eb4e35c44a63bfcd238a9177984285220075d8a8ecbfca3",
+      "expected_routing_policy_digest": "sha256:6196361c03a2dc5d5dbb47bedbd6fc7b37f36fd11712b9562bbb246a7743e629",
+      "identity_selector": {
+        "kind": "development_snapshot"
+      },
+      "profile": "review",
+      "query": "synthetic alpha bridge synthetic beta",
+      "route_limits": {
+        "alternatives_per_group": 16,
+        "clauses": 4096,
+        "collection_items": 20000,
+        "concepts": 1000,
+        "evidence_entries": 2048,
+        "groups_per_clause": 8,
+        "joint_routes": 1000,
+        "matching_work": 2000000,
+        "normalized_alternative_bytes": 524288,
+        "parser_depth": 32,
+        "policy_bytes": 1048576,
+        "provenance_bytes": 8388608,
+        "result_bytes": 262144,
+        "total_alternatives": 16384,
+        "witnesses": 8192
+      },
+      "router_algorithm": "rocs-symbolic-router-v0",
+      "schema": "semantic-route-request.v0"
+    },
+    "result": {
+      "admission": {
+        "exclusion_clause_ids": [],
+        "reason": "domain_support",
+        "state": "admitted",
+        "support_clause_ids": [
+          "d.support"
+        ]
+      },
+      "algorithm": {
+        "candidate_algorithm": "rocs-lexical-v0",
+        "id": "rocs-symbolic-router-v0",
+        "normalization": "nfkc-casefold-ws-v0",
+        "tokenization": "unicode-ln-sequence-v0",
+        "unicode_data": "15.0.0"
+      },
+      "caller_request_digest": "sha256:caf854675a3eae369b41a2e223bd08aef86bdd890e375a00f0bddfe6ef28a586",
+      "corpus_snapshot_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "discovery_result": {
+        "algorithm": {
+          "id": "rocs-lexical-v0",
+          "unicode_data": "15.0.0"
+        },
+        "caller_request_digest": "sha256:d060c07a05c7510a00f9a10ed02509b685d428ce851acc0b6c37534db31e1e03",
+        "candidates": [],
+        "corpus_snapshot_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "effective_execution_digest": "sha256:bf5cfc0e4da9cb38020e285ae5cbe125dc26f4db47d5fbac5e108113e2d48ae2",
+        "effective_limits": {
+          "candidates": 12,
+          "collection_items": 10000,
+          "corpus_bytes": 33554432,
+          "corpus_files": 5000,
+          "file_bytes": 1048576,
+          "parser_depth": 32,
+          "query_bytes": 16384,
+          "result_bytes": 65536
+        },
+        "result_digest": "sha256:505f16404c96fb62113b26f4f0ed7b8e7287015bde037d178c4ae1d279cc3d66",
+        "retrieval": "no_candidates",
+        "schema": "semantic-discovery-result.v0",
+        "tool_identity": {
+          "digest": "sha256:31083e71695f1dfe1a891264f8162e9461b3fcfa7460c785a3c19f9a07e691d7",
+          "kind": "development_runtime",
+          "manifest_digest": "sha256:45bb426eafef58535b5738b86a7b6342915a53f5c6aa4c86ad98a375a259eb0b",
+          "python_version": "3.12.12",
+          "unicode_data": "15.0.0"
+        },
+        "truncated": false
+      },
+      "effective_execution_digest": "sha256:437f18069f6b79b11ad90fcf3a83ce352e757910faae450ebe0074aa67f334d9",
+      "evidence": [
+        {
+          "clause_id": "d.support",
+          "joint_route_id": null,
+          "ont_id": null,
+          "polarity": "support",
+          "scope": "domain",
+          "witnesses": [
+            {
+              "end_token": 1,
+              "group_id": "g.domain",
+              "kind": "token",
+              "start_token": 0,
+              "value": "synthetic"
+            }
+          ]
+        },
+        {
+          "clause_id": "c.alpha",
+          "joint_route_id": null,
+          "ont_id": "synthetic.Alpha",
+          "polarity": "support",
+          "scope": "concept",
+          "witnesses": [
+            {
+              "end_token": 2,
+              "group_id": "g.alpha",
+              "kind": "token",
+              "start_token": 1,
+              "value": "alpha"
+            }
+          ]
+        },
+        {
+          "clause_id": "c.beta",
+          "joint_route_id": null,
+          "ont_id": "synthetic.Beta",
+          "polarity": "support",
+          "scope": "concept",
+          "witnesses": [
+            {
+              "end_token": 5,
+              "group_id": "g.beta",
+              "kind": "token",
+              "start_token": 4,
+              "value": "beta"
+            }
+          ]
+        },
+        {
+          "clause_id": "j.both",
+          "joint_route_id": "j.alpha-beta",
+          "ont_id": null,
+          "polarity": "support",
+          "scope": "joint_route",
+          "witnesses": [
+            {
+              "end_token": 5,
+              "group_id": "g.joint",
+              "kind": "phrase",
+              "start_token": 1,
+              "value": "alpha bridge synthetic beta"
+            }
+          ]
+        }
+      ],
+      "provenance_manifest_digest": "sha256:4e8cf2bc8f7032c86eb4e35c44a63bfcd238a9177984285220075d8a8ecbfca3",
+      "result_digest": "sha256:e145fc5a6738d066fdc206875617072b9c9db203b1e8c2c5c248abbb4ec8773f",
+      "routing": {
+        "conflicted_ont_ids": [],
+        "joint_route_id": "j.alpha-beta",
+        "reason": "explicit_joint_route",
+        "selected_ont_ids": [
+          "synthetic.Alpha",
+          "synthetic.Beta"
+        ],
+        "state": "multi",
+        "supported_ont_ids": [
+          "synthetic.Alpha",
+          "synthetic.Beta"
+        ]
+      },
+      "routing_policy_digest": "sha256:6196361c03a2dc5d5dbb47bedbd6fc7b37f36fd11712b9562bbb246a7743e629",
+      "schema": "semantic-route-result.v0",
+      "tool_identity": {
+        "digest": "sha256:31083e71695f1dfe1a891264f8162e9461b3fcfa7460c785a3c19f9a07e691d7",
+        "kind": "development_runtime",
+        "manifest_digest": "sha256:45bb426eafef58535b5738b86a7b6342915a53f5c6aa4c86ad98a375a259eb0b",
+        "python_version": "3.12.12",
+        "unicode_data": "15.0.0"
+      }
+    }
+  }
+}
