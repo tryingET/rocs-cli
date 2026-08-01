@@ -19,8 +19,8 @@ _GIT_ENV = {"PATH": "/usr/bin:/bin", "HOME": "/nonexistent", "LANG": "C", "LC_AL
 _RESOURCE_FAILURES = {"groups_per_clause limit", "alternatives_per_group limit", "concepts limit",
     "clauses limit", "total_alternatives limit", "normalized_alternative_bytes limit", "joint_routes limit"}
 def _race_hook(_stage: str) -> None: pass
-def _same_stat(left: os.stat_result, right: os.stat_result) -> bool:
-    return all(getattr(left, field) == getattr(right, field) for field in _STAT_FIELDS)
+def _same_stat(left: os.stat_result, right: os.stat_result) -> bool: return all(getattr(left, field) == getattr(right, field) for field in _STAT_FIELDS)
+def _same_dir(left: os.stat_result, right: os.stat_result) -> bool: return (left.st_dev, left.st_ino, left.st_mode) == (right.st_dev, right.st_ino, right.st_mode)
 def _identity(value: os.stat_result) -> tuple[int, int]: return value.st_dev, value.st_ino
 def _close_nodes(nodes: list["_Node"]) -> None:
     for node in reversed(nodes):
@@ -56,7 +56,8 @@ class _Node:
             )
         except OSError as exc:
             raise RouteProtocolError("snapshot_changed") from exc
-        if not _same_stat(self.captured, opened) or not _same_stat(self.captured, anchored):
+        same = _same_stat if self.regular else _same_dir
+        if not same(self.captured, opened) or not same(self.captured, anchored):
             raise RouteProtocolError("snapshot_changed")
         if self.regular and (not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1):
             raise RouteProtocolError("snapshot_changed")
@@ -90,7 +91,7 @@ def _open_root(path: os.PathLike[str] | str) -> _Root:
             _race_hook("before_root_component_open")
             child = os.open(part, _DIR_FLAGS, dir_fd=parent)
             opened = os.fstat(child)
-            if not _same_stat(before, opened):
+            if not _same_dir(before, opened):
                 os.close(child)
                 raise RouteProtocolError("snapshot_changed")
             nodes.append(_Node(child, parent, part, before))
@@ -147,7 +148,7 @@ def _capture_file(root_fd: int, path: os.PathLike[str] | str, maximum: int, labe
                 raise RouteProtocolError("invalid_policy")
             child = os.open(part, _DIR_FLAGS, dir_fd=parent)
             opened = os.fstat(child)
-            if not _same_stat(before, opened):
+            if not _same_dir(before, opened):
                 os.close(child)
                 raise RouteProtocolError("snapshot_changed")
             nodes.append(_Node(child, parent, part, before))
@@ -234,7 +235,7 @@ class _GitRepository:
                 if not stat.S_ISDIR(info.st_mode):
                     raise RouteProtocolError("invalid_policy")
                 fd = os.open(".git", _DIR_FLAGS, dir_fd=root.fd)
-                if not _same_stat(info, os.fstat(fd)):
+                if not _same_dir(info, os.fstat(fd)):
                     os.close(fd)
                     raise RouteProtocolError("snapshot_changed")
                 git_node = _Node(fd, root.fd, ".git", info)
@@ -248,7 +249,7 @@ class _GitRepository:
             if not stat.S_ISDIR(obj.st_mode):
                 raise RouteProtocolError("invalid_policy")
             obj_fd = os.open("objects", _DIR_FLAGS, dir_fd=git_fd)
-            if not _same_stat(obj, os.fstat(obj_fd)):
+            if not _same_dir(obj, os.fstat(obj_fd)):
                 os.close(obj_fd)
                 raise RouteProtocolError("snapshot_changed")
             objects_node = _Node(obj_fd, git_fd, "objects", obj)
