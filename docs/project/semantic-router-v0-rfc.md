@@ -64,9 +64,9 @@ Semantic Router Protocol v0 is development-only and represents neither publicati
 
 ## Development policy boundary
 
-ROCS development may use only conspicuously synthetic policies carrying exact repository, revision, path, raw source-content digest, review reference, and provenance-manifest digest. Synthetic fixtures assert grammar behavior, not real-domain authority.
+Decision 102 and its implementation tasks authorize only conspicuously synthetic policies carrying exact repository, revision, path, raw source-content digest, review reference, and provenance-manifest digest. Synthetic fixtures assert grammar behavior, not real-domain authority.
 
-Any non-synthetic policy requires a separate ontology-owner task and a future adopted-policy protocol. It is non-executable under v0 even when its path and digest are known.
+The v0 schema cannot infer whether semantically meaningful bytes are “synthetic.” It mechanically validates any exact local development policy, but every result is development evidence only and conveys no owner approval, publication, adoption, or activation authority. Executing a non-synthetic policy without a separate ontology-owner task and future adopted-policy protocol is unauthorized process behavior, not a schema distinction. Implementations and tests must not claim runtime enforcement of synthetic meaning.
 
 ## Protocol family
 

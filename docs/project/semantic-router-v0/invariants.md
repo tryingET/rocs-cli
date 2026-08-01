@@ -51,7 +51,7 @@ A policy authority object binds exact owner repository, 40-hex Git revision, rep
 
 Semantic Router Protocol v0 accepts only `development_snapshot` and `development_runtime` identities. It has no adopted-coordinate, publication-status, withdrawal, or consumer-activation representation. Those semantics are explicitly deferred to a future owner-reviewed protocol and cannot be inferred from v0 fields.
 
-Development implementation may use only conspicuously synthetic policies. A synthetic fixture still carries exact repository/revision/path/digest coordinates but cannot claim real-domain authority. Any non-synthetic policy instance requires a separate ontology-owner task and review and remains non-executable under v0.
+Decision/task scope permits only conspicuously synthetic policies. The protocol cannot classify semantic meaning as synthetic, and runtime validation does not attempt to do so. Every v0 result is development evidence without owner approval, publication, adoption, or activation authority. A non-synthetic invocation without separate owner authorization is a process violation even if its bytes validate; it does not become an adopted result.
 
 V0 receives `--policy-owner-repo-id` and an existing local `--policy-owner-repo-root`. Every policy and provenance owner-repository field must equal that exact ID. Every source revision must exist in the supplied local Git object database. Source paths are canonical repository-relative POSIX paths: no absolute path, backslash, empty segment, `.` segment, or `..` segment. ROCS reads exact raw blob bytes with the Git object identity `revision:path`, never from the worktree, and verifies every source digest. Network fetch and cross-repository source mapping are absent in v0.
 
