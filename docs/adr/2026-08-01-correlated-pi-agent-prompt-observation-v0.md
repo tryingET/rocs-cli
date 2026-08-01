@@ -19,6 +19,8 @@ Frozen review identity:
 - controlling synthesis `docs/project/semantic-pi-agent-prompt-retention-observation-v0-review-synthesis-r1.md`;
 - final lane verdicts `ready_for_adr`: `dispatch-1785563958202`, `dispatch-1785563958203`, and `dispatch-1785563958203-1`.
 
+The frozen r2 RFC is normative in full. This ADR summarizes rather than weakens its token uniqueness, event freezing, readback precedence, lifecycle clearing, owner re-pinning, protected surfaces, rollout, and rollback requirements.
+
 ## Context
 
 Decision 89 proves exact package-local pre-return preparation but cannot correlate that preparation with Pi's assigned agent-state prompt. A package-only `agent_start` observer is unsafe because asynchronous preflights may overlap before Pi marks a run active, and existing events expose no shared run identity. Whole-prompt mismatch also cannot establish that a semantic contribution was removed.
@@ -29,9 +31,9 @@ Adopt one minimal host correlation/readback contract and one bounded package obs
 
 ### Host contract
 
-Pi adds capability `prompt.agent-state.observation.v1` and an immutable process-local `promptRunToken` shared between `before_agent_start` and new `agent_prompt_ready`.
+Pi adds capability `prompt.agent-state.observation.v1`. Before each prompt execution's pre-start chain, the host creates one opaque process-local `promptRunToken`. Tokens are unique among concurrently alive executions, unstable across process/session replacement, and identical only across that execution's `before_agent_start` and new `agent_prompt_ready` events.
 
-`agent_prompt_ready` fires after the complete pre-start chain and assignment to Pi agent state, before the corresponding provider turn. It carries the token and exact assigned `systemPrompt`. It attests no provider invocation or transmission.
+`agent_prompt_ready` fires after the complete pre-start chain and assignment to Pi agent state, before the corresponding provider turn. Its frozen event carries the matching token and exact assigned `systemPrompt`. The host freezes the extended `before_agent_start` event values as well. The seam attests no provider invocation or transmission.
 
 ### Package contract
 
@@ -45,7 +47,9 @@ A newer preparation replaces the slot; nonmatching ready tokens are ignored. Tok
 
 Terminal `exact_match` means the entire agent-state prompt at the correlated host seam equals the package-prepared whole prompt by exact UTF-8 byte length and domain-separated digest. `mismatch` means only that the whole prompts differ; contribution survival remains unknown.
 
-The existing TUI command gains deterministic `/ontology-preflight observation` readback for unsupported-host, disabled, enabled-none, prepared, exact-match, and mismatch states. Output includes fixed protocol/outcome/negative-claim text only—no prompt-derived digest, length, token, prompt text, path, session, provider, or model identity.
+The existing TUI command gains deterministic `/ontology-preflight observation` readback for unsupported-host, disabled, enabled-none, prepared, exact-match, and mismatch states. The literal outputs and precedence in frozen RFC r2 are mandatory: unsupported-host precedes disabled; otherwise the runtime validates current generation/grant/cwd/compatibility, clears stale state, and selects prepared, terminal, or enabled-none. Readback is TUI-only and non-persistent. Output includes fixed protocol/outcome/negative-claim text only—no prompt-derived digest, length, token, prompt text, path, session, provider, or model identity.
+
+Reset, shutdown, disable, stale/expired grant, successful grant replacement, mode drift, invalid generation/request/grant/cwd/compatibility, producer/validation failure, non-append output, and unsupported-host detection clear the slot as specified by r2. Nonmatching or repeated ready events never rewrite a terminal observation.
 
 ### Implementation ownership
 
@@ -58,6 +62,8 @@ The existing TUI command gains deterministic `/ontology-preflight observation` r
 
 Host, package, deterministic integration, live TUI canary, and empirical work use separate tasks and evidence.
 
+Each task re-pins its owner's then-current default line before mutation. H0 lands first. P0 then either updates the package's Pi development dependency and lock to the accepted H0 API or uses a separately reviewed structural compatibility adapter; it may not pretend the pinned pre-H0 types contain `agent_prompt_ready`. Any dependency/lock update is development-compatibility scope only and must preserve package version, release behavior, and runtime dependency boundaries.
+
 ## Consequences
 
 - A small Pi-host change is required; existing capability tokens are insufficient.
@@ -69,17 +75,17 @@ Host, package, deterministic integration, live TUI canary, and empirical work us
 
 ## Rollout
 
-1. H0 host capability with deterministic faux-provider tests.
-2. P0 package implementation on the live lineage.
-3. R1a deterministic host/package integration harness without external model use.
-4. R1b separately authorized TUI canary with exactly one pinned provider/model call and exact settings rollback.
+1. H0 host capability on the current Pi-owner line, with frozen-event, concurrent-token, assignment-order, pre-provider, lifecycle, and compatibility tests.
+2. P0 package implementation on the current live package line, preserving protected entrypoint/release/semantic-delivery surfaces and changing dependency/lock only when the reviewed H0 type binding requires it.
+3. R1a no-install deterministic host/package integration harness loading exact candidates with a faux provider and no external model use.
+4. R1b separately authorized TUI canary with exactly one pinned provider/model call. It proves exact host/package identity, one configured and loaded package across global/project scopes, unsuffixed command provenance, default-off and terminal/reset states, and exact settings rollback. Prepared is harness-only because live TUI exposes no scheduling boundary for it.
 5. B0 retrieval relevance before B1/B2 behavioral evaluation.
 
 R1b is engineering dogfood, not a benefit study.
 
 ## Rollback
 
-Host and package commits revert independently. Runtime rollback disables the grant, restores exact prior settings bytes/order/source, creates a fresh Pi generation, verifies prior sole package provenance and absence of the candidate protocol, and leaves unrelated caches, worktrees, sessions, and repositories untouched.
+Host and package commits revert independently. Runtime rollback disables the grant, restores exact prior settings bytes/mode/order/source, creates a fresh Pi generation, verifies the prior sole package and unsuffixed command/tool provenance, proves no candidate protocol or handler remains loaded, and leaves unrelated caches, worktrees, sessions, and repositories untouched.
 
 ## Non-authorization
 
