@@ -1,5 +1,5 @@
 ---
-summary: "Post-ADR owner plan for Decision 98 host correlation, package observation, and dogfood."
+summary: "Post-ADR owner plan for Decision 98 host correlation, package observation, and isolated dogfood."
 read_when:
   - "Implementing Decision 98 after ADR acceptance."
 type: "implementation_plan"
@@ -8,123 +8,114 @@ decision_id: 98
 ---
 # Implementation plan — correlated Pi agent-prompt observation v0
 
-## Authority
+## Authority and re-pinning
 
-Governing ADR: `docs/adr/2026-08-01-correlated-pi-agent-prompt-observation-v0.md`. Frozen RFC r2 remains normative.
+Governing ADR: `docs/adr/2026-08-01-correlated-pi-agent-prompt-observation-v0.md`; frozen RFC r2 is normative.
 
-This plan sequences separate owner tasks. Acceptance of the plan does not itself mutate Pi, packages, settings, runtime, provider/model, or empirical authority.
+Observed refs are discovery evidence, not mutation bases. Every owner task resolves current `origin/main`, records commit/tree/version, and starts from a clean isolated worktree. Package work preserves the then-current package version and manifests; it does not restore the historical `0.2.0` tree. If owner files drift, rederive and re-review.
 
-## Baselines to re-pin
+## H−1 — current-line host-capability substrate
 
-Observed planning baselines:
+Owner: `/home/tryinget/ai-society/softwareco/contrib/pi-mono`.
 
-- Pi owner: `/home/tryinget/ai-society/softwareco/contrib/pi-mono` `origin/main` `4488ad55c18f07ae89a489096c90de8667b3adfb`, coding-agent `0.83.0`;
-- local host-capability predecessor: `5be4473cc` on a branch 1 ahead/1222 behind owner main; it is evidence to rederive, never the H0 base;
-- package owner live-lineage candidate: branch commit `96f3b699b77b941522e0cada76672276919e2d6e`, package tree `396630b4cf329d2e1a2a03fa9e4cb219381e89eb`, version `0.2.0`.
+Current owner main lacks the local immutable host-capability substrate required by semantic preflight. Create a separate task from current `origin/main` and rederive only that substrate using local commit `b4bbbc080` as evidence. Do not use stale `5be4473cc` as the implementation base and exclude unrelated successor `0e773d7b0` host-owned model completion.
 
-Every task rechecks current owner default and uses a clean isolated worktree. If relevant owner files changed, rebase/rederive and re-review; never install a stale/divergent checkout by branch name alone.
+H−1 includes current-line context plumbing, restricted project-trust contexts, stale-context guards, shortcut/print/RPC shutdown behavior, immutable capability identifiers, docs, exports, and tests required by the accepted substrate. It has its own independent review and revert plan. H0 rollback preserves H−1; H−1 reverts independently to its recorded owner-main parent.
 
-## H0 — Pi host capability and correlation event
+## H0 — correlated agent-prompt-ready event
 
-Owner: `softwareco/contrib/pi-mono`.
+Start from accepted H−1. Add:
 
-Create one bounded task from current `origin/main`. Re-derive the existing immutable host-capability substrate from local commit `5be4473cc` only where current owner main lacks it, then add:
+- capability identifier `prompt.agent-state.observation.v1`;
+- opaque unique `promptRunToken` allocation before each prompt execution's pre-start chain;
+- token on each freshly constructed `BeforeAgentStartEvent` snapshot;
+- `AgentPromptReadyEvent` with matching token and assigned `systemPrompt`;
+- `agent_prompt_ready` registration/dispatch/exports/docs;
+- awaited order:
 
-- capability `prompt.agent-state.observation.v1`;
-- opaque unique `promptRunToken` creation before each `before_agent_start` chain;
-- token on `BeforeAgentStartEvent`;
-- frozen `AgentPromptReadyEvent` carrying matching token and assigned `systemPrompt`;
-- `agent_prompt_ready` extension registration/dispatch;
-- awaited dispatch after assignment and before `_runAgentPrompt()`;
-- exports, documentation, and deterministic tests.
+```text
+allocate token
+-> await complete before_agent_start chain(token)
+-> assign agent.state.systemPrompt
+-> await agent_prompt_ready(token, assigned prompt)
+-> preflightResult(true)
+-> _runAgentPrompt()
+```
 
-Expected owner surfaces are bounded around:
+Token semantics are limited to concurrently alive executions in one host process/runtime generation. The host does not automatically copy tokens to host-owned session messages/entries, provider payloads, logs, or errors. Extensions can observe the token and remain responsible for their own behavior.
 
-- coding-agent host-capability/context plumbing required by the current line;
-- `packages/coding-agent/src/core/extensions/types.ts`;
-- `packages/coding-agent/src/core/extensions/runner.ts`;
-- `packages/coding-agent/src/core/agent-session.ts`;
-- extension type/index exports;
-- `packages/coding-agent/docs/extensions.md`;
-- focused host-capability, runner, session-order, overlap, and compatibility tests.
+Compatibility freezing is exact: each `before_agent_start` handler receives a fresh event envelope and immutable primitive token/system-prompt snapshots; existing `systemPromptOptions` nested mutability remains unchanged. `agent_prompt_ready` is a shallow-frozen envelope containing only immutable strings. Mutation of one handler's local event cannot change the host token or values supplied to another handler. Add explicit mutation tests.
 
-Token generation must be dependency-free, process-local, collision-safe for concurrently alive executions, and opaque. No token is persisted to session JSONL or provider payload. Existing extensions receive the additive field/event without behavior change.
+Expected touched surfaces include bounded host-capability plumbing plus coding-agent extension types/runner/session, exports, docs, changelog, and new focused tests. Do not grow already over-budget tests; add focused files. Record owner-scoped brownfield exceptions for unavoidable edits to over-budget host files.
 
-H0 completion requires one exact owner commit, current-line ancestry, focused/full owner gates, docs checks, and two independent reviews.
+Validation commands from current owner policy:
 
-## P0 — package state and deterministic readback
+- focused Vitest files from `packages/coding-agent`;
+- root `npm run check`;
+- root `./test.sh`;
+- `git diff --check` and exact clean-worktree verification.
+
+H0 completion requires exact commit/tree, current-line ancestry, full gates, two independent reviews, and an explicit `git revert <H0>` rehearsal/plan that returns to accepted H−1 without resetting branches.
+
+## P0 — package implementation on current live lineage
 
 Owner: `softwareco/owned/pi-extensions`, package `pi-ontology-workflows`.
 
-Begin only after H0 acceptance. Re-pin current `origin/main`, then reapply/merge the accepted Decision-89 live-lineage package tree if not yet present. Preserve version `0.2.0`, manifests, lockfiles, entrypoint, release metadata, semantic-release-delivery files/tests, request-epoch fencing, TUI behavior, and runner hardening.
+After H0 acceptance, start from then-current `origin/main`. Reapply only the accepted Decision-89 observation commits/behavior where absent; do not replace the current package tree. Preserve current package version, manifest, lockfile, entrypoint, release metadata, semantic-release-delivery surfaces, request-epoch fencing, TUI behavior, and runner hardening.
 
-Allowed implementation surfaces:
+Allowed source:
 
 - new `src/semantic/agent-prompt-observation-state.ts`;
 - `src/semantic/handler-observation.ts`;
-- bounded wiring in `src/semantic/preflight-runtime.ts` without increasing its 500-LOC budget;
-- focused state/record/lifecycle/source-registration tests.
+- bounded wiring in `src/semantic/preflight-runtime.ts` without exceeding 500 LOC;
+- new focused state/record/registration/lifecycle test files rather than growing a near-budget lifecycle file.
 
-Use a local structural event type inside those source surfaces because the protected package dependency/lock remains pre-H0. Runtime behavior must require the immutable H0 capability token and otherwise report `unsupported-host` without changing ordinary semantic-preflight behavior.
+Use a narrow structural event type inside these RFC-authorized sources; manifests/lockfiles remain unchanged. Runtime use fails closed unless the H0 capability identifier is present.
 
-Implement exactly the r2 one-slot transitions, private token handling, exact whole-prompt match/mismatch record, deterministic command outputs/precedence, stale validation, clearing paths, and non-disclosure constraints.
+Implement the exact one-slot transitions, private token behavior, exact whole-prompt match/mismatch record, literal readback/precedence, stale validation, and clearing rules. Tests must prove the token is absent from all public record keys/errors/readback and that changing only the token leaves public record bytes and `record_digest` unchanged.
 
-P0 completion requires focused tests, package quality/full gate, preserved manifests/lock/package version, exact filescope, source-size gate, and two independent reviews.
+P0 completion requires focused tests, hard touched-file budget check, quality/full package gate, preserved current manifest/lock/version, exact scope, two reviews, and explicit `git revert <P0>` gates. P0 rollback returns to its recorded current-line parent without resetting owner branches.
 
-## R1a — deterministic no-install integration dogfood
+## R1a — deterministic no-install cross-repo integration
 
-Owners: Pi host and package owners; evidence attached through one AK task.
+Owner surface: a new focused test under the H0 Pi worktree, for example `packages/coding-agent/test/decision98-agent-prompt-integration.test.ts`, executed by a fresh R1a AK task.
 
-Use an isolated SDK/runner test harness with exact H0 and P0 commits and a deterministic faux provider. Do not edit user/project settings or install a package.
+The test accepts exact P0 extension entrypoint/package root through a required environment path, verifies its Git commit/package tree before load, and loads it through Pi's real extension loader/additional-path mechanism—not by copying source or changing settings. It runs against exact H0 using the coding-agent suite harness and faux provider with fixed provider/model/API, timestamps, output chunks, token size, and no `Date.now()`/`Math.random()` dependence.
 
-Exercise:
+Exercise unsupported old host, disabled/enabled-none/prepared, exact match/mismatch, reversed overlap, nonmatching/repeated events, reset/disable/replacement, literal private command outputs, and ready-before-provider ordering. No external network/model and no install.
 
-- unsupported old host;
-- disabled and enabled-none states;
-- prepared state under a controlled scheduling barrier;
-- exact match and mismatch;
-- overlapping prompt runs with reversed completion/event order;
-- nonmatching and repeated ready events;
-- reset/disable/session replacement;
-- command privacy and literal outputs;
-- event-before-provider ordering.
+## R1b — isolated live TUI canary
 
-Record exact host/package commits, trees, test harness commit, commands, outputs, and negative external-model/network facts.
+Use source-local candidates; do not mutate the normal Pi executable or user/project settings.
 
-## R1b — live TUI canary
+Prepare dependencies with lock-frozen `npm ci` in clean H0 and P0 worktrees under the workstation heavy-job wrapper when required. Record Node/npm versions, lock hashes, install commands/results, candidate commits/trees, and post-install cleanliness; then protect candidates from mutation.
 
-Owner: runtime operator, under a fresh task explicitly authorizing one pinned provider/model call.
+Build H0 and launch exactly:
 
-Before mutation:
+```text
+PI_CODING_AGENT_DIR=<private managed scratch profile>
+node <H0>/packages/coding-agent/dist/cli.js \
+  -e <absolute P0 package root> \
+  --no-tools \
+  <explicit pinned provider/model arguments>
+```
 
-- identify the active `PI_CODING_AGENT_DIR` and all global/project settings in scope;
-- save exact settings bytes, mode, owner, and SHA-256 under managed `TMPDIR`;
-- record all configured package source strings, resolved realpaths, commits, package trees, versions, and command/tool provenance;
-- record the exact prior Pi host executable/version/commit and restoration command;
-- preserve the prior package source and candidate worktree immutably;
-- preauthorize rollback independent of candidate loading.
+The R1b task records the final argv/environment allowlist, executable/build artifact hashes, package root, and isolated profile path. It inventories normal global/project settings and proves they remain byte-identical but does not install into them. Temporary `-e` loading is verified through fixed protocol output plus command/tool `sourceInfo` obtained by a no-provider RPC/SDK provenance probe against the same candidate before the TUI call.
 
-Replace rather than append the old ontology package source. Prove exactly one configured and loaded package and one unsuffixed ontology command/tool source. Start a fresh Pi generation using H0 and P0 candidates.
+Authorize exactly one provider request, not one agent task. Disable tools; instrument provider-request starts and abort/rollback before request two, retry, compaction continuation, follow-up, or tool call. R1b performs no pack follow-up; pack behavior belongs to R1a.
 
-Live sequence:
+Live states: default-off/disabled, enable one confirmed grant, enabled-none, one semantic prompt, terminal exact-match or mismatch, disable/reset. Prepared remains harness-only. Any mismatch is recorded, forward work stops, and rollback executes before a separate investigation task.
 
-1. verify `unsupported-host` is absent and protocol r2 responds while default-off;
-2. verify `disabled`, then enable one fresh TUI development grant;
-3. verify `enabled outcome=none`;
-4. send one bounded semantic task using the pinned provider/model;
-5. after settlement read `terminal exact_match|mismatch` and retain the truthful result;
-6. run one ordinary exact-ID pack follow-up if the candidate set calls for it;
-7. disable and verify disabled/reset;
-8. execute rollback even after success unless a separately authorized retention decision says otherwise.
+Rollback terminates the candidate process, verifies normal settings/executable were unchanged, proves no candidate process remains, and preserves only sanitized hashes/receipts. Owned isolated profile/build scratch may be removed only after process liveness and evidence preservation are proved.
 
-Prepared is not a live readback gate. R1b proves engineering integration only, not semantic benefit.
+## B0 — ROCS-owned semantic relevance dogfood
 
-## B0 — semantic relevance dogfood
+ROCS owns both execution and analysis. Before execution, a reviewed immutable B0 preregistration records dataset digest, at least 40 balanced strata, dual annotation/adjudication, exact runtime/semantic coordinates, metrics/floors, exclusions, cold/warm latency treatment, and timeout censoring. No DSPx/Oracle authority is implied; later handoff requires a separate task.
 
-Owner: ROCS semantic owner; DSPx/Oracle analyzes without provider/model use.
+Measure recall@k, false matches, ambiguity/no-match correctness, deterministic replay, rendered size, timeout/unavailable rate, and p50/p95 latency against 750 ms. Stop before B1 if floors fail.
 
-Use at least 40 balanced dual-annotated prompts and fixed semantic/runtime coordinates. Measure recall@k, false matches, ambiguity/no-match correctness, deterministic replay, block size, timeout/unavailable rate, and latency against the 750 ms budget. Stop before B1 if preregistered floors fail.
+## KES and completion
 
-## Completion boundary
+After H−1/H0/P0/R1a/R1b/rollback/B0 acceptance, create a KES-owner task. It records accepted learning identities for divergent-lineage preflight, event-correlation necessity, isolated canary practice, and B0 result, with independent review. Decision 98 completion cites reviews for every stage plus the accepted KES artifact/knowledge ID.
 
-Decision 98 implementation is complete only when H0, P0, R1a, R1b, rollback, and B0 each have exact owner evidence and independent review. B1/B2, publication, defaults, production, and fleet rollout remain new work.
+B1/B2, publication, defaults, production, and fleet rollout remain new decisions/tasks.

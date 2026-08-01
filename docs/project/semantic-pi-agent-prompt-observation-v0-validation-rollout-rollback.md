@@ -8,128 +8,121 @@ decision_id: 98
 ---
 # Validation, rollout, and rollback — correlated Pi agent-prompt observation v0
 
-## Global rules
+## Global stop rule
 
-- Exact commits, trees, commands, counts, settings hashes, source realpaths, and negative claims are evidence.
-- Passing package or host tests never proves runtime installation, provider receipt, model input, or benefit.
-- Any indeterminate install/reload/provider result stops; do not retry mechanically.
-- Use managed `TMPDIR`; preserve unrelated dirty files and pre-existing `.ontology/` paths.
+An indeterminate provenance, dependency preparation, build, load, reload/start, prompt mismatch, attempted second provider request, provider result, or restoration result means:
 
-## H0 host validation
+1. cease forward actions;
+2. preserve sanitized evidence;
+3. disable if safely available;
+4. execute preauthorized rollback immediately after any mutation/start;
+5. create a separate investigation task.
 
-Required cases:
+Never retry mechanically. Use managed `TMPDIR`, private mode-0700 scratch, and the workstation heavy-job wrapper for large npm work. Raw settings/profile bytes never enter AK; only sanitized hashes/receipts do. Preserve unrelated dirty files and `.ontology/` paths.
 
-1. unique token per prompt execution and equality only across its paired events;
-2. overlapping preflights with reversed completion;
-3. frozen extended `before_agent_start` and `agent_prompt_ready` event values;
-4. complete pre-start chain before assignment and ready event;
-5. ready event after agent-state assignment and before provider preparation;
-6. handler error compatibility and old extension compatibility;
-7. new/resume/fork/reload/shutdown token non-reuse;
-8. no token in session entries, messages, provider payload, logs, or error text;
-9. immutable capability object contains the exact token only on supporting hosts;
-10. docs/types/exports and full coding-agent gates pass.
+## H−1 gates
 
-Stop if owner-main drift changes the ordering seam or if correctness requires durable run state/provider mutation.
+- exact current owner-main parent and local evidence commit recorded;
+- capability identifiers/contexts rederived, not cherry-picked blindly;
+- stale-context, trust, shortcut, RPC/print/shutdown, docs/export tests;
+- focused/full owner commands pass;
+- two reviews;
+- `git revert <H−1>` applies cleanly to its parent and full required gates pass in a disposable verification worktree.
 
-## P0 package validation
+## H0 gates
 
-Required cases:
+1. unique token per concurrently alive execution inside one process/runtime generation;
+2. correct token across paired pre-start/ready events under reversed overlap;
+3. fresh pre-start envelopes; immutable token/system-prompt snapshots; existing nested options mutability preserved;
+4. shallow-frozen ready envelope and mutation attempts cannot affect later handlers/host state;
+5. complete chain before assignment; ready after assignment; ready before `preflightResult(true)` and provider start;
+6. old extension/error compatibility;
+7. token not reused across replacement generations in the same process;
+8. passive extension proves the host does not automatically copy token into host-owned messages/entries/provider payload/log/error surfaces;
+9. immutable capability object contains the capability identifier—not any run token—only on supporting hosts;
+10. docs/types/exports/changelog and full coding-agent gates pass.
+
+Use new focused tests and record exceptions for unavoidable brownfield over-budget host files. Required commands are focused Vitest, root `npm run check`, root `./test.sh`, `git diff --check`, and clean status. H0 revert validation returns to H−1, not pre-substrate owner main.
+
+## P0 gates
 
 1. all Decision-89 exact-append/digest/source-order cases remain;
-2. unsupported-host precedence;
-3. prepared state with private matching token;
-4. exact whole-prompt match and mismatch vectors;
-5. mismatch leaves contribution survival unknown;
-6. latest preparation replaces the slot;
-7. nonmatching and repeated ready events are no-ops;
-8. overlapping runs cannot misattribute;
-9. reset, shutdown, disable, expiry, grant replacement, mode drift, stale request/generation/cwd/compatibility, producer/validation/non-append failures clear correctly;
-10. literal six-state command outputs and precedence;
-11. no prompt-derived value or token in readback/log/session;
-12. exactly one `before_agent_start` and one `agent_prompt_ready` registration;
-13. extracted state module keeps `preflight-runtime.ts` at or below 500 LOC;
-14. manifests, lockfiles, version `0.2.0`, entrypoint, release metadata, and semantic-release-delivery source/tests are unchanged;
-15. focused, quality, full package, packaging/release, AST, and `git diff --check` gates pass.
+2. unsupported-host precedence and old-host ordinary behavior;
+3. prepared state with private token;
+4. whole-prompt exact match/mismatch vectors and unknown contribution survival;
+5. latest preparation wins; nonmatching/repeated ready events no-op; overlap never misattributes;
+6. every reset/disable/expiry/grant/mode/generation/request/cwd/compatibility/producer/validation/non-append clearing path;
+7. literal six-state output and precedence;
+8. token absent from public record keys, command output, record digest inputs, errors, logs, session/evidence snapshots;
+9. changing only the token leaves public record bytes and `record_digest` identical;
+10. malformed ready input clears or ignores exactly as the state contract declares;
+11. exactly one pre-start and one ready registration;
+12. `preflight-runtime.ts <= 500` LOC; new code <=500; new tests <=1000; hard touched-file audit;
+13. then-current package manifest, lock, version, entrypoint, release metadata, semantic-delivery files/tests unchanged;
+14. focused, quality, full, package/release, AST, diff, and clean-status gates pass;
+15. two reviews and disposable `git revert <P0>` validation.
 
-Stop if the package must publish/rebind Pi, expose a token, retain multiple runs, or change another package.
+## R1a gates
 
-## R1a integration validation
-
-A deterministic faux provider records whether its call begins. The harness must show:
+The exact committed Pi test path and command are recorded. It verifies H0/P0 Git identities before loading P0 through the real extension loader. Faux provider inputs and clock/random sources are fixed. Expected order:
 
 ```text
-before_agent_start(token)
+pre-start(token)
 -> host assignment
--> agent_prompt_ready(token, assigned prompt)
--> package terminal observation
--> provider preparation/call
+-> ready(token, assigned prompt)
+-> terminal observation
+-> faux-provider request start
 ```
 
-Negative overlap and mismatch cases must demonstrate omission rather than misattribution. No external network/provider/model is allowed. Preserve complete command/test output and exact candidate identities.
+Negative overlap/mismatch cases prove omission rather than misattribution. No settings, installation, external network, or real model.
 
-## R1b preflight
+## R1b preparation
 
-Fail closed unless all are recorded:
+Fail closed unless recorded:
 
-- one exact Pi profile and applicable project settings;
-- settings backup bytes/hash/mode/owner and restoration command;
-- current host and ontology package sources/realpaths/commits/trees/versions;
-- candidate host/package identities descending from accepted owner lines;
-- exactly one configured ontology package after replacement;
-- candidate and prior worktrees protected from concurrent mutation;
-- one pinned provider/model identity and permission for exactly one bounded call;
-- rollback authority independent of extension availability;
-- no unrelated dirty settings/repository path in the mutation set.
+- exact H0/P0 commits, trees, artifact/lock hashes, current-line ancestry and reviews;
+- Node/npm versions and successful lock-frozen dependency preparation;
+- source-local built Pi argv and artifact hashes;
+- absolute P0 package root and dependency availability;
+- private isolated `PI_CODING_AGENT_DIR`, original absence/symlink state, mode, and ownership;
+- byte/hash inventory proving normal global/project settings and executable remain unchanged;
+- no-provider RPC/SDK command and tool `sourceInfo` provenance from the same candidates;
+- pinned provider/model identity and authority for exactly one provider request;
+- request-start counter/abort control;
+- process termination and scratch cleanup commands independent of candidate extension;
+- rollback authority and sanitized evidence destination.
 
 ## R1b live gates
 
-- candidate protocol visible with default-off state;
-- exactly one unsuffixed ontology command/tool provenance points to candidate;
-- one fresh 30-second-confirmed, 10-minute TUI grant;
-- enabled-none before the canary;
-- one semantic task only;
-- terminal exact-match or mismatch recorded without reinterpretation;
-- ordinary status/inspect and optional exact-ID pack behavior remain healthy;
-- immediate disable clears state;
-- no second provider/model call, publication, default change, or production claim.
+- candidate protocol responds and provenance identifies one temporary candidate extension;
+- default-off `disabled` then fresh confirmed grant and `enabled outcome=none`;
+- tools disabled;
+- exactly one provider-request start;
+- one terminal exact-match or mismatch readback, recorded literally;
+- no tool call, retry, compaction continuation, follow-up, second request, pack, publication, or default change;
+- immediate disable/reset;
+- immediate rollback after success or any stop condition.
 
-A mismatch is a valid dogfood result but blocks success closure until its cause is understood. A provider failure after a terminal observation preserves only agent-state evidence and still triggers rollback.
+Mismatch is a valid observed result but fails success closure; no additional live investigation occurs in the same task.
 
-## B0 gates
+## Isolated runtime rollback
 
-Pre-register dataset, gold labels, metrics, floors, exclusions, and runtime coordinates before execution. Require dual annotation plus adjudication. Suggested minimum metrics:
+1. disable if safely available;
+2. terminate candidate Pi and verify process absence;
+3. prove normal settings/executable hashes remain equal to preflight inventory;
+4. verify no candidate-loaded process or isolated RPC endpoint remains;
+5. preserve sanitized candidate receipts;
+6. remove only owned isolated profile/build scratch after liveness and ownership checks, or retain it with explicit owner note;
+7. report any incomplete restoration as partial rollback and stop.
 
-- recall@3 and false-match rate;
-- ambiguity and no-match accuracy;
-- p50/p95 latency and timeout/unavailable rate;
-- rendered bytes/tokens;
-- deterministic replay equality.
+H−1/H0/P0 source rollback uses reviewed `git revert` commits in disposable verification worktrees; never reset owner lines.
 
-No B1 task is created unless B0 meets its practical floors.
+## B0 preregistration and gates
 
-## Runtime rollback
+Before execution, commit and independently review a B0 preregistration with immutable dataset/gold digest, exact strata and balance, dual annotators/adjudicator, runtime/semantic coordinates, recall/false-match/ambiguity/no-match/size/latency/timeout metrics, numerical floors, exclusions, cold/warm policy, and timeout censoring. ROCS owns execution and analysis. No provider/model use.
 
-Rollback is executed after R1b unless separately retained:
+No B1 task is created unless B0 floors pass.
 
-1. disable if the candidate command is available;
-2. restore exact settings bytes, ownership, mode, source order, and prior sole package source;
-3. restore the prior Pi host executable/specification;
-4. create a fresh runtime generation;
-5. verify prior package/host versions, command/tool source provenance, and ordinary ontology status/inspect behavior;
-6. prove the candidate protocol and handler are absent;
-7. compare restored settings hash to the preflight hash;
-8. leave candidate/prior worktrees and unrelated caches/sessions untouched.
+## Evidence and KES closure
 
-If exact restoration cannot be proved, stop and report partial rollback; do not delete or approximate state.
-
-## Evidence closure
-
-Each stage records evidence in AK under its owner task. Final Decision-98 closure cites:
-
-- accepted H0/P0 commits and reviews;
-- R1a harness result;
-- R1b before/candidate/restored identities and one-call receipt;
-- exact rollback result;
-- B0 report and decision about B1;
-- KES learning covering the divergent-lineage and unsafe-correlation discoveries.
+AK records exact stage commits/trees/commands/counts/reviews, R1b sanitized before/candidate/rollback receipts and one-request count, and B0 prereg/report identities. A KES-owner task then promotes reviewed learnings and returns an accepted artifact/knowledge ID. Final Decision-98 closure requires reviews for H−1, H0, P0, R1a, R1b, rollback, B0, and KES.
