@@ -6,10 +6,10 @@
     {"path": "docs/project/semantic-router-v0-problem-brief.md", "bytes": 4421, "sha256": "a7e1613ed439296c2038716cc8ab40e99fae4738a8ed6864998630a94aa65818"},
     {"path": "docs/project/semantic-router-v0-review-set-plan.md", "bytes": 5137, "sha256": "8387c2553d70efe8e2969731718101e79d24d36a1ee7360c6492d2e7de13f8d1"},
     {"path": "docs/project/semantic-router-v0-rfc.md", "bytes": 13418, "sha256": "3195aa0073c58b0c7c13a31b817041a32881e136e6b8f900c2fa0fe2870f7441"},
-    {"path": "docs/project/semantic-router-v0-validation-rollout-rollback.md", "bytes": 16146, "sha256": "91c2e92a8733fef04194109f8f0ec52885bfe89fa26da99d3792f978c6a7b057"},
+    {"path": "docs/project/semantic-router-v0-validation-rollout-rollback.md", "bytes": 16164, "sha256": "25fc5ab203e56e42800acd25159a1b641532f13ad5f8c21403b879f42471fd6d"},
     {"path": "docs/project/semantic-router-v0/discovery-compatibility-baseline.json", "bytes": 2950, "sha256": "f1dbd07b5ed6e0534cb672cb995c0ec27bd59171839a35c8aff6ec5356220d3c"},
     {"path": "docs/project/semantic-router-v0/invariants.md", "bytes": 17525, "sha256": "6c327de10a74422acaa55724bf46032046846c34069598a058dfb3bc9579201d"},
     {"path": "docs/project/semantic-router-v0/protocol.schema.json", "bytes": 21246, "sha256": "f2e8a81812dc67b7ed27f76833fd2cfd4397959dd8d7ab1b9cdb003b812b1942"}
   ],
-  "packet_aggregate_sha256": "64eb6ed867d0a2a52526851951db29facb283ee6599c655dc739616ab4084fd6"
+  "packet_aggregate_sha256": "417ee5c7148573f80b841a0ae0d22f12ab8152c020c765f9a2a32976a001ba53"
 }

@@ -60,7 +60,7 @@ Before any semantic dataset execution:
 
 V0 uses only conspicuously synthetic policy and corpus fixtures. It makes no real-domain routing claim.
 
-V1–V3 specify mandatory evidence for a future adopted-policy protocol. They are not executable or authorized under development-only semantic-router-v0.
+V1–V3 specify mandatory evidence for a future adopted-policy protocol. Decision 102 does not authorize those stages, and v0 results carry no adoption authority for them.
 
 ### V1 — Visible development set D
 
