@@ -259,7 +259,7 @@ Controlled O timeout/collision/cleanup injections are scored under step 2 agains
 ## Rollout
 
 1. Accepted ADR may authorize only ROCS protocol/interpreter implementation with synthetic fixtures.
-2. Separate architecture work defines an adopted-policy/publication protocol; v0 cannot execute non-synthetic policy.
+2. Separate architecture work defines an adopted-policy/publication protocol; Decision 102 does not authorize non-synthetic execution, and v0 results carry no adoption authority.
 3. Separate semantic-owner task authors and reviews policy using D under that future protocol.
 4. Separate empirical-owner task freezes and executes U/O.
 5. Separate semantic-owner gate publishes an adopted coordinate with currentness/withdrawal proof.

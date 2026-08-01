@@ -245,7 +245,7 @@ An accepted ADR permits only ROCS synthetic development implementation. It does 
 
 Later stages require separate owner tasks:
 
-1. separate architecture work defines and reviews an adopted-policy/publication protocol; v0 cannot execute non-synthetic policy;
+1. separate architecture work defines and reviews an adopted-policy/publication protocol; Decision 102 does not authorize non-synthetic execution, and v0 results carry no adoption authority;
 2. ontology-owner policy authoring and review under that future protocol;
 3. independent D/U/O custody and preregistration;
 4. one-shot U/O execution and review;
