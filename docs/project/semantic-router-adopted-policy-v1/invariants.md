@@ -48,6 +48,25 @@ approval_artifact_digest = SHA256("rocs-semantic-policy-approval-artifact-v1\0" 
 issuer_trust_digest = SHA256("rocs-semantic-policy-issuer-trust-v1\0" || J)
 caller_challenge_digest = SHA256("rocs-semantic-policy-caller-challenge-v1\0" || J)
 owner_checkpoint_digest = SHA256("rocs-semantic-policy-owner-checkpoint-v1\0" || J)
+policy_semantic_binding_digest = SHA256("rocs-semantic-policy-binding-v1\0" || J)
+attempt_envelope_digest = SHA256("rocs-semantic-policy-attempt-envelope-v1\0" || J)
+issuer_attestation_digest = SHA256("rocs-semantic-policy-issuer-attestation-v1\0" || J)
+challenge_consumption_digest = SHA256("rocs-semantic-policy-challenge-consumption-v1\0" || J)
+verification_request_digest = SHA256("rocs-semantic-policy-verification-request-v1\0" || J)
+ontology_inventory_digest = SHA256("rocs-semantic-policy-ontology-inventory-v1\0" || J)
+policy_binding_receipt_digest = SHA256("rocs-semantic-policy-binding-receipt-v1\0" || J)
+receipt_attestation_body_digest = SHA256("rocs-semantic-policy-receipt-body-v1\0" || J)
+challenge_consumption_body_digest = SHA256("rocs-semantic-policy-consumption-body-v1\0" || J)
+b0_exposure_evidence_digest = SHA256("rocs-semantic-policy-b0-exposure-v1\0" || J)
+access_history_event_digest = SHA256("rocs-semantic-policy-access-event-v1\0" || J)
+access_history_digest = SHA256("rocs-semantic-policy-access-history-v1\0" || J)
+role_separation_receipt_digest = SHA256("rocs-semantic-policy-role-separation-v1\0" || J)
+process_reservation_digest = SHA256("rocs-semantic-policy-process-reservation-v1\0" || J)
+rollback_plan_digest = SHA256("rocs-semantic-policy-evaluation-rollback-v1\0" || J)
+policy_concept_ids_digest = SHA256("rocs-semantic-policy-concept-ids-v1\0" || J)
+joint_route_sets_digest = SHA256("rocs-semantic-policy-joint-sets-v1\0" || J)
+capability_coordinate_digest = SHA256("rocs-semantic-policy-capability-coordinate-v1\0" || J)
+clock_coordinate_digest = SHA256("rocs-semantic-policy-clock-coordinate-v1\0" || J)
 ```
 
 No digest is interchangeable with Decision 102 route, discovery, policy, provenance, or result digests.
@@ -67,7 +86,9 @@ A candidate release binds exactly:
 - independent contamination-manifest digest;
 - candidate digest.
 
-Every selectable ID must be a member of the exact frozen inventory object. The `co.software.*` lexical form is necessary but never sufficient authority. Prefix inference, an absent inventory member, a `core.*` ID, or a relabeled/copied core meaning is invalid.
+The candidate nests the closed canonical inventory object; its owner commit/tree/snapshot and inventory digest equal the candidate fields. Every selectable ID must be a member of that exact frozen inventory object. The `co.software.*` lexical form is necessary but never sufficient authority. Prefix inference, an absent inventory member, a `core.*` ID, or a relabeled/copied core meaning is invalid.
+
+The candidate's `policy_semantic_binding` is computed by parsing the exact digest-bound Decision 102 policy and provenance bytes. Both embedded owner repositories must equal `softwareco/ontology`; every executable concept ID and every member of every joint-route ID set must be in both `selectable_ontology_ids` and the frozen inventory; the binding inventory digest must equal the candidate inventory digest. Every provenance record's `source_owner_repo`, not merely the manifest-level owner, must equal `softwareco/ontology`. The closed binding receipt names the fixed `rocs-adopted-policy-binding-v1` extractor, exact policy/provenance/inventory digests, parsed owners, and concept/joint-set digests. That extractor first validates the exact Decision 102 v0 policy/provenance objects, then emits `policy_concept_ids` as the UTF-8-byte-sorted JCS array of `concepts[].ont_id`; it emits each `joint_routes[].ont_ids` as a UTF-8-byte-sorted JCS array and sorts those arrays by their complete JCS bytes. The two output digests use the explicit domains above over those complete JCS arrays. Its fields equal the candidate and semantic-binding fields; its receipt and binding digests validate under separate domains. A later route result is valid under this coordinate only when every `selected_ont_id` belongs to that same set.
 
 The owner commit must contain the exact policy/provenance/source bytes named by provenance. A candidate is immutable. Correcting any byte creates a new candidate ID and digest.
 
@@ -75,17 +96,17 @@ Candidate paths are canonical root-relative POSIX paths: no absolute path, empty
 
 ## 5. Evaluation custody, preregistration, and verdict
 
-A closed custody policy is issued by the named custodian and binds its authenticated principal coordinate, lawful source basis, privacy class, prohibited-content set, ACLs, audit log, retention periods by artifact class, backup controls, deletion triggers and verification, exposure retirement, and incident-response reference. Dataset creation cannot begin until that policy is approved and digest-fixed.
+A closed custody policy is issued by the named custodian and binds its authenticated principal coordinate, exact source coordinates and license/consent authority artifacts, privacy class, the complete mandatory prohibited-content set, ACLs, audit log, retention periods by artifact class, backup controls, all retention/withdrawal/privacy-exposure deletion triggers and verification, exposure retirement, and incident-response reference. Dataset creation cannot begin until that policy is approved and digest-fixed.
 
-A closed contamination manifest names the immutable Decision 98 deny coordinates exactly: preregistration commit, failed-run commit, lock digest, prompt-set digest, and report digest. Its coverage is exactly policy, D, U, O, evaluator, fixtures, floors, templates, aliases, regression inputs, and execution coordinate. Every coverage row binds source bytes, deterministic overlap receipt, independent derivation review, and `no_reuse`. Opaque or incomplete coverage is invalid.
+A closed contamination manifest names the immutable Decision 98 deny coordinates exactly: preregistration commit `286773ee6a88b9fd2276f8008898c57ff9a073b9`, failed-run commit, lock digest, prompt-set digest, and report digest. Its coverage is the exact ordered bijection acceptance dataset, aliases, D, evaluator, execution coordinate, fixtures, floors, O, policy, regression inputs, and templates. Each row's `source_digest` must equal the actual joined coordinate: candidate policy digest; verdict/prereg D digest; verdict/prereg/envelope U and O seals; verdict evaluator digest; prereg floors/fixtures/aliases/regression/templates digests; and attempt-envelope digest for execution. Every row also binds deterministic overlap receipt, independent derivation review, and `no_reuse`. An unrelated clean digest, duplicate surface, opaque, or incomplete coverage is invalid.
 
-A preregistration binds the custody and contamination digests, frozen inventory and dataset seals, evaluator, floors, one-attempt envelope, custodian acceptance, and authenticated role assignments. Every role assignment binds principal/repository/commit/tree/artifact coordinates, exact role, access rights, timestamp, and B0 exposure evidence. U/O authors, annotators, adjudicator, custodian, evaluator operator, and independent verdict reviewer must be B0 exposure `disproven`; policy and D authors may be exposed but may never receive sealed U/O access.
+A preregistration binds the custody and contamination digests, frozen inventory and dataset seals, evaluator, floors, one-attempt envelope, custodian acceptance, and authenticated role assignments. Every role assignment binds principal/repository/commit/tree/artifact coordinates, exact role, access rights, timestamp, and a nested independently assessed B0 exposure-evidence object whose principal/result/evidence digest equal the assignment. U/O authors, annotators, adjudicator, custodian, evaluator operator, and independent verdict reviewer must be B0 exposure `disproven`; policy and D authors may be exposed but may never receive sealed U/O access.
 
-Role separation is mechanical: the custodian principal differs from the independent reviewer; policy author differs from U author, O author, annotators, adjudicator, custodian, evaluator operator, and independent reviewer; U/O authors differ from implementers and policy authors; annotators differ from each other, authors, policy authors, evaluator operator, and adjudicator; the adjudicator differs from all authors/annotators/policy authors; no principal receives both policy bytes and sealed U/O rows before verdict fixation. Repository difference alone is insufficient.
+Role separation is mechanical. The preregistration contains exactly one semantic owner, policy author, D author, U author, O author, adjudicator, custodian, independent reviewer, evaluator operator, and implementer plus exactly two annotators, in the canonical role order. All twelve principal IDs are pairwise distinct, including semantic owner, custodian, D/U/O authors, evaluator, adjudicator, reviewer, implementer, and both annotators. Every authority coordinate's `authority_role` equals its assignment role. The nested role-separation receipt binds the canonical matrix, participant-array digest, these pairwise-distinct and role-equality results, absence of access conflict, and exact access-history digest. The D author differs from policy authors, custodian, evaluator operator, and U/O authors; the custodian differs from the independent reviewer; policy author differs from U author, O author, annotators, adjudicator, custodian, evaluator operator, implementer, and independent reviewer; U/O authors differ from implementers and policy authors; annotators differ from each other, authors, policy authors, evaluator operator, implementer, and adjudicator; the adjudicator differs from all authors/annotators/policy authors/implementers; no principal receives both policy bytes and sealed U/O rows before verdict fixation. Repository difference alone is insufficient. A nested append-only access history records every assignment/grant/revocation with sequence and predecessor digests; its principals, roles, current grants, and digest must reconcile exactly with the twelve assignments, custody ACL, and role-separation receipt. No opaque current-access claim substitutes for history.
 
-One immutable attempt envelope permits exactly one process invocation. That invocation performs exactly two ordered internal passes—`primary`, then `immediate_repeat`—over the same candidate, preregistration, sealed rows, and execution coordinate. Their input-coordinate, row-receipt, and result-byte digests must be equal as required by the determinism oracle. Process retry, selective row rerun, additional pass, same-candidate repair, or a second invocation after observation is forbidden and maps through the frozen outcome precedence.
+One immutable preregistered attempt envelope binds exact argv, the closed seven-name environment object (`HOME`, `LANG`, `LC_ALL`, `PATH`, `PYTHONHASHSEED`, `TMPDIR`, `TZ`), runtime/evaluator/candidate and U/O seals, working-directory class, one nested custodian-issued process reservation with lock/store/time bounds, fixed pass order, zero retries/reruns/repairs, and a nested rollback plan with owner, preimage/final-state, cleanup, and verification coordinates. Envelope reservation/rollback digest fields equal the nested objects; duplicate or ambient environment names are impossible. It permits exactly one process invocation. That invocation performs exactly two ordered internal passes—`primary`, then `immediate_repeat`—over the same candidate, preregistration, sealed rows, and execution coordinate. Their input-coordinate, row-receipt, and result-byte digests must be equal as required by the determinism oracle. Process retry, selective row rerun, additional pass, same-candidate repair, or a second invocation after observation is forbidden and maps through the frozen outcome precedence.
 
-A verdict nests and binds the exact custody policy, preregistration, contamination manifest, and execution attempt plus evaluator commit/tree/tool digest, D/U/O dataset digests, execution receipt digest, metrics digest, outcome, and exact authority coordinates for both custodian approval and independent verdict review. Every nested digest equals the corresponding verdict field. Each authority coordinate binds authenticated principal ID, role, repository ID, Git commit/tree, and approval/review artifact digest. The custodian is exactly `softwareco/owned/dspx` unless a pre-data reviewed packet revision names another owner. Custodian and independent-review principals must differ from each other, the policy owner, policy authors, and evaluator operator; a self-issued approval is invalid.
+A verdict nests and binds the exact custody policy, preregistration, contamination manifest, attempt envelope, and execution attempt plus evaluator commit/tree/tool digest, D/U/O dataset digests, execution receipt digest, metrics digest, outcome, and exact authority coordinates and closed approval artifacts for both custodian approval and independent verdict review. Every nested digest equals the corresponding verdict field. Candidate inventory and contamination digests equal preregistration, contamination coverage, and verdict values. Verdict D/U/O/evaluator/floor/execution coordinates equal preregistration, coverage rows, attempt envelope, execution attempt, and receipt coordinates. The attempt envelope nested by verdict is byte-identical to the preregistration envelope and its digest equals preregistration and execution-attempt fields. Each authority coordinate binds authenticated principal ID, role, repository ID, Git commit/tree, and approval/review artifact digest. The custodian is exactly `softwareco/owned/dspx` unless a pre-data reviewed packet revision names another owner. Custodian and independent-review principals must differ from each other, the policy owner, policy authors, and evaluator operator; a self-issued approval is invalid.
 
 `outcome` is exactly `pass | fail | indeterminate`. Precedence is:
 
@@ -108,7 +129,7 @@ Every event binds:
 - `previous_event_digest` (`null` only at sequence 1);
 - action `publish | withdraw | revoke`;
 - candidate and verdict digests;
-- owner approval reference;
+- a closed owner approval artifact whose authenticated issuer, subject digest, purpose, validity, and non-revocation state match the event action;
 - reason code;
 - issued-at UTC instant;
 - event digest.
@@ -121,15 +142,15 @@ Concurrent fork, sequence gap, predecessor mismatch, missing event, duplicate se
 
 ## 7. Owner head, trust bundle, challenge, and local read receipt
 
-An owner head binds owner, namespace, terminal sequence/digest, owner repository commit/tree, publication-history path/digest, owner-store ID, authoritative ref, monotonic checkpoint sequence/digest, and head digest. Its `publication_history_digest` equals the nested history object's digest; its checkpoint values equal the authenticated owner checkpoint.
+An owner head binds owner, namespace, terminal sequence/digest, owner repository commit/tree, publication-history path/digest, owner-store ID, authoritative ref, monotonic checkpoint sequence, and head digest. It never embeds a checkpoint digest: the authenticated checkpoint commits the head digest unidirectionally, avoiding a digest cycle. Its `publication_history_digest` equals the nested history object's digest and its checkpoint sequence equals the authenticated owner checkpoint.
 
-Approval artifacts are closed objects, not opaque references. Each binds authenticated issuer coordinate, subject digest, purpose, validity interval, non-revocation state, and artifact digest. An issuer-trust bundle binds the expected issuer, trust root, and exact acquisition-capability, clock-source, and owner-channel approval objects.
+The capability coordinate digest is over the JCS object `{capability_id, capability_git_commit, capability_git_tree, capability_approval_digest}` projected from the read receipt. The clock coordinate digest is over `{clock_source_id, clock_source_approval_digest, clock_uncertainty_ms}`. Approval artifacts are closed objects, not opaque references. Each binds authenticated issuer coordinate, subject digest, purpose, validity interval, non-revocation state, and artifact digest. An issuer-trust bundle binds the expected issuer, trust root, and exact acquisition-capability, clock-source, owner-channel, issuer-signing-key, consumption-signing-key, and single-use-store approval objects; each approval subject equals its corresponding canonical coordinate digest.
 
 Before every read, the caller creates a fresh, single-use challenge binding candidate digest, intended action, owner-store ID, authoritative ref, prior/minimum checkpoint, issuance/expiry, and challenge digest. The acquisition capability must echo that exact challenge in its issuer-attested receipt. Reuse across candidate, action, store, checkpoint, or expiry is invalid.
 
 A bounded read receipt binds:
 
-- the complete issuer-trust bundle and authenticated issuer attestation;
+- the complete issuer-trust bundle, approved Ed25519 signing-key coordinate, a closed receipt-attestation-body object, and authenticated issuer attestation over that separately domain-separated body digest (the body excludes both attestation and receipt digests, so no signature/digest cycle exists);
 - the exact fresh caller challenge and its intended action;
 - caller-pinned acquisition capability ID, Git commit/tree, and closed approval artifact;
 - exact owner repository, owner-store, authoritative-ref, and trusted-channel identities;
@@ -140,27 +161,27 @@ A bounded read receipt binds:
 - closed environment, no-network assertion, and stable final recheck;
 - the separate read-receipt digest.
 
-A digest alone does not authenticate a redated receipt. A verifier accepts only an issuer-attested receipt whose trust root, closed approvals, challenge, expected receipt digest, channel/store identity, checkpoint, and issuer coordinate exactly equal caller-pinned values. Recomputing timestamps or the receipt digest without the trusted issuer attestation fails. `capture_finished_at` must be no earlier than `capture_started_at`; challenge expiry, replay, clock rollback, excessive uncertainty, or an untrusted source fails closed.
+Ed25519 signature inputs are exact: the read attestation signs UTF-8 bytes `rocs-semantic-policy-receipt-signature-v1\0` followed by the raw 32 bytes decoded from the lowercase hexadecimal suffix of `attestation_body_digest`; the consumption receipt signs `rocs-semantic-policy-consumption-signature-v1\0` followed by the raw 32 bytes of its body digest. Signing JCS bytes, the ASCII `sha256:...` string, or any other representation is invalid. A digest alone does not authenticate a redated receipt. A verifier accepts only an issuer-attested receipt whose Ed25519 signature verifies under the caller-pinned approved public-key digest and whose trust root, closed approvals, challenge, receipt-attestation digest, channel/store identity, checkpoint, and issuer coordinate exactly equal a separate `semantic-routing-policy-verification-request.v1` supplied by the caller as an independent API input. Values nested in the proof never become caller pins. Recomputing timestamps or receipt bytes without a new trusted signature fails. `capture_finished_at` must be no earlier than `capture_started_at`; challenge expiry, replay, clock rollback, excessive uncertainty, or an untrusted source fails closed.
 
-Decision 103 defines these shapes, not a live acquisition capability or trust root. Until a later owner task implements and independently verifies the issuer, channel, monotonic checkpoint, single-use challenge store, and acquisition capability, currentness cannot pass.
+The single-use challenge store emits a separately Ed25519-authenticated consumption receipt with a closed, separately domain-digested signing body binding issuer, challenge, read attestation, zero prior consumption, one resulting consumption, store, consumed time, and approved public-key digest. The external verification request pins the consumption receipt, issuer-trust, store, and public-key digests. Decision 103 defines these shapes, not a live acquisition capability or trust root. Until a later owner task implements and independently verifies the issuer, key distribution, channel, monotonic checkpoint chain, single-use challenge store, and acquisition capability, currentness cannot pass.
 
 ## 8. Action-time currentness proof
 
-A currentness proof binds candidate, pass verdict, the complete publication history, owner head, authenticated owner checkpoint, caller challenge, issuer-trust bundle, and read receipt. `observed_at` must byte-equal the receipt's `capture_finished_at`; it is not an independently chosen timestamp. It is valid only when:
+A currentness proof binds candidate, pass verdict, the complete publication history, owner head, a contiguous authenticated checkpoint chain from the caller's pinned predecessor through the current checkpoint, caller challenge, issuer-trust bundle, read receipt, and authenticated challenge-consumption receipt. The verifier also requires a separate caller-supplied verification request; it is not nested authority. `observed_at` must byte-equal the receipt's `capture_finished_at`; it is not an independently chosen timestamp. It is valid only when:
 
-1. all schemas and all fifteen digest domains validate;
-2. candidate digest equals verdict candidate, attempt candidate, publication-event candidate, challenge candidate, and proof candidate;
-3. verdict digest equals the terminal event verdict; verdict candidate/inventory/contamination/custody/preregistration/attempt fields equal their nested object digests;
+1. all schemas and all thirty-four digest domains validate;
+2. candidate digest equals verdict candidate, envelope/attempt candidate, publication-event candidate, challenge/request candidate, and proof candidate; candidate inventory and semantic-binding objects, receipts, Decision 102 parsed owner/source-owner fields, concept/joint sets, and later selected IDs satisfy Section 4;
+3. verdict digest equals the terminal event verdict; verdict candidate/inventory/contamination/custody/preregistration/envelope/attempt/receipt fields equal their nested object digests, and the closed custodian/reviewer approval artifacts have correct subjects, purposes, issuers, validity, and non-revocation;
 4. owner/repository/namespace values equal candidate, every event, history, head, checkpoint, receipt, trust bundle, and proof;
 5. candidate owner commit/tree equal the bytes verified from its policy/provenance/inventory paths; head/checkpoint/receipt observed commit/tree equal each other and the authenticated authoritative-ref observation;
 6. every event and complete history digest verify; history digest equals head, checkpoint, receipt, and proof history values;
-7. terminal event sequence/digest equals history terminal, head terminal, and checkpoint head; checkpoint sequence/digest equals receipt and the proof's expected checkpoint and is not below caller minimum;
-8. checkpoint predecessor relation extends the caller-pinned prior checkpoint, and the authenticated capability proves it read the current owner-store ref rather than caller-supplied old bytes;
+7. terminal event sequence/digest equals history terminal and head terminal; current checkpoint commits that head; checkpoint sequence/digest equals receipt and the external verification request and is not below caller minimum;
+8. every checkpoint-chain predecessor is contiguous and digest-valid from the external request's caller-pinned prior checkpoint to the current checkpoint, and the authenticated capability proves it read the current owner-store ref rather than caller-supplied old bytes;
 9. terminal action is `publish` and no later withdrawal/revocation exists under the authenticated current checkpoint;
-10. issuer trust, approval subjects/purposes/validity/non-revocation, challenge, intended action, expected receipt digest, channel/store identity, and issuer attestation equal caller pins;
+10. issuer trust, signing/consumption keys and all approval subjects/purposes/validity/non-revocation, challenge, intended action, receipt-attestation digest, consumption receipt/trust/store/key digests, channel/store identity, and both Ed25519 signatures equal and verify against the external caller verification request;
 11. capture identity remained stable through final recheck;
 12. proof age is positive, bounded, and measured from issuer-attested `capture_finished_at` against the trusted current clock; uncertainty is within the caller pin;
-13. challenge was unused, unexpired, and consumed for exactly this receipt/action;
+13. the authenticated consumption receipt proves the challenge was unused, unexpired, and consumed for exactly this receipt/action;
 14. the consumer obtains this fresh capture immediately before its separately authorized action.
 
 Clock uncertainty, stale cache, missing capability, owner mismatch, withdrawn/revoked terminal state, or changed snapshot is an error, never abstention.
@@ -184,6 +205,7 @@ Protocol parsers enforce before trusted allocation:
 |---|---:|
 | one non-history JSON object | 1,048,576 bytes |
 | one complete publication-history object | 16,777,216 bytes |
+| one currentness-proof object (complete history/checkpoint chain exception) | 33,554,432 bytes |
 | publication events | 10,000; publish at most 9,999 |
 | selectable IDs | 2,000 |
 | path bytes | 1,024 |
@@ -195,7 +217,7 @@ Protocol parsers enforce before trusted allocation:
 | attempt process invocations | exactly 1 |
 | internal attempt passes | exactly 2 |
 
-The history object is the sole 1 MiB exception and remains capped at 16 MiB. Before accepting any publish, the owner store reserves enough event-count and byte capacity for at least one worst-case terminal withdraw/revoke event; otherwise publish fails before mutation. Exhaustion is `resource_exhausted`. Safe errors contain only closed kind, protocol coordinate, and optional bounded numeric limit; they contain no path, query, policy text, exception, environment, or secret.
+The history and currentness-proof objects are the only 1 MiB exceptions. History remains capped at 16 MiB; a proof that nests that history and a bounded checkpoint chain is capped at 32 MiB. Before accepting any publish, the owner store reserves enough event-count and byte capacity for at least one worst-case terminal withdraw/revoke event; otherwise publish fails before mutation. Exhaustion is `resource_exhausted`. Safe errors contain only closed kind, protocol coordinate, and optional bounded numeric limit; they contain no path, query, policy text, exception, environment, or secret.
 
 ## 11. Rollback
 

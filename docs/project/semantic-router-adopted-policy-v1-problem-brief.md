@@ -30,10 +30,10 @@ A cross-owner policy, core-owned policy, or materialized ownership overlay requi
 
 ## Required capabilities
 
-1. Bind exact policy and provenance bytes to a candidate release coordinate.
+1. Bind exact policy and provenance bytes, their parsed owner repositories, executable concept/joint-route IDs, and later selected IDs to one frozen Softwareco inventory and candidate release coordinate.
 2. Bind candidate identity to an independently reviewed fresh D/U/O verdict under closed custody, contamination, role, and one-attempt contracts.
 3. Let the semantic owner publish, withdraw, or revoke through an append-only owner history with reserved rollback capacity.
-4. Prove action-time currentness from an authenticated monotonic owner checkpoint plus a fresh challenge-bound issuer-attested local read receipt.
+4. Prove action-time currentness from an authenticated unidirectional monotonic owner-checkpoint chain plus a fresh challenge-bound Ed25519 issuer-attested local read, separate caller verification request, and authenticated single-use challenge-consumption receipt.
 5. Let ROCS validate identity and state without issuing semantic authority.
 6. Preserve B0 as contaminated historical diagnosis only.
 7. Keep consumer/Pi shadowing, prompt projection, providers/models, and automatic preflight outside this decision.

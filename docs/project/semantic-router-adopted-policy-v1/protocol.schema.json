@@ -49,6 +49,45 @@
       "$ref": "#/$defs/ownerCheckpoint"
     },
     {
+      "$ref": "#/$defs/attemptEnvelope"
+    },
+    {
+      "$ref": "#/$defs/issuerAttestation"
+    },
+    {
+      "$ref": "#/$defs/challengeConsumptionReceipt"
+    },
+    {
+      "$ref": "#/$defs/verificationRequest"
+    },
+    {
+      "$ref": "#/$defs/ontologyInventory"
+    },
+    {
+      "$ref": "#/$defs/policyBindingReceipt"
+    },
+    {
+      "$ref": "#/$defs/receiptAttestationBody"
+    },
+    {
+      "$ref": "#/$defs/challengeConsumptionBody"
+    },
+    {
+      "$ref": "#/$defs/exposureEvidence"
+    },
+    {
+      "$ref": "#/$defs/accessHistory"
+    },
+    {
+      "$ref": "#/$defs/roleSeparationReceipt"
+    },
+    {
+      "$ref": "#/$defs/processReservation"
+    },
+    {
+      "$ref": "#/$defs/rollbackPlan"
+    },
+    {
       "$ref": "#/$defs/error"
     }
   ],
@@ -140,7 +179,8 @@
             "adjudicator",
             "custodian",
             "independent_reviewer",
-            "evaluator_operator"
+            "evaluator_operator",
+            "implementer"
           ]
         }
       }
@@ -162,9 +202,11 @@
         "router_algorithm",
         "ontology_snapshot_digest",
         "ontology_inventory_path",
+        "ontology_inventory",
         "ontology_inventory_digest",
         "selectable_ontology_ids",
         "contamination_manifest_digest",
+        "policy_semantic_binding",
         "candidate_digest"
       ],
       "properties": {
@@ -227,6 +269,12 @@
         },
         "ontology_inventory_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "policy_semantic_binding": {
+          "$ref": "#/$defs/policySemanticBinding"
+        },
+        "ontology_inventory": {
+          "$ref": "#/$defs/ontologyInventory"
         }
       }
     },
@@ -254,6 +302,12 @@
         "outcome",
         "custodian_authority",
         "independent_review_authority",
+        "custody_policy_digest",
+        "attempt_envelope",
+        "attempt_envelope_digest",
+        "execution_attempt_digest",
+        "custodian_approval",
+        "independent_review_approval",
         "verdict_digest"
       ],
       "properties": {
@@ -348,6 +402,24 @@
         },
         "execution_attempt": {
           "$ref": "#/$defs/executionAttempt"
+        },
+        "custody_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope": {
+          "$ref": "#/$defs/attemptEnvelope"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_attempt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "independent_review_approval": {
+          "$ref": "#/$defs/approvalArtifact"
         }
       }
     },
@@ -362,7 +434,7 @@
         "action",
         "candidate_digest",
         "verdict_digest",
-        "owner_approval_ref",
+        "owner_approval",
         "reason_code",
         "issued_at",
         "event_digest"
@@ -402,9 +474,6 @@
         "verdict_digest": {
           "$ref": "#/$defs/digest"
         },
-        "owner_approval_ref": {
-          "$ref": "#/$defs/identifier"
-        },
         "reason_code": {
           "enum": [
             "accepted_offline_verdict",
@@ -418,6 +487,9 @@
         },
         "event_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "owner_approval": {
+          "$ref": "#/$defs/approvalArtifact"
         }
       },
       "allOf": [
@@ -488,7 +560,6 @@
         "owner_store_id",
         "authoritative_ref",
         "checkpoint_sequence",
-        "checkpoint_digest",
         "head_digest"
       ],
       "properties": {
@@ -531,9 +602,6 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 10000
-        },
-        "checkpoint_digest": {
-          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -566,6 +634,8 @@
         "owner_store_id",
         "authoritative_ref",
         "trusted_channel_id",
+        "attestation_body",
+        "issuer_attestation",
         "issuer_attestation_digest",
         "receipt_digest"
       ],
@@ -654,6 +724,12 @@
         },
         "issuer_attestation_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "issuer_attestation": {
+          "$ref": "#/$defs/issuerAttestation"
+        },
+        "attestation_body": {
+          "$ref": "#/$defs/receiptAttestationBody"
         }
       }
     },
@@ -668,13 +744,8 @@
         "owner_head",
         "read_receipt",
         "observed_at",
-        "max_age_seconds",
-        "expected_issuer_trust_digest",
-        "expected_challenge_digest",
-        "expected_receipt_digest",
-        "expected_checkpoint_digest",
-        "minimum_checkpoint_sequence",
-        "intended_action",
+        "checkpoint_chain",
+        "challenge_consumption",
         "proof_digest"
       ],
       "properties": {
@@ -699,38 +770,19 @@
         "observed_at": {
           "$ref": "#/$defs/dateTime"
         },
-        "max_age_seconds": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 300
-        },
         "proof_digest": {
           "$ref": "#/$defs/digest"
         },
-        "expected_issuer_trust_digest": {
-          "$ref": "#/$defs/digest"
+        "checkpoint_chain": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/ownerCheckpoint"
+          }
         },
-        "expected_challenge_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "expected_receipt_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "expected_checkpoint_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "minimum_checkpoint_sequence": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 10000
-        },
-        "intended_action": {
-          "enum": [
-            "verify_for_publication",
-            "verify_for_shadow",
-            "verify_for_projection",
-            "verify_for_automatic_preflight"
-          ]
+        "challenge_consumption": {
+          "$ref": "#/$defs/challengeConsumptionReceipt"
         }
       }
     },
@@ -828,13 +880,33 @@
           "type": "array",
           "minItems": 1,
           "maxItems": 32,
-          "uniqueItems": true,
           "items": {
-            "enum": [
-              "owner_authored_ontology",
-              "licensed_synthetic_scenario",
-              "explicit_consent"
-            ]
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "basis",
+              "source_coordinate_digest",
+              "authority_artifact_digest",
+              "license_or_consent_digest"
+            ],
+            "properties": {
+              "basis": {
+                "enum": [
+                  "owner_authored_ontology",
+                  "licensed_synthetic_scenario",
+                  "explicit_consent"
+                ]
+              },
+              "source_coordinate_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "authority_artifact_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "license_or_consent_digest": {
+                "$ref": "#/$defs/digest"
+              }
+            }
           }
         },
         "privacy_classification": {
@@ -845,20 +917,32 @@
         },
         "prohibited_content": {
           "type": "array",
-          "minItems": 5,
-          "maxItems": 16,
-          "uniqueItems": true,
-          "items": {
-            "enum": [
-              "secrets",
-              "credentials",
-              "personal_data",
-              "customer_content",
-              "production_prompts",
-              "decision98_b0_derivatives",
-              "unlicensed_text"
-            ]
-          }
+          "minItems": 7,
+          "maxItems": 7,
+          "prefixItems": [
+            {
+              "const": "customer_content"
+            },
+            {
+              "const": "credentials"
+            },
+            {
+              "const": "decision98_b0_derivatives"
+            },
+            {
+              "const": "personal_data"
+            },
+            {
+              "const": "production_prompts"
+            },
+            {
+              "const": "secrets"
+            },
+            {
+              "const": "unlicensed_text"
+            }
+          ],
+          "items": false
         },
         "storage_root_class": {
           "const": "private_custodian_managed"
@@ -966,17 +1050,25 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "trigger",
+            "on_retention_expiry",
+            "on_owner_withdrawal",
+            "on_privacy_or_exposure_incident",
+            "delete_backups",
             "verification_receipt_required",
             "affected_set_retirement_on_exposure"
           ],
           "properties": {
-            "trigger": {
-              "enum": [
-                "retention_expiry",
-                "owner_withdrawal",
-                "privacy_incident"
-              ]
+            "on_retention_expiry": {
+              "const": true
+            },
+            "on_owner_withdrawal": {
+              "const": true
+            },
+            "on_privacy_or_exposure_incident": {
+              "const": true
+            },
+            "delete_backups": {
+              "const": true
             },
             "verification_receipt_required": {
               "const": true
@@ -1016,7 +1108,7 @@
           "const": 98
         },
         "b0_preregistration_commit": {
-          "const": "286773e13b253183656113bcf93ad4f7d26ced75"
+          "const": "286773ee6a88b9fd2276f8008898c57ff9a073b9"
         },
         "b0_failure_commit": {
           "const": "0a9d9eed00c4c2875d6a7dd870b8978032c95875"
@@ -1034,46 +1126,603 @@
           "type": "array",
           "minItems": 11,
           "maxItems": 11,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "surface",
-              "source_digest",
-              "overlap_receipt_digest",
-              "derivation_review_digest",
-              "result"
-            ],
-            "properties": {
-              "surface": {
-                "enum": [
-                  "policy",
-                  "development_dataset",
-                  "acceptance_dataset",
-                  "operational_dataset",
-                  "evaluator",
-                  "fixtures",
-                  "floors",
-                  "templates",
-                  "aliases",
-                  "regression_inputs",
-                  "execution_coordinate"
-                ]
-              },
-              "source_digest": {
-                "$ref": "#/$defs/digest"
-              },
-              "overlap_receipt_digest": {
-                "$ref": "#/$defs/digest"
-              },
-              "derivation_review_digest": {
-                "$ref": "#/$defs/digest"
-              },
-              "result": {
-                "const": "no_reuse"
-              }
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "acceptance_dataset"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "aliases"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "development_dataset"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "evaluator"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "execution_coordinate"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "fixtures"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "floors"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "operational_dataset"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "policy"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "regression_inputs"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "surface",
+                    "source_digest",
+                    "overlap_receipt_digest",
+                    "derivation_review_digest",
+                    "result"
+                  ],
+                  "properties": {
+                    "surface": {
+                      "enum": [
+                        "policy",
+                        "development_dataset",
+                        "acceptance_dataset",
+                        "operational_dataset",
+                        "evaluator",
+                        "fixtures",
+                        "floors",
+                        "templates",
+                        "aliases",
+                        "regression_inputs",
+                        "execution_coordinate"
+                      ]
+                    },
+                    "source_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "overlap_receipt_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "derivation_review_digest": {
+                      "$ref": "#/$defs/digest"
+                    },
+                    "result": {
+                      "const": "no_reuse"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "surface": {
+                      "const": "templates"
+                    }
+                  },
+                  "required": [
+                    "surface"
+                  ]
+                }
+              ]
             }
-          }
+          ],
+          "items": false
         },
         "manifest_digest": {
           "$ref": "#/$defs/digest"
@@ -1087,6 +1736,7 @@
         "authority",
         "role",
         "b0_exposure",
+        "b0_exposure_evidence",
         "b0_exposure_evidence_digest",
         "access",
         "assigned_at"
@@ -1106,7 +1756,8 @@
             "adjudicator",
             "custodian",
             "independent_reviewer",
-            "evaluator_operator"
+            "evaluator_operator",
+            "implementer"
           ]
         },
         "b0_exposure": {
@@ -1138,6 +1789,9 @@
         },
         "assigned_at": {
           "$ref": "#/$defs/dateTime"
+        },
+        "b0_exposure_evidence": {
+          "$ref": "#/$defs/exposureEvidence"
         }
       }
     },
@@ -1159,6 +1813,14 @@
         "attempt_envelope_digest",
         "sealed_before_development_disclosure",
         "custodian_acceptance_digest",
+        "fixtures_digest",
+        "templates_digest",
+        "aliases_digest",
+        "regression_inputs_digest",
+        "attempt_envelope",
+        "access_history",
+        "access_history_digest",
+        "role_separation_receipt",
         "preregistration_digest"
       ],
       "properties": {
@@ -1173,11 +1835,215 @@
         },
         "participants": {
           "type": "array",
-          "minItems": 8,
-          "maxItems": 64,
-          "items": {
-            "$ref": "#/$defs/roleAssignment"
-          }
+          "minItems": 12,
+          "maxItems": 12,
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "semantic_owner"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "policy_author"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "development_author"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "acceptance_author"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "operational_author"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "annotator"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "annotator"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "adjudicator"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "custodian"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "independent_reviewer"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "evaluator_operator"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/roleAssignment"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "implementer"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              ]
+            }
+          ],
+          "items": false
         },
         "role_separation_digest": {
           "$ref": "#/$defs/digest"
@@ -1211,6 +2077,30 @@
         },
         "preregistration_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "fixtures_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "templates_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "aliases_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "regression_inputs_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope": {
+          "$ref": "#/$defs/attemptEnvelope"
+        },
+        "access_history": {
+          "$ref": "#/$defs/accessHistory"
+        },
+        "access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "role_separation_receipt": {
+          "$ref": "#/$defs/roleSeparationReceipt"
         }
       }
     },
@@ -1254,6 +2144,8 @@
         "selective_row_reruns",
         "same_candidate_repairs",
         "passes",
+        "attempt_envelope_digest",
+        "execution_receipt_digest",
         "attempt_digest"
       ],
       "properties": {
@@ -1318,6 +2210,12 @@
         },
         "attempt_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_receipt_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -1351,7 +2249,14 @@
             "owner_store_channel",
             "custody",
             "preregistration",
-            "independent_review"
+            "independent_review",
+            "issuer_signing_key",
+            "semantic_publication",
+            "semantic_withdrawal",
+            "semantic_revocation",
+            "challenge_consumption",
+            "consumption_signing_key",
+            "single_use_challenge_store"
           ]
         },
         "valid_from": {
@@ -1378,6 +2283,9 @@
         "capability_approval",
         "clock_approval",
         "channel_approval",
+        "signing_key_approval",
+        "consumption_key_approval",
+        "consumption_store_approval",
         "trust_digest"
       ],
       "properties": {
@@ -1401,6 +2309,15 @@
         },
         "trust_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "signing_key_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "consumption_key_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "consumption_store_approval": {
+          "$ref": "#/$defs/approvalArtifact"
         }
       }
     },
@@ -1527,6 +2444,914 @@
           "$ref": "#/$defs/gitObject"
         },
         "checkpoint_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "policySemanticBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_owner_repository_id",
+        "provenance_owner_repository_id",
+        "inventory_digest",
+        "policy_concept_ids",
+        "joint_route_ontology_id_sets",
+        "provenance_source_owner_repository_ids",
+        "binding_receipt",
+        "binding_receipt_digest",
+        "binding_digest"
+      ],
+      "properties": {
+        "policy_owner_repository_id": {
+          "const": "softwareco/ontology"
+        },
+        "provenance_owner_repository_id": {
+          "const": "softwareco/ontology"
+        },
+        "inventory_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "policy_concept_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^co\\.software\\.[A-Za-z0-9][A-Za-z0-9._-]*$"
+          }
+        },
+        "joint_route_ontology_id_sets": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^co\\.software\\.[A-Za-z0-9][A-Za-z0-9._-]*$"
+            }
+          }
+        },
+        "binding_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "binding_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "provenance_source_owner_repository_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "prefixItems": [
+            {
+              "const": "softwareco/ontology"
+            }
+          ],
+          "items": false
+        },
+        "binding_receipt": {
+          "$ref": "#/$defs/policyBindingReceipt"
+        }
+      }
+    },
+    "issuerAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "issuer",
+        "attestation_body_digest",
+        "challenge_digest",
+        "head_digest",
+        "checkpoint_digest",
+        "capture_started_at",
+        "capture_finished_at",
+        "intended_action",
+        "issuer_trust_digest",
+        "signing_key_id",
+        "public_key_digest",
+        "signature_algorithm",
+        "signature_base64",
+        "attestation_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-issuer-attestation.v1"
+        },
+        "issuer": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "attestation_body_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "capture_started_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "capture_finished_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "intended_action": {
+          "enum": [
+            "verify_for_publication",
+            "verify_for_shadow",
+            "verify_for_projection",
+            "verify_for_automatic_preflight"
+          ]
+        },
+        "issuer_trust_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "signing_key_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "signature_algorithm": {
+          "const": "ed25519"
+        },
+        "signature_base64": {
+          "type": "string",
+          "minLength": 80,
+          "maxLength": 96,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "attestation_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "challengeConsumptionReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "body",
+        "signature_algorithm",
+        "signature_base64",
+        "consumption_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-challenge-consumption.v1"
+        },
+        "body": {
+          "$ref": "#/$defs/challengeConsumptionBody"
+        },
+        "signature_algorithm": {
+          "const": "ed25519"
+        },
+        "signature_base64": {
+          "type": "string",
+          "minLength": 80,
+          "maxLength": 96,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "consumption_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "verificationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "candidate_digest",
+        "intended_action",
+        "issuer_trust_digest",
+        "challenge_digest",
+        "receipt_attestation_digest",
+        "checkpoint_digest",
+        "minimum_checkpoint_sequence",
+        "prior_checkpoint_digest",
+        "owner_store_id",
+        "authoritative_ref",
+        "trusted_channel_id",
+        "max_age_seconds",
+        "max_clock_uncertainty_ms",
+        "trusted_now",
+        "consumption_receipt_digest",
+        "consumption_issuer_trust_digest",
+        "single_use_store_id",
+        "consumption_public_key_digest",
+        "request_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-verification-request.v1"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "intended_action": {
+          "enum": [
+            "verify_for_publication",
+            "verify_for_shadow",
+            "verify_for_projection",
+            "verify_for_automatic_preflight"
+          ]
+        },
+        "issuer_trust_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "receipt_attestation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "minimum_checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "prior_checkpoint_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "owner_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authoritative_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "trusted_channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "max_age_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "max_clock_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "trusted_now": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_issuer_trust_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "single_use_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "consumption_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "attemptEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "envelope_id",
+        "candidate_digest",
+        "acceptance_dataset_seal_digest",
+        "operational_dataset_seal_digest",
+        "evaluator_digest",
+        "runtime_digest",
+        "argv",
+        "environment",
+        "working_directory_class",
+        "process_invocations",
+        "pass_order",
+        "process_retries",
+        "selective_row_reruns",
+        "same_candidate_repairs",
+        "rollback_plan_digest",
+        "process_reservation",
+        "rollback_plan",
+        "reservation_digest",
+        "envelope_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-attempt-envelope.v1"
+        },
+        "envelope_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "runtime_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "argv": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "PATH",
+            "PYTHONHASHSEED",
+            "TMPDIR",
+            "TZ"
+          ],
+          "properties": {
+            "HOME": {
+              "$ref": "#/$defs/digest"
+            },
+            "LANG": {
+              "$ref": "#/$defs/digest"
+            },
+            "LC_ALL": {
+              "$ref": "#/$defs/digest"
+            },
+            "PATH": {
+              "$ref": "#/$defs/digest"
+            },
+            "PYTHONHASHSEED": {
+              "$ref": "#/$defs/digest"
+            },
+            "TMPDIR": {
+              "$ref": "#/$defs/digest"
+            },
+            "TZ": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "working_directory_class": {
+          "const": "private_custodian_managed"
+        },
+        "process_invocations": {
+          "const": 1
+        },
+        "pass_order": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "const": "primary"
+            },
+            {
+              "const": "immediate_repeat"
+            }
+          ],
+          "items": false
+        },
+        "process_retries": {
+          "const": 0
+        },
+        "selective_row_reruns": {
+          "const": 0
+        },
+        "same_candidate_repairs": {
+          "const": 0
+        },
+        "rollback_plan_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_reservation": {
+          "$ref": "#/$defs/processReservation"
+        },
+        "rollback_plan": {
+          "$ref": "#/$defs/rollbackPlan"
+        }
+      }
+    },
+    "ontologyInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "owner",
+        "owner_git_commit",
+        "owner_git_tree",
+        "ontology_snapshot_digest",
+        "ontology_ids",
+        "inventory_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-ontology-inventory.v1"
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "owner_git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "owner_git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "ontology_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "ontology_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^co\\.software\\.[A-Za-z0-9][A-Za-z0-9._-]*$"
+          }
+        },
+        "inventory_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "policyBindingReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "extractor_algorithm",
+        "routing_policy_digest",
+        "provenance_manifest_digest",
+        "inventory_digest",
+        "policy_owner_repository_id",
+        "provenance_policy_owner_repository_id",
+        "provenance_source_owner_repository_ids",
+        "policy_concept_ids_digest",
+        "joint_route_sets_digest",
+        "receipt_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-binding-receipt.v1"
+        },
+        "extractor_algorithm": {
+          "const": "rocs-adopted-policy-binding-v1"
+        },
+        "routing_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "provenance_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "inventory_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "policy_owner_repository_id": {
+          "const": "softwareco/ontology"
+        },
+        "provenance_policy_owner_repository_id": {
+          "const": "softwareco/ontology"
+        },
+        "provenance_source_owner_repository_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "prefixItems": [
+            {
+              "const": "softwareco/ontology"
+            }
+          ],
+          "items": false
+        },
+        "policy_concept_ids_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "joint_route_sets_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "receiptAttestationBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "challenge_digest",
+        "candidate_digest",
+        "intended_action",
+        "head_digest",
+        "checkpoint_digest",
+        "history_digest",
+        "observed_commit",
+        "observed_tree",
+        "capture_started_at",
+        "capture_finished_at",
+        "capability_coordinate_digest",
+        "clock_coordinate_digest",
+        "issuer_trust_digest",
+        "owner_store_id",
+        "authoritative_ref",
+        "trusted_channel_id",
+        "body_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-receipt-attestation-body.v1"
+        },
+        "challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "intended_action": {
+          "enum": [
+            "verify_for_publication",
+            "verify_for_shadow",
+            "verify_for_projection",
+            "verify_for_automatic_preflight"
+          ]
+        },
+        "head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "observed_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "observed_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "capture_started_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "capture_finished_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "capability_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "clock_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "issuer_trust_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "owner_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authoritative_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "trusted_channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "body_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "challengeConsumptionBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "issuer",
+        "single_use_store_id",
+        "challenge_digest",
+        "receipt_attestation_digest",
+        "prior_consumption_count",
+        "resulting_consumption_count",
+        "consumed_at",
+        "public_key_digest",
+        "body_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-challenge-consumption-body.v1"
+        },
+        "issuer": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "single_use_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "receipt_attestation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "prior_consumption_count": {
+          "const": 0
+        },
+        "resulting_consumption_count": {
+          "const": 1
+        },
+        "consumed_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "body_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "exposureEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "participant_principal_id",
+        "assessor_authority",
+        "sources_checked_digest",
+        "evaluated_at",
+        "result",
+        "evidence_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-b0-exposure-evidence.v1"
+        },
+        "participant_principal_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "assessor_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "sources_checked_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluated_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "result": {
+          "enum": [
+            "confirmed",
+            "possible",
+            "disproven"
+          ]
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "accessHistory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "events",
+        "history_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-access-history.v1"
+        },
+        "events": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sequence",
+              "principal_id",
+              "role",
+              "action",
+              "access",
+              "occurred_at",
+              "previous_event_digest",
+              "event_digest"
+            ],
+            "properties": {
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 256
+              },
+              "principal_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "role": {
+                "$ref": "#/$defs/roleAssignment/properties/role"
+              },
+              "action": {
+                "enum": [
+                  "assign",
+                  "grant",
+                  "revoke"
+                ]
+              },
+              "access": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/roleAssignment/properties/access/items"
+                }
+              },
+              "occurred_at": {
+                "$ref": "#/$defs/dateTime"
+              },
+              "previous_event_digest": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/digest"
+                  }
+                ]
+              },
+              "event_digest": {
+                "$ref": "#/$defs/digest"
+              }
+            }
+          }
+        },
+        "history_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "roleSeparationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "participants_digest",
+        "matrix_id",
+        "all_principals_pairwise_distinct",
+        "authority_role_matches_assignment",
+        "access_conflicts_absent",
+        "access_history_digest",
+        "receipt_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-role-separation-receipt.v1"
+        },
+        "participants_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "matrix_id": {
+          "const": "softwareco-routing-policy-role-matrix-v1"
+        },
+        "all_principals_pairwise_distinct": {
+          "const": true
+        },
+        "authority_role_matches_assignment": {
+          "const": true
+        },
+        "access_conflicts_absent": {
+          "const": true
+        },
+        "access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "processReservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "reservation_id",
+        "executor_authority",
+        "single_invocation_limit",
+        "reservation_store_id",
+        "lock_digest",
+        "reserved_at",
+        "expires_at",
+        "reservation_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-process-reservation.v1"
+        },
+        "reservation_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "executor_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "single_invocation_limit": {
+          "const": 1
+        },
+        "reservation_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "lock_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reserved_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "rollbackPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "owner_authority",
+        "artifact_root_class",
+        "preimage_state_digest",
+        "expected_final_state_digest",
+        "cleanup_manifest_digest",
+        "verification_command_digest",
+        "plan_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluation-rollback-plan.v1"
+        },
+        "owner_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "artifact_root_class": {
+          "const": "private_custodian_managed"
+        },
+        "preimage_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_final_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "cleanup_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "verification_command_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "plan_digest": {
           "$ref": "#/$defs/digest"
         }
       }
