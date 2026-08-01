@@ -24,23 +24,23 @@ owner meaning and publication
 
 ## First bounded jurisdiction
 
-The first candidate policy is bounded to concepts whose authoritative IDs and meanings are owned by `softwareco/ontology`. `core/ontology-kernel` remains a referenced semantic dependency and may supply diagnostic corpus material, but this protocol does not transfer ownership, copy core meaning into the overlay, or authorize selection of core-owned IDs.
+The first candidate policy is bounded to canonical `co.software.*` concepts whose authoritative IDs and meanings are present in an exact frozen `softwareco/ontology` inventory. Prefix form is not authority. `core/ontology-kernel` remains a referenced semantic dependency and may supply diagnostic corpus material, but this protocol does not transfer ownership, copy core meaning into the overlay, or authorize selection of core-owned IDs.
 
 A cross-owner policy, core-owned policy, or materialized ownership overlay requires a superseding reviewed protocol.
 
 ## Required capabilities
 
 1. Bind exact policy and provenance bytes to a candidate release coordinate.
-2. Bind candidate identity to an independently reviewed fresh D/U/O verdict.
-3. Let the semantic owner publish, withdraw, or revoke through an append-only owner history.
-4. Prove action-time currentness from an owner-store head plus a bounded local read receipt.
+2. Bind candidate identity to an independently reviewed fresh D/U/O verdict under closed custody, contamination, role, and one-attempt contracts.
+3. Let the semantic owner publish, withdraw, or revoke through an append-only owner history with reserved rollback capacity.
+4. Prove action-time currentness from an authenticated monotonic owner checkpoint plus a fresh challenge-bound issuer-attested local read receipt.
 5. Let ROCS validate identity and state without issuing semantic authority.
 6. Preserve B0 as contaminated historical diagnosis only.
 7. Keep consumer/Pi shadowing, prompt projection, providers/models, and automatic preflight outside this decision.
 
 ## Safety problem
 
-A digest proves bytes, not meaning or current authorization. A commit proves repository history, not consumer consent. An offline pass proves only the frozen policy/corpus/evaluator coordinate. A previously published release may be withdrawn or revoked before use. Therefore every later invocation must require a fresh owner-head observation and reject stale, missing, conflicting, or non-current proof.
+A digest proves bytes, not meaning, issuer authenticity, or current authorization. A commit proves repository history, not consumer consent. An offline pass proves only the frozen policy/corpus/evaluator coordinate. A previously published release may be withdrawn or revoked before use. Therefore every later invocation must issue a single-use caller challenge and require an authenticated current owner checkpoint/read; replaying or redating old publish bytes must fail after a later withdrawal/revocation.
 
 ## Success for Decision 103
 

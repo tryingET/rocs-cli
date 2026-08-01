@@ -3,14 +3,54 @@
   "$id": "urn:rocs:semantic-router-adopted-policy-v1",
   "title": "ROCS adopted semantic-routing policy v1",
   "oneOf": [
-    {"$ref": "#/$defs/candidate"},
-    {"$ref": "#/$defs/verdict"},
-    {"$ref": "#/$defs/publicationEvent"},
-    {"$ref": "#/$defs/publicationHistory"},
-    {"$ref": "#/$defs/ownerHead"},
-    {"$ref": "#/$defs/readReceipt"},
-    {"$ref": "#/$defs/currentnessProof"},
-    {"$ref": "#/$defs/error"}
+    {
+      "$ref": "#/$defs/candidate"
+    },
+    {
+      "$ref": "#/$defs/verdict"
+    },
+    {
+      "$ref": "#/$defs/publicationEvent"
+    },
+    {
+      "$ref": "#/$defs/publicationHistory"
+    },
+    {
+      "$ref": "#/$defs/ownerHead"
+    },
+    {
+      "$ref": "#/$defs/readReceipt"
+    },
+    {
+      "$ref": "#/$defs/currentnessProof"
+    },
+    {
+      "$ref": "#/$defs/custodyPolicy"
+    },
+    {
+      "$ref": "#/$defs/contaminationManifest"
+    },
+    {
+      "$ref": "#/$defs/preregistration"
+    },
+    {
+      "$ref": "#/$defs/executionAttempt"
+    },
+    {
+      "$ref": "#/$defs/approvalArtifact"
+    },
+    {
+      "$ref": "#/$defs/issuerTrust"
+    },
+    {
+      "$ref": "#/$defs/callerChallenge"
+    },
+    {
+      "$ref": "#/$defs/ownerCheckpoint"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
   ],
   "$defs": {
     "digest": {
@@ -45,217 +85,1449 @@
     "owner": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["owner_company", "owner_repository_id", "namespace"],
+      "required": [
+        "owner_company",
+        "owner_repository_id",
+        "namespace"
+      ],
       "properties": {
-        "owner_company": {"const": "softwareco"},
-        "owner_repository_id": {"const": "softwareco/ontology"},
-        "namespace": {"const": "softwareco.semantic-routing-policy.v1"}
+        "owner_company": {
+          "const": "softwareco"
+        },
+        "owner_repository_id": {
+          "const": "softwareco/ontology"
+        },
+        "namespace": {
+          "const": "softwareco.semantic-routing-policy.v1"
+        }
       }
     },
     "authorityCoordinate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repository_id", "git_commit", "git_tree", "artifact_digest"],
+      "required": [
+        "repository_id",
+        "git_commit",
+        "git_tree",
+        "artifact_digest",
+        "principal_id",
+        "authority_role"
+      ],
       "properties": {
-        "repository_id": {"$ref": "#/$defs/identifier"},
-        "git_commit": {"$ref": "#/$defs/gitObject"},
-        "git_tree": {"$ref": "#/$defs/gitObject"},
-        "artifact_digest": {"$ref": "#/$defs/digest"}
+        "repository_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "artifact_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "principal_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authority_role": {
+          "enum": [
+            "semantic_owner",
+            "policy_author",
+            "development_author",
+            "acceptance_author",
+            "operational_author",
+            "annotator",
+            "adjudicator",
+            "custodian",
+            "independent_reviewer",
+            "evaluator_operator"
+          ]
+        }
       }
     },
     "candidate": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema", "candidate_id", "owner", "owner_git_commit", "owner_git_tree",
-        "policy_path", "provenance_path", "routing_policy_digest", "provenance_manifest_digest",
-        "router_protocol", "router_algorithm", "ontology_snapshot_digest",
-        "selectable_ontology_ids", "contamination_manifest_digest", "candidate_digest"
+        "schema",
+        "candidate_id",
+        "owner",
+        "owner_git_commit",
+        "owner_git_tree",
+        "policy_path",
+        "provenance_path",
+        "routing_policy_digest",
+        "provenance_manifest_digest",
+        "router_protocol",
+        "router_algorithm",
+        "ontology_snapshot_digest",
+        "ontology_inventory_path",
+        "ontology_inventory_digest",
+        "selectable_ontology_ids",
+        "contamination_manifest_digest",
+        "candidate_digest"
       ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-candidate.v1"},
-        "candidate_id": {"$ref": "#/$defs/identifier"},
-        "owner": {"$ref": "#/$defs/owner"},
-        "owner_git_commit": {"$ref": "#/$defs/gitObject"},
-        "owner_git_tree": {"$ref": "#/$defs/gitObject"},
-        "policy_path": {"$ref": "#/$defs/path"},
-        "provenance_path": {"$ref": "#/$defs/path"},
-        "routing_policy_digest": {"$ref": "#/$defs/digest"},
-        "provenance_manifest_digest": {"$ref": "#/$defs/digest"},
-        "router_protocol": {"const": "semantic-route-result.v0"},
-        "router_algorithm": {"const": "rocs-symbolic-router-v0"},
-        "ontology_snapshot_digest": {"$ref": "#/$defs/digest"},
-        "selectable_ontology_ids": {
-          "type": "array", "minItems": 1, "maxItems": 2000, "uniqueItems": true,
-          "items": {"type": "string", "minLength": 1, "maxLength": 200, "pattern": "^softwareco\\.[A-Za-z0-9._-]+$"}
+        "schema": {
+          "const": "semantic-routing-policy-candidate.v1"
         },
-        "contamination_manifest_digest": {"$ref": "#/$defs/digest"},
-        "candidate_digest": {"$ref": "#/$defs/digest"}
+        "candidate_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "owner_git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "owner_git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "policy_path": {
+          "$ref": "#/$defs/path"
+        },
+        "provenance_path": {
+          "$ref": "#/$defs/path"
+        },
+        "routing_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "provenance_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "router_protocol": {
+          "const": "semantic-route-result.v0"
+        },
+        "router_algorithm": {
+          "const": "rocs-symbolic-router-v0"
+        },
+        "ontology_snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "selectable_ontology_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^co\\.software\\.[A-Za-z0-9][A-Za-z0-9._-]*$"
+          }
+        },
+        "contamination_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "ontology_inventory_path": {
+          "$ref": "#/$defs/path"
+        },
+        "ontology_inventory_digest": {
+          "$ref": "#/$defs/digest"
+        }
       }
     },
     "verdict": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema", "verdict_id", "candidate_digest", "evaluator_git_commit", "evaluator_git_tree",
-        "evaluator_tool_digest", "preregistration_digest", "development_dataset_digest",
-        "acceptance_dataset_digest", "operational_dataset_digest", "contamination_manifest_digest",
-        "execution_receipt_digest", "metrics_digest", "outcome", "custodian_authority",
-        "independent_review_authority", "verdict_digest"
+        "schema",
+        "verdict_id",
+        "candidate_digest",
+        "evaluator_git_commit",
+        "evaluator_git_tree",
+        "evaluator_tool_digest",
+        "preregistration_digest",
+        "development_dataset_digest",
+        "acceptance_dataset_digest",
+        "operational_dataset_digest",
+        "contamination_manifest_digest",
+        "custody_policy",
+        "preregistration",
+        "contamination_manifest",
+        "execution_attempt",
+        "execution_receipt_digest",
+        "metrics_digest",
+        "outcome",
+        "custodian_authority",
+        "independent_review_authority",
+        "verdict_digest"
       ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-verdict.v1"},
-        "verdict_id": {"$ref": "#/$defs/identifier"},
-        "candidate_digest": {"$ref": "#/$defs/digest"},
-        "evaluator_git_commit": {"$ref": "#/$defs/gitObject"},
-        "evaluator_git_tree": {"$ref": "#/$defs/gitObject"},
-        "evaluator_tool_digest": {"$ref": "#/$defs/digest"},
-        "preregistration_digest": {"$ref": "#/$defs/digest"},
-        "development_dataset_digest": {"$ref": "#/$defs/digest"},
-        "acceptance_dataset_digest": {"$ref": "#/$defs/digest"},
-        "operational_dataset_digest": {"$ref": "#/$defs/digest"},
-        "contamination_manifest_digest": {"$ref": "#/$defs/digest"},
-        "execution_receipt_digest": {"$ref": "#/$defs/digest"},
-        "metrics_digest": {"$ref": "#/$defs/digest"},
-        "outcome": {"enum": ["pass", "fail", "indeterminate"]},
-        "custodian_authority": {
-          "allOf": [
-            {"$ref": "#/$defs/authorityCoordinate"},
-            {"properties": {"repository_id": {"const": "softwareco/owned/dspx"}}}
+        "schema": {
+          "const": "semantic-routing-policy-verdict.v1"
+        },
+        "verdict_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "evaluator_git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "evaluator_tool_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "development_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "contamination_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "metrics_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail",
+            "indeterminate"
           ]
         },
-        "independent_review_authority": {"$ref": "#/$defs/authorityCoordinate"},
-        "verdict_digest": {"$ref": "#/$defs/digest"}
+        "custodian_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "repository_id": {
+                  "const": "softwareco/owned/dspx"
+                },
+                "authority_role": {
+                  "const": "custodian"
+                }
+              }
+            }
+          ]
+        },
+        "independent_review_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "independent_reviewer"
+                }
+              }
+            }
+          ]
+        },
+        "verdict_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custody_policy": {
+          "$ref": "#/$defs/custodyPolicy"
+        },
+        "preregistration": {
+          "$ref": "#/$defs/preregistration"
+        },
+        "contamination_manifest": {
+          "$ref": "#/$defs/contaminationManifest"
+        },
+        "execution_attempt": {
+          "$ref": "#/$defs/executionAttempt"
+        }
       }
     },
     "publicationEvent": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema", "owner", "sequence", "previous_event_digest", "action", "candidate_digest",
-        "verdict_digest", "owner_approval_ref", "reason_code", "issued_at", "event_digest"
+        "schema",
+        "owner",
+        "sequence",
+        "previous_event_digest",
+        "action",
+        "candidate_digest",
+        "verdict_digest",
+        "owner_approval_ref",
+        "reason_code",
+        "issued_at",
+        "event_digest"
       ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-publication-event.v1"},
-        "owner": {"$ref": "#/$defs/owner"},
-        "sequence": {"type": "integer", "minimum": 1, "maximum": 10000},
-        "previous_event_digest": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/digest"}]},
-        "action": {"enum": ["publish", "withdraw", "revoke"]},
-        "candidate_digest": {"$ref": "#/$defs/digest"},
-        "verdict_digest": {"$ref": "#/$defs/digest"},
-        "owner_approval_ref": {"$ref": "#/$defs/identifier"},
-        "reason_code": {"enum": ["accepted_offline_verdict", "owner_withdrawal", "integrity_revocation", "semantic_supersession"]},
-        "issued_at": {"$ref": "#/$defs/dateTime"},
-        "event_digest": {"$ref": "#/$defs/digest"}
-      }
+        "schema": {
+          "const": "semantic-routing-policy-publication-event.v1"
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "previous_event_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "action": {
+          "enum": [
+            "publish",
+            "withdraw",
+            "revoke"
+          ]
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "verdict_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "owner_approval_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "reason_code": {
+          "enum": [
+            "accepted_offline_verdict",
+            "owner_withdrawal",
+            "integrity_revocation",
+            "semantic_supersession"
+          ]
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "event_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "publish"
+              }
+            },
+            "required": [
+              "action"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sequence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9999
+              }
+            }
+          }
+        }
+      ]
     },
     "publicationHistory": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema", "owner", "events", "history_digest"],
+      "required": [
+        "schema",
+        "owner",
+        "events",
+        "history_digest"
+      ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-publication-history.v1"},
-        "owner": {"$ref": "#/$defs/owner"},
-        "events": {
-          "type": "array", "minItems": 1, "maxItems": 10000,
-          "items": {"$ref": "#/$defs/publicationEvent"}
+        "schema": {
+          "const": "semantic-routing-policy-publication-history.v1"
         },
-        "history_digest": {"$ref": "#/$defs/digest"}
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/publicationEvent"
+          }
+        },
+        "history_digest": {
+          "$ref": "#/$defs/digest"
+        }
       }
     },
     "ownerHead": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema", "owner", "terminal_sequence", "terminal_event_digest", "owner_git_commit",
-        "owner_git_tree", "publication_history_path", "publication_history_digest", "head_digest"
+        "schema",
+        "owner",
+        "terminal_sequence",
+        "terminal_event_digest",
+        "owner_git_commit",
+        "owner_git_tree",
+        "publication_history_path",
+        "publication_history_digest",
+        "owner_store_id",
+        "authoritative_ref",
+        "checkpoint_sequence",
+        "checkpoint_digest",
+        "head_digest"
       ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-owner-head.v1"},
-        "owner": {"$ref": "#/$defs/owner"},
-        "terminal_sequence": {"type": "integer", "minimum": 1, "maximum": 10000},
-        "terminal_event_digest": {"$ref": "#/$defs/digest"},
-        "owner_git_commit": {"$ref": "#/$defs/gitObject"},
-        "owner_git_tree": {"$ref": "#/$defs/gitObject"},
-        "publication_history_path": {"$ref": "#/$defs/path"},
-        "publication_history_digest": {"$ref": "#/$defs/digest"},
-        "head_digest": {"$ref": "#/$defs/digest"}
+        "schema": {
+          "const": "semantic-routing-policy-owner-head.v1"
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "terminal_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "terminal_event_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "owner_git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "owner_git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "publication_history_path": {
+          "$ref": "#/$defs/path"
+        },
+        "publication_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "owner_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authoritative_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/digest"
+        }
       }
     },
     "readReceipt": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema", "capability_id", "capability_git_commit", "capability_git_tree",
-        "capability_approval_digest", "clock_source_id", "clock_source_approval_digest",
-        "clock_uncertainty_ms", "owner", "observed_git_commit", "observed_git_tree",
-        "observed_head_digest", "publication_history_digest", "publication_history_bytes", "capture_started_at",
-        "capture_finished_at", "closed_environment", "network_used", "stable_final_recheck", "receipt_digest"
+        "schema",
+        "capability_id",
+        "capability_git_commit",
+        "capability_git_tree",
+        "capability_approval_digest",
+        "clock_source_id",
+        "clock_source_approval_digest",
+        "clock_uncertainty_ms",
+        "owner",
+        "observed_git_commit",
+        "observed_git_tree",
+        "observed_head_digest",
+        "publication_history_digest",
+        "publication_history_bytes",
+        "capture_started_at",
+        "capture_finished_at",
+        "closed_environment",
+        "network_used",
+        "stable_final_recheck",
+        "issuer_trust",
+        "caller_challenge",
+        "owner_checkpoint",
+        "owner_store_id",
+        "authoritative_ref",
+        "trusted_channel_id",
+        "issuer_attestation_digest",
+        "receipt_digest"
       ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-owner-read-receipt.v1"},
-        "capability_id": {"$ref": "#/$defs/identifier"},
-        "capability_git_commit": {"$ref": "#/$defs/gitObject"},
-        "capability_git_tree": {"$ref": "#/$defs/gitObject"},
-        "capability_approval_digest": {"$ref": "#/$defs/digest"},
-        "clock_source_id": {"$ref": "#/$defs/identifier"},
-        "clock_source_approval_digest": {"$ref": "#/$defs/digest"},
-        "clock_uncertainty_ms": {"type": "integer", "minimum": 0, "maximum": 1000},
-        "owner": {"$ref": "#/$defs/owner"},
-        "observed_git_commit": {"$ref": "#/$defs/gitObject"},
-        "observed_git_tree": {"$ref": "#/$defs/gitObject"},
-        "observed_head_digest": {"$ref": "#/$defs/digest"},
-        "publication_history_digest": {"$ref": "#/$defs/digest"},
-        "publication_history_bytes": {"type": "integer", "minimum": 1, "maximum": 16777216},
-        "capture_started_at": {"$ref": "#/$defs/dateTime"},
-        "capture_finished_at": {"$ref": "#/$defs/dateTime"},
-        "closed_environment": {"const": true},
-        "network_used": {"const": false},
-        "stable_final_recheck": {"const": true},
-        "receipt_digest": {"$ref": "#/$defs/digest"}
+        "schema": {
+          "const": "semantic-routing-policy-owner-read-receipt.v1"
+        },
+        "capability_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "capability_git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "capability_git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "capability_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "clock_source_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "clock_source_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "clock_uncertainty_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "observed_git_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "observed_git_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "observed_head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "publication_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "publication_history_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "capture_started_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "capture_finished_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "closed_environment": {
+          "const": true
+        },
+        "network_used": {
+          "const": false
+        },
+        "stable_final_recheck": {
+          "const": true
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "issuer_trust": {
+          "$ref": "#/$defs/issuerTrust"
+        },
+        "caller_challenge": {
+          "$ref": "#/$defs/callerChallenge"
+        },
+        "owner_checkpoint": {
+          "$ref": "#/$defs/ownerCheckpoint"
+        },
+        "owner_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authoritative_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "trusted_channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "issuer_attestation_digest": {
+          "$ref": "#/$defs/digest"
+        }
       }
     },
     "currentnessProof": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema", "candidate", "verdict", "publication_history", "owner_head", "read_receipt",
-        "observed_at", "max_age_seconds", "proof_digest"
+        "schema",
+        "candidate",
+        "verdict",
+        "publication_history",
+        "owner_head",
+        "read_receipt",
+        "observed_at",
+        "max_age_seconds",
+        "expected_issuer_trust_digest",
+        "expected_challenge_digest",
+        "expected_receipt_digest",
+        "expected_checkpoint_digest",
+        "minimum_checkpoint_sequence",
+        "intended_action",
+        "proof_digest"
       ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-currentness-proof.v1"},
-        "candidate": {"$ref": "#/$defs/candidate"},
-        "verdict": {"$ref": "#/$defs/verdict"},
-        "publication_history": {"$ref": "#/$defs/publicationHistory"},
-        "owner_head": {"$ref": "#/$defs/ownerHead"},
-        "read_receipt": {"$ref": "#/$defs/readReceipt"},
-        "observed_at": {"$ref": "#/$defs/dateTime"},
-        "max_age_seconds": {"type": "integer", "minimum": 1, "maximum": 300},
-        "proof_digest": {"$ref": "#/$defs/digest"}
+        "schema": {
+          "const": "semantic-routing-policy-currentness-proof.v1"
+        },
+        "candidate": {
+          "$ref": "#/$defs/candidate"
+        },
+        "verdict": {
+          "$ref": "#/$defs/verdict"
+        },
+        "publication_history": {
+          "$ref": "#/$defs/publicationHistory"
+        },
+        "owner_head": {
+          "$ref": "#/$defs/ownerHead"
+        },
+        "read_receipt": {
+          "$ref": "#/$defs/readReceipt"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "max_age_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "proof_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_issuer_trust_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_checkpoint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "minimum_checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "intended_action": {
+          "enum": [
+            "verify_for_publication",
+            "verify_for_shadow",
+            "verify_for_projection",
+            "verify_for_automatic_preflight"
+          ]
+        }
       }
     },
     "error": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema", "ok", "error"],
+      "required": [
+        "schema",
+        "ok",
+        "error"
+      ],
       "properties": {
-        "schema": {"const": "semantic-routing-policy-error.v1"},
-        "ok": {"const": false},
+        "schema": {
+          "const": "semantic-routing-policy-error.v1"
+        },
+        "ok": {
+          "const": false
+        },
         "error": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "protocol"],
+          "required": [
+            "kind",
+            "protocol"
+          ],
           "properties": {
             "kind": {
               "enum": [
-                "invalid_input", "invalid_candidate", "invalid_verdict", "invalid_owner_history",
-                "not_published", "withdrawn", "revoked", "stale_currentness", "snapshot_changed",
-                "resource_exhausted", "incompatible", "unavailable"
+                "invalid_input",
+                "invalid_candidate",
+                "invalid_verdict",
+                "invalid_owner_history",
+                "not_published",
+                "withdrawn",
+                "revoked",
+                "stale_currentness",
+                "snapshot_changed",
+                "resource_exhausted",
+                "incompatible",
+                "unavailable"
               ]
             },
-            "protocol": {"const": "semantic-router-adopted-policy.v1"},
-            "limit": {"type": "integer", "minimum": 0, "maximum": 16777216}
+            "protocol": {
+              "const": "semantic-router-adopted-policy.v1"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            }
           }
+        }
+      }
+    },
+    "custodyPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "authority",
+        "source_basis",
+        "privacy_classification",
+        "prohibited_content",
+        "storage_root_class",
+        "access_control",
+        "audit_log_digest",
+        "retention_days",
+        "backup_policy",
+        "deletion_policy",
+        "incident_response_ref",
+        "policy_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-custody-policy.v1"
+        },
+        "authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "repository_id": {
+                  "const": "softwareco/owned/dspx"
+                },
+                "authority_role": {
+                  "const": "custodian"
+                }
+              }
+            }
+          ]
+        },
+        "source_basis": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "owner_authored_ontology",
+              "licensed_synthetic_scenario",
+              "explicit_consent"
+            ]
+          }
+        },
+        "privacy_classification": {
+          "enum": [
+            "non_personal_internal",
+            "synthetic_no_personal_data"
+          ]
+        },
+        "prohibited_content": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "secrets",
+              "credentials",
+              "personal_data",
+              "customer_content",
+              "production_prompts",
+              "decision98_b0_derivatives",
+              "unlicensed_text"
+            ]
+          }
+        },
+        "storage_root_class": {
+          "const": "private_custodian_managed"
+        },
+        "access_control": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "principal_id",
+              "role",
+              "access"
+            ],
+            "properties": {
+              "principal_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "role": {
+                "enum": [
+                  "acceptance_author",
+                  "operational_author",
+                  "annotator",
+                  "adjudicator",
+                  "custodian",
+                  "independent_reviewer",
+                  "evaluator_operator"
+                ]
+              },
+              "access": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "metadata",
+                    "write_sealed_rows",
+                    "read_sealed_rows",
+                    "annotate_blind",
+                    "adjudicate_blind",
+                    "execute_once",
+                    "read_aggregate_verdict"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "audit_log_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "retention_days": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "raw_rows",
+            "sealed_outputs",
+            "aggregate_receipts"
+          ],
+          "properties": {
+            "raw_rows": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650
+            },
+            "sealed_outputs": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650
+            },
+            "aggregate_receipts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 36500
+            }
+          }
+        },
+        "backup_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "encrypted",
+            "access_equal_or_stricter",
+            "expiry_matches_primary",
+            "deletion_verified"
+          ],
+          "properties": {
+            "encrypted": {
+              "const": true
+            },
+            "access_equal_or_stricter": {
+              "const": true
+            },
+            "expiry_matches_primary": {
+              "const": true
+            },
+            "deletion_verified": {
+              "const": true
+            }
+          }
+        },
+        "deletion_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trigger",
+            "verification_receipt_required",
+            "affected_set_retirement_on_exposure"
+          ],
+          "properties": {
+            "trigger": {
+              "enum": [
+                "retention_expiry",
+                "owner_withdrawal",
+                "privacy_incident"
+              ]
+            },
+            "verification_receipt_required": {
+              "const": true
+            },
+            "affected_set_retirement_on_exposure": {
+              "const": true
+            }
+          }
+        },
+        "incident_response_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "policy_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "contaminationManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "b0_decision_id",
+        "b0_preregistration_commit",
+        "b0_failure_commit",
+        "b0_preregistration_lock_digest",
+        "b0_prompt_set_digest",
+        "b0_report_digest",
+        "coverage",
+        "manifest_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-contamination-manifest.v1"
+        },
+        "b0_decision_id": {
+          "const": 98
+        },
+        "b0_preregistration_commit": {
+          "const": "286773e13b253183656113bcf93ad4f7d26ced75"
+        },
+        "b0_failure_commit": {
+          "const": "0a9d9eed00c4c2875d6a7dd870b8978032c95875"
+        },
+        "b0_preregistration_lock_digest": {
+          "const": "sha256:32205d30e6bdbe78c1de9c4df7068528b5ff6ff1757cba7ea1e67494d6fe0dd2"
+        },
+        "b0_prompt_set_digest": {
+          "const": "sha256:e85b7bbebbdc355c4f33a3fa2b66b58b8c045c5d1a836fe05c1f96a0e11413a5"
+        },
+        "b0_report_digest": {
+          "const": "sha256:a136f0eec0a72e068af058ec8521f8095ba48ad11714644e9e87a921096d67ba"
+        },
+        "coverage": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "surface",
+              "source_digest",
+              "overlap_receipt_digest",
+              "derivation_review_digest",
+              "result"
+            ],
+            "properties": {
+              "surface": {
+                "enum": [
+                  "policy",
+                  "development_dataset",
+                  "acceptance_dataset",
+                  "operational_dataset",
+                  "evaluator",
+                  "fixtures",
+                  "floors",
+                  "templates",
+                  "aliases",
+                  "regression_inputs",
+                  "execution_coordinate"
+                ]
+              },
+              "source_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "overlap_receipt_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "derivation_review_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "result": {
+                "const": "no_reuse"
+              }
+            }
+          }
+        },
+        "manifest_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "roleAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "role",
+        "b0_exposure",
+        "b0_exposure_evidence_digest",
+        "access",
+        "assigned_at"
+      ],
+      "properties": {
+        "authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "role": {
+          "enum": [
+            "semantic_owner",
+            "policy_author",
+            "development_author",
+            "acceptance_author",
+            "operational_author",
+            "annotator",
+            "adjudicator",
+            "custodian",
+            "independent_reviewer",
+            "evaluator_operator"
+          ]
+        },
+        "b0_exposure": {
+          "enum": [
+            "confirmed",
+            "possible",
+            "disproven"
+          ]
+        },
+        "b0_exposure_evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "access": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ontology_sources",
+              "development_rows",
+              "sealed_acceptance_rows",
+              "sealed_operational_rows",
+              "blind_labels",
+              "aggregate_verdict",
+              "policy_bytes",
+              "evaluator_bytes"
+            ]
+          }
+        },
+        "assigned_at": {
+          "$ref": "#/$defs/dateTime"
+        }
+      }
+    },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "custody_policy_digest",
+        "contamination_manifest_digest",
+        "participants",
+        "role_separation_digest",
+        "concept_inventory_digest",
+        "development_dataset_digest",
+        "acceptance_dataset_seal_digest",
+        "operational_dataset_seal_digest",
+        "evaluator_digest",
+        "metrics_and_floors_digest",
+        "attempt_envelope_digest",
+        "sealed_before_development_disclosure",
+        "custodian_acceptance_digest",
+        "preregistration_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-preregistration.v1"
+        },
+        "custody_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "contamination_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "participants": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/roleAssignment"
+          }
+        },
+        "role_separation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "concept_inventory_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "development_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "metrics_and_floors_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "sealed_before_development_disclosure": {
+          "const": true
+        },
+        "custodian_acceptance_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "attemptPass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pass_kind",
+        "input_coordinate_digest",
+        "result_bytes_digest",
+        "row_receipts_digest"
+      ],
+      "properties": {
+        "pass_kind": {
+          "enum": [
+            "primary",
+            "immediate_repeat"
+          ]
+        },
+        "input_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result_bytes_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "row_receipts_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "executionAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "attempt_id",
+        "preregistration_digest",
+        "candidate_digest",
+        "process_invocations",
+        "process_retries",
+        "selective_row_reruns",
+        "same_candidate_repairs",
+        "passes",
+        "attempt_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-execution-attempt.v1"
+        },
+        "attempt_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_invocations": {
+          "const": 1
+        },
+        "process_retries": {
+          "const": 0
+        },
+        "selective_row_reruns": {
+          "const": 0
+        },
+        "same_candidate_repairs": {
+          "const": 0
+        },
+        "passes": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/attemptPass"
+                },
+                {
+                  "properties": {
+                    "pass_kind": {
+                      "const": "primary"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/attemptPass"
+                },
+                {
+                  "properties": {
+                    "pass_kind": {
+                      "const": "immediate_repeat"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "attempt_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "approvalArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "issuer",
+        "subject_digest",
+        "purpose",
+        "valid_from",
+        "valid_until",
+        "revoked",
+        "artifact_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-approval-artifact.v1"
+        },
+        "issuer": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "purpose": {
+          "enum": [
+            "acquisition_capability",
+            "clock_source",
+            "owner_store_channel",
+            "custody",
+            "preregistration",
+            "independent_review"
+          ]
+        },
+        "valid_from": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "revoked": {
+          "const": false
+        },
+        "artifact_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "issuerTrust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "issuer",
+        "trust_root_digest",
+        "capability_approval",
+        "clock_approval",
+        "channel_approval",
+        "trust_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-issuer-trust.v1"
+        },
+        "issuer": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "capability_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "clock_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "channel_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "trust_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "callerChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "challenge_id",
+        "challenge_digest",
+        "candidate_digest",
+        "intended_action",
+        "owner_store_id",
+        "authoritative_ref",
+        "minimum_checkpoint_sequence",
+        "prior_checkpoint_digest",
+        "issued_at",
+        "expires_at"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-caller-challenge.v1"
+        },
+        "challenge_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "intended_action": {
+          "enum": [
+            "verify_for_publication",
+            "verify_for_shadow",
+            "verify_for_projection",
+            "verify_for_automatic_preflight"
+          ]
+        },
+        "owner_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authoritative_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "minimum_checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "prior_checkpoint_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/dateTime"
+        }
+      }
+    },
+    "ownerCheckpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "owner",
+        "owner_store_id",
+        "authoritative_ref",
+        "checkpoint_sequence",
+        "previous_checkpoint_digest",
+        "head_digest",
+        "history_digest",
+        "observed_commit",
+        "observed_tree",
+        "checkpoint_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-owner-checkpoint.v1"
+        },
+        "owner": {
+          "$ref": "#/$defs/owner"
+        },
+        "owner_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authoritative_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "previous_checkpoint_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "head_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "observed_commit": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "observed_tree": {
+          "$ref": "#/$defs/gitObject"
+        },
+        "checkpoint_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     }

@@ -38,13 +38,15 @@ Rollback: replace the proposal with a new packet aggregate; preserve rejected re
 
 ## P1 — ROCS offline verifier
 
-Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all seven digest domains, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
+Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all fifteen digest domains, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
 
 Gates:
 
 - Python and Node byte agreement;
 - malformed, duplicate, noncanonical, over-budget, stale/forked history matrices;
-- publish-without-pass, withdrawal, revocation, head fork/regression, identity drift, and proof-age failures;
+- publish-without-pass, withdrawal, revocation, head/checkpoint fork or regression, identity drift, and proof-age failures;
+- forged/redated issuer receipt, stale H1 replay after withdrawal H2, reused/expired challenge, wrong action/candidate/store/channel, untrusted or revoked approval, and checkpoint-minimum failures;
+- inventory-prefix impostor or non-member, custody-role collision, incomplete B0 surface coverage, one-attempt retry/rerun, 1 MiB/16 MiB history boundary, and reserved-terminal-event capacity;
 - existing Decision 102 route/discovery compatibility unchanged;
 - complete repository gate and reverse rollback rehearsal;
 - `live_acquisition_implemented=false` mechanically observable.
@@ -60,8 +62,10 @@ Gates:
 - owner-local task and review;
 - no-follow, atomic, crash-safe append/head update;
 - full history reconstruction;
-- concurrent writer/fork rejection;
-- withdraw/revoke and failed-update rehearsal;
+- concurrent writer/fork/checkpoint-regression rejection;
+- authenticated monotonic owner checkpoint and authoritative-ref observation;
+- preflight reservation for one worst-case terminal withdraw/revoke event before each publish;
+- withdraw/revoke, stale-H1 replay, and failed-update rehearsal;
 - ROCS verifies but cannot write or approve;
 - external recovery preserves prior head and immutable events.
 
@@ -71,13 +75,14 @@ No live publication occurs in P2.
 
 Before D disclosure:
 
-1. semantic owner freezes Softwareco-owned concept inventory and source snapshot;
-2. DSPx or another named independent owner accepts custody, privacy, licensing, retention, deletion, and access controls;
-3. B0-unexposed U/O authors create and seal U=600 and O=96;
-4. independent annotators/adjudicator complete readiness;
-5. D authors independently create D=360;
-6. contamination checks bind B0, D, U, policy-source eligibility, and templates;
-7. evaluator, metrics, floors, identities, command, and rollback are preregistered.
+1. semantic owner freezes the exact Softwareco source snapshot and canonical `co.software.*` inventory digest;
+2. DSPx issues a closed custody policy binding lawful source/license/consent, privacy/prohibited content, ACL/audit, retention by artifact class, backup handling, verified deletion, and incident response;
+3. authenticated principals and mutually exclusive roles/access are fixed; all U/O authors, annotators, adjudicator, custodian, evaluator operator, and independent reviewer prove B0 exposure `disproven`;
+4. B0-unexposed U/O authors create and seal U=600 and O=96 before D disclosure;
+5. independent annotators/adjudicator complete readiness;
+6. D authors independently create D=360;
+7. a closed contamination manifest binds canonical B0 deny coordinates and no-reuse coverage for policy, D, U, O, evaluator, fixtures, floors, templates, aliases, regression inputs, and execution coordinate;
+8. evaluator, metrics, floors, exact one-attempt envelope, identities, command, and rollback are preregistered; the custodian and distinct independent reviewer approve their exact coordinates.
 
 Raw U/O stays outside Git/AK/ROCS/Pi. The controller receives only digests and readiness receipts.
 
@@ -99,7 +104,7 @@ D results are development evidence only.
 
 ## P5 — one-shot U/O execution
 
-Custodian executes the exact preregistered command once against sealed U/O and frozen candidate. Policy authors/implementers receive no row outputs before immutable verdict publication.
+Custodian starts exactly one process invocation for the immutable preregistered attempt against sealed U/O and frozen candidate. That invocation performs exactly two ordered internal passes, `primary` and `immediate_repeat`, over identical inputs and records both digests. No process retry, second invocation, selective row rerun, extra pass, or same-candidate repair is permitted. Policy authors/implementers receive no row outputs before immutable verdict publication.
 
 Evidence-validity precedence:
 
@@ -113,7 +118,7 @@ A failed policy may produce a new candidate only under a new task and fresh acce
 
 ## P6 — semantic-owner publication
 
-Only a reviewed `pass` verdict permits the owner to append `publish`. Publication captures a fresh owner commit/tree and terminal head. ROCS independently validates complete history and produces a currentness proof. Publication evidence does not create consumer adoption.
+Only a reviewed `pass` verdict permits the owner to append `publish`. Publication captures a fresh owner commit/tree, terminal head, and authenticated monotonic owner-store checkpoint. Before append it reserves event and byte capacity for a terminal withdraw/revoke. ROCS independently validates complete history and only synthetic local proof shapes until live issuer/channel/challenge acquisition is separately implemented. Publication evidence does not create consumer adoption.
 
 Withdrawal/revocation rehearsal occurs before first publish. A live owner capability remains blocked until separately implemented and reviewed; explicit local owner files may support an offline publication rehearsal but not production currentness claims.
 
@@ -155,7 +160,7 @@ No dogfood level may claim a later evidence dimension.
 
 ## Global stop conditions
 
-Stop on protected Decision 102 drift, B0 reuse, cross-owner meaning, U/O exposure, unreviewed floor change, malformed or incomplete verdict, non-pass publication, stale/forked owner head, network or provider/model surprise, dirty owner worktree used as authority, missing recovery owner, consumer substitution, automatic enablement, or restoration uncertainty.
+Stop on protected Decision 102 drift, B0 reuse or incomplete contamination coverage, cross-owner meaning or inventory non-member, missing custody policy, role conflict, U/O exposure, extra invocation/pass/retry/rerun, unreviewed floor change, malformed or incomplete verdict, non-pass publication, stale/forked owner head or checkpoint, replayed/redated/untrusted receipt, exhausted rollback reserve, network or provider/model surprise, dirty owner worktree used as authority, missing recovery owner, consumer substitution, automatic enablement, or restoration uncertainty.
 
 ## Evidence retention
 

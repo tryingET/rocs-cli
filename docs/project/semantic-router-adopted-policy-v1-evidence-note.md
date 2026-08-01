@@ -26,12 +26,15 @@ decision_id: 103
 4. Decision 53 live publication/canary gates remain blocked; its exact absent consumer, adapter, canary, and recovery identities cannot be substituted for Decision 103.
 5. `softwareco/ontology` owns the Softwareco company overlay. `core/ontology-kernel` owns holding-shared concepts.
 6. ROCS may verify owner-issued facts but cannot publish meaning, adopt for a consumer, or activate a runtime.
+7. Tracked Softwareco ontology identifiers use canonical `co.software.*` form; lexical prefix never replaces exact frozen-inventory membership.
+8. Digest self-consistency does not authenticate a currentness receipt. A trusted issuer, closed approval artifacts, single-use challenge, authoritative store/channel, and monotonic checkpoint are required.
+9. Dataset custody is not a repository name: it requires an owner-issued policy and authenticated, mutually exclusive participant roles.
 
 ## B0 exposure
 
 The controller and Decision 103 design authors have confirmed B0 exposure. They may design protocol mechanics and interpret the published aggregate failure, but may not author U/O data or perform blind acceptance adjudication.
 
-Every later participant records `confirmed | possible | disproven` exposure with date and evidence. U/O custodians, authors, annotators, and adjudicators must be `disproven` before receiving their roles. Any exposure retires the affected acceptance set.
+Every later participant records `confirmed | possible | disproven` exposure with date and evidence. U/O custodians, authors, annotators, adjudicators, evaluator operator, and independent verdict reviewer must be `disproven` before receiving their roles. A closed manifest denies reuse across policy, D, U, O, evaluator, fixtures, floors, templates, aliases, regressions, and execution coordinates. Any exposure retires the affected acceptance set.
 
 ## Evidence classes
 
@@ -42,7 +45,7 @@ Every later participant records `confirmed | possible | disproven` exposure with
 | offline D result | visible development behavior | acceptance |
 | sealed U/O verdict | frozen-coordinate acceptance result | publication or activation |
 | publication event | owner-issued lifecycle transition | current head unless freshly observed |
-| currentness read receipt | observed owner head under a bounded capture | consumer adoption |
+| issuer-attested challenged read receipt | authenticated current checkpoint/head under a bounded single-use capture | consumer adoption or future currentness |
 | consumer adoption event | consumer intent | Pi delivery or influence |
 | Pi receipt | bounded runtime observation | semantic authority or benefit |
 | AK linkage | lineage | source-owner fact issuance |
@@ -54,7 +57,8 @@ At Decision 103 opening, local ROCS `main` was a strict descendant of the locall
 ## Unresolved owner actions
 
 - Softwareco ontology owner must accept exact policy source and publication-log paths before implementation.
-- DSPx must accept U/O custody and storage/retention boundaries before data creation.
+- DSPx must issue the closed custody policy, principal/role acceptance, and store controls before data creation.
+- A trusted acquisition issuer/channel/checkpoint and caller challenge store must be implemented before any live currentness claim.
 - An independent recovery owner is required before any later live activation.
 - No exact consumer is selected by Decision 103.
 

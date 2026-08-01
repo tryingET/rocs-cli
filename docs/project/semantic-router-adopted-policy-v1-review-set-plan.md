@@ -21,6 +21,7 @@ Decision 103 uses `multi_lane_requires_synthesis`. All three lanes are mandatory
 Reviewer must be independent of packet authorship and assess:
 
 - `softwareco/ontology` is the only first-policy semantic owner;
+- canonical `co.software.*` identifiers are accepted only when present in the exact frozen owner inventory; prefix inference and core relabeling fail;
 - core-owned meaning is not copied, relabeled, or selected by convenience;
 - owner publication, withdrawal, and revocation remain owner-issued;
 - ROCS and AK do not acquire semantic authority;
@@ -34,28 +35,29 @@ Reject on ambiguous namespace ownership, mutable-latest semantics, inferred appr
 Reviewer assesses:
 
 - closed JSON shapes, canonical I-JSON and digest domains;
-- append-only event-chain and compare-and-swap head invariants;
-- no-follow, local-only, bounded acquisition expectations;
-- candidate/verdict/publication/currentness binding;
-- stale, forked, absent, withdrawn, revoked, or mismatched heads fail closed;
+- append-only event chain, authenticated monotonic checkpoint, authoritative ref, and reserved terminal-event capacity;
+- no-follow, local-only, bounded acquisition expectations with closed issuer/approval/channel/store trust;
+- fresh single-use caller challenge/action binding and issuer-attested non-redatable receipt;
+- exact equality joins across candidate, verdict, event, history, head, checkpoint, receipt, commit/tree, and proof;
+- stale H1 replay after H2, forked, absent, withdrawn, revoked, or mismatched heads fail closed;
 - rollback disables invocation or returns to a separately current prior release without rewriting history;
 - no network, signing, provider/model, or live capability is implied.
 
-Reject on digest ambiguity, self-issued currentness, non-atomic head semantics, unsafe error disclosure, or rollback that erases history.
+Reject on digest ambiguity, repository-string or opaque-ref authority, self-issued/redatable/replayable currentness, missing caller challenge, rollbackable checkpoint, non-atomic head semantics, exhausted withdraw/revoke reserve, unsafe error disclosure, or rollback that erases history.
 
 ## Lane C — empirical custody and falsification
 
 Reviewer must be independent of policy authorship and assess:
 
-- B0 prohibition and participant exposure recording;
-- U/O custody established before D disclosure;
-- author/annotator/adjudicator separation;
-- exact dataset roles, anti-overlap, one-shot execution, and outcome precedence;
+- closed canonical B0 deny coordinates and complete no-reuse coverage including O/evaluator/fixtures/floors/regressions/execution;
+- owner-issued custody policy established before data creation, including privacy/license/ACL/retention/backups/deletion/incidents;
+- authenticated principals, custodian/reviewer distinction, and mechanical author/annotator/adjudicator/evaluator separation;
+- exact dataset roles, access history, anti-overlap, one process invocation with two fixed internal passes, and outcome precedence;
 - policy quality gates prevent both false routing and trivial abstention;
 - raw protected rows remain outside ROCS, Git, and AK;
 - failed or indeterminate evidence is retained without mechanical retry.
 
-Reject on reusable B0 coordinates, exposed acceptance data, post-observation floor changes, or execution without sealed identities.
+Reject on reusable or incompletely covered B0 coordinates, opaque custody, role conflict, exposed acceptance data, post-observation floor changes, extra invocation/pass/retry/rerun, or execution without sealed identities.
 
 ## Synthesis checklist
 

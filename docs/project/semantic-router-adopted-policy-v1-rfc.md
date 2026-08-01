@@ -47,23 +47,23 @@ Each arrow is an explicit owner transition. Candidate, verdict, publication, cur
 
 ### Candidate
 
-`semantic-routing-policy-candidate.v1` binds exact owner commit/tree, policy and provenance paths/digests, Decision 102 protocol/algorithm coordinates, ontology snapshot, selectable Softwareco IDs, contamination manifest, and candidate digest.
+`semantic-routing-policy-candidate.v1` binds exact owner commit/tree, policy and provenance paths/digests, Decision 102 protocol/algorithm coordinates, ontology snapshot, exact frozen owner-inventory path/digest, selectable canonical `co.software.*` IDs proven members of that inventory, contamination manifest, and candidate digest. Prefix shape alone never proves ownership.
 
 ### Verdict
 
-`semantic-routing-policy-verdict.v1` binds the candidate to a preregistered evaluator and D/U/O coordinate, execution/metrics receipts, exact custodian and independent-review repository coordinates, approval-artifact digests, and `pass | fail | indeterminate` outcome. Only `pass` is publishable.
+`semantic-routing-policy-verdict.v1` binds the candidate to nested closed custody-policy, contamination, preregistration, and one-attempt objects; a preregistered evaluator and D/U/O coordinate; execution/metrics receipts; authenticated custodian and distinct independent-review principal coordinates; closed approval artifacts; and `pass | fail | indeterminate` outcome. Repository strings or opaque references alone convey no authority. Only `pass` is publishable.
 
 ### Publication event and owner head
 
-`semantic-routing-policy-publication-event.v1` is an append-only `publish | withdraw | revoke` event. Events form one sequence-checked hash chain inside one canonical `semantic-routing-policy-publication-history.v1` JCS object whose digest has a separate domain. `semantic-routing-policy-owner-head.v1` names that complete history's terminal event and exact owner repository/history identity observed through compare-and-swap publication.
+`semantic-routing-policy-publication-event.v1` is an append-only `publish | withdraw | revoke` event. Events form one sequence-checked hash chain inside one canonical `semantic-routing-policy-publication-history.v1` JCS object whose digest has a separate domain. `semantic-routing-policy-owner-head.v1` names that complete history's terminal event and exact owner repository/history identity under an authenticated monotonically increasing compare-and-swap owner checkpoint.
 
-A mutable filename such as `latest` has no authority. Current authorization requires the complete valid history object and terminal owner head.
+A mutable filename such as `latest` has no authority. Current authorization requires the complete valid history object, terminal owner head, and authenticated current owner-store checkpoint. Publish is capped at sequence 9,999 and must reserve byte/event capacity for a final sequence-10,000 withdrawal or revocation.
 
 ### Currentness proof
 
-`semantic-routing-policy-currentness-proof.v1` nests the candidate, pass verdict, complete publication history, owner head, and bounded local read receipt. The receipt binds a caller-pinned acquisition-capability coordinate, trusted approval digest, stable capture, and UTC capture completion. ROCS verifies that the terminal action is `publish`, all identities agree, and no later withdrawal/revocation exists.
+`semantic-routing-policy-currentness-proof.v1` nests the candidate, pass verdict, complete publication history, owner head, authenticated owner checkpoint, fresh caller challenge, issuer-trust bundle, and bounded local read receipt. Closed approval artifacts bind issuer, subject, purpose, validity, and revocation state. The receipt binds the caller-pinned acquisition capability, trusted clock/channel/store identities, challenge/action/candidate, monotonic checkpoint, stable capture, and issuer attestation. ROCS verifies every equality join and that the terminal action is `publish` under the authenticated current checkpoint.
 
-The proof's `observed_at` must equal the receipt's immutable `capture_finished_at`; it cannot be re-dated independently. The caller separately pins both the acquisition-capability coordinate and the clock-source ID/approval digest plus maximum accepted uncertainty. Proof age is measured from that UTC instant against the verifier's trusted current clock and a caller-declared maximum of at most 300 seconds. Clock rollback, identity mismatch, or excess uncertainty fails closed. A future consumer must obtain the fresh receipt immediately before a separately authorized action.
+The proof's `observed_at` must equal issuer-attested `capture_finished_at`; a digest recomputation cannot re-date it. The caller pins the expected trust/challenge/receipt/checkpoint digests, minimum checkpoint, intended action, capability, channel/store, clock approvals, and uncertainty. A challenge is single-use and expires. Proof age is at most 300 seconds. Replayed H1 fails once authoritative checkpoint H2 records withdrawal/revocation, even when old H1 bytes remain valid history. Currentness cannot pass until a later owner task implements this trusted acquisition boundary.
 
 ## Authority split
 
@@ -95,17 +95,19 @@ Decision 102's V1–V3 design is adopted as the required future evaluation shape
 - U: 600 untouched acceptance rows, 300 applicable and 300 null/adversarial;
 - O: 96 untouched operational rows across eight classes.
 
-The semantic owner freezes the eligible ontology snapshot and concept inventory first. A B0-unexposed DSPx/custodian then creates and seals U/O before D disclosure. Separate authors create D. Policy authors see only ontology meaning and D. U/O authors, annotators, adjudicator, and custodian remain independent of policy authors and implementers.
+The semantic owner freezes the eligible ontology snapshot and exact `co.software.*` inventory first. Before any rows exist, DSPx issues a digest-bound custody policy covering lawful source/license/consent, privacy class and prohibited content, ACL/audit, retention, backups, verified deletion, exposure retirement, and incident response. B0-unexposed U/O authors then create and seal U/O before D disclosure. Separate authors create D.
+
+A closed preregistration binds authenticated principals, roles, access rights/history, B0 exposure evidence, mutual-exclusion proof, seal sequence, evaluator/floors, and one-attempt envelope. Custodian and independent reviewer are distinct principals; policy authors cannot author/access U/O; annotators/adjudicator/evaluator roles remain separated as normative invariants.
 
 Raw U/O material remains in a private custodian-owned store and never enters ROCS, ontology Git history, Pi repositories, session summaries, or AK. AK may retain digests, custody receipts, aggregate verdict, and review references only.
 
 ### B0 prohibition
 
-Decision 98 B0 prompts, labels, corpus, evaluator, outputs, rows, scenarios, templates, aliases, scores, and acceptance coordinates are prohibited as policy, D/U/O, regression, floor, or release sources. B0 exposure is recorded for every participant. Exposure retires a blind role or affected set.
+Decision 98 B0 prompts, labels, corpus, evaluator, outputs, rows, scenarios, templates, aliases, scores, and acceptance coordinates are prohibited as policy, D/U/O, evaluator, fixtures, regression, floor, template, alias, or execution sources. A closed contamination manifest binds the canonical B0 preregistration/failure commits and lock/prompt/report digests plus exact no-reuse coverage for every named surface. B0 exposure is recorded for every participant. Exposure retires a blind role or affected set.
 
 ### One-shot result
 
-U/O executes once after candidate, evaluator, datasets, floors, identities, and rollback are preregistered. Outcome precedence is indeterminate first, valid fail second, pass last. No same-task repair or retry follows an observed fail or indeterminate effect.
+U/O executes in one immutable attempt after candidate, evaluator, datasets, floors, identities, and rollback are preregistered. Exactly one process invocation performs ordered internal `primary` and `immediate_repeat` passes over identical coordinates. Any second invocation, process retry, selective rerun, extra pass, or same-candidate repair is forbidden. Outcome precedence is indeterminate first, valid fail second, pass last.
 
 The detailed floors and anti-overlap procedure remain those frozen in `semantic-router-v0-validation-rollout-rollback.md` unless a reviewed pre-data revision replaces them before any U/O author sees D or policy output. Floors never change after U/O observation.
 
@@ -117,7 +119,7 @@ Withdrawal appends `withdraw`; integrity or unsafe-semantics invalidation append
 
 ## ROCS implementation boundary
 
-A post-ADR ROCS task may implement only offline parsing, canonicalization, all seven digest domains, complete-history/currentness validation, safe errors, independent Node fixtures, and a no-live-acquisition CLI verifier over explicit local files. It must keep `live_acquisition_implemented=false` until an owner-specific capability is separately reviewed.
+A post-ADR ROCS task may implement only offline parsing, canonicalization, all fifteen digest domains, complete-history/currentness validation, safe errors, independent Node fixtures, and a no-live-acquisition CLI verifier over explicit local files. Fixtures must include forged/redated receipts, replayed old publish H1 after withdrawal H2, challenge/action mismatch, trust/approval mismatch, role collision, incomplete contamination coverage, inventory-prefix impostors, history fork, and capacity-reserve boundaries. It must keep `live_acquisition_implemented=false` until an owner-specific capability is separately reviewed.
 
 No ROCS implementation task may create real policy, read U/O, publish an owner event, name a consumer, call Pi, invoke a provider/model, or enable automatic preflight.
 
