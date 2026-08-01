@@ -32,6 +32,8 @@ Commands:
 - `rocs transaction` → `prepare|simulate|apply|verify|rollback` (the sole ontology-mutation path)
 - `rocs discover-capabilities --json` (closed, non-mutating protocol negotiation)
 - `rocs discover --repo . --request-json - --tool-kind development_runtime --tool-manifest-digest sha256:... --json --no-index-cache --no-env-file` (deterministic development discovery; no prose in results)
+- `rocs route-capabilities --json` (separate closed, non-mutating semantic route protocol negotiation)
+- `rocs route --repo . --policy-owner-repo-id synthetic-owner --policy-owner-repo-root ../synthetic-owner --routing-policy-root ../synthetic-policy --routing-policy policy.json --routing-provenance provenance.json --request-json - --tool-kind development_runtime --tool-manifest-digest sha256:... --json --no-index-cache --no-env-file` (stdin-only development routing over explicit synthetic policy; no refs, network, cache, dotenv, or ambient owner root)
 - `rocs rules [--json]`
 - `rocs explain <rule_id> [--json]`
 - `rocs resolve --repo . [--profile <name>] [--resolve-refs] [--json]`

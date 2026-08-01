@@ -44,6 +44,8 @@ _RAW_COMMANDS = {
     "version": _c("introspection"), "contracts": _c("introspection"),
     "discover-capabilities": _c("semantic-discovery"),
     "discover": _c("semantic-discovery"),
+    "route-capabilities": _c("semantic-routing"),
+    "route": _c("semantic-routing"),
     "constitution.validate": _c("constitutional-foundry"),
     "constitution.challenge": _c("constitutional-foundry"),
     "constitution.differential": _c("constitutional-foundry"),
