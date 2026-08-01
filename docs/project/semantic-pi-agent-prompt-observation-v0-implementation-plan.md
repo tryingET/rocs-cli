@@ -3,7 +3,7 @@ summary: "Post-ADR owner plan for Decision 98 host correlation, package observat
 read_when:
   - "Implementing Decision 98 after ADR acceptance."
 type: "implementation_plan"
-status: "proposed"
+status: "accepted"
 decision_id: 98
 ---
 # Implementation plan — correlated Pi agent-prompt observation v0

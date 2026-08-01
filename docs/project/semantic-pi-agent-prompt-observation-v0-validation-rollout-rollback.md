@@ -3,7 +3,7 @@ summary: "Validation, rollout, stop, and rollback contract for Decision 98."
 read_when:
   - "Validating or dogfooding Decision 98."
 type: "validation_rollout_rollback"
-status: "proposed"
+status: "accepted"
 decision_id: 98
 ---
 # Validation, rollout, and rollback — correlated Pi agent-prompt observation v0
