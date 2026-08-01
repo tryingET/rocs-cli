@@ -100,6 +100,15 @@
       "$ref": "#/$defs/authorityCredential"
     },
     {
+      "$ref": "#/$defs/acquisitionChannelCoordinate"
+    },
+    {
+      "$ref": "#/$defs/challengeConsumptionStoreCoordinate"
+    },
+    {
+      "$ref": "#/$defs/consumptionSigningKeyCoordinate"
+    },
+    {
       "$ref": "#/$defs/error"
     }
   ],
@@ -666,6 +675,7 @@
         "owner_store_id",
         "authoritative_ref",
         "trusted_channel_id",
+        "acquisition_channel_coordinate",
         "attestation_body",
         "issuer_attestation",
         "issuer_attestation_digest",
@@ -766,6 +776,9 @@
         },
         "descriptor_anchored_no_follow": {
           "const": true
+        },
+        "acquisition_channel_coordinate": {
+          "$ref": "#/$defs/acquisitionChannelCoordinate"
         }
       }
     },
@@ -2346,6 +2359,10 @@
         "signing_key_approval",
         "consumption_key_approval",
         "consumption_store_approval",
+        "acquisition_channel_coordinate",
+        "consumption_store_coordinate",
+        "consumption_signing_key_coordinate",
+        "consumption_credential",
         "trust_digest"
       ],
       "properties": {
@@ -2380,6 +2397,18 @@
           "$ref": "#/$defs/approvalArtifact"
         },
         "issuer_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "acquisition_channel_coordinate": {
+          "$ref": "#/$defs/acquisitionChannelCoordinate"
+        },
+        "consumption_store_coordinate": {
+          "$ref": "#/$defs/challengeConsumptionStoreCoordinate"
+        },
+        "consumption_signing_key_coordinate": {
+          "$ref": "#/$defs/consumptionSigningKeyCoordinate"
+        },
+        "consumption_credential": {
           "$ref": "#/$defs/authorityCredential"
         }
       }
@@ -2715,6 +2744,14 @@
         "consumption_issuer_trust_digest",
         "single_use_store_id",
         "consumption_public_key_digest",
+        "expected_acquisition_channel_coordinate",
+        "expected_consumption_store_coordinate",
+        "expected_consumption_signing_key_coordinate",
+        "expected_consumption_credential",
+        "channel_coordinate_digest",
+        "consumption_store_coordinate_digest",
+        "consumption_signing_key_coordinate_digest",
+        "consumption_credential_digest",
         "expected_custodian_authority",
         "expected_independent_review_authority",
         "expected_semantic_owner_authority",
@@ -2855,6 +2892,30 @@
         },
         "expected_semantic_owner_credential": {
           "$ref": "#/$defs/authorityCredential"
+        },
+        "expected_acquisition_channel_coordinate": {
+          "$ref": "#/$defs/acquisitionChannelCoordinate"
+        },
+        "expected_consumption_store_coordinate": {
+          "$ref": "#/$defs/challengeConsumptionStoreCoordinate"
+        },
+        "expected_consumption_signing_key_coordinate": {
+          "$ref": "#/$defs/consumptionSigningKeyCoordinate"
+        },
+        "expected_consumption_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_store_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_signing_key_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_credential_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -3123,6 +3184,7 @@
         "owner_store_id",
         "authoritative_ref",
         "trusted_channel_id",
+        "channel_coordinate_digest",
         "closed_environment",
         "network_used",
         "stable_final_recheck",
@@ -3216,6 +3278,9 @@
         },
         "descriptor_anchored_no_follow": {
           "const": true
+        },
+        "channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -3231,6 +3296,9 @@
         "prior_consumption_count",
         "resulting_consumption_count",
         "consumed_at",
+        "consumption_store_coordinate_digest",
+        "consumption_signing_key_coordinate_digest",
+        "consumption_credential_digest",
         "public_key_digest",
         "body_digest"
       ],
@@ -3263,6 +3331,15 @@
           "$ref": "#/$defs/digest"
         },
         "body_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_store_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_signing_key_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "consumption_credential_digest": {
           "$ref": "#/$defs/digest"
         }
       }
@@ -3814,6 +3891,90 @@
           "const": false
         },
         "credential_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "acquisitionChannelCoordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "owner_store_id",
+        "authoritative_ref",
+        "trusted_channel_id",
+        "channel_coordinate_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-acquisition-channel-coordinate.v1"
+        },
+        "owner_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "authoritative_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "trusted_channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "challengeConsumptionStoreCoordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "single_use_store_id",
+        "store_issuer",
+        "store_coordinate_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-consumption-store-coordinate.v1"
+        },
+        "single_use_store_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "store_issuer": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "store_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "consumptionSigningKeyCoordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "signing_key_id",
+        "issuer",
+        "authority_credential_digest",
+        "public_key_digest",
+        "key_coordinate_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-consumption-signing-key-coordinate.v1"
+        },
+        "signing_key_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "issuer": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "authority_credential_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "key_coordinate_digest": {
           "$ref": "#/$defs/digest"
         }
       }

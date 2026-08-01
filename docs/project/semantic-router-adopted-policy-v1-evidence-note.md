@@ -27,7 +27,7 @@ decision_id: 103
 5. `softwareco/ontology` owns the Softwareco company overlay. `core/ontology-kernel` owns holding-shared concepts.
 6. ROCS may verify owner-issued facts but cannot publish meaning, adopt for a consumer, or activate a runtime.
 7. Tracked Softwareco ontology identifiers use canonical `co.software.*` form; lexical prefix never replaces exact frozen-inventory membership.
-8. Digest self-consistency does not authenticate a currentness receipt or owner/custodian/reviewer approval. A trusted issuer, separate non-circular authority credentials carrying canonical raw-32-byte Ed25519 keys, non-circular signed approval subjects and attestation bodies, separate caller verification request with exact authority/credential/trust/key pins, authenticated single-use challenge consumption, authoritative store/channel, and monotonic checkpoint chain are required. The capture signature must cover descriptor-anchored no-follow capture, closed-environment, no-network, and stable-final-recheck assertions.
+8. Digest self-consistency does not authenticate a currentness receipt or owner/custodian/reviewer approval. A trusted issuer, separate non-circular authority credentials carrying canonical raw-32-byte Ed25519 keys (including a distinct caller-pinned consumption credential), non-circular signed approval subjects and attestation bodies, separate caller verification request with exact authority/credential/trust/key pins, three closed domain-digested acquisition-channel/single-use-store/consumption-signing-key coordinates, authenticated single-use challenge consumption, and a monotonic checkpoint chain are required. The capture signature must cover descriptor-anchored no-follow capture, closed-environment, no-network, and stable-final-recheck assertions.
 9. Dataset custody is not a repository name: it requires an owner-issued policy with exact source/license/consent evidence and complete deletion controls plus authenticated, mutually exclusive participant roles including implementer and two annotators.
 10. The canonical B0 preregistration commit is `286773ee6a88b9fd2276f8008898c57ff9a073b9`; a deny-coordinate that does not resolve to this retained commit is invalid.
 11. The digest-bound Decision 102 policy/provenance bytes—not a parallel ID list—must prove `softwareco/ontology` ownership and inventory-bounded concept, joint-route, and selected IDs.
@@ -60,7 +60,7 @@ At Decision 103 opening, local ROCS `main` was a strict descendant of the locall
 
 - Softwareco ontology owner must accept exact policy source and publication-log paths before implementation.
 - DSPx must issue the closed custody policy, principal/role acceptance, and store controls before data creation.
-- A trusted acquisition issuer/key distribution/channel/checkpoint chain, caller verification-request boundary, and authenticated single-use challenge store must be implemented before any live currentness claim.
+- A trusted acquisition issuer/key distribution/channel/checkpoint chain, caller verification-request boundary, exact consumption credential/key distribution, and authenticated single-use challenge store must be implemented before any live currentness claim.
 - An independent recovery owner is required before any later live activation.
 - No exact consumer is selected by Decision 103.
 

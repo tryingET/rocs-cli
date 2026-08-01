@@ -4,8 +4,8 @@
   "files": [
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-evidence-note.md",
-      "bytes": 6047,
-      "sha256": "3c134683c543ba480eb0065b3ef495309c8102fdbd3423bea4eb5f7a1310d3fe"
+      "bytes": 6230,
+      "sha256": "397c94f60ed0c50a1cb991b65622bd6b9fa616e0e9ce6f7fd04101ccaba214aa"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-problem-brief.md",
@@ -14,29 +14,29 @@
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-review-set-plan.md",
-      "bytes": 6099,
-      "sha256": "f87554978d0720df55e9c5ecd715fcb60f9dbcea449ddd0a90be94fa139b33bb"
+      "bytes": 6454,
+      "sha256": "67a707f19bd4396f761867fa03170bf4182efde9b33f297cc082940c4c8ece7b"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-rfc.md",
-      "bytes": 14739,
-      "sha256": "62f169b050f3e70f62c70705e12e5691bc237c3a1b470eef253bc02554537810"
+      "bytes": 15290,
+      "sha256": "71605dfe35560ddff45b72a0a330b1ed849f627913cc6aa5fd6c5aca17789bea"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-validation-rollout-rollback.md",
-      "bytes": 11756,
-      "sha256": "86ba115e15b79b3c8ea43e76315f8e4c1d6611485483d50d281b431cf52ec16b"
+      "bytes": 11911,
+      "sha256": "4272ff2fc9b61e49a1ba45ffa1260dc2bb1dcfd5ae94a9d87fb1cfb13ccada6e"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1/invariants.md",
-      "bytes": 29954,
-      "sha256": "5871cf633c56d788a556dbd0664efa00d345cee9c35d9cad6f766db61400f705"
+      "bytes": 31915,
+      "sha256": "73c08353e332577ce8c61ad7f383e8ca100c703e06acf12649ab8677e23ae445"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1/protocol.schema.json",
-      "bytes": 102931,
-      "sha256": "0f05385fc8f321ea0570614c3a1bce8548dd9760b22ef1ef67bbb86fedf81255"
+      "bytes": 107892,
+      "sha256": "1fb117792cf9d18ac1e6859c5bc6fa697043aab438eb75511a13d8716aed0d9a"
     }
   ],
-  "packet_aggregate_sha256": "1dda2c2558f7f05893aa2d94af5718736f4e98aa9c86b0e1aacfc87d6ce911e6"
+  "packet_aggregate_sha256": "198b0203511650abd72f33962096f9b5004932de5163804849b60a057c814f0b"
 }

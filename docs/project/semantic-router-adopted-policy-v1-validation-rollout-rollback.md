@@ -38,14 +38,14 @@ Rollback: replace the proposal with a new packet aggregate; preserve rejected re
 
 ## P1 — ROCS offline verifier
 
-Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all thirty-eight digest domains, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
+Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all forty-one digest domains, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
 
 Gates:
 
 - Python and Node byte agreement;
 - malformed, duplicate, noncanonical, over-budget, stale/forked history matrices;
 - publish-without-pass, withdrawal, revocation, head/checkpoint fork or regression, identity drift, and proof-age failures;
-- forged/redated issuer receipt; wrapper mutation of signed descriptor-anchored-no-follow/closed-environment/no-network/final-recheck assertions; invalid Ed25519 signature/key approval; circular attestation attempt; replayed custodian/reviewer approval across changed verdict outcome/metrics; replayed semantic-owner approval across changed sequence/action/reason/time; self-asserted repository authority; authority-coordinate/enclosing-approval digest cycles; absent, malformed, non-canonical, or mismatched raw Ed25519 credential bytes; stale H1 replay after withdrawal H2; reused/expired/unconsumed challenge; wrong action/candidate/store/channel; untrusted or revoked approval; broken checkpoint chain; and checkpoint-minimum failures;
+- forged/redated issuer receipt; wrapper mutation of signed descriptor-anchored-no-follow/closed-environment/no-network/final-recheck assertions; invalid Ed25519 signature/key approval; circular attestation attempt; replayed custodian/reviewer approval across changed verdict outcome/metrics; replayed semantic-owner approval across changed sequence/action/reason/time; self-asserted repository authority; authority-coordinate/enclosing-approval digest cycles; absent, malformed, non-canonical, or mismatched raw Ed25519 issuer or consumption-credential bytes; partial/ambiguous acquisition-channel, single-use-store, or consumption-signing-key approval subjects; ambient-key-registry dependence; stale H1 replay after withdrawal H2; reused/expired/unconsumed challenge; wrong action/candidate/store/channel; untrusted or revoked approval; broken checkpoint chain; and checkpoint-minimum failures;
 - inventory-prefix impostor or non-member, mismatched parsed Decision 102 policy/provenance/per-record source owner, closed inventory/extractor receipt drift, policy/joint/selected ID outside inventory, custody-role collision including implementer or D-author conflicts, incomplete/duplicate/unjoined B0 surface coverage or unrelated clean source digest, wrong canonical B0 coordinate, attempt-envelope/environment/reservation/rollback drift or retry/rerun, 1 MiB/16 MiB/32 MiB object boundaries, and reserved-terminal-event capacity;
 - existing Decision 102 route/discovery compatibility unchanged;
 - complete repository gate and reverse rollback rehearsal;
