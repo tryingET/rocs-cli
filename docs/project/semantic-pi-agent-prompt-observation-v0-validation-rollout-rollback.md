@@ -10,119 +10,113 @@ decision_id: 98
 
 ## Global stop rule
 
-An indeterminate provenance, dependency preparation, build, load, reload/start, prompt mismatch, attempted second provider request, provider result, or restoration result means:
+Any indeterminate provenance, build, load, prompt mismatch, attempted second provider request, provider result, or restoration means: stop forward work, preserve sanitized evidence, disable if safe, execute rollback after any start/mutation, and create a separate investigation task. Never retry mechanically.
 
-1. cease forward actions;
-2. preserve sanitized evidence;
-3. disable if safely available;
-4. execute preauthorized rollback immediately after any mutation/start;
-5. create a separate investigation task.
-
-Never retry mechanically. Use managed `TMPDIR`, private mode-0700 scratch, and the workstation heavy-job wrapper for large npm work. Raw settings/profile bytes never enter AK; only sanitized hashes/receipts do. Preserve unrelated dirty files and `.ontology/` paths.
+Use managed private mode-0700 scratch and the workstation heavy-job wrapper. Raw profiles/settings never enter AK. Preserve unrelated dirty and `.ontology/` paths.
 
 ## H−1 gates
 
-- exact current owner-main parent and local evidence commit recorded;
-- capability identifiers/contexts rederived, not cherry-picked blindly;
-- stale-context, trust, shortcut, RPC/print/shutdown, docs/export tests;
-- focused/full owner commands pass;
+- current owner-main parent and `b4bbbc080` evidence recorded;
+- exact five capabilities including confirm countdown behavior;
+- current trust/context/stale/shutdown semantics;
+- changelog/docs/exports;
+- new focused tests, touched-file LOC/byte report, brownfield exceptions;
+- exact focused command from finalized test paths, root `npm run check`, root `./test.sh`, `git diff --check <parent>..<candidate>`, clean status;
 - two reviews;
-- `git revert <H−1>` applies cleanly to its parent and full required gates pass in a disposable verification worktree.
+- disposable revert tree equals parent and passes named gates.
 
 ## H0 gates
 
-1. unique token per concurrently alive execution inside one process/runtime generation;
-2. correct token across paired pre-start/ready events under reversed overlap;
-3. fresh pre-start envelopes; immutable token/system-prompt snapshots; existing nested options mutability preserved;
-4. shallow-frozen ready envelope and mutation attempts cannot affect later handlers/host state;
-5. complete chain before assignment; ready after assignment; ready before `preflightResult(true)` and provider start;
-6. old extension/error compatibility;
-7. token not reused across replacement generations in the same process;
-8. passive extension proves the host does not automatically copy token into host-owned messages/entries/provider payload/log/error surfaces;
-9. immutable capability object contains the capability identifier—not any run token—only on supporting hosts;
-10. docs/types/exports/changelog and full coding-agent gates pass.
-
-Use new focused tests and record exceptions for unavoidable brownfield over-budget host files. Required commands are focused Vitest, root `npm run check`, root `./test.sh`, `git diff --check`, and clean status. H0 revert validation returns to H−1, not pre-substrate owner main.
+- concurrent token uniqueness and correct pair under reversed overlap;
+- shallow-frozen pre-start outer envelope and ready envelope;
+- immutable primitive snapshots while nested options retain existing shared mutability;
+- exact chain/assignment/ready/preflightResult/provider order;
+- old extension/error compatibility and same-process replacement non-reuse;
+- passive extension proves no automatic host-owned token copying;
+- capability object contains identifier only;
+- docs/types/exports/changelog;
+- new focused tests and brownfield exceptions;
+- exact commands specified in the accepted implementation plan;
+- two reviews and revert-to-H−1 tree equality/gates.
 
 ## P0 gates
 
-1. all Decision-89 exact-append/digest/source-order cases remain;
-2. unsupported-host precedence and old-host ordinary behavior;
-3. prepared state with private token;
-4. whole-prompt exact match/mismatch vectors and unknown contribution survival;
-5. latest preparation wins; nonmatching/repeated ready events no-op; overlap never misattributes;
-6. every reset/disable/expiry/grant/mode/generation/request/cwd/compatibility/producer/validation/non-append clearing path;
-7. literal six-state output and precedence;
-8. token absent from public record keys, command output, record digest inputs, errors, logs, session/evidence snapshots;
-9. changing only the token leaves public record bytes and `record_digest` identical;
-10. malformed ready input clears or ignores exactly as the state contract declares;
-11. exactly one pre-start and one ready registration;
-12. `preflight-runtime.ts <= 500` LOC; new code <=500; new tests <=1000; hard touched-file audit;
-13. then-current package manifest, lock, version, entrypoint, release metadata, semantic-delivery files/tests unchanged;
-14. focused, quality, full, package/release, AST, diff, and clean-status gates pass;
-15. two reviews and disposable `git revert <P0>` validation.
+- Decision-89 behavior remains;
+- unsupported host preserves ordinary behavior;
+- match/mismatch/latest-slot/overlap/nonmatching/repeated semantics;
+- malformed rules:
+  - missing/non-string/nonmatching token ignores without prompt access;
+  - matching token plus missing/non-string/invalid-Unicode prompt clears with no record/error/log leakage;
+  - malformed after terminal does not rewrite;
+- all lifecycle/request/grant clearing paths;
+- literal outputs/precedence;
+- token absent from public keys/digest inputs/errors/readback/log/session/evidence and token-only invariance;
+- one pre-start plus one ready registration;
+- zero growth of existing lifecycle test;
+- exact hard touched-file command:
+
+```bash
+for f in <touched-code>; do test "$(wc -l <"$f")" -le 500 && test "$(wc -c <"$f")" -le 51200; done
+for f in <touched-tests>; do test "$(wc -l <"$f")" -le 1000 && test "$(wc -c <"$f")" -le 81920; done
+```
+
+- current manifests/lock/version/entrypoint/release/semantic-delivery unchanged;
+- focused/quality/full/package/release/AST/diff/clean gates;
+- two reviews and revert-to-parent equality/gates.
 
 ## R1a gates
 
-The exact committed Pi test path and command are recorded. It verifies H0/P0 Git identities before loading P0 through the real extension loader. Faux provider inputs and clock/random sources are fixed. Expected order:
-
-```text
-pre-start(token)
--> host assignment
--> ready(token, assigned prompt)
--> terminal observation
--> faux-provider request start
-```
-
-Negative overlap/mismatch cases prove omission rather than misattribution. No settings, installation, external network, or real model.
+- accepted R1a parent equals H0 and delta is exactly the named one test file;
+- required P0 root/commit/tree env values verified before loader use;
+- `DefaultResourceLoader` `additionalExtensionPaths` loads exact entrypoint with discovered extensions disabled;
+- fixed faux-provider identity/clock/chunks/tokens;
+- exact command from the plan;
+- expected order `pre-start -> assignment -> ready -> terminal -> faux-provider start`;
+- overlap/malformed/mismatch/lifecycle/literal-output cases;
+- no settings/install/network/real model;
+- independent review.
 
 ## R1b preparation
 
 Fail closed unless recorded:
 
-- exact H0/P0 commits, trees, artifact/lock hashes, current-line ancestry and reviews;
-- Node/npm versions and successful lock-frozen dependency preparation;
-- source-local built Pi argv and artifact hashes;
-- absolute P0 package root and dependency availability;
-- private isolated `PI_CODING_AGENT_DIR`, original absence/symlink state, mode, and ownership;
-- byte/hash inventory proving normal global/project settings and executable remain unchanged;
-- no-provider RPC/SDK command and tool `sourceInfo` provenance from the same candidates;
-- pinned provider/model identity and authority for exactly one provider request;
-- request-start counter/abort control;
-- process termination and scratch cleanup commands independent of candidate extension;
-- rollback authority and sanitized evidence destination.
+- H0/P0/R1b-canary source commits/trees/reviews and current-line ancestry;
+- Node/npm versions, lock hashes, `npm ci --ignore-scripts`, explicit offline build, artifact hashes;
+- exact CLI argv, cwd, environment variable names (never credential values), private profile path/mode/ownership;
+- profile settings: retry disabled, provider max retries zero, compaction disabled, no queued state;
+- `--no-extensions --no-approve --no-tools` plus only explicit P0 and reviewed canary `-e` paths;
+- canary provider has no network and hard-fails invocation two before any transport;
+- process termination independent of candidate extension;
+- normal settings/executable hash inventory proving no mutation;
+- sanitized evidence destination and rollback authority.
 
 ## R1b live gates
 
-- candidate protocol responds and provenance identifies one temporary candidate extension;
-- default-off `disabled` then fresh confirmed grant and `enabled outcome=none`;
-- tools disabled;
-- exactly one provider-request start;
-- one terminal exact-match or mismatch readback, recorded literally;
-- no tool call, retry, compaction continuation, follow-up, second request, pack, publication, or default change;
-- immediate disable/reset;
-- immediate rollback after success or any stop condition.
+Same TUI process must report exact argv/environment allowlist, loaded P0/canary realpaths, one unsuffixed ontology command source, absence of other ontology sources, fixed protocol, and request count.
 
-Mismatch is a valid observed result but fails success closure; no additional live investigation occurs in the same task.
+Sequence:
+
+1. default-off disabled;
+2. one fresh confirmed grant and enabled-none;
+3. one semantic prompt to deterministic local provider;
+4. exactly one provider invocation;
+5. literal terminal match/mismatch;
+6. no tool/retry/compaction/follow-up/second request;
+7. disable/reset;
+8. immediate rollback after success or stop.
+
+Mismatch is observed evidence but fails success closure; no same-task investigation.
 
 ## Isolated runtime rollback
 
-1. disable if safely available;
-2. terminate candidate Pi and verify process absence;
-3. prove normal settings/executable hashes remain equal to preflight inventory;
-4. verify no candidate-loaded process or isolated RPC endpoint remains;
-5. preserve sanitized candidate receipts;
-6. remove only owned isolated profile/build scratch after liveness and ownership checks, or retain it with explicit owner note;
-7. report any incomplete restoration as partial rollback and stop.
+Disable if safe; terminate and prove process absence; prove normal settings/executable hashes unchanged; prove no candidate process/RPC endpoint; preserve sanitized receipts; remove only owned scratch after liveness/ownership checks or retain with owner note. Partial rollback stops all work.
 
-H−1/H0/P0 source rollback uses reviewed `git revert` commits in disposable verification worktrees; never reset owner lines.
+Source revert dependency order is P0 -> H0 -> H−1. Verification occurs in disposable worktrees, requires resulting tree equality to the recorded parent and named gates, and never resets branches.
 
 ## B0 preregistration and gates
 
-Before execution, commit and independently review a B0 preregistration with immutable dataset/gold digest, exact strata and balance, dual annotators/adjudicator, runtime/semantic coordinates, recall/false-match/ambiguity/no-match/size/latency/timeout metrics, numerical floors, exclusions, cold/warm policy, and timeout censoring. ROCS owns execution and analysis. No provider/model use.
-
-No B1 task is created unless B0 floors pass.
+Commit/review an immutable preregistration with at least 40 dual-annotated prompts balanced across named strata, dataset/gold digest, adjudicator, exact runtime/semantic coordinates, metrics, numerical floors, exclusions, cold/warm treatment, and timeout censoring. ROCS owns execution/analysis; no provider/model. No B1 task unless floors pass.
 
 ## Evidence and KES closure
 
-AK records exact stage commits/trees/commands/counts/reviews, R1b sanitized before/candidate/rollback receipts and one-request count, and B0 prereg/report identities. A KES-owner task then promotes reviewed learnings and returns an accepted artifact/knowledge ID. Final Decision-98 closure requires reviews for H−1, H0, P0, R1a, R1b, rollback, B0, and KES.
+AK records exact stage identities/commands/counts/reviews, same-process R1b provenance, one-invocation receipt, rollback receipt, and B0 prereg/report. A KES-owner task promotes reviewed learnings and returns an accepted artifact/knowledge ID. Final closure requires reviews for H−1, H0, P0, R1a, R1b, rollback, B0, and KES.
