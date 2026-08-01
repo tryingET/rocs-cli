@@ -62,7 +62,7 @@ Reset, shutdown, disable, stale/expired grant, successful grant replacement, mod
 
 Host, package, deterministic integration, live TUI canary, and empirical work use separate tasks and evidence.
 
-Each task re-pins its owner's then-current default line before mutation. H0 lands first. P0 then either updates the package's Pi development dependency and lock to the accepted H0 API or uses a separately reviewed structural compatibility adapter; it may not pretend the pinned pre-H0 types contain `agent_prompt_ready`. Any dependency/lock update is development-compatibility scope only and must preserve package version, release behavior, and runtime dependency boundaries.
+Each task re-pins its owner's then-current default line before mutation. H0 lands first. P0 preserves package manifests and lockfiles and uses a narrowly reviewed structural compatibility type inside the RFC-authorized source surfaces to describe `agent_prompt_ready`; it may not pretend the pinned pre-H0 peer type already contains that event. Runtime use still fails closed unless the immutable H0 capability token is present. Publishing or rebinding a Pi dependency is outside Decision 98.
 
 ## Consequences
 
@@ -76,7 +76,7 @@ Each task re-pins its owner's then-current default line before mutation. H0 land
 ## Rollout
 
 1. H0 host capability on the current Pi-owner line, with frozen-event, concurrent-token, assignment-order, pre-provider, lifecycle, and compatibility tests.
-2. P0 package implementation on the current live package line, preserving protected entrypoint/release/semantic-delivery surfaces and changing dependency/lock only when the reviewed H0 type binding requires it.
+2. P0 package implementation on the current live package line, preserving manifests, lockfiles, entrypoint, release behavior, and semantic-delivery surfaces; the structural event type stays inside the RFC-authorized state/runtime source.
 3. R1a no-install deterministic host/package integration harness loading exact candidates with a faux provider and no external model use.
 4. R1b separately authorized TUI canary with exactly one pinned provider/model call. It proves exact host/package identity, one configured and loaded package across global/project scopes, unsuffixed command provenance, default-off and terminal/reset states, and exact settings rollback. Prepared is harness-only because live TUI exposes no scheduling boundary for it.
 5. B0 retrieval relevance before B1/B2 behavioral evaluation.
