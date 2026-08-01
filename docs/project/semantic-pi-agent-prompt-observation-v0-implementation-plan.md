@@ -28,13 +28,15 @@ ui.confirm.timeout.v1
 session.shutdown.v1
 ```
 
-It includes current-line context plumbing, restricted project-trust contexts, stale-context guards, shortcut/print/RPC shutdown behavior, confirm countdown semantics, immutable capability identifiers, exports, `docs/extensions.md`, `CHANGELOG.md`, and new focused tests. Do not expand the over-budget runner test. Run a touched-file LOC/byte audit and record owner-scoped brownfield exceptions for unavoidable edits to over-budget host source/docs.
+It includes current-line context plumbing, restricted project-trust contexts, stale-context guards, shortcut/print/RPC shutdown behavior, confirm countdown semantics, immutable capability identifiers, exports, `docs/extensions.md`, `CHANGELOG.md`, and new focused tests `test/host-capabilities.test.ts` and `test/host-capabilities-lifecycle.test.ts`. Do not expand the over-budget runner test.
 
-Exact validation after paths are finalized in the task:
+New files must satisfy code `<=500 LOC/51200 bytes` and tests `<=1000 LOC/81920 bytes` through the same `wc -l`/`wc -c` hard checks used by P0. For unavoidable touched brownfield files—currently `src/modes/interactive/interactive-mode.ts`, `src/core/extensions/runner.ts`, `src/core/extensions/types.ts`, and any existing over-budget test—record exact before/after LOC/bytes and an owner-scoped no-unrelated-growth exception; prefer new focused tests.
+
+Exact validation:
 
 ```bash
 cd <H-1>/packages/coding-agent
-node ../../node_modules/vitest/dist/cli.js --run <new-h1-test-1> <new-h1-test-2>
+node ../../node_modules/vitest/dist/cli.js --run test/host-capabilities.test.ts test/host-capabilities-lifecycle.test.ts
 cd <H-1>
 npm run check
 ./test.sh
@@ -69,7 +71,7 @@ Compatibility semantics:
 - `agent_prompt_ready` is a shallow-frozen envelope containing only immutable strings;
 - isolation claims apply only to outer primitive snapshots, not nested options.
 
-H0 touches bounded capability/event/type/runner/session/exports/docs/changelog surfaces and new focused tests. Avoid growing over-budget tests and record brownfield exceptions for unavoidable source edits.
+H0 touches bounded capability/event/type/runner/session/exports/docs/changelog surfaces and new focused tests. Apply the same numeric new-file budget checks and exact before/after no-unrelated-growth exceptions to unavoidable brownfield files; do not grow over-budget tests.
 
 Exact command form:
 
@@ -137,13 +139,13 @@ DECISION98_P0_PACKAGE_TREE=<tree> \
 node ../../node_modules/vitest/dist/cli.js --run test/decision98-agent-prompt-integration.test.ts
 ```
 
-Exercise unsupported host, disabled/enabled-none/prepared, match/mismatch, reversed overlap, malformed/nonmatching/repeated events, reset, literal output, and ready-before-provider. No settings/install/network/real model. Review the one-file delta and preserve exact R1a commit.
+Exercise disabled/enabled-none/prepared, match/mismatch, reversed overlap, malformed/nonmatching/repeated events, reset, literal output, and ready-before-provider. The unsupported-host case is explicitly package compatibility evidence: the same test directly invokes the loaded package registration/handler with a capability-absent synthetic context; it is not described as an end-to-end H0 host run. No settings/install/network/real model. Review the one-file delta and preserve exact R1a commit.
 
 ## R1b — isolated live TUI deterministic-provider canary
 
 Use source-local H0/P0 candidates; never mutate normal Pi executable or user/project settings. Prepare dependencies with `npm ci --ignore-scripts` under the heavy-job wrapper, record Node/npm/lock/output, then run the explicit offline owner build (`npm run build`) and hash `dist/cli.js` plus required artifacts.
 
-Create one reviewed canary extension at exact R1b source path:
+Create one reviewed R1b source commit whose parent is exact R1a and whose only delta is the canary extension at:
 
 ```text
 packages/coding-agent/examples/extensions/decision98-canary-provider.ts
@@ -174,6 +176,6 @@ Before execution, commit/review an immutable preregistration for at least 40 dua
 
 ## Rollback dependency and completion
 
-When all source stages exist, revert order is P0, then H0, then H−1. Each disposable revert tree must equal its recorded parent and pass named gates; never reset owner lines.
+When all source stages exist, revert the Pi lineage in descendant order: R1b canary source, then R1a harness, then H0, then H−1. P0 is in a separate repository and may revert independently, but must be removed before any integration/runtime verification that assumes it. H0 is never reverted while R1a/R1b descendants remain. Each disposable revert tree must equal its recorded parent and pass named gates; never reset owner lines.
 
 After H−1/H0/P0/R1a/R1b/rollback/B0 acceptance, create a KES-owner task and require reviewed accepted artifact/knowledge ID. Decision-98 closure cites reviews for every stage and KES. B1/B2/publication/defaults/production/fleet remain new work.

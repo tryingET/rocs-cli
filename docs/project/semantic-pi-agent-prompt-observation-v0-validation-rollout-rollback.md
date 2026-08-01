@@ -111,7 +111,7 @@ Mismatch is observed evidence but fails success closure; no same-task investigat
 
 Disable if safe; terminate and prove process absence; prove normal settings/executable hashes unchanged; prove no candidate process/RPC endpoint; preserve sanitized receipts; remove only owned scratch after liveness/ownership checks or retain with owner note. Partial rollback stops all work.
 
-Source revert dependency order is P0 -> H0 -> H−1. Verification occurs in disposable worktrees, requires resulting tree equality to the recorded parent and named gates, and never resets branches.
+Pi-source revert dependency order is R1b canary source -> R1a harness -> H0 -> H−1. P0 reverts independently in `pi-extensions` and must be absent from later integration/runtime verification. H0 never reverts while its R1a/R1b descendants remain. Verification occurs in disposable worktrees, requires resulting tree equality to each recorded parent and named gates, and never resets branches.
 
 ## B0 preregistration and gates
 
