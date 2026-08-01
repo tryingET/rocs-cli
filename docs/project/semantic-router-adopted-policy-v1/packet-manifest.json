@@ -1,0 +1,42 @@
+{
+  "schema": "semantic-router-adopted-policy-v1-packet-manifest-v1",
+  "aggregate_algorithm": "sha256(path<TAB>canonical_decimal_byte_length<TAB>lowercase_sha256<LF> rows in UTF-8 path byte order; no header; final LF included)",
+  "files": [
+    {
+      "path": "docs/project/semantic-router-adopted-policy-v1-evidence-note.md",
+      "bytes": 4101,
+      "sha256": "68f25314ac560eeaaa39067fc4dcaa680f8bb15dcf757b4fd73240c3acb53c00"
+    },
+    {
+      "path": "docs/project/semantic-router-adopted-policy-v1-problem-brief.md",
+      "bytes": 3275,
+      "sha256": "71cd4e12b3ca5b5c84c2f25f2f170515b1bb962e559ec39506ea07b5e44bdb81"
+    },
+    {
+      "path": "docs/project/semantic-router-adopted-policy-v1-review-set-plan.md",
+      "bytes": 3444,
+      "sha256": "029ad89a2e187bc9dbba0718044fe78737bfcb5ec9542f69d1c78e8d18418a18"
+    },
+    {
+      "path": "docs/project/semantic-router-adopted-policy-v1-rfc.md",
+      "bytes": 10115,
+      "sha256": "ffd14a502ee7b5bd706cfb932170d72d33828b961a132ec6c0de4dead7101892"
+    },
+    {
+      "path": "docs/project/semantic-router-adopted-policy-v1-validation-rollout-rollback.md",
+      "bytes": 7979,
+      "sha256": "baacd0c2573642fc055d5a8bea2083ab5052b8db0f1e9dc34f5071a6dfddb1ad"
+    },
+    {
+      "path": "docs/project/semantic-router-adopted-policy-v1/invariants.md",
+      "bytes": 10511,
+      "sha256": "8954fcc1b843038d7bb53663edef0bd671cead4fbc5e8c38f5137dda7036b1e3"
+    },
+    {
+      "path": "docs/project/semantic-router-adopted-policy-v1/protocol.schema.json",
+      "bytes": 11471,
+      "sha256": "f76d9248c644470d4fbf21b53c6c07c139d9f79e9a3aba625332fa522ba0f0f8"
+    }
+  ],
+  "packet_aggregate_sha256": "275597f6acdce553661320928fbbb61ff7dd53362c039e1be3bbcc1baf7ff491"
+}
