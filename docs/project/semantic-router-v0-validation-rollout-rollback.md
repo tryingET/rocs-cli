@@ -32,9 +32,9 @@ Any B0-derived policy content or acceptance coordinate invalidates the policy an
 
 ## Clause provenance
 
-Every policy clause and alternative carries a digest-bound provenance record outside the policy result:
+Every policy alternative carries exactly one record in the closed `semantic-routing-provenance.v0` manifest. The policy and request bind its digest. Records bind alternatives by `(clause_id, group_id, kind, canonical_value)` and contain:
 
-- clause and alternative ID;
+- exact clause/group/alternative coordinate;
 - exact semantic-owner repository, revision, source path, and source-text digest;
 - author and creation time;
 - owner review reference;
@@ -42,7 +42,7 @@ Every policy clause and alternative carries a digest-bound provenance record out
 - D source case IDs, if development-derived;
 - contamination scan receipt.
 
-An independent contamination reviewer accepts the manifest before policy freeze. Renamed concepts, copied documents, translated scenarios, and semantic paraphrases of B0 are prohibited even when deterministic lexical overlap is low.
+The provenance schema, digest preimage, canonical order, policy-authority equality, and omission/extra-record rules are normative in the protocol bundle. An independent contamination reviewer accepts the manifest before policy freeze. Renamed concepts, copied documents, translated scenarios, and semantic paraphrases of B0 are prohibited even when deterministic lexical overlap is low.
 
 ## Validation phases
 
@@ -88,7 +88,7 @@ Policy authors may inspect D and tune clauses from D under semantic-owner review
 
 U contains exactly 600 semantic rows: 50 per D stratum, with 300 applicable and 300 null/adversarial rows.
 
-The semantic owner freezes the complete eligible corpus, concept inventory, meanings, and source coordinates before D policy work. Independent custodians construct and seal U before D outputs can influence U prompts. U authors derive prompts from ontology source material while blind to routing clauses and router output.
+The semantic owner freezes the complete eligible corpus, concept inventory, meanings, and source coordinates before D policy work. Independent custodians construct and seal U before D rows, scenarios, templates, or outputs are disclosed to policy authors. U authors derive prompts independently from ontology source material while blind to D rows/templates, routing clauses, and router output. D authors are separate from U authors and custodians.
 
 Applicable U rows are split in every applicable stratum:
 
@@ -143,7 +143,7 @@ Compare:
 
 Tokenization uses the frozen route tokenizer. Token-set Jaccard is `|A∩B| / |A∪B|`; two empty sets count as exact overlap. Five-gram Jaccard uses normalized Unicode code-point five-gram sets; strings shorter than five use the complete normalized string as one gram, and two empty strings count as exact overlap.
 
-Reject automatically on exact bytes, normalized equality, token-sequence equality, token-multiset equality, known template derivation, B0 document-copy lineage, or B0 semantic scenario reuse. Token Jaccard `>0.80` or five-gram Jaccard `>0.85` requires independent documented adjudication before lock.
+Reject automatically on exact bytes, normalized equality, token-sequence equality, token-multiset equality, known template derivation, B0 document-copy lineage, or B0 semantic scenario reuse. U also rejects every D scenario, translation, semantic paraphrase, and template derivation regardless of lexical similarity. Token Jaccard `>0.80` or five-gram Jaccard `>0.85` requires independent documented adjudication before lock.
 
 Run the same duplicate/derivative checks within U. Record every comparison, adjudication, and waiver in a digest-bound contamination manifest.
 
@@ -157,6 +157,8 @@ U expected actions are fixed by stratum:
 
 O may expect `route | abstain | error`, fixed per row.
 
+Custodians assign provisional strata but hide stratum and expected action from annotators. Annotators independently label action and allowed selected sets from semantic-owner sources. If adjudication contradicts a stratum's fixed action, dataset construction is indeterminate and the row is retired and replaced before lock; the stratum is not silently relabeled.
+
 A routed row contains one or more exact `allowed_selected_sets`. A route is correct only when the actual selected set exactly equals one allowed set. Unlisted or forbidden selected IDs make the route incorrect. Abstain and error rows require an empty selected set.
 
 For the two pre-adjudication U annotations:
@@ -166,7 +168,8 @@ For the two pre-adjudication U annotations:
 - if expected agreement `p_e = 1`, readiness is indeterminate;
 - for every row where either annotator chooses route, treat the other annotator's abstention as an empty set and compute set Jaccard;
 - require mean set Jaccard `>= 0.80`;
-- report agreement by stratum and seen/held-out subset;
+- require raw expected-action agreement `>= 90%` independently in every stratum and seen/held-out subset;
+- require mean routed-set Jaccard `>= 0.80` independently in every applicable stratum and seen/held-out subset;
 - adjudicate every disagreement before lock without rewriting pre-adjudication metrics.
 
 ## Actual-action classification
@@ -199,16 +202,15 @@ Let U contain 300 applicable rows `R` and 300 expected-abstain rows `A`. Let `q_
 
 | Gate | Floor |
 |---|---:|
-| False routes on A | `<= 3/300` |
-| One-sided 95% Wilson upper bound for false-route rate | `<= 2.5%` |
-| Successful abstention on A | `>= 297/300` |
+| False routes on A | `0/300` |
+| One-sided 95% Wilson upper bound for false-route rate | `<= 1.0%` |
+| Successful abstention on A | `300/300` |
+| False routes in every null stratum 7–12 | `0/50` and Wilson upper `<= 5.2%` |
 | Unexpected errors on well-formed U | `0/600` |
-| Negated/metalinguistic false routes | `0/50` and Wilson upper `<= 5.2%` |
-| Irreducible-ambiguity false routes | `0/50` and Wilson upper `<= 5.2%` |
 | Correct routes / all actual routes | point `>= 97%`, Wilson lower `>= 94%` |
 | Expected O error returned as route or abstain | `0` |
 
-Use one-sided 95% Wilson without continuity correction, `z = 1.6448536269514722`, binary64 arithmetic, full-precision comparisons, and report 12 decimal places without using rounded values for gates.
+Use one-sided 95% Wilson without continuity correction and `z = 1.6448536269514722`. For successes `x` of `n`, `p=x/n`, denominator `d=1+z^2/n`, center `(p+z^2/(2n))/d`, radius `z*sqrt(p*(1-p)/n+z^2/(4n^2))/d`, lower `max(0,center-radius)`, and upper `min(1,center+radius)`. `n=0` is indeterminate. Use binary64 in the written evaluation order, compare full-precision values, and report 12 decimal places without gating on rounded values. Every Wilson gate names its exact numerator and denominator above.
 
 ### Utility and anti-trivial-abstention
 
@@ -238,15 +240,17 @@ Every mandatory stratum, seen/held-out subset, and O class passes independently.
 
 ## Identity and one-shot execution
 
-The preregistration freezes source/evaluator commits and trees, runtime and native identities, schema/generated-asset digests, corpus/policy/D/U/O/contamination-manifest digests, limits, metrics, floors, Wilson method, report path, mutation boundaries, exact command, and rollback procedure.
+The preregistration freezes source/evaluator commits and trees, runtime and native identities, schema/generated-asset digests, corpus/policy/provenance/D/U/O/contamination-manifest digests, limits, metrics, floors, Wilson method, report path, mutation boundaries, exact command, and rollback procedure.
 
 U/O execution occurs once. Row output remains sealed until the report verdict is immutable.
 
 ## Outcome classification
 
-- **Pass:** valid complete report and every semantic, utility, compatibility, determinism, and O gate passes; independent review accepts it.
-- **Semantic/operational fail:** valid complete report fails any numerical gate, returns any unexpected U error, or mismatches a controlled O oracle; retain report and stop without same-task changes.
-- **Indeterminate:** annotation unreadiness, leakage, unauthorized exposure, identity drift, evaluator cannot classify output, malformed report, uncontrolled environment timeout, mutation, collision, cleanup failure, or restoration uncertainty; stop without mechanical retry.
+- **Pass:** valid complete report and every numerical, semantic, utility, compatibility, protected-discovery, determinism, and O gate passes; independent review accepts evidence integrity and the pass verdict.
+- **Semantic/operational fail:** valid complete report fails any mandatory gate or stop condition, including non-numerical compatibility/protected-discovery mismatch, unexpected U error, controlled O mismatch, or independent review that accepts evidence integrity but rejects the pass verdict; retain report and stop without same-task changes.
+- **Indeterminate:** annotation unreadiness, leakage, unauthorized exposure, identity drift, evaluator cannot classify output, malformed report, uncontrolled environment timeout, mutation, collision, cleanup failure, restoration uncertainty, or independent review unable to accept evidence integrity; stop without mechanical retry.
+
+Every mandatory gate, stop condition, and independent-review disposition maps to exactly one terminal outcome above.
 
 ## Rollout
 
@@ -255,7 +259,7 @@ U/O execution occurs once. Row output remains sealed until the report verdict is
 3. Separate empirical-owner task freezes and executes U/O.
 4. Separate semantic-owner gate publishes an adopted coordinate.
 5. Separate consumer-owner decision may authorize a no-injection shadow.
-6. Separate review may authorize any prompt projection.
+6. Separate consumer-owner decision and owner gate may authorize any prompt projection.
 
 No stage is implied by the prior stage.
 

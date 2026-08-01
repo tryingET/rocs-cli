@@ -17,6 +17,7 @@ Review the exact aggregate of:
 - `docs/project/semantic-router-v0-validation-rollout-rollback.md`;
 - `docs/project/semantic-router-v0/protocol.schema.json`;
 - `docs/project/semantic-router-v0/invariants.md`;
+- `docs/project/semantic-router-v0/discovery-compatibility-baseline.json`;
 - this review-set plan.
 
 `docs/project/semantic-router-v0/packet-manifest.json` is the derived identity envelope and is not itself in the aggregate.

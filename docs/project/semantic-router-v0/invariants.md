@@ -24,6 +24,7 @@ SHA-256(ASCII(domain-separator) || 0x00 || JCS(preimage))
 | Kind | Domain separator | Preimage |
 |---|---|---|
 | Routing policy | `rocs.routing-policy.v0` | complete policy with `routing_policy_digest` omitted |
+| Routing provenance | `rocs.routing-provenance.v0` | complete provenance manifest with `provenance_manifest_digest` omitted |
 | Caller request | `rocs.route-caller-request.v0` | complete request |
 | Effective execution | `rocs.route-effective-execution.v0` | complete effective execution with `effective_execution_digest` omitted |
 | Route result | `rocs.route-result.v0` | complete result with `result_digest` omitted |
@@ -46,9 +47,9 @@ A policy `token` alternative must already equal exactly one canonical token. A `
 
 ## Policy authority and development boundary
 
-A policy authority object binds exact owner repository, 40-hex Git revision, repository-relative path, source content digest, and owner review reference. These coordinates establish provenance, not adoption by themselves.
+A policy authority object binds exact owner repository, 40-hex Git revision, repository-relative source path, source content digest, and owner review reference. `source_content_digest` is `sha256:` plus lowercase SHA-256 of the exact raw Git blob bytes resolved by `revision:path`; it is not the policy-file digest and has no recursive preimage. These coordinates establish provenance, not adoption by themselves.
 
-Before adopted use, the semantic owner must approve and publish or withdraw the exact coordinate through its owner process. A local path and digest alone never establish semantic authority.
+Adopted use requires a currently published owner-local coordinate and publication receipt for the exact policy, provenance-manifest, corpus, and owner source digests. Owner withdrawal makes the coordinate immediately ineligible for new invocation and triggers the consumer owner's separately authorized deactivation/rollback gate. Withdrawal never satisfies publication eligibility. ROCS records and enforces supplied adopted-coordinate status but does not publish, withdraw, activate, or roll back. A local path and digest alone never establish semantic authority.
 
 Development implementation may use only conspicuously synthetic policies. A synthetic fixture still carries exact repository/revision/path/digest coordinates but cannot claim real-domain authority. Any non-synthetic policy instance requires a separate ontology-owner task and review.
 
@@ -78,6 +79,28 @@ Required emptiness rules:
 - joint-route `support_any`: non-empty;
 - joint-route `exclude_any`: present, possibly empty.
 
+## Provenance manifest binding
+
+The policy contains `provenance_manifest_digest`; the route request contains both expected policy and provenance digests. The exact manifest validates as `semantic-routing-provenance.v0` and its digest uses `rocs.routing-provenance.v0`.
+
+Manifest policy identity and authority coordinates must exactly equal the policy's `policy_id`, owner repository, revision, path, and `source_content_digest`.
+
+Each policy alternative has one stable coordinate:
+
+```text
+(clause_id, group_id, kind, canonical_value)
+```
+
+The provenance manifest contains exactly one record for every policy alternative coordinate and no extra record. Record ordering is clause ID, group ID, kind (`token` before `phrase`), then canonical value, all by UTF-8 bytes after kind. The record source blob digest is computed by the same raw-Git-blob rule as policy authority.
+
+Policy, manifest, request, effective execution, and result provenance digests must all agree. Missing, duplicate, unbound, or mismatched records make the policy invalid.
+
+## Pre-parse request envelope
+
+Before JSON parsing, the CLI reads at most `262,145` bytes from stdin. A route request envelope larger than `262,144` bytes is `invalid_request`. A bounded duplicate-detecting parser enforces absolute pre-request maxima of depth `32` and collection items `20,000` before any request-supplied limit is trusted. Invalid UTF-8, duplicate keys, non-I-JSON numbers, excessive whitespace bytes, unknown structure, depth exhaustion, and item exhaustion fail safely without consulting request fields.
+
+The same absolute pre-parse discipline applies independently to policy and provenance files, using the hard protocol maxima before their internal limits or identities are trusted.
+
 ## Resource accounting
 
 All schema maxima apply simultaneously. In addition:
@@ -96,19 +119,21 @@ Resource exhaustion is an error. It never becomes abstention.
 
 ## Filesystem capture
 
-The CLI accepts an existing `--routing-policy-root` directory and a root-relative policy path.
+The CLI accepts an existing `--routing-policy-root` directory plus root-relative policy and provenance-manifest paths. Both files use the same anchored capture contract.
 
 - Open and retain an `O_DIRECTORY|O_NOFOLLOW` root descriptor.
 - Reject absolute paths, `..`, empty segments, NUL, and path components not representable as UTF-8.
 - Open every intermediate component relative to the retained descriptor with `O_DIRECTORY|O_NOFOLLOW`.
 - Open the final component with `O_RDONLY|O_NOFOLLOW`.
 - Require a regular file.
-- Read at most `policy_bytes + 1` bytes.
+- Read each file at most its hard protocol byte maximum plus one byte.
 - Record device, inode, mode, size, mtime-ns, and content digest before parsing.
 - Recheck the open descriptor and anchored path after execution.
 - Any identity or content change is `snapshot_changed`.
 
 Policy and corpus roots must be isolated. No network resolver exists. Ref resolution is disabled by default; any future ref mode requires a workspace root argument and strict mode under separate authorization.
+
+The router schema registry is a fixed offline map. The canonical discovery schema ID `https://ai-society.local/rocs/semantic-discovery-v0/protocol.schema.json` resolves only to the protected checked-in discovery schema and its generated embedded copy. Unknown IDs and every network resolution attempt fail closed.
 
 ## Derived discovery request
 
@@ -136,6 +161,8 @@ The nested result must satisfy:
 
 There is no digest-only lexical reference and no derived score-zero discovery candidate.
 
+Route effective execution and result both bind the exact provenance-manifest digest supplied by the request and validated against the policy.
+
 ## Clause matching and witnesses
 
 A group matches when at least one alternative matches. A clause matches when every group matches. A `*_any` collection matches when at least one clause matches.
@@ -158,6 +185,14 @@ Within each evidence object witnesses are ordered by `group_id`. Evidence object
 5. `clause_id` UTF-8 bytes.
 
 Support and exclusion clause-ID arrays are UTF-8 sorted and duplicate-free. Supported, conflicted, and selected ontology-ID arrays are UTF-8 sorted and duplicate-free.
+
+Evidence scope coordinates are closed:
+
+- `domain`: `ont_id` and `joint_route_id` are null;
+- `concept`: `ont_id` is a valid policy concept and `joint_route_id` is null;
+- `joint_route`: `ont_id` is null and `joint_route_id` is a valid policy joint-route ID.
+
+Every evidence clause belongs to the stated policy scope and polarity. Every witness group belongs to that clause. Every witness kind/value is an exact alternative in that group, and its span matches the query token sequence. The evidence array contains exactly one object for every matched positive and exclusion clause used to derive domain, concept, and evaluated joint-route state, with no omission, duplicate, or extra object. Admission clause arrays exactly equal matched domain evidence IDs. Supported/conflicted arrays exactly equal policy evaluation. A fabricated or misattributed evidence object invalidates the result.
 
 ## Admission matrix
 

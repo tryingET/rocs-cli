@@ -1,0 +1,41 @@
+{
+  "schema": "semantic-router-v0-discovery-compatibility-baseline-v1",
+  "base_commit": "0a9d9eed00c4c2875d6a7dd870b8978032c95875",
+  "base_tree": "a55c5dc00dce05a9ee4a5d12179f4daa2b2c1c8f",
+  "protected_files": [
+    {"path": "docs/project/semantic-discovery-v0/differential-fixtures.json", "sha256": "b6aee4c0486a5ae370ff6382a369c7d1263900b2e9d81a74e83937f0b8f81baf"},
+    {"path": "docs/project/semantic-discovery-v0/golden-fixtures.json", "sha256": "f79db9a05d1cb2335aaac00c167f27fdd56025fc308f237a6c73403e0be287c7"},
+    {"path": "docs/project/semantic-discovery-v0/invariants.md", "sha256": "65e010cba4d5afd0e5f31749d0b96dab38b04b283a243536330df3bab99d3811"},
+    {"path": "docs/project/semantic-discovery-v0/protocol.schema.json", "sha256": "d313090193f08bb37b8f5821fb569c877ddc02402687ec8f959d9ddfe75543e3"},
+    {"path": "src/rocs_cli/_semantic_discovery_schema.py", "sha256": "0bd81f906be4f411b786cad006ef69945d3e361db33059ec03b923850331c9ae"},
+    {"path": "src/rocs_cli/cli_semantic_discovery.py", "sha256": "e07a7ff5a999752323870c637b67a10cd308573beb376a0db54f79f735085f79"},
+    {"path": "src/rocs_cli/discovery.py", "sha256": "3778ffe4aaae9e2f9631445a5ae6416c83ca88c2b6ba8bb21601d599b7227ca6"},
+    {"path": "src/rocs_cli/semantic_invariants.py", "sha256": "3bac80552ac7bcefeff9f92d7320c507cff207a3e678780d20b9d2250df69362"},
+    {"path": "src/rocs_cli/semantic_protocol.py", "sha256": "1bee8311b32f77b4d078083bc501a05c6d74b4ee65a520e6d8cf7e0fbb2a8e10"},
+    {"path": "src/rocs_cli/semantic_snapshot.py", "sha256": "21225c2a546c473e16f83d88204d9b4fba2bab102504ba5c55a50cc4d5e6ec8b"},
+    {"path": "tests/test_semantic_discovery_cli.py", "sha256": "6230036d58e42fc06561b6457b685e6c48e08ad54b09762aba33a9f17bfca263"},
+    {"path": "tests/verify_semantic_golden.mjs", "sha256": "19f7f4b4ae0ef8acb55a32766a9d5fea4b57c81ce3e89d59d42a1994f2b64bc6"}
+  ],
+  "behavior_vectors": [
+    {
+      "id": "discover-capabilities-json",
+      "command": "env -i PATH=/usr/bin:/bin LANG=C.UTF-8 LC_ALL=C.UTF-8 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=<candidate>/src <python> -m rocs_cli discover-capabilities --json",
+      "expected_exit": 0,
+      "stdout_sha256": "797451bbb1280e44c9f917da0cf61fad6430858306c4afd3da1512e5ff57d2e3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "independent-node-golden",
+      "command": "node tests/verify_semantic_golden.mjs",
+      "expected_exit": 0,
+      "stdout_sha256": "76e9e20a60731dde2ea635e278a5f056553f79dc9a64dcae90bd282f66b58033",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "direct-discovery-cli-contract",
+      "command": "python -m unittest tests.test_semantic_discovery_cli -q",
+      "expected_exit": 0,
+      "semantic_oracle": "tests/test_semantic_discovery_cli.py at its protected SHA-256; timing-bearing harness stdout is not byte-compared"
+    }
+  ]
+}

@@ -60,9 +60,11 @@ The schema and invariant document close the object shapes, digest preimages, ord
 
 AK records authority movement; it does not own rollout or rollback behavior. A local file path and digest prove byte identity, not semantic-owner approval.
 
+Adopted use requires a currently published semantic-owner coordinate and publication receipt binding policy, provenance manifest, corpus, and owner source. Owner withdrawal makes the coordinate ineligible for new invocation and triggers the consumer owner's separately authorized deactivation/rollback gate; withdrawal never counts as publication eligibility.
+
 ## Development policy boundary
 
-ROCS development may use only conspicuously synthetic policies carrying exact repository, revision, path, content digest, and review-reference coordinates. Synthetic fixtures assert grammar behavior, not real-domain authority.
+ROCS development may use only conspicuously synthetic policies carrying exact repository, revision, path, raw source-content digest, review reference, and provenance-manifest digest. Synthetic fixtures assert grammar behavior, not real-domain authority.
 
 Any non-synthetic policy requires:
 
@@ -78,6 +80,7 @@ New schemas:
 
 - `semantic-route-request.v0`;
 - `semantic-routing-policy.v0`;
+- `semantic-routing-provenance.v0`;
 - `semantic-route-effective-execution.v0`;
 - `semantic-route-result.v0`;
 - `semantic-route-capabilities.v0`;
@@ -97,7 +100,7 @@ The closed request contains:
 - schema and raw query;
 - corpus identity selector and profile;
 - exact router and candidate algorithms;
-- mandatory expected routing-policy digest;
+- mandatory expected routing-policy and provenance-manifest digests;
 - separate discovery and route limits.
 
 The router derives the legacy discovery request mechanically as specified in the invariants.
@@ -109,13 +112,14 @@ rocs route \
   --repo <corpus-root> \
   --routing-policy-root <existing-local-directory> \
   --routing-policy <root-relative-file> \
+  --routing-provenance <root-relative-file> \
   --request-json - \
   --tool-kind development_runtime \
   --tool-manifest-digest sha256:<digest> \
   --json --no-index-cache --no-env-file
 ```
 
-Automatic use is stdin-only. Policy capture is descriptor-anchored and no-follow. Ref resolution is disabled. Any future ref support requires explicit workspace root, strict mode, and separate authorization. No network resolver exists.
+Automatic use is stdin-only. The raw request is capped at 262,144 bytes and parsed under absolute depth/item limits before request fields are trusted. Policy and provenance capture are descriptor-anchored and no-follow. Ref resolution is disabled. Any future ref support requires explicit workspace root, strict mode, and separate authorization. No network resolver exists.
 
 ## Routing policy
 
@@ -124,6 +128,7 @@ The closed policy binds:
 - policy identity;
 - Unicode, normalization, and sequence-tokenization coordinates;
 - exact provenance/owner coordinates;
+- exact provenance-manifest digest with one mechanically bound record per alternative;
 - domain positive and exclusion clauses;
 - per-concept positive and exclusion clauses;
 - explicit joint routes;
@@ -194,6 +199,7 @@ No lexical score influences steps 5–11.
 The result contains:
 
 - route request, corpus, policy, tool, algorithm, and effective-execution identities;
+- exact provenance-manifest identity;
 - admission state/reason and clause evidence;
 - routing state/reason, supported/conflicted/selected IDs, and joint-route identity;
 - deterministic witnesses;
@@ -230,15 +236,7 @@ The inherited discovery limits remain independently bounded. The invariant docum
 
 ## Protected compatibility inventory
 
-The following discovery-v0 surfaces must remain byte-identical in the implementation candidate:
-
-- `docs/project/semantic-discovery-v0/protocol.schema.json`;
-- `src/rocs_cli/_semantic_discovery_schema.py`;
-- existing discovery golden fixtures;
-- existing discovery differential fixtures;
-- existing `discover-capabilities` payload bytes;
-- existing direct `rocs discover` stdout, stderr, and exit behavior for the frozen compatibility corpus;
-- existing discovery digest separators and preimages.
+`docs/project/semantic-router-v0/discovery-compatibility-baseline.json` freezes the exact base commit, protected path/hash inventory, capability command/output hash, golden verifier, and direct-discovery behavior vectors. Every protected file and receipt must match in the implementation candidate. Existing discovery digest separators and preimages remain unchanged.
 
 New route support uses a separate schema bundle and generated embedding. Additive changes to global `rocs --help`, README command listings, and `rocs contracts` are allowed and are not direct-discovery compatibility failures. Existing discovery capabilities gain no route values.
 
@@ -255,7 +253,7 @@ Later stages require separate owner tasks:
 3. one-shot U/O execution and review;
 4. semantic-owner publication/adoption;
 5. consumer-owner no-injection shadow authorization;
-6. separate prompt-projection decision.
+6. separate consumer-owner prompt-projection decision and owner gate.
 
 No stage is implied by the previous stage.
 

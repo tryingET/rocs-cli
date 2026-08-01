@@ -125,6 +125,7 @@
         "router_algorithm",
         "candidate_algorithm",
         "expected_routing_policy_digest",
+        "expected_provenance_manifest_digest",
         "discovery_limits",
         "route_limits"
       ],
@@ -136,6 +137,7 @@
         "router_algorithm": {"const": "rocs-symbolic-router-v0"},
         "candidate_algorithm": {"const": "rocs-lexical-v0"},
         "expected_routing_policy_digest": {"$ref": "#/$defs/digest"},
+        "expected_provenance_manifest_digest": {"$ref": "#/$defs/digest"},
         "discovery_limits": {"$ref": "#/$defs/discoveryLimits"},
         "route_limits": {"$ref": "#/$defs/routeLimits"}
       }
@@ -250,6 +252,7 @@
         "normalization",
         "tokenization",
         "authority",
+        "provenance_manifest_digest",
         "domain",
         "concepts",
         "joint_routes",
@@ -264,16 +267,17 @@
         "authority": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["owner_repo", "revision", "path", "content_digest", "review_ref"],
+          "required": ["owner_repo", "revision", "path", "source_content_digest", "review_ref"],
           "properties": {
             "owner_repo": {"type": "string", "minLength": 1, "maxLength": 512},
             "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
             "path": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^\\u0000]+$"},
-            "content_digest": {"$ref": "#/$defs/digest"},
+            "source_content_digest": {"$ref": "#/$defs/digest"},
             "review_ref": {"type": "string", "minLength": 1, "maxLength": 1024}
           }
         },
         "domain": {"$ref": "#/$defs/domainPolicy"},
+        "provenance_manifest_digest": {"$ref": "#/$defs/digest"},
         "concepts": {
           "type": "array",
           "minItems": 1,
@@ -286,6 +290,75 @@
           "items": {"$ref": "#/$defs/jointRoute"}
         },
         "routing_policy_digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "provenanceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clause_id",
+        "group_id",
+        "kind",
+        "value",
+        "source_owner_repo",
+        "source_revision",
+        "source_path",
+        "source_content_digest",
+        "author",
+        "created_at",
+        "review_ref",
+        "b0_exposure",
+        "development_case_ids",
+        "contamination_scan_receipt"
+      ],
+      "properties": {
+        "clause_id": {"$ref": "#/$defs/identifier"},
+        "group_id": {"$ref": "#/$defs/identifier"},
+        "kind": {"enum": ["token", "phrase"]},
+        "value": {"type": "string", "minLength": 1, "maxLength": 256},
+        "source_owner_repo": {"type": "string", "minLength": 1, "maxLength": 512},
+        "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "source_path": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^\\u0000]+$"},
+        "source_content_digest": {"$ref": "#/$defs/digest"},
+        "author": {"type": "string", "minLength": 1, "maxLength": 256},
+        "created_at": {"type": "string", "format": "date-time"},
+        "review_ref": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "b0_exposure": {"enum": ["confirmed", "possible", "disproven"]},
+        "development_case_ids": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "contamination_scan_receipt": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "provenanceManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "policy_id",
+        "policy_owner_repo",
+        "policy_revision",
+        "policy_path",
+        "policy_source_content_digest",
+        "records",
+        "provenance_manifest_digest"
+      ],
+      "properties": {
+        "schema": {"const": "semantic-routing-provenance.v0"},
+        "policy_id": {"$ref": "#/$defs/identifier"},
+        "policy_owner_repo": {"type": "string", "minLength": 1, "maxLength": 512},
+        "policy_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "policy_path": {"type": "string", "minLength": 1, "maxLength": 1024, "pattern": "^[^\\u0000]+$"},
+        "policy_source_content_digest": {"$ref": "#/$defs/digest"},
+        "records": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16384,
+          "items": {"$ref": "#/$defs/provenanceRecord"}
+        },
+        "provenance_manifest_digest": {"$ref": "#/$defs/digest"}
       }
     },
     "toolIdentity": {
@@ -321,6 +394,7 @@
         "corpus_snapshot_digest",
         "routing_policy_digest",
         "tool_identity",
+        "provenance_manifest_digest",
         "algorithm",
         "discovery_limits",
         "route_limits",
@@ -333,6 +407,7 @@
         "corpus_snapshot_digest": {"$ref": "#/$defs/digest"},
         "routing_policy_digest": {"$ref": "#/$defs/digest"},
         "tool_identity": {"$ref": "#/$defs/toolIdentity"},
+        "provenance_manifest_digest": {"$ref": "#/$defs/digest"},
         "algorithm": {"$ref": "#/$defs/routeAlgorithm"},
         "discovery_limits": {"$ref": "#/$defs/discoveryLimits"},
         "route_limits": {"$ref": "#/$defs/routeLimits"},
@@ -450,6 +525,7 @@
         "corpus_snapshot_digest",
         "routing_policy_digest",
         "tool_identity",
+        "provenance_manifest_digest",
         "effective_execution_digest",
         "algorithm",
         "admission",
@@ -464,6 +540,7 @@
         "corpus_snapshot_digest": {"$ref": "#/$defs/digest"},
         "routing_policy_digest": {"$ref": "#/$defs/digest"},
         "tool_identity": {"$ref": "#/$defs/toolIdentity"},
+        "provenance_manifest_digest": {"$ref": "#/$defs/digest"},
         "effective_execution_digest": {"$ref": "#/$defs/digest"},
         "algorithm": {"$ref": "#/$defs/routeAlgorithm"},
         "admission": {"$ref": "#/$defs/admission"},
@@ -474,7 +551,7 @@
           "items": {"$ref": "#/$defs/routeEvidence"}
         },
         "discovery_result": {
-          "$ref": "../semantic-discovery-v0/protocol.schema.json#/$defs/result"
+          "$ref": "https://ai-society.local/rocs/semantic-discovery-v0/protocol.schema.json#/$defs/result"
         },
         "result_digest": {"$ref": "#/$defs/digest"}
       }
@@ -522,6 +599,7 @@
         "schema",
         "request_schemas",
         "policy_schemas",
+        "provenance_schemas",
         "result_schemas",
         "error_schemas",
         "router_algorithms",
@@ -535,6 +613,7 @@
         "schema": {"const": "semantic-route-capabilities.v0"},
         "request_schemas": {"const": ["semantic-route-request.v0"]},
         "policy_schemas": {"const": ["semantic-routing-policy.v0"]},
+        "provenance_schemas": {"const": ["semantic-routing-provenance.v0"]},
         "result_schemas": {"const": ["semantic-route-result.v0"]},
         "error_schemas": {"const": ["semantic-route-error.v0"]},
         "router_algorithms": {"const": ["rocs-symbolic-router-v0"]},
@@ -549,6 +628,7 @@
   "oneOf": [
     {"$ref": "#/$defs/routeRequest"},
     {"$ref": "#/$defs/routingPolicy"},
+    {"$ref": "#/$defs/provenanceManifest"},
     {"$ref": "#/$defs/routeEffectiveExecution"},
     {"$ref": "#/$defs/routeResult"},
     {"$ref": "#/$defs/routeErrorEnvelope"},
