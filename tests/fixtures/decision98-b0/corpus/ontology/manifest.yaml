@@ -1,0 +1,9 @@
+rocs:
+  layers:
+  - name: core
+    path: ontology/src
+  profiles:
+    default: review
+    review:
+      include_layers:
+      - core
