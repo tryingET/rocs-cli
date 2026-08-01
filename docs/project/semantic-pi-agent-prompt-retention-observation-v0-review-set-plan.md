@@ -6,57 +6,37 @@ type: "review_set_plan"
 status: "proposed"
 decision_id: 98
 ---
-# Review-set plan — Pi agent-prompt retention observation v0
+# Review-set plan — Pi agent-prompt observation v0
 
 ## Frozen review target
 
-Review the problem brief, evidence note, RFC, and this plan at one exact commit and aggregate digest. All lanes inspect identical bytes.
+Freeze one Git commit. The aggregate is SHA-256 over raw Git-object bytes concatenated with no delimiter in this exact order:
+
+1. `semantic-pi-agent-prompt-retention-observation-v0-problem-brief.md`;
+2. `semantic-pi-agent-prompt-retention-observation-v0-evidence-note.md`;
+3. `semantic-pi-agent-prompt-retention-observation-v0-rfc.md`;
+4. `semantic-pi-agent-prompt-retention-observation-v0-review-set-plan.md`.
+
+All lanes reproduce the commit, individual blobs, order, and aggregate.
 
 ## Required lanes
 
-### Pi component and host-seam lane
+### Pi component and host-contract lane
 
-Verify:
-
-- current Pi event ordering and `getSystemPrompt()` semantics;
-- correlation of Decision-89 preparation with `agent_start`;
-- no second `before_agent_start` handler and no host change;
-- state transitions, lifecycle clearing, retries, replacement, and concurrency;
-- implementability on the live `pi-ontology-workflows` lineage.
+Verify event/token contract, overlap safety, assignment/readback ordering, exact-match semantics, compatibility capability, host and package implementability, and deterministic faux-provider harness feasibility.
 
 ### Governance, security, and claim lane
 
-Verify:
-
-- no provider/model/transmission/authenticity overclaim;
-- digest equality is not treated as provenance;
-- default-off TUI grant and bounded readback;
-- no prompt text, path, secret, session content, or durable state leaks;
-- installation, provider/model use, publication, and production remain separately gated.
+Verify no provider/model/contribution-survival overclaim; no public token or prompt fingerprint; default-off consent; explicit owner boundaries; exact settings rollback; and separate runtime/provider/model authority.
 
 ### Product-value and debt lane
 
-Verify:
-
-- the observation answers an operator-useful question;
-- one slot and one additional lifecycle hook are proportionate;
-- no IDs, allocator, queue, history, persistence, or public evidence API;
-- B0/B1/B2 evaluation remains distinct from engineering observability;
-- rollback and deletion remain straightforward.
+Verify deterministic operator states, loaded-source proof, extracted package design below file budgets, B0/B1/B2 separation, live-canary requirements, proportional one-slot state, and deletion/rollback simplicity.
 
 ## Verdicts
 
-Each lane returns exactly one:
-
-- `ready_for_adr`;
-- `revise_rfc`;
-- `reject_direction`.
-
-Any blocker or unresolved material finding prevents ADR opening. A controlling synthesis cites all lane outputs and the exact frozen aggregate.
+Each lane returns exactly `ready_for_adr`, `revise_rfc`, or `reject_direction`. Any blocker or unresolved material finding prevents ADR opening. One controlling synthesis cites all lane outputs and the frozen aggregate.
 
 ## Review integrity
 
-- read-only review;
-- no implementation, install, reload, dogfood, provider/model call, publication, or AK lifecycle movement by reviewers;
-- review reports are evidence inputs, not authority until attached through AK;
-- later implementation must use a fresh package-owner task and then a separate runtime/dogfood task.
+Review is read-only. Reviewers do not implement, install, reload, dogfood, call providers/models, publish, or move AK lifecycle state. Later host, package, and runtime actions use separate owner tasks.
