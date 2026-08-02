@@ -7,75 +7,90 @@ import subprocess
 import unittest
 
 from rocs_cli.semantic_adopted_execution import (
-    ERROR_KINDS,
-    execution_verification_bytes,
-    execution_verification_result,
-    verify_execution_projection,
+    ERROR_KINDS, execution_verification_bytes, execution_verification_result,
+    verify_execution_bundle,
 )
-from rocs_cli.semantic_adopted_protocol import jcs_bytes
+from rocs_cli.semantic_adopted_protocol import jcs_bytes, validate_protocol
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "tests/fixtures/semantic-adopted-policy-v1/execution-corpus.json"
 NODE = ROOT / "tests/verify_semantic_adopted_execution.mjs"
-BRANCHES = (
-    "not_started_no_proof", "not_started_proof_only", "not_started_launch_ready",
-    "interrupted_before_handoff", "interrupted_after_handoff",
-    "interrupted_receipt_zero_pass", "interrupted_primary", "completed_repeat",
-)
 
 
-class AdoptedExecutionTests(unittest.TestCase):
+def mutate(base, operations):
+    value = copy.deepcopy(base)
+    for operation in operations:
+        current = value
+        tokens = operation["path"].split("/")
+        for token in tokens[:-1]:
+            current = current[int(token)] if isinstance(current, list) else current[token]
+        if operation["op"] != "set":
+            raise AssertionError("closed mutation operation")
+        current[tokens[-1]] = copy.deepcopy(operation["value"])
+    return value
+
+
+class ActualAdoptedExecutionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.corpus = json.loads(CORPUS.read_text("utf-8"))
+        cls.base = next(case["bundle"] for case in cls.corpus["cases"] if case["name"] == "branch_7_valid")
 
-    def test_closed_inventory_and_every_corpus_projection(self):
-        self.assertEqual(tuple(self.corpus["error_kinds"]), ERROR_KINDS)
+    def bundle(self, case):
+        return case.get("bundle") or mutate(self.base, case["operations"])
+
+    def test_corpus_contains_actual_schema_objects_and_closed_results(self):
+        self.assertEqual(self.corpus["schema"], "semantic-adopted-execution-actual-corpus.v2")
         observed = set()
         for case in self.corpus["cases"]:
             with self.subTest(case=case["name"]):
-                before = copy.deepcopy(case["projection"])
-                actual = verify_execution_projection(case["projection"])
+                bundle = self.bundle(case)
+                self.assertIn("semantic-routing-policy-execution-attempt.v1", jcs_bytes(bundle).decode())
+                before = copy.deepcopy(bundle)
+                actual = verify_execution_bundle(bundle)
                 self.assertEqual(actual, tuple(case["expected_error_kinds"]))
-                self.assertEqual(case["projection"], before)
+                self.assertEqual(bundle, before)
                 self.assertTrue(set(actual) <= set(ERROR_KINDS))
                 observed.update(actual)
-        self.assertEqual(observed, set(ERROR_KINDS))
+        self.assertTrue({"schema_invalid", "digest_mismatch", "signature_invalid", "history_invalid", "ordering_invalid"} <= observed)
 
-    def test_all_eight_attempt_verdict_prefixes_are_covered(self):
+    def test_all_eight_schema_branches_and_completed_fail_are_lawful(self):
         by_name = {case["name"]: case for case in self.corpus["cases"]}
-        self.assertEqual(len(BRANCHES), 8)
-        for name in BRANCHES:
-            self.assertIn(name, by_name)
-            self.assertEqual(verify_execution_projection(by_name[name]["projection"]), ())
+        for index in range(8):
+            bundle = by_name[f"branch_{index}_valid"]["bundle"]
+            self.assertFalse(validate_protocol(bundle["attempt"]))
+            self.assertFalse(validate_protocol(bundle["verdict"]))
+            self.assertEqual(verify_execution_bundle(bundle), ())
+        failed = by_name["completed_fail_valid"]["bundle"]
+        self.assertEqual(failed["attempt"]["attempt_state"], "completed")
+        self.assertEqual(failed["verdict"]["outcome"], "fail")
+        self.assertEqual(verify_execution_bundle(failed), ())
 
-    def test_boundaries_ordering_single_process_no_retry_and_closure_are_adversarial(self):
-        by_name = {case["name"]: case for case in self.corpus["cases"]}
-        groups = {
-            "history_boundary": ("base_over_254", "activated_not_successor", "terminal_over_256"),
-            "reservation_process": ("no_reservation", "two_processes"),
-            "custody_order": ("launch_before_channel", "handoff_before_launch", "receipt_same_time_as_handoff", "closure_before_receipt"),
-            "retry_rerun_forbidden": ("retry_forbidden", "rerun_forbidden"),
-            "closure_required": ("not_closed", "closure_missing"),
-        }
-        for kind, names in groups.items():
-            for name in names:
-                with self.subTest(kind=kind, case=name):
-                    self.assertIn(kind, verify_execution_projection(by_name[name]["projection"]))
-        maximum = by_name["completed_repeat"]["projection"]["history"]
-        minimum = by_name["minimum_history_valid"]["projection"]["history"]
-        self.assertEqual(maximum, {"base": 254, "activated": 255, "terminal": 256})
-        self.assertEqual(minimum, {"base": 12, "activated": 13, "terminal": 14})
-
-    def test_result_bytes_are_canonical_and_node_is_byte_identical(self):
-        results = []
-        for case in self.corpus["cases"]:
-            result = execution_verification_result(case["projection"])
-            self.assertEqual(execution_verification_bytes(case["projection"]), jcs_bytes(result))
-            results.append(result)
-        completed = subprocess.run(
-            ["node", str(NODE)], cwd=ROOT, check=True, capture_output=True,
+    def test_exact_histories_and_adversarial_negatives(self):
+        verdict = self.base["verdict"]
+        lengths = (
+            len(verdict["preregistration"]["access_history"]["events"]),
+            len(verdict["protected_access_activation"]["activated_access_history"]["events"]),
+            len(verdict["protected_access_closure"]["terminal_access_history"]["events"]),
         )
+        self.assertEqual(lengths, (12, 13, 14))
+        maximum = next(case["bundle"] for case in self.corpus["cases"] if case["name"] == "history_boundary_254_255_256_valid")["verdict"]
+        self.assertEqual((len(maximum["preregistration"]["access_history"]["events"]), len(maximum["protected_access_activation"]["activated_access_history"]["events"]), len(maximum["protected_access_closure"]["terminal_access_history"]["events"])), (254, 255, 256))
+        by_name = {case["name"]: case for case in self.corpus["cases"]}
+        expected = {
+            "wrong_signer": "signature_invalid", "direct_descriptor_transfer": "schema_invalid",
+            "retry_forbidden": "schema_invalid", "rerun_forbidden": "schema_invalid",
+            "retained_process": "schema_invalid", "fake_history": "history_invalid",
+            "expired_handoff": "ordering_invalid", "b0_ten_not_plus_one": "contamination_invalid",
+        }
+        for name, kind in expected.items():
+            self.assertIn(kind, verify_execution_bundle(self.bundle(by_name[name])))
+
+    def test_node_independently_recomputes_byte_identical_results(self):
+        results = [execution_verification_result(self.bundle(case)) for case in self.corpus["cases"]]
+        for case, result in zip(self.corpus["cases"], results):
+            self.assertEqual(execution_verification_bytes(self.bundle(case)), jcs_bytes(result))
+        completed = subprocess.run(["node", str(NODE)], cwd=ROOT, check=True, capture_output=True)
         self.assertEqual(completed.stderr, b"")
         self.assertEqual(completed.stdout, jcs_bytes(results) + b"\n")
 

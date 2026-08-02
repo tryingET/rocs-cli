@@ -1,92 +1,38 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const corpus = JSON.parse(fs.readFileSync(path.join(root, "tests/fixtures/semantic-adopted-policy-v1/execution-corpus.json"), "utf8"));
-const errors = [
-  "projection_invalid", "principal_separation", "b0_coverage", "history_boundary",
-  "reservation_process", "custody_order", "attempt_verdict_branch",
-  "retry_rerun_forbidden", "closure_required",
-];
-const roles = [
-  "semantic_owner", "policy_author", "development_author", "acceptance_author",
-  "operational_author", "annotator", "annotator", "adjudicator", "custodian",
-  "independent_reviewer", "evaluator_operator", "implementer",
-];
-const keys = [
-  "principals", "b0_covered_principals", "b0_assessor_principal", "history",
-  "reservation_count", "process_invocations", "attempt_state", "passes", "outcome",
-  "timeline", "retry_count", "rerun_count", "closed",
-];
-const timelineKeys = ["proof", "channel", "launch", "handoff", "receipt", "closure"];
-const branches = [
-  [[false, false, false, false, false], 0, [], "not_started", "indeterminate"],
-  [[true, false, false, false, false], 0, [], "not_started", "indeterminate"],
-  [[true, true, true, false, false], 0, [], "not_started", "indeterminate"],
-  [[true, true, true, false, false], 1, [], "interrupted", "indeterminate"],
-  [[true, true, true, true, false], 1, [], "interrupted", "indeterminate"],
-  [[true, true, true, true, true], 1, [], "interrupted", "indeterminate"],
-  [[true, true, true, true, true], 1, ["primary"], "interrupted", "indeterminate"],
-  [[true, true, true, true, true], 1, ["primary", "immediate_repeat"], "completed", "pass"],
-];
-
-function canonical(value) {
-  if (value === null || typeof value === "boolean" || typeof value === "number" || typeof value === "string") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`;
-}
-const exactKeys = (value, expected) => value && typeof value === "object" && !Array.isArray(value)
-  && canonical(Object.keys(value).sort()) === canonical([...expected].sort());
-const integer = (value) => Number.isSafeInteger(value);
-function shapeValid(value) {
-  if (!exactKeys(value, keys) || !Array.isArray(value.principals)) return false;
-  if (!value.principals.every((item) => exactKeys(item, ["role", "principal_id"])
-      && typeof item.role === "string" && typeof item.principal_id === "string")) return false;
-  if (!Array.isArray(value.b0_covered_principals)
-      || !value.b0_covered_principals.every((item) => typeof item === "string")
-      || typeof value.b0_assessor_principal !== "string") return false;
-  if (!exactKeys(value.history, ["base", "activated", "terminal"])
-      || !Object.values(value.history).every(integer)) return false;
-  if (!exactKeys(value.timeline, timelineKeys)
-      || !Object.values(value.timeline).every((item) => item === null || integer(item))) return false;
-  if (!["reservation_count", "process_invocations", "retry_count", "rerun_count"].every((key) => integer(value[key]))) return false;
-  return typeof value.attempt_state === "string" && Array.isArray(value.passes)
-    && value.passes.every((item) => typeof item === "string")
-    && typeof value.outcome === "string" && typeof value.closed === "boolean";
-}
-function verify(value) {
-  if (!shapeValid(value)) return ["projection_invalid"];
-  const found = [];
-  const ids = value.principals.map((item) => item.principal_id);
-  if (value.principals.length !== 12
-      || canonical(value.principals.map((item) => item.role)) !== canonical(roles)
-      || ids.some((item) => !item) || new Set(ids).size !== 12) found.push("principal_separation");
-  const covered = value.b0_covered_principals;
-  if (covered.length !== 10 || new Set(covered).size !== 10 || covered.includes(value.b0_assessor_principal)
-      || !ids.includes(value.b0_assessor_principal) || covered.some((item) => !ids.includes(item))) found.push("b0_coverage");
-  const h = value.history;
-  if (!(h.base >= 12 && h.base <= 254 && h.activated === h.base + 1
-      && h.activated <= 255 && h.terminal === h.activated + 1 && h.terminal <= 256)) found.push("history_boundary");
-  if (value.reservation_count !== 1 || ![0, 1].includes(value.process_invocations)) found.push("reservation_process");
-  const present = timelineKeys.slice(0, 5).map((key) => value.timeline[key] !== null);
-  const ordered = timelineKeys.map((key) => value.timeline[key]).filter((item) => item !== null);
-  if (ordered.some((item) => item < 0) || new Set(ordered).size !== ordered.length || ordered.some((item, index) => index && item < ordered[index - 1])) found.push("custody_order");
-  const actual = [present, value.process_invocations, value.passes, value.attempt_state, value.outcome];
-  if (!branches.some((branch) => canonical(branch) === canonical(actual))) found.push("attempt_verdict_branch");
-  if (value.retry_count !== 0 || value.rerun_count !== 0) found.push("retry_rerun_forbidden");
-  if (!value.closed || value.timeline.closure === null) found.push("closure_required");
-  return found;
-}
-
-assert.equal(corpus.schema, "semantic-adopted-execution-corpus.v1");
-assert.deepEqual(corpus.error_kinds, errors);
-const results = corpus.cases.map((testCase) => {
-  const errorKinds = verify(testCase.projection);
-  assert.deepEqual(errorKinds, testCase.expected_error_kinds, testCase.name);
-  assert(errorKinds.every((kind) => errors.includes(kind)), testCase.name);
-  return { ok: errorKinds.length === 0, error_kinds: errorKinds };
-});
-process.stdout.write(`${canonical(results)}\n`);
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
+const corpus=JSON.parse(fs.readFileSync(path.join(root,"tests/fixtures/semantic-adopted-policy-v1/execution-corpus.json"),"utf8"));
+const schema=JSON.parse(zlib.inflateSync(fs.readFileSync(path.join(root,"src/rocs_cli/_bootstrap_assets/semantic-router-adopted-policy-v1.schema.zlib"))));
+const kinds=["invalid_bundle","schema_invalid","digest_mismatch","nested_mismatch","authority_invalid","signature_invalid","history_invalid","contamination_invalid","reservation_invalid","ordering_invalid","attempt_invalid","closure_invalid"];
+const domains={
+ "semantic-routing-policy-execution-attempt.v1":["execution_attempt","attempt_digest"],"semantic-routing-policy-verdict.v1":["verdict","verdict_digest"],
+ "semantic-routing-policy-access-history.v1":["access_history","history_digest"],"semantic-routing-policy-authority-credential.v1":["authority_credential","credential_digest"],
+ "semantic-routing-policy-approval-artifact.v1":["approval_artifact","artifact_digest"],"semantic-routing-policy-approval-attestation-body.v1":["approval_attestation_body","body_digest"],
+ "semantic-routing-policy-b0-exposure-evidence.v1":["b0_exposure_evidence","evidence_digest"],
+};
+function canonical(v){if(v===null||typeof v!=="object")return JSON.stringify(v);if(Array.isArray(v))return`[${v.map(canonical).join(",")}]`;return`{${Object.keys(v).sort().map(k=>`${JSON.stringify(k)}:${canonical(v[k])}`).join(",")}}`}
+const same=(a,b)=>canonical(a)===canonical(b);const hash=b=>crypto.createHash("sha256").update(b).digest("hex");
+function objectDigest(domain,v,field){const x=structuredClone(v);delete x[field];return`sha256:${hash(Buffer.concat([Buffer.from(`rocs-semantic-policy-${domain.replaceAll("_","-")}-v1\0`),Buffer.from(canonical(x))]))}`}
+// Domain exceptions are the exact adopted prefixes rather than a guessed projection.
+const prefix={execution_attempt:"rocs-semantic-policy-execution-attempt-v1",verdict:"rocs-semantic-policy-verdict-v1",access_history:"rocs-semantic-policy-access-history-v1",authority_credential:"rocs-semantic-policy-authority-credential-v1",approval_artifact:"rocs-semantic-policy-approval-artifact-v1",approval_attestation_body:"rocs-semantic-policy-approval-body-v1",b0_exposure_evidence:"rocs-semantic-policy-b0-exposure-v1",access_history_event:"rocs-semantic-policy-access-event-v1"};
+function digest(domain,v,field){const x=structuredClone(v);delete x[field];return`sha256:${hash(Buffer.concat([Buffer.from(`${prefix[domain]}\0`),Buffer.from(canonical(x))]))}`}
+function pointer(ref){let x=schema;for(const raw of ref.slice(2).split("/")){const k=raw.replaceAll("~1","/").replaceAll("~0","~");x=x[k]}return x}
+function typeOk(v,t){if(Array.isArray(t))return t.some(x=>typeOk(v,x));return t==="null"?v===null:t==="array"?Array.isArray(v):t==="object"?v&&typeof v==="object"&&!Array.isArray(v):t==="integer"?Number.isSafeInteger(v):typeof v===t}
+function valid(v,s){if(s===true)return true;if(!s||s===false||typeof s!=="object")return false;if(s.$ref&&!valid(v,pointer(s.$ref)))return false;if((s.allOf??[]).some(x=>!valid(v,x)))return false;if(s.oneOf&&s.oneOf.filter(x=>valid(v,x)).length!==1)return false;if(s.if&&valid(v,s.if)&&s.then&&!valid(v,s.then))return false;if(Object.hasOwn(s,"const")&&!same(v,s.const))return false;if(s.enum&&!s.enum.some(x=>same(v,x)))return false;if(s.type&&!typeOk(v,s.type))return false;
+ if(v&&typeof v==="object"&&!Array.isArray(v)){const p=s.properties??{};if((s.required??[]).some(k=>!Object.hasOwn(v,k)))return false;if(s.additionalProperties===false&&Object.keys(v).some(k=>!Object.hasOwn(p,k)))return false;for(const[k,x]of Object.entries(p))if(Object.hasOwn(v,k)&&!valid(v[k],x))return false}
+ else if(Array.isArray(v)){if(v.length<(s.minItems??0)||(s.maxItems!==undefined&&v.length>s.maxItems))return false;if(s.uniqueItems&&new Set(v.map(canonical)).size!==v.length)return false;const pre=s.prefixItems??[];for(let i=0;i<Math.min(pre.length,v.length);i++)if(!valid(v[i],pre[i]))return false;if(s.items===false&&v.length>pre.length)return false;if(s.items&&s.items!==false)for(let i=pre.length;i<v.length;i++)if(!valid(v[i],s.items))return false}
+ else if(typeof v==="string"){if([...v].length<(s.minLength??0)||(s.maxLength!==undefined&&[...v].length>s.maxLength))return false;if(s.pattern&&!(new RegExp(s.pattern,"u")).test(v))return false}
+ else if(Number.isSafeInteger(v)&&(v<(s.minimum??v)||v>(s.maximum??v)))return false;return true}
+const definition=v=>Object.values(schema.$defs).find(d=>d?.properties?.schema?.const===v.schema);
+function walk(v,out=[]){if(v&&typeof v==="object"){out.push(v);for(const x of Object.values(v))walk(x,out)}return out}
+function selfOk(bundle){for(const x of walk(bundle)){const c=domains[x?.schema];if(c&&Object.hasOwn(x,c[1])&&x[c[1]]!==digest(c[0],x,c[1]))return false;if(x?.schema==="semantic-routing-policy-access-history.v1"){let prior=null;for(let i=0;i<x.events.length;i++){const e=x.events[i];if(e.sequence!==i+1||e.previous_event_digest!==prior||e.event_digest!==digest("access_history_event",e,"event_digest"))return false;prior=e.event_digest}}}return true}
+function signatureOk(root){let count=0;const pairs=[["custodian_credential","custodian_approval"],["independent_review_credential","independent_review_approval"],["evaluator_credential","evaluator_approval"],["launch_gateway_credential","launch_gateway_approval"]];for(const x of walk(root)){for(const[c,a]of pairs){if(!x[c]||!x[a])continue;count++;const cred=x[c],app=x[a],issuer=app.issuer;for(const k of["repository_id","git_commit","git_tree","principal_id","authority_role"])if(issuer[k]!==cred[k])return false;if(issuer.authority_credential_digest!==cred.credential_digest)return false;const body=app.attestation_body;for(const k of["issuer","subject_digest","purpose","valid_from","valid_until","revoked","trust_root_digest","public_key_digest"])if(!same(body[k],app[k]))return false;const message=Buffer.concat([Buffer.from("rocs-semantic-policy-approval-signature-v1\0"),Buffer.from(body.body_digest.slice(7),"hex")]);const der=Buffer.concat([Buffer.from("302a300506032b6570032100","hex"),Buffer.from(cred.public_key_base64,"base64")]);if(!crypto.verify(null,message,{key:der,format:"der",type:"spki"},Buffer.from(app.signature_base64,"base64")))return false}}return count>=2}
+function histories(v){const base=v.preregistration.access_history,active=v.protected_access_activation.activated_access_history,terminal=v.protected_access_closure.terminal_access_history;if(!same(v.protected_access_activation.base_access_history,base)||!same(v.protected_access_closure.activated_access_history,active))return false;if(!(base.events.length>=12&&base.events.length<=254&&active.events.length===base.events.length+1&&terminal.events.length===active.events.length+1))return false;if(!same(active.events.slice(0,-1),base.events)||!same(terminal.events.slice(0,-1),active.events))return false;const g=active.events.at(-1),r=terminal.events.at(-1),s=v.protected_access_activation.subject;return g.action==="grant"&&r.action==="revoke"&&g.principal_id===r.principal_id&&g.principal_id===s.executor_authority.principal_id&&same(g.access,r.access)&&same(g.access,s.grant_access)}
+function verify(b){if(!b||typeof b!=="object"||Array.isArray(b)||!same(Object.keys(b).sort(),["attempt","execution_receipt_base64","verdict"])||!b.attempt||!b.verdict)return["invalid_bundle"];const a=b.attempt,v=b.verdict;if(!valid(a,definition(a))||!valid(v,definition(v)))return["schema_invalid"];const e=[];let actualReceipt=null;if(b.execution_receipt_base64!==null){if(typeof b.execution_receipt_base64!=="string")return["invalid_bundle"];const raw=Buffer.from(b.execution_receipt_base64,"base64");if(raw.toString("base64")!==b.execution_receipt_base64)return["invalid_bundle"];actualReceipt=`sha256:${hash(raw)}`}const receiptValues=new Set(walk(b).filter(x=>x&&typeof x==="object"&&Object.hasOwn(x,"execution_receipt_digest")).map(x=>x.execution_receipt_digest));if(actualReceipt!==a.execution_receipt_digest||receiptValues.size!==1||![...receiptValues].includes(a.execution_receipt_digest))e.push("digest_mismatch");if(!selfOk(b))e.push("digest_mismatch");if(!same(v.execution_attempt,a))e.push("nested_mismatch");const parts=v.preregistration.participants,ids=parts.map(x=>x.authority.principal_id);if(parts.length!==12||new Set(ids).size!==12||parts.some(x=>x.authority.authority_role!==x.role||x.b0_exposure!==x.b0_exposure_evidence.result||x.authority.principal_id!==x.b0_exposure_evidence.participant_principal_id)||v.preregistration.access_history.history_digest!==digest("access_history",v.preregistration.access_history,"history_digest"))e.push("authority_invalid");if(parts.filter(x=>x.b0_exposure==="disproven").length!==11||v.execution_contamination_attestation.subject.result!=="no_reuse")e.push("contamination_invalid");if(!signatureOk(v))e.push("signature_invalid");if(!histories(v))e.push("history_invalid");const env=v.attempt_envelope,r=env.process_reservation;if(!same(v.preregistration.attempt_envelope,env)||env.process_invocations!==1||env.process_retries||env.selective_row_reruns||env.same_candidate_repairs||r.single_invocation_limit!==1||!(r.reserved_at<r.expires_at))e.push("reservation_invalid");const h=a.protected_descriptor_handoff_receipt;if(h&&(h.subject.direct_os_descriptor_transfer||h.subject.handed_off_at>h.subject.descriptor_access_expires_at))e.push("ordering_invalid");if(a.process_retries||a.selective_row_reruns||a.same_candidate_repairs)e.push("attempt_invalid");return[...new Set(e)]}
+function apply(base,ops){const b=structuredClone(base);for(const op of ops){let x=b;const p=op.path.split("/");for(const k of p.slice(0,-1))x=Array.isArray(x)?x[Number(k)]:x[k];x[p.at(-1)]=structuredClone(op.value)}return b}
+assert.equal(corpus.schema,"semantic-adopted-execution-actual-corpus.v2");const base=corpus.cases.find(x=>x.name==="branch_7_valid").bundle;const results=[];for(const c of corpus.cases){const b=c.bundle??apply(base,c.operations);const e=verify(b);assert.deepEqual(e,c.expected_error_kinds,c.name);assert(e.every(x=>kinds.includes(x)));results.push({ok:!e.length,error_kinds:e})}process.stdout.write(`${canonical(results)}\n`);

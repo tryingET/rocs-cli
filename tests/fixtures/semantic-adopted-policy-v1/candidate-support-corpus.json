@@ -1,8 +1,8 @@
 {
   "candidate": {
-    "candidate_digest": "sha256:6e7fd4b50307b8413b8f02f792b75a8f0c421174414506f694723985f3bf474d",
+    "candidate_digest": "sha256:35b42cccc2de9d5224396dfe6476fc0c9d9c40ff4650ef991c73964265f32ea4",
     "candidate_id": "CONSPICUOUSLY-SYNTHETIC-NOT-A-RELEASE",
-    "contamination_manifest_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "contamination_manifest_digest": "sha256:b1cf68ae76b5be0e22712cada0322bf1e53f2052cb47883002e8936dd42a2ed1",
     "ontology_inventory": {
       "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
       "ontology_ids": [
@@ -68,6 +68,99 @@
       "co.software.ConspicuouslySynthetic"
     ]
   },
+  "contamination_manifest": {
+    "b0_decision_id": 98,
+    "b0_failure_commit": "0a9d9eed00c4c2875d6a7dd870b8978032c95875",
+    "b0_preregistration_commit": "286773ee6a88b9fd2276f8008898c57ff9a073b9",
+    "b0_preregistration_lock_digest": "sha256:32205d30e6bdbe78c1de9c4df7068528b5ff6ff1757cba7ea1e67494d6fe0dd2",
+    "b0_prompt_set_digest": "sha256:e85b7bbebbdc355c4f33a3fa2b66b58b8c045c5d1a836fe05c1f96a0e11413a5",
+    "b0_report_digest": "sha256:a136f0eec0a72e068af058ec8521f8095ba48ad11714644e9e87a921096d67ba",
+    "coverage": [
+      {
+        "derivation_review_digest": "sha256:000000000000000000000000000000000000000000000000000000000000012c",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000c8",
+        "result": "no_reuse",
+        "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000064",
+        "surface": "acceptance_dataset"
+      },
+      {
+        "derivation_review_digest": "sha256:000000000000000000000000000000000000000000000000000000000000012d",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000c9",
+        "result": "no_reuse",
+        "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000065",
+        "surface": "aliases"
+      },
+      {
+        "derivation_review_digest": "sha256:000000000000000000000000000000000000000000000000000000000000012e",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000ca",
+        "result": "no_reuse",
+        "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000066",
+        "surface": "development_dataset"
+      },
+      {
+        "derivation_review_digest": "sha256:000000000000000000000000000000000000000000000000000000000000012f",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000cb",
+        "result": "no_reuse",
+        "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000067",
+        "surface": "evaluator"
+      },
+      {
+        "derivation_review_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000130",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000cc",
+        "result": "no_reuse",
+        "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000068",
+        "surface": "fixtures"
+      },
+      {
+        "derivation_review_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000131",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000cd",
+        "result": "no_reuse",
+        "source_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000069",
+        "surface": "floors"
+      },
+      {
+        "derivation_review_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000132",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000ce",
+        "result": "no_reuse",
+        "source_digest": "sha256:000000000000000000000000000000000000000000000000000000000000006a",
+        "surface": "operational_dataset"
+      },
+      {
+        "derivation_review_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000133",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000cf",
+        "result": "no_reuse",
+        "source_digest": "sha256:f95253f33033546c52ed11f9ab27acd732a4108af2c87c3373ea4da843c39876",
+        "surface": "policy"
+      },
+      {
+        "derivation_review_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000134",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000d0",
+        "result": "no_reuse",
+        "source_digest": "sha256:000000000000000000000000000000000000000000000000000000000000006c",
+        "surface": "regression_inputs"
+      },
+      {
+        "derivation_review_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000135",
+        "overlap_receipt_digest": "sha256:00000000000000000000000000000000000000000000000000000000000000d1",
+        "result": "no_reuse",
+        "source_digest": "sha256:000000000000000000000000000000000000000000000000000000000000006d",
+        "surface": "templates"
+      }
+    ],
+    "manifest_digest": "sha256:b1cf68ae76b5be0e22712cada0322bf1e53f2052cb47883002e8936dd42a2ed1",
+    "schema": "semantic-routing-policy-contamination-manifest.v1"
+  },
+  "contamination_non_policy_source_digests": {
+    "acceptance_dataset": "sha256:0000000000000000000000000000000000000000000000000000000000000064",
+    "aliases": "sha256:0000000000000000000000000000000000000000000000000000000000000065",
+    "development_dataset": "sha256:0000000000000000000000000000000000000000000000000000000000000066",
+    "evaluator": "sha256:0000000000000000000000000000000000000000000000000000000000000067",
+    "fixtures": "sha256:0000000000000000000000000000000000000000000000000000000000000068",
+    "floors": "sha256:0000000000000000000000000000000000000000000000000000000000000069",
+    "operational_dataset": "sha256:000000000000000000000000000000000000000000000000000000000000006a",
+    "regression_inputs": "sha256:000000000000000000000000000000000000000000000000000000000000006c",
+    "templates": "sha256:000000000000000000000000000000000000000000000000000000000000006d"
+  },
   "inventory": {
     "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
     "ontology_ids": [
@@ -83,6 +176,7 @@
     "owner_git_tree": "2222222222222222222222222222222222222222",
     "schema": "semantic-routing-policy-ontology-inventory.v1"
   },
+  "inventory_bytes_utf8": "{\"inventory_digest\":\"sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f\",\"ontology_ids\":[\"co.software.ConspicuouslySynthetic\"],\"ontology_snapshot_digest\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"owner\":{\"namespace\":\"softwareco.semantic-routing-policy.v1\",\"owner_company\":\"softwareco\",\"owner_repository_id\":\"softwareco/ontology\"},\"owner_git_commit\":\"1111111111111111111111111111111111111111\",\"owner_git_tree\":\"2222222222222222222222222222222222222222\",\"schema\":\"semantic-routing-policy-ontology-inventory.v1\"}",
   "policy": {
     "authority": {
       "owner_repo": "softwareco/ontology",
