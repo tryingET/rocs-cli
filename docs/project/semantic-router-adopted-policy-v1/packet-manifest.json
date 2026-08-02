@@ -4,8 +4,8 @@
   "files": [
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-evidence-note.md",
-      "bytes": 11406,
-      "sha256": "edd5b75f0e401ab17cf1cfe1085f3d0279ed2cc217588470a1860de8edd74e5b"
+      "bytes": 11958,
+      "sha256": "d8b9efd9e78cd7dd792589fedbfd2793cfbc726f124084991950edddca1bbbb1"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-problem-brief.md",
@@ -29,14 +29,14 @@
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1/invariants.md",
-      "bytes": 54926,
-      "sha256": "167c74cc535bf22851733e275f209cb7eb79fb0f7468b07351748bdf4c836f28"
+      "bytes": 55265,
+      "sha256": "4a708ca5e9ea507886d6a994c428f3aee3d1111b1f83be93977656622947087c"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1/protocol.schema.json",
-      "bytes": 326372,
-      "sha256": "e008a9420993ff73c1fcfffc08e9509092473e9026ea311d06f30455c0bf5a2b"
+      "bytes": 323224,
+      "sha256": "5940be962e14f881f554a68bd9ba669f8a40d891228ac310dfd9a1a67f8a934f"
     }
   ],
-  "packet_aggregate_sha256": "66b11018e3de8a0c921a87fbaa642feccb1090fe8728d017fcde3fada6cabf6d"
+  "packet_aggregate_sha256": "20e8df2547bb4816325c7546a3c0a43b0283c6e0589d123e71b809baa7bfe438"
 }

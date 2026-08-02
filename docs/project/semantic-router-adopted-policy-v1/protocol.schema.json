@@ -7709,40 +7709,6 @@
         {
           "properties": {
             "attempt_state": {
-              "const": "interrupted"
-            },
-            "execution_receipt_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "evaluator_execution_start_proof_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "evaluator_execution_start_verification_request_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "evaluator_execution_launch_receipt_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "protected_descriptor_handoff_receipt_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "outcome": {
-              "const": "indeterminate"
-            }
-          },
-          "required": [
-            "attempt_state",
-            "execution_receipt_digest",
-            "evaluator_execution_start_proof_digest",
-            "evaluator_execution_start_verification_request_digest",
-            "evaluator_execution_launch_receipt_digest",
-            "protected_descriptor_handoff_receipt_digest",
-            "outcome"
-          ]
-        },
-        {
-          "properties": {
-            "attempt_state": {
               "const": "completed"
             },
             "execution_receipt_digest": {
@@ -9414,69 +9380,6 @@
             },
             "execution_receipt_digest": {
               "type": "null"
-            },
-            "process_start_id": {
-              "$ref": "#/$defs/identifier"
-            },
-            "process_invocations": {
-              "const": 1
-            },
-            "process_spawned_at": {
-              "$ref": "#/$defs/dateTime"
-            },
-            "process_terminated_at": {
-              "$ref": "#/$defs/dateTime"
-            },
-            "process_termination_state": {
-              "const": "terminated_and_reaped"
-            },
-            "descriptor_access_state": {
-              "const": "revoked_and_closed"
-            },
-            "descriptor_access_closed_at": {
-              "$ref": "#/$defs/dateTime"
-            },
-            "closure_reason": {
-              "enum": [
-                "failed",
-                "indeterminate",
-                "expired",
-                "aborted"
-              ]
-            }
-          },
-          "required": [
-            "attempt_state",
-            "evaluator_execution_start_proof_digest",
-            "evaluator_execution_launch_receipt_digest",
-            "protected_descriptor_handoff_receipt_digest",
-            "execution_receipt_digest",
-            "process_start_id",
-            "process_invocations",
-            "process_spawned_at",
-            "process_terminated_at",
-            "process_termination_state",
-            "descriptor_access_state",
-            "descriptor_access_closed_at",
-            "closure_reason"
-          ]
-        },
-        {
-          "properties": {
-            "attempt_state": {
-              "const": "interrupted"
-            },
-            "evaluator_execution_start_proof_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "evaluator_execution_launch_receipt_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "protected_descriptor_handoff_receipt_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "execution_receipt_digest": {
-              "$ref": "#/$defs/digest"
             },
             "process_start_id": {
               "$ref": "#/$defs/identifier"
