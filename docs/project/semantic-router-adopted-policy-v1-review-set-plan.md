@@ -40,7 +40,7 @@ Reviewer assesses:
 - acquisition channel, single-use challenge store, and consumption signing key use three closed canonical coordinate objects and separate digest domains; every approval subject equals its complete coordinate digest rather than an identifier or implementation-selected projection;
 - fresh single-use caller challenge/action binding, separate caller verification request, approved Ed25519 key/signature with non-circular attestation body, and authenticated challenge-consumption body/receipt whose issuer trust, complete credential with raw public-key bytes, store, key, and digest are externally pinned without an ambient registry;
 - unidirectional checkpoint→head commitment plus a contiguous monotonic checkpoint chain from the caller pin;
-- exact equality joins across policy binding, candidate, verdict, envelope, attempt, non-circular verdict/publication approval subjects, signed approval attestation bodies, event, history, head, checkpoint, receipt, commit/tree, and proof;
+- explicit topological digest order and exact equality joins across candidate contamination, candidate, envelope, downstream execution-contamination attestation, preregistration, attempt, post-execution verdict approvals/verdict, publication approvals/event, history, head, checkpoint, receipt, commit/tree, and proof; no object binds a digest produced later in that order;
 - the external request pins exact custodian, reviewer, and semantic-owner authority coordinates, separate non-circular authority credentials, signed approval digests, trust roots, and canonical raw-32-byte Ed25519 public keys; repository strings or self-digests cannot issue authority;
 - the signed receipt body authenticates descriptor-anchored no-follow capture, closed-environment, no-network, and stable-final-recheck guarantees as well as identity, challenge, checkpoint, and time;
 - stale H1 replay after H2, forked, absent, withdrawn, revoked, or mismatched heads fail closed;
@@ -53,10 +53,11 @@ Reject on digest ambiguity/cycle, repository-string or opaque-ref authority, sel
 
 Reviewer must be independent of policy authorship and assess:
 
-- closed canonical B0 deny coordinates and complete no-reuse coverage including O/evaluator/fixtures/floors/regressions/execution, with each coverage source digest joined to the actual artifact coordinate;
+- closed canonical B0 deny coordinates and complete no-reuse coverage: an exact ten-surface pre-attempt candidate-manifest bijection plus one downstream execution-contamination attestation, each source digest joined to its actual artifact coordinate without a candidate/envelope back edge;
 - owner-issued custody policy established before data creation, including exact source/license/consent evidence, complete prohibited-content set, privacy/ACL/retention/backups/all deletion triggers/incidents;
 - exact canonical role cardinalities, twelve pairwise-distinct authenticated principals, nested exposure evidence and append-only access history, custodian/reviewer distinction, implementer binding, and mechanical D/U/O-author/annotator/adjudicator/evaluator separation;
 - exact unique B0 surface bijection and canonical commit coordinates;
+- executable phase timing: P3 seals U/O and roles before D disclosure and emits only a candidate-free custody-readiness receipt; P4 freezes policy/candidate; P5 preregisters the exact candidate/envelope without a cyclic preregistration approval or post-execution fields; P6 executes once and only then creates/signs the verdict subject; P7 alone publishes;
 - inspectable preregistered attempt envelope with closed environment and nested reservation/rollback, anti-overlap, one process invocation with two fixed internal passes, and outcome precedence;
 - policy quality gates prevent both false routing and trivial abstention;
 - raw protected rows remain outside ROCS, Git, and AK;

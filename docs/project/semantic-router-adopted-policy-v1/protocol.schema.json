@@ -31,6 +31,12 @@
       "$ref": "#/$defs/contaminationManifest"
     },
     {
+      "$ref": "#/$defs/custodyReadinessReceipt"
+    },
+    {
+      "$ref": "#/$defs/executionContaminationAttestation"
+    },
+    {
       "$ref": "#/$defs/preregistration"
     },
     {
@@ -317,6 +323,8 @@
         "custody_policy",
         "preregistration",
         "contamination_manifest",
+        "execution_contamination_attestation",
+        "execution_contamination_digest",
         "execution_attempt",
         "execution_receipt_digest",
         "metrics_digest",
@@ -448,6 +456,12 @@
           "$ref": "#/$defs/verdictApprovalSubject"
         },
         "verdict_approval_subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_contamination_attestation": {
+          "$ref": "#/$defs/executionContaminationAttestation"
+        },
+        "execution_contamination_digest": {
           "$ref": "#/$defs/digest"
         }
       }
@@ -1173,8 +1187,8 @@
         },
         "coverage": {
           "type": "array",
-          "minItems": 11,
-          "maxItems": 11,
+          "minItems": 10,
+          "maxItems": 10,
           "prefixItems": [
             {
               "allOf": [
@@ -1200,8 +1214,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1254,8 +1267,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1308,8 +1320,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1362,8 +1373,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1416,62 +1426,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
-                      ]
-                    },
-                    "source_digest": {
-                      "$ref": "#/$defs/digest"
-                    },
-                    "overlap_receipt_digest": {
-                      "$ref": "#/$defs/digest"
-                    },
-                    "derivation_review_digest": {
-                      "$ref": "#/$defs/digest"
-                    },
-                    "result": {
-                      "const": "no_reuse"
-                    }
-                  }
-                },
-                {
-                  "properties": {
-                    "surface": {
-                      "const": "execution_coordinate"
-                    }
-                  },
-                  "required": [
-                    "surface"
-                  ]
-                }
-              ]
-            },
-            {
-              "allOf": [
-                {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "surface",
-                    "source_digest",
-                    "overlap_receipt_digest",
-                    "derivation_review_digest",
-                    "result"
-                  ],
-                  "properties": {
-                    "surface": {
-                      "enum": [
-                        "policy",
-                        "development_dataset",
-                        "acceptance_dataset",
-                        "operational_dataset",
-                        "evaluator",
-                        "fixtures",
-                        "floors",
-                        "templates",
-                        "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1524,8 +1479,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1578,8 +1532,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1632,8 +1585,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1686,8 +1638,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1740,8 +1691,7 @@
                         "floors",
                         "templates",
                         "aliases",
-                        "regression_inputs",
-                        "execution_coordinate"
+                        "regression_inputs"
                       ]
                     },
                     "source_digest": {
@@ -1861,7 +1811,8 @@
         "metrics_and_floors_digest",
         "attempt_envelope_digest",
         "sealed_before_development_disclosure",
-        "custodian_acceptance_digest",
+        "custody_readiness_receipt",
+        "custody_readiness_digest",
         "fixtures_digest",
         "templates_digest",
         "aliases_digest",
@@ -1870,6 +1821,9 @@
         "access_history",
         "access_history_digest",
         "role_separation_receipt",
+        "candidate_digest",
+        "execution_contamination_attestation",
+        "execution_contamination_digest",
         "preregistration_digest"
       ],
       "properties": {
@@ -2121,9 +2075,6 @@
         "sealed_before_development_disclosure": {
           "const": true
         },
-        "custodian_acceptance_digest": {
-          "$ref": "#/$defs/digest"
-        },
         "preregistration_digest": {
           "$ref": "#/$defs/digest"
         },
@@ -2150,6 +2101,21 @@
         },
         "role_separation_receipt": {
           "$ref": "#/$defs/roleSeparationReceipt"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_contamination_attestation": {
+          "$ref": "#/$defs/executionContaminationAttestation"
+        },
+        "execution_contamination_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custody_readiness_receipt": {
+          "$ref": "#/$defs/custodyReadinessReceipt"
+        },
+        "custody_readiness_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -2302,7 +2268,6 @@
             "clock_source",
             "owner_store_channel",
             "custody",
-            "preregistration",
             "independent_review",
             "issuer_signing_key",
             "semantic_publication",
@@ -3619,7 +3584,6 @@
             "clock_source",
             "owner_store_channel",
             "custody",
-            "preregistration",
             "independent_review",
             "issuer_signing_key",
             "semantic_publication",
@@ -3667,6 +3631,7 @@
         "contamination_manifest_digest",
         "custody_policy_digest",
         "attempt_envelope_digest",
+        "execution_contamination_digest",
         "execution_attempt_digest",
         "execution_receipt_digest",
         "metrics_digest",
@@ -3743,6 +3708,9 @@
         },
         "verdict_id": {
           "$ref": "#/$defs/identifier"
+        },
+        "execution_contamination_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -3975,6 +3943,106 @@
           "$ref": "#/$defs/digest"
         },
         "key_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "executionContaminationAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "candidate_digest",
+        "candidate_contamination_manifest_digest",
+        "attempt_envelope_digest",
+        "evaluator_digest",
+        "source_digest",
+        "overlap_receipt_digest",
+        "derivation_review_digest",
+        "result",
+        "attestation_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-execution-contamination-attestation.v1"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate_contamination_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "overlap_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "derivation_review_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result": {
+          "const": "no_reuse"
+        },
+        "attestation_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "custodyReadinessReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "custody_policy_digest",
+        "role_separation_digest",
+        "access_history_digest",
+        "concept_inventory_digest",
+        "development_dataset_digest",
+        "acceptance_dataset_seal_digest",
+        "operational_dataset_seal_digest",
+        "sealed_before_development_disclosure",
+        "issued_at",
+        "readiness_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-custody-readiness.v1"
+        },
+        "custody_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "role_separation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "concept_inventory_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "development_dataset_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "sealed_before_development_disclosure": {
+          "const": true
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "readiness_digest": {
           "$ref": "#/$defs/digest"
         }
       }

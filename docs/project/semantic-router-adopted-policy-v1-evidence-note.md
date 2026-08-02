@@ -31,12 +31,14 @@ decision_id: 103
 9. Dataset custody is not a repository name: it requires an owner-issued policy with exact source/license/consent evidence and complete deletion controls plus authenticated, mutually exclusive participant roles including implementer and two annotators.
 10. The canonical B0 preregistration commit is `286773ee6a88b9fd2276f8008898c57ff9a073b9`; a deny-coordinate that does not resolve to this retained commit is invalid.
 11. The digest-bound Decision 102 policy/provenance bytes—not a parallel ID list—must prove `softwareco/ontology` ownership and inventory-bounded concept, joint-route, and selected IDs.
+12. ADR executability review `dispatch-1785629031503` rejected packet r5 because its candidate-contamination-attempt digest graph was cyclic and its P3 preregistration required a not-yet-frozen P4 candidate plus not-yet-observed P5 verdict values. Revision r6 must preserve that rejection and replace it with an explicit topological digest schedule and executable P3 custody → P4 candidate → P5 preregistration → P6 execution/verdict → P7 publication sequence.
+13. R6 precommit review `dispatch-1785629514394` found a residual preregistration-acceptance cycle. R6 therefore replaces the ambiguous acceptance digest with a closed P3 custody-readiness receipt that cannot mention candidate/preregistration/execution state; P5 preregistration has no embedded or indirect approval, and outcome approvals occur only after P6 observation.
 
 ## B0 exposure
 
 The controller and Decision 103 design authors have confirmed B0 exposure. They may design protocol mechanics and interpret the published aggregate failure, but may not author U/O data or perform blind acceptance adjudication.
 
-Every later participant records `confirmed | possible | disproven` exposure with date and evidence. U/O custodians, authors, annotators, adjudicators, evaluator operator, and independent verdict reviewer must be `disproven` before receiving their roles. A closed manifest denies reuse across policy, D, U, O, evaluator, fixtures, floors, templates, aliases, regressions, and execution coordinates. Any exposure retires the affected acceptance set.
+Every later participant records `confirmed | possible | disproven` exposure with date and evidence. U/O custodians, authors, annotators, adjudicators, evaluator operator, and independent verdict reviewer must be `disproven` before receiving their roles. A ten-row candidate-contamination manifest denies reuse across policy, D, U, O, evaluator, fixtures, floors, templates, aliases, and regressions without depending on candidate/envelope identity. A separate downstream execution-contamination attestation covers the attempt-envelope coordinate after candidate freeze. Together they cover all eleven surfaces without a digest cycle. Any exposure retires the affected acceptance set.
 
 ## Evidence classes
 

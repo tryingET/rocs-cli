@@ -16,10 +16,11 @@ Decision 103 is protocol design only. Passing this packet's review does not auth
 P0 protocol review
 → P1 offline verifier implementation
 → P2 semantic-owner path/publication implementation
-→ P3 fresh custody and preregistration
-→ P4 D policy authoring
-→ P5 one-shot U/O execution
-→ P6 owner publication
+→ P3 fresh custody, role freeze, and U/O seal
+→ P4 D disclosure, policy authoring, and candidate freeze
+→ P5 exact preregistration against the frozen candidate
+→ P6 one-shot U/O execution, verdict, and post-execution approvals
+→ P7 owner publication
 → separate consumer decision(s)
 ```
 
@@ -38,7 +39,7 @@ Rollback: replace the proposal with a new packet aggregate; preserve rejected re
 
 ## P1 — ROCS offline verifier
 
-Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all forty-one digest domains, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
+Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all forty-three digest domains, acyclic dependency-graph validation, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
 
 Gates:
 
@@ -46,7 +47,7 @@ Gates:
 - malformed, duplicate, noncanonical, over-budget, stale/forked history matrices;
 - publish-without-pass, withdrawal, revocation, head/checkpoint fork or regression, identity drift, and proof-age failures;
 - forged/redated issuer receipt; wrapper mutation of signed descriptor-anchored-no-follow/closed-environment/no-network/final-recheck assertions; invalid Ed25519 signature/key approval; circular attestation attempt; replayed custodian/reviewer approval across changed verdict outcome/metrics; replayed semantic-owner approval across changed sequence/action/reason/time; self-asserted repository authority; authority-coordinate/enclosing-approval digest cycles; absent, malformed, non-canonical, or mismatched raw Ed25519 issuer or consumption-credential bytes; partial/ambiguous acquisition-channel, single-use-store, or consumption-signing-key approval subjects; ambient-key-registry dependence; stale H1 replay after withdrawal H2; reused/expired/unconsumed challenge; wrong action/candidate/store/channel; untrusted or revoked approval; broken checkpoint chain; and checkpoint-minimum failures;
-- inventory-prefix impostor or non-member, mismatched parsed Decision 102 policy/provenance/per-record source owner, closed inventory/extractor receipt drift, policy/joint/selected ID outside inventory, custody-role collision including implementer or D-author conflicts, incomplete/duplicate/unjoined B0 surface coverage or unrelated clean source digest, wrong canonical B0 coordinate, attempt-envelope/environment/reservation/rollback drift or retry/rerun, 1 MiB/16 MiB/32 MiB object boundaries, and reserved-terminal-event capacity;
+- inventory-prefix impostor or non-member, mismatched parsed Decision 102 policy/provenance/per-record source owner, closed inventory/extractor receipt drift, policy/joint/selected ID outside inventory, custody-role collision including implementer or D-author conflicts, incomplete/duplicate/unjoined B0 surface coverage or unrelated clean source digest, wrong canonical B0 coordinate, candidate→contamination→envelope back edge or any digest cycle, mismatched downstream execution-contamination attestation, attempt-envelope/environment/reservation/rollback drift or retry/rerun, 1 MiB/16 MiB/32 MiB object boundaries, and reserved-terminal-event capacity;
 - existing Decision 102 route/discovery compatibility unchanged;
 - complete repository gate and reverse rollback rehearsal;
 - `live_acquisition_implemented=false` mechanically observable.
@@ -71,7 +72,7 @@ Gates:
 
 No live publication occurs in P2.
 
-## P3 — fresh custody and preregistration
+## P3 — fresh custody, role freeze, and U/O seal
 
 Before D disclosure:
 
@@ -80,31 +81,44 @@ Before D disclosure:
 3. the exact canonical role cardinalities are fixed, including one implementer and two distinct annotators; all twelve principals are pairwise distinct and all authority roles, nested exposure evidence, append-only access history, custody ACL, and the closed role-separation receipt reconcile; all U/O authors, annotators, adjudicator, custodian, evaluator operator, and independent reviewer prove B0 exposure `disproven`;
 4. B0-unexposed U/O authors create and seal U=600 and O=96 before D disclosure;
 5. independent annotators/adjudicator complete readiness;
-6. D authors independently create D=360;
-7. a closed contamination manifest binds canonical B0 deny coordinates and the exact ordered no-reuse surface bijection; each row source digest equals its actual policy, D, U, O, evaluator, fixtures, floors, templates, aliases, regression, or attempt-envelope coordinate;
-8. evaluator, metrics, floors, and the nested one-attempt envelope's exact argv/environment/runtime/candidate/U/O seals/pass order/nested process reservation and rollback objects/retry prohibitions are preregistered; the custodian and distinct independent reviewer each sign the same non-circular verdict-approval subject under independently caller-pinned authority, trust-root, and key coordinates.
+6. D authors independently create D=360 and freeze its digest without disclosing it to the policy author;
+7. emit one domain-digested custody-readiness receipt binding custody policy, role/access history, inventory, D digest, U/O seals, and pre-disclosure readiness—without candidate, preregistration, execution, metrics, outcome, or verdict fields.
 
-Raw U/O stays outside Git/AK/ROCS/Pi. The controller receives only digests and readiness receipts.
+P3 cannot name a candidate, attempt envelope, execution attempt, metrics, outcome, verdict-approval subject, or verdict approval. Raw U/O stays outside Git/AK/ROCS/Pi. The controller receives only digests and readiness receipts.
 
 Stop permanently for the affected set on leakage, B0 derivation, role conflict, unlicensed/private content, annotation unreadiness, digest drift, or custody uncertainty.
 
-## P4 — visible policy authoring
+## P4 — D disclosure, visible policy authoring, and candidate freeze
 
-Policy authors use only the frozen Softwareco ontology sources and D. Every clause alternative has exact owner provenance and contamination review. Selected IDs remain Softwareco-owned.
+Only after accepted P3 evidence may policy authors receive D. They use only the frozen Softwareco ontology sources and D. Every clause alternative has exact owner provenance and contamination review. Selected IDs remain Softwareco-owned.
 
 Gates:
 
 - D behavior and operational dry-runs under the P1 verifier;
+- candidate contamination manifest freezes the exact ten pre-attempt no-reuse surfaces and contains no candidate or attempt-envelope digest;
 - policy/provenance/candidate digest freeze;
 - no U/O access;
 - independent semantic-owner review;
-- rollback by candidate supersession before U/O execution, never by rewriting D history.
+- rollback by a new candidate before U/O execution, never by rewriting D or candidate history.
 
 D results are development evidence only.
 
-## P5 — one-shot U/O execution
+## P5 — exact preregistration
 
-Custodian starts exactly one process invocation for the immutable preregistered attempt against sealed U/O and frozen candidate. That invocation performs exactly two ordered internal passes, `primary` and `immediate_repeat`, over identical inputs and records both digests. No process retry, second invocation, selective row rerun, extra pass, or same-candidate repair is permitted. Policy authors/implementers receive no row outputs before immutable verdict publication.
+After candidate freeze and before any U/O observation:
+
+1. construct the one-attempt envelope over the exact candidate, evaluator/runtime, U/O seals, argv/environment, pass order, process reservation, and rollback plan;
+2. issue the downstream execution-contamination attestation binding the candidate-contamination manifest, candidate, evaluator, and attempt-envelope digests; its `source_digest` equals the envelope digest and it cannot flow back into candidate identity;
+3. preregister the exact candidate, both contamination objects, custody/roles/access history, D/U/O digests, evaluator, metrics/floors, and attempt envelope;
+4. verify the published topological dependency schedule has no back edge or cycle.
+
+P5 mechanically validates the preregistration and reserves the process. It has no preregistration approval artifact: the P3 custody-readiness receipt is explicitly not an approval of future P5 bytes. P5 must not construct or sign a verdict-approval subject. Execution attempt, receipt, metrics, outcome, custodian verdict approval, and independent verdict approval do not yet exist.
+
+## P6 — one-shot U/O execution, verdict, and post-execution approvals
+
+Custodian starts exactly one process invocation for the immutable P5 preregistration against sealed U/O and frozen candidate. That invocation performs exactly two ordered internal passes, `primary` and `immediate_repeat`, over identical inputs and records both digests. No process retry, second invocation, selective row rerun, extra pass, or same-candidate repair is permitted. Policy authors/implementers receive no row outputs before immutable verdict publication.
+
+After the execution receipt, metrics, and outcome are fixed, construct the non-circular verdict-approval subject. Only then may the custodian and distinct independent reviewer sign that exact subject. No pre-execution signature may cover a post-execution value.
 
 Evidence-validity precedence:
 
@@ -116,7 +130,7 @@ Required safety/utility floors are those in Decision 102's accepted validation c
 
 A failed policy may produce a new candidate only under a new task and fresh acceptance set when required by exposure rules. The failed report remains immutable.
 
-## P6 — semantic-owner publication
+## P7 — semantic-owner publication
 
 Only a reviewed `pass` verdict and a closed signed semantic-owner approval artifact whose non-circular subject binds exact owner authority, sequence, predecessor, action, candidate, verdict, reason, and time—and whose issuer/subject/purpose/validity/non-revocation/trust-root/key/signature all validate against external caller pins—permit the owner to append `publish`. Publication captures a fresh owner commit/tree, terminal head, and authenticated monotonic owner-store checkpoint and unidirectional checkpoint chain committing the head without a head/checkpoint digest cycle. Before append it reserves event and byte capacity for a terminal withdraw/revoke. ROCS independently validates complete history and only synthetic local proof shapes until live issuer/channel/challenge acquisition is separately implemented. Publication evidence does not create consumer adoption.
 
@@ -124,7 +138,7 @@ Withdrawal/revocation rehearsal occurs before first publish. A live owner capabi
 
 ## Consumer gates (outside Decision 103)
 
-After P6, separate exact-consumer decisions may authorize:
+After P7, separate exact-consumer decisions may authorize:
 
 ### C1 no-injection shadow
 
@@ -149,9 +163,10 @@ Last and separately decided. Requires accepted semantic quality, publication cur
 |---|---|
 | P1 synthetic verifier | protocol implementation works on synthetic fixtures |
 | P2 owner-storage rehearsal | append/head/rollback mechanics work on synthetic owner data |
-| P4 D run | visible development policy behavior only |
-| P5 U/O | frozen offline acceptance verdict only |
-| P6 publication rehearsal | owner publication/currentness mechanics only |
+| P4 D run/candidate freeze | visible development policy behavior and candidate identity only |
+| P5 preregistration rehearsal | acyclic frozen attempt/evidence coordinates only |
+| P6 U/O | frozen offline acceptance verdict only |
+| P7 publication rehearsal | owner publication/currentness mechanics only |
 | C1 faux-provider shadow | operational no-injection integration only |
 | C2 canary | bounded delivery/behavior under named authorization |
 | C3 automatic | only the exact accepted activation scope |
