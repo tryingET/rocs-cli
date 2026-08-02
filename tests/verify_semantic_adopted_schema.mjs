@@ -10,15 +10,15 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const assetPath = path.join(rootDir, "src/rocs_cli/_bootstrap_assets/semantic-router-adopted-policy-v1.schema.zlib");
 const packetPath = path.join(rootDir, "docs/project/semantic-router-adopted-policy-v1/protocol.schema.json");
 const corpusPath = path.join(rootDir, "tests/fixtures/semantic-adopted-policy-v1/schema-corpus.json");
-const expectedSchemaHash = "5940be962e14f881f554a68bd9ba669f8a40d891228ac310dfd9a1a67f8a934f";
-const expectedAssetHash = "47cf3f474c1a655595b0e90d192568ec8e99ab950ed4ad2d7bdfef86414c4d42";
+const expectedSchemaHash = "e5a55c7a6744868bfc05806a0216eaeb4f82b212f60c3961fdc18672e5529647";
+const expectedAssetHash = "948530f81173e760f233ef5a87dd699a762d4e04e16476a443ac7e873e9c2a24";
 const hash = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 
 const compressed = fs.readFileSync(assetPath);
-assert.equal(compressed.length, 18346);
+assert.equal(compressed.length, 18428);
 assert.equal(hash(compressed), expectedAssetHash);
-const schemaBytes = zlib.inflateSync(compressed, { maxOutputLength: 323225 });
-assert.equal(schemaBytes.length, 323224);
+const schemaBytes = zlib.inflateSync(compressed, { maxOutputLength: 324006 });
+assert.equal(schemaBytes.length, 324005);
 assert.equal(hash(schemaBytes), expectedSchemaHash);
 assert.deepEqual(schemaBytes, fs.readFileSync(packetPath));
 const schema = JSON.parse(schemaBytes.toString("utf8"));
@@ -64,7 +64,7 @@ function walk(value, visit) {
 
 const references = [];
 walk(schema, (node) => { if (Object.hasOwn(node, "$ref")) references.push(node.$ref); });
-assert.equal(references.length, 1115);
+assert.equal(references.length, 1120);
 for (const reference of references) pointer(schema, reference);
 
 const graph = new Map(Object.keys(schema.$defs).map((name) => [name, new Set()]));
@@ -351,12 +351,46 @@ for (const testCase of corpus.cases) {
   assert.equal(schemaValid && invariantValid, testCase.valid, testCase.name);
 }
 
+function inventorySourceIssues(inventory, raw) {
+  const issues = [...validate(inventory, schema.$defs.ontologyInventory)];
+  let source;
+  try { source = JSON.parse(raw); } catch { return [...issues, "json"]; }
+  if (canonical(source) !== raw) issues.push("canonicalSource");
+  if (!source || Array.isArray(source) || typeof source !== "object"
+      || canonical(Object.keys(source).sort()) !== canonical(["ontology_ids", "schema"])
+      || source.schema !== "softwareco-ontology-inventory-source.v1"
+      || !Array.isArray(source.ontology_ids) || source.ontology_ids.length < 1 || source.ontology_ids.length > 2000
+      || source.ontology_ids.some((item) => typeof item !== "string" || !/^co\.software\.[A-Za-z0-9][A-Za-z0-9._-]*$/.test(item))
+      || canonical(source.ontology_ids) !== canonical([...source.ontology_ids].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))))
+      || new Set(source.ontology_ids).size !== source.ontology_ids.length) issues.push("sourceShape");
+  if (inventory.inventory_source_digest !== `sha256:${hash(Buffer.from(raw, "utf8"))}`) issues.push("rawDigest");
+  if (canonical(inventory.ontology_ids) !== canonical(source.ontology_ids)) issues.push("extractor");
+  return issues;
+}
+const inventoryFixture = corpus.r14_inventory_fixture;
+for (const testCase of corpus.inventory_source_cases) {
+  const inventory = { ...structuredClone(inventoryFixture), ...structuredClone(testCase.inventory_patch) };
+  assert.equal(inventorySourceIssues(inventory, testCase.raw).length === 0, testCase.valid, testCase.name);
+}
+for (const testCase of corpus.readiness_inventory_cases) {
+  const subject = { ...structuredClone(corpus.r14_readiness_subject_fixture), ...structuredClone(testCase.subject_patch) };
+  const request = { ...structuredClone(corpus.r14_readiness_request_fixture), ...structuredClone(testCase.request_patch) };
+  const raw = corpus.inventory_source_cases[0].raw;
+  const valid = validate(subject, schema.$defs.custodyReadinessSubject).length === 0
+    && validate(request, schema.$defs.custodyReadinessVerificationRequest).length === 0
+    && inventorySourceIssues(subject.concept_inventory, raw).length === 0
+    && canonical(subject.concept_inventory) === canonical(request.expected_concept_inventory)
+    && subject.concept_inventory_digest === subject.concept_inventory.inventory_digest
+    && request.expected_concept_inventory_digest === subject.concept_inventory.inventory_digest;
+  assert.equal(valid, testCase.valid, testCase.name);
+}
+
 console.log(JSON.stringify({
   ok: true,
   schema_sha256: expectedSchemaHash,
   definitions: 69,
   reachable_definitions: 68,
-  references: 1115,
+  references: 1120,
   root_branches: 54,
   corpus_cases: corpus.cases.length,
 }));

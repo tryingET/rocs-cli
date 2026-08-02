@@ -3,17 +3,26 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import pathlib
+import subprocess
+import sys
+import tarfile
+import tempfile
 import unittest
+import zipfile
 import zlib
 
 from rocs_cli.semantic_adopted_protocol import (
     AdoptedProtocolError,
     MAX_ORDINARY_BYTES,
+    extract_ontology_inventory_source,
     jcs_bytes,
     protocol_byte_limit,
     schema_definitions,
     strict_json_loads,
+    validate_ontology_inventory_source,
+    validate_readiness_inventory,
     validate_definition,
     validate_protocol_bytes,
 )
@@ -269,12 +278,61 @@ class AdoptedSchemaAssetTests(unittest.TestCase):
         self.assertEqual(compressed, zlib.compress(raw, 9))
         self.assertEqual(schema_bytes(), raw)
 
+    def test_wheel_sdist_and_isolated_bootstrap_preserve_exact_asset(self):
+        probe = (
+            "import hashlib; from rocs_cli.semantic_adopted_schema import schema_bytes; "
+            "print(hashlib.sha256(schema_bytes()).hexdigest())"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary = pathlib.Path(temporary)
+            dist = temporary / "dist"
+            subprocess.run(["uv", "build", "--offline", "--out-dir", str(dist)], cwd=ROOT, check=True,
+                           stdout=subprocess.DEVNULL)
+            wheel = next(dist.glob("*.whl"))
+            sdist = next(dist.glob("*.tar.gz"))
+            member = "rocs_cli/_bootstrap_assets/semantic-router-adopted-policy-v1.schema.zlib"
+            with zipfile.ZipFile(wheel) as archive:
+                self.assertEqual(archive.read(member), ASSET.read_bytes())
+            with tarfile.open(sdist) as archive:
+                source_member = next(name for name in archive.getnames() if name.endswith("src/" + member))
+                extracted = archive.extractfile(source_member)
+                self.assertIsNotNone(extracted)
+                self.assertEqual(extracted.read(), ASSET.read_bytes())
+            environments = []
+            for index, artifact in enumerate((wheel, sdist)):
+                environment = temporary / f"venv-{index}"
+                subprocess.run([sys.executable, "-m", "venv", str(environment)], check=True, stdout=subprocess.DEVNULL)
+                subprocess.run(["uv", "pip", "install", "--offline", "--no-deps",
+                                "--python", str(environment / "bin/python"), str(artifact)],
+                               cwd=temporary, check=True, stdout=subprocess.DEVNULL)
+                result = subprocess.run([str(environment / "bin/python"), "-I", "-c", probe], cwd=temporary,
+                                        check=True, text=True, capture_output=True)
+                self.assertEqual(result.stdout.strip(), SCHEMA_SHA256)
+                environments.append(environment)
+            vendored = temporary / "isolated-bootstrap"
+            bootstrap = (
+                "from pathlib import Path; from rocs_cli.wave1 import _vendor_installed; "
+                f"_vendor_installed(Path({str(vendored)!r}))"
+            )
+            dependency_path = next(path for path in sys.path if path.endswith("site-packages"))
+            bootstrap_env = {**os.environ, "PYTHONPATH": dependency_path}
+            subprocess.run([str(environments[0] / "bin/python"), "-c", bootstrap], cwd=temporary, check=True, env=bootstrap_env)
+            vendored_asset = vendored / "src/rocs_cli/_bootstrap_assets" / ASSET.name
+            self.assertEqual(vendored_asset.read_bytes(), ASSET.read_bytes())
+            isolated_environment = temporary / "venv-isolated"
+            subprocess.run([sys.executable, "-m", "venv", str(isolated_environment)], check=True,
+                           stdout=subprocess.DEVNULL)
+            isolated_env = {**os.environ, "PYTHONPATH": str(vendored / "src")}
+            result = subprocess.run([str(isolated_environment / "bin/python"), "-c", probe], cwd=temporary,
+                                    env=isolated_env, check=True, text=True, capture_output=True)
+            self.assertEqual(result.stdout.strip(), SCHEMA_SHA256)
+
     def test_schema_inventory_references_and_reachability(self):
         root = load_protocol_schema()
         self.assertEqual(len(root["$defs"]), 69)
         self.assertEqual(len(root["oneOf"]), 54)
         references = [node["$ref"] for node in _walk(root) if "$ref" in node]
-        self.assertEqual(len(references), 1115)
+        self.assertEqual(len(references), 1120)
         self.assertEqual(len(schema_definitions()), 54)
         graph = {name: set() for name in root["$defs"]}
         for name, definition in root["$defs"].items():
@@ -452,6 +510,25 @@ class AdoptedSchemaCorpusTests(unittest.TestCase):
                     issues = validate_definition(case["instance"], case["definition"])
                 else:
                     issues = _validate_inline(case["instance"], case["inline_schema"])
+                self.assertEqual(not issues, case["valid"], issues[:2])
+
+    def test_r14_inventory_source_and_readiness_relations(self):
+        inventory = self.corpus["r14_inventory_fixture"]
+        for case in self.corpus["inventory_source_cases"]:
+            with self.subTest(case=case["name"]):
+                instance = copy.deepcopy(inventory)
+                instance.update(case["inventory_patch"])
+                issues = validate_ontology_inventory_source(instance, case["raw"].encode("utf-8"))
+                self.assertEqual(not issues, case["valid"], issues[:2])
+        canonical = self.corpus["inventory_source_cases"][0]["raw"].encode("utf-8")
+        self.assertEqual(list(extract_ontology_inventory_source(canonical)), inventory["ontology_ids"])
+        for case in self.corpus["readiness_inventory_cases"]:
+            with self.subTest(case=case["name"]):
+                subject = copy.deepcopy(self.corpus["r14_readiness_subject_fixture"])
+                request = copy.deepcopy(self.corpus["r14_readiness_request_fixture"])
+                subject.update(case["subject_patch"])
+                request.update(case["request_patch"])
+                issues = validate_readiness_inventory(subject, request, canonical)
                 self.assertEqual(not issues, case["valid"], issues[:2])
 
     def test_date_time_calendar_and_z_pattern(self):

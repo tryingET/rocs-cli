@@ -1,6 +1,7 @@
 """Strict offline schema substrate for Decision 103 adopted-policy v1."""
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from copy import deepcopy
@@ -496,3 +497,66 @@ def validate_protocol_bytes(raw: bytes) -> tuple[dict[str, Any], tuple[Validatio
         raise AdoptedProtocolError("protocol instance must be an object")
     snapshot = strict_json_loads(jcs_bytes(deepcopy(value)), max_bytes=limit)
     return snapshot, validate_protocol(snapshot)
+
+
+_INVENTORY_ID = re.compile(r"^co\.software\.[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+def extract_ontology_inventory_source(raw: bytes) -> tuple[str, ...]:
+    """Validate exact canonical Softwareco inventory-source bytes and extract IDs."""
+    value = strict_json_loads(raw, max_bytes=MAX_ORDINARY_BYTES)
+    if (
+        type(value) is not dict
+        or set(value) != {"schema", "ontology_ids"}
+        or value.get("schema") != "softwareco-ontology-inventory-source.v1"
+        or type(value.get("ontology_ids")) is not list
+        or not 1 <= len(value["ontology_ids"]) <= 2_000
+        or any(type(item) is not str or _INVENTORY_ID.fullmatch(item) is None
+               for item in value["ontology_ids"])
+        or value["ontology_ids"] != sorted(value["ontology_ids"], key=lambda item: item.encode("utf-8"))
+        or len(set(value["ontology_ids"])) != len(value["ontology_ids"])
+        or jcs_bytes(value) != raw
+    ):
+        raise AdoptedProtocolError("ontology inventory source is not canonical")
+    return tuple(value["ontology_ids"])
+
+
+def validate_ontology_inventory_source(
+    inventory: Any, raw: bytes,
+) -> tuple[ValidationIssue, ...]:
+    """Validate an ontology inventory's schema-bound canonical source preimage."""
+    issues = list(validate_definition(inventory, "ontologyInventory"))
+    try:
+        ontology_ids = extract_ontology_inventory_source(raw)
+    except AdoptedProtocolError as exc:
+        issues.append(ValidationIssue("/inventory_source_path", "canonicalSource", str(exc)))
+        return tuple(issues)
+    if type(inventory) is not dict:
+        return tuple(issues)
+    expected_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+    if inventory.get("inventory_source_digest") != expected_digest:
+        issues.append(ValidationIssue("/inventory_source_digest", "rawDigest", "inventory source digest mismatch"))
+    if inventory.get("ontology_ids") != list(ontology_ids):
+        issues.append(ValidationIssue("/ontology_ids", "extractor", "inventory extractor result mismatch"))
+    return tuple(issues)
+
+
+def validate_readiness_inventory(
+    subject: Any, request: Any, inventory_source: bytes,
+) -> tuple[ValidationIssue, ...]:
+    """Validate the complete r14 P3 inventory preimage and subject/request bindings."""
+    issues = list(validate_definition(subject, "custodyReadinessSubject"))
+    issues.extend(validate_definition(request, "custodyReadinessVerificationRequest"))
+    if type(subject) is not dict or type(request) is not dict:
+        return tuple(issues)
+    inventory = subject.get("concept_inventory")
+    expected = request.get("expected_concept_inventory")
+    issues.extend(validate_ontology_inventory_source(inventory, inventory_source))
+    if type(inventory) is not dict or type(expected) is not dict or jcs_bytes(inventory) != jcs_bytes(expected):
+        issues.append(ValidationIssue("/expected_concept_inventory", "const", "readiness inventory object mismatch"))
+        return tuple(issues)
+    digest = inventory.get("inventory_digest")
+    if subject.get("concept_inventory_digest") != digest:
+        issues.append(ValidationIssue("/concept_inventory_digest", "const", "subject inventory digest mismatch"))
+    if request.get("expected_concept_inventory_digest") != digest:
+        issues.append(ValidationIssue("/expected_concept_inventory_digest", "const", "request inventory digest mismatch"))
+    return tuple(issues)

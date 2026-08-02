@@ -333,6 +333,593 @@
       "definition": "dateTime",
       "instance": "0000-01-01T00:00:00Z",
       "valid": true
+    },
+    {
+      "name": "r14_ontology_inventory_complete",
+      "definition": "ontologyInventory",
+      "instance": {
+        "schema": "semantic-routing-policy-ontology-inventory.v1",
+        "owner": {
+          "owner_company": "softwareco",
+          "owner_repository_id": "softwareco/ontology",
+          "namespace": "softwareco.semantic-routing-policy.v1"
+        },
+        "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "inventory_source_path": "ontology/inventory.json",
+        "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+        "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+        "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ontology_ids": [
+          "co.software.alpha",
+          "co.software.beta"
+        ],
+        "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": true
+    },
+    {
+      "name": "r11_ontology_inventory_omits_inventory_source_path",
+      "definition": "ontologyInventory",
+      "instance": {
+        "schema": "semantic-routing-policy-ontology-inventory.v1",
+        "owner": {
+          "owner_company": "softwareco",
+          "owner_repository_id": "softwareco/ontology",
+          "namespace": "softwareco.semantic-routing-policy.v1"
+        },
+        "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+        "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+        "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ontology_ids": [
+          "co.software.alpha",
+          "co.software.beta"
+        ],
+        "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": false
+    },
+    {
+      "name": "r11_ontology_inventory_omits_inventory_source_digest",
+      "definition": "ontologyInventory",
+      "instance": {
+        "schema": "semantic-routing-policy-ontology-inventory.v1",
+        "owner": {
+          "owner_company": "softwareco",
+          "owner_repository_id": "softwareco/ontology",
+          "namespace": "softwareco.semantic-routing-policy.v1"
+        },
+        "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "inventory_source_path": "ontology/inventory.json",
+        "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+        "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ontology_ids": [
+          "co.software.alpha",
+          "co.software.beta"
+        ],
+        "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": false
+    },
+    {
+      "name": "r11_ontology_inventory_omits_inventory_extractor_algorithm",
+      "definition": "ontologyInventory",
+      "instance": {
+        "schema": "semantic-routing-policy-ontology-inventory.v1",
+        "owner": {
+          "owner_company": "softwareco",
+          "owner_repository_id": "softwareco/ontology",
+          "namespace": "softwareco.semantic-routing-policy.v1"
+        },
+        "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "inventory_source_path": "ontology/inventory.json",
+        "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+        "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ontology_ids": [
+          "co.software.alpha",
+          "co.software.beta"
+        ],
+        "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": false
+    },
+    {
+      "name": "ontology_inventory_wrong_fixed_extractor",
+      "definition": "ontologyInventory",
+      "instance": {
+        "schema": "semantic-routing-policy-ontology-inventory.v1",
+        "owner": {
+          "owner_company": "softwareco",
+          "owner_repository_id": "softwareco/ontology",
+          "namespace": "softwareco.semantic-routing-policy.v1"
+        },
+        "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "inventory_source_path": "ontology/inventory.json",
+        "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+        "inventory_extractor_algorithm": "rocs-adopted-policy-binding-v1",
+        "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ontology_ids": [
+          "co.software.alpha",
+          "co.software.beta"
+        ],
+        "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": false
+    },
+    {
+      "name": "r14_readiness_subject_complete_concept_inventory",
+      "definition": "custodyReadinessSubject",
+      "instance": {
+        "schema": "semantic-routing-policy-custody-readiness-subject.v1",
+        "custodian_authority": {
+          "repository_id": "id",
+          "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "principal_id": "id",
+          "authority_role": "semantic_owner",
+          "authority_credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "custody_policy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role_separation_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "access_history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "concept_inventory": {
+          "schema": "semantic-routing-policy-ontology-inventory.v1",
+          "owner": {
+            "owner_company": "softwareco",
+            "owner_repository_id": "softwareco/ontology",
+            "namespace": "softwareco.semantic-routing-policy.v1"
+          },
+          "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "inventory_source_path": "ontology/inventory.json",
+          "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+          "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+          "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ontology_ids": [
+            "co.software.alpha",
+            "co.software.beta"
+          ],
+          "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "concept_inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "development_dataset_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acceptance_dataset_seal_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "operational_dataset_seal_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sealed_before_development_disclosure": true,
+        "issued_at": "2026-08-02T06:00:00Z",
+        "subject_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": true
+    },
+    {
+      "name": "r11_readiness_subject_omits_concept_inventory",
+      "definition": "custodyReadinessSubject",
+      "instance": {
+        "schema": "semantic-routing-policy-custody-readiness-subject.v1",
+        "custodian_authority": {
+          "repository_id": "id",
+          "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "principal_id": "id",
+          "authority_role": "semantic_owner",
+          "authority_credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "custody_policy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role_separation_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "access_history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "concept_inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "development_dataset_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "acceptance_dataset_seal_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "operational_dataset_seal_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sealed_before_development_disclosure": true,
+        "issued_at": "2026-08-02T06:00:00Z",
+        "subject_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": false
+    },
+    {
+      "name": "r14_readiness_request_complete_expected_concept_inventory",
+      "definition": "custodyReadinessVerificationRequest",
+      "instance": {
+        "schema": "semantic-routing-policy-custody-readiness-verification-request.v1",
+        "readiness_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "subject_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_custodian_authority": {
+          "repository_id": "id",
+          "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "principal_id": "id",
+          "authority_role": "semantic_owner",
+          "authority_credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "expected_custodian_credential": {
+          "schema": "semantic-routing-policy-authority-credential.v1",
+          "repository_id": "id",
+          "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "principal_id": "id",
+          "authority_role": "semantic_owner",
+          "trust_root_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "public_key_encoding": "ed25519-raw-32",
+          "public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "public_key_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "valid_from": "2026-08-02T06:00:00Z",
+          "valid_until": "2026-08-02T06:00:00Z",
+          "revoked": false,
+          "credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "expected_custodian_approval_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_trust_root_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_public_key_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_base_access_history": {
+          "schema": "semantic-routing-policy-access-history.v1",
+          "events": [
+            {
+              "sequence": 1,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 3,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 4,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 5,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 6,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 7,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 8,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 9,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 10,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 11,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 12,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 13,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ],
+          "history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "expected_base_access_history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_concept_inventory": {
+          "schema": "semantic-routing-policy-ontology-inventory.v1",
+          "owner": {
+            "owner_company": "softwareco",
+            "owner_repository_id": "softwareco/ontology",
+            "namespace": "softwareco.semantic-routing-policy.v1"
+          },
+          "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "inventory_source_path": "ontology/inventory.json",
+          "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+          "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+          "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ontology_ids": [
+            "co.software.alpha",
+            "co.software.beta"
+          ],
+          "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "expected_concept_inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": true
+    },
+    {
+      "name": "r11_readiness_request_omits_expected_concept_inventory",
+      "definition": "custodyReadinessVerificationRequest",
+      "instance": {
+        "schema": "semantic-routing-policy-custody-readiness-verification-request.v1",
+        "readiness_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "subject_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_custodian_authority": {
+          "repository_id": "id",
+          "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "principal_id": "id",
+          "authority_role": "semantic_owner",
+          "authority_credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "expected_custodian_credential": {
+          "schema": "semantic-routing-policy-authority-credential.v1",
+          "repository_id": "id",
+          "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "principal_id": "id",
+          "authority_role": "semantic_owner",
+          "trust_root_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "public_key_encoding": "ed25519-raw-32",
+          "public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "public_key_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "valid_from": "2026-08-02T06:00:00Z",
+          "valid_until": "2026-08-02T06:00:00Z",
+          "revoked": false,
+          "credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "expected_custodian_approval_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_trust_root_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_public_key_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_base_access_history": {
+          "schema": "semantic-routing-policy-access-history.v1",
+          "events": [
+            {
+              "sequence": 1,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 3,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 4,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 5,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 6,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 7,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 8,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 9,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 10,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 11,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 12,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "sequence": 13,
+              "principal_id": "id",
+              "role": "semantic_owner",
+              "action": "assign",
+              "access": [
+                "ontology_sources"
+              ],
+              "occurred_at": "2026-08-02T06:00:00Z",
+              "previous_event_digest": null,
+              "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ],
+          "history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "expected_base_access_history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expected_concept_inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "valid": false
     }
   ],
   "prefix_branch_cases": [
@@ -428,6 +1015,387 @@
       "handoff": true,
       "receipt": true,
       "outcome": "pass"
+    }
+  ],
+  "r14_inventory_fixture": {
+    "schema": "semantic-routing-policy-ontology-inventory.v1",
+    "owner": {
+      "owner_company": "softwareco",
+      "owner_repository_id": "softwareco/ontology",
+      "namespace": "softwareco.semantic-routing-policy.v1"
+    },
+    "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "inventory_source_path": "ontology/inventory.json",
+    "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+    "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+    "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "ontology_ids": [
+      "co.software.alpha",
+      "co.software.beta"
+    ],
+    "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "r14_readiness_subject_fixture": {
+    "schema": "semantic-routing-policy-custody-readiness-subject.v1",
+    "custodian_authority": {
+      "repository_id": "id",
+      "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "principal_id": "id",
+      "authority_role": "semantic_owner",
+      "authority_credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "custody_policy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "role_separation_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "access_history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "concept_inventory": {
+      "schema": "semantic-routing-policy-ontology-inventory.v1",
+      "owner": {
+        "owner_company": "softwareco",
+        "owner_repository_id": "softwareco/ontology",
+        "namespace": "softwareco.semantic-routing-policy.v1"
+      },
+      "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "inventory_source_path": "ontology/inventory.json",
+      "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+      "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+      "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ontology_ids": [
+        "co.software.alpha",
+        "co.software.beta"
+      ],
+      "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "concept_inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "development_dataset_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "acceptance_dataset_seal_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "operational_dataset_seal_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sealed_before_development_disclosure": true,
+    "issued_at": "2026-08-02T06:00:00Z",
+    "subject_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "r14_readiness_request_fixture": {
+    "schema": "semantic-routing-policy-custody-readiness-verification-request.v1",
+    "readiness_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "subject_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_custodian_authority": {
+      "repository_id": "id",
+      "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "principal_id": "id",
+      "authority_role": "semantic_owner",
+      "authority_credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "expected_custodian_credential": {
+      "schema": "semantic-routing-policy-authority-credential.v1",
+      "repository_id": "id",
+      "git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "principal_id": "id",
+      "authority_role": "semantic_owner",
+      "trust_root_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "public_key_encoding": "ed25519-raw-32",
+      "public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "public_key_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid_from": "2026-08-02T06:00:00Z",
+      "valid_until": "2026-08-02T06:00:00Z",
+      "revoked": false,
+      "credential_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "expected_custodian_approval_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_trust_root_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_public_key_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_base_access_history": {
+      "schema": "semantic-routing-policy-access-history.v1",
+      "events": [
+        {
+          "sequence": 1,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 3,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 4,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 5,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 6,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 7,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 8,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 9,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 10,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 11,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 12,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "sequence": 13,
+          "principal_id": "id",
+          "role": "semantic_owner",
+          "action": "assign",
+          "access": [
+            "ontology_sources"
+          ],
+          "occurred_at": "2026-08-02T06:00:00Z",
+          "previous_event_digest": null,
+          "event_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "expected_base_access_history_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expected_concept_inventory": {
+      "schema": "semantic-routing-policy-ontology-inventory.v1",
+      "owner": {
+        "owner_company": "softwareco",
+        "owner_repository_id": "softwareco/ontology",
+        "namespace": "softwareco.semantic-routing-policy.v1"
+      },
+      "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "inventory_source_path": "ontology/inventory.json",
+      "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+      "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+      "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "ontology_ids": [
+        "co.software.alpha",
+        "co.software.beta"
+      ],
+      "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "expected_concept_inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "inventory_source_cases": [
+    {
+      "name": "canonical_nonempty_softwareco_inventory_source",
+      "raw": "{\"ontology_ids\":[\"co.software.alpha\",\"co.software.beta\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": true
+    },
+    {
+      "name": "inventory_source_raw_digest_mismatch",
+      "raw": "{\"ontology_ids\":[\"co.software.alpha\",\"co.software.beta\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {
+        "inventory_source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "valid": false
+    },
+    {
+      "name": "inventory_source_extractor_result_mismatch",
+      "raw": "{\"ontology_ids\":[\"co.software.alpha\",\"co.software.beta\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {
+        "ontology_ids": [
+          "co.software.alpha"
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "inventory_source_extra_key_rejected",
+      "raw": "{\"extra\":true,\"ontology_ids\":[\"co.software.alpha\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": false
+    },
+    {
+      "name": "inventory_source_noncanonical_whitespace_rejected",
+      "raw": "{ \"ontology_ids\":[\"co.software.alpha\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": false
+    },
+    {
+      "name": "inventory_source_duplicate_key_rejected",
+      "raw": "{\"ontology_ids\":[\"co.software.alpha\"],\"ontology_ids\":[\"co.software.alpha\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": false
+    },
+    {
+      "name": "inventory_source_duplicate_id_rejected",
+      "raw": "{\"ontology_ids\":[\"co.software.alpha\",\"co.software.alpha\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": false
+    },
+    {
+      "name": "inventory_source_unsorted_ids_rejected",
+      "raw": "{\"ontology_ids\":[\"co.software.beta\",\"co.software.alpha\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": false
+    },
+    {
+      "name": "inventory_source_core_id_rejected",
+      "raw": "{\"ontology_ids\":[\"core.example\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": false
+    },
+    {
+      "name": "inventory_source_empty_rejected",
+      "raw": "{\"ontology_ids\":[],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
+      "inventory_patch": {},
+      "valid": false
+    }
+  ],
+  "readiness_inventory_cases": [
+    {
+      "name": "r14_readiness_inventory_object_and_digests_equal",
+      "subject_patch": {},
+      "request_patch": {},
+      "valid": true
+    },
+    {
+      "name": "readiness_expected_inventory_object_mismatch",
+      "subject_patch": {},
+      "request_patch": {
+        "expected_concept_inventory": {
+          "schema": "semantic-routing-policy-ontology-inventory.v1",
+          "owner": {
+            "owner_company": "softwareco",
+            "owner_repository_id": "softwareco/ontology",
+            "namespace": "softwareco.semantic-routing-policy.v1"
+          },
+          "owner_git_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "owner_git_tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "inventory_source_path": "other/inventory.json",
+          "inventory_source_digest": "sha256:9b734765c26f6c467fd350e97477cb62fc59676c9245ea10c4d501b036add820",
+          "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+          "ontology_snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ontology_ids": [
+            "co.software.alpha",
+            "co.software.beta"
+          ],
+          "inventory_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "readiness_subject_inventory_digest_mismatch",
+      "subject_patch": {
+        "concept_inventory_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "request_patch": {},
+      "valid": false
+    },
+    {
+      "name": "readiness_request_inventory_digest_mismatch",
+      "subject_patch": {},
+      "request_patch": {
+        "expected_concept_inventory_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "valid": false
     }
   ]
 }
