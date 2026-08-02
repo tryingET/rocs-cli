@@ -1,76 +1,58 @@
 ---
-summary: "Post-ADR implementation plan for Decision 103: a bounded ROCS offline verifier first, followed by separately owned and independently gated P2-P7 work."
+summary: "Corrected r14 post-ADR plan for a bounded synthetic ROCS offline verifier; P2-P7 remain blocked."
 read_when:
   - "Planning or implementing any Decision 103 post-ADR slice."
 type: "implementation_plan"
 status: "proposed"
 decision_id: 103
 ---
-# Adopted semantic-routing policy v1 implementation plan
+# Adopted semantic-routing policy v1 implementation plan — r14
 
-## Authority and readiness
+## Authority, supersession, and readiness
 
-Accepted ADR: `docs/adr/2026-08-02-adopted-semantic-routing-policy-v1.md` at commit `3529ac8c87da58902cfbe31a02f54f50978badd5`.
+This plan is bound only to the unanimously accepted r14 packet and superseding ADR:
 
-Exact normative packet:
+- packet commit `0782c4421bbab446c0aa8d6d5ff2f784fcdb81c9`;
+- packet tree `18b7607c65181a416294af16a9879d5b3b097e31`;
+- packet aggregate SHA-256 `b3c4c60b8a98d5e739498547c8e65b8613a9ce446c1fa4fa252d58fd4169fb98`;
+- packet-manifest SHA-256 `5cee262377d7670834b771006fb1482df2d6dab833c928d400b427821700d7dc`;
+- accepted ADR `docs/adr/2026-08-02-adopted-semantic-routing-policy-v1.md` at commit `404486c6f20f252848c03df3890f1e75fc8216ba`.
 
-- commit `94f2d273c5f2ce27959978b82a37a3b2a8088867`;
-- tree `fb2588f0623d92b80b46fd4b0f937e346cd32f83`;
-- aggregate `20e8df2547bb4816325c7546a3c0a43b0283c6e0589d123e71b809baa7bfe438`;
-- packet-manifest SHA-256 `05b39534733a81a2eb806d9c183033d7a0396e11d93c68f6a5f613fb80448fc5`;
-- controlling synthesis commit `2295ba63368e9de9aff68779ead033e3cc51b405`.
+This plan explicitly supersedes the r11 implementation plan at `afffb3bb87ed6642e21bb0985574de9b51dfc4d6` and the rejected attempted correction at `df636f8fdcaf6f8fa098864d25434230809d6298`. Neither is implementation authority. AK tasks 4519 and 4536 are likewise superseded, closed as non-authorizing lineage, and forbidden as a dependency or reusable task/evidence source for every R0-R4 task. In particular, the r11 S0 packaged schema asset and every schema-derived r11 oracle are superseded: they must not be treated as an r14 substrate or accepted evidence.
 
-Before any implementation mutation, the controller records the exact independently accepted plan commit as `p1_implementation_base_commit`, attaches this plan to Decision 103, verifies the AK passport is accepted and ADR-recorded, advances through task reevaluation only after all required artifacts exist, and opens a fresh P1 task with exact paths. No implementation task inherits authority from this prose alone.
+The r11 S1 RFC 8785, 61-domain digest, raw-signature-preimage, strict Ed25519 verification, and public-only fixture mechanics are intended to remain unchanged by r14. They may be retained only after R1 revalidates them against the accepted r14 schema, packet, corpus, and independently recomputed vectors. Prior S1 acceptance is not inherited.
 
-## Protected inputs
+Before R0, the controller records the independently accepted commit of this plan as `p1_implementation_base_commit`, attaches it to Decision 103, verifies the AK passport and r14 ADR coordinates, and opens a fresh owner-scoped AK task with exact allowed paths. This prose creates no implementation authority.
 
-Every slice recomputes before and after:
+## Protected inputs and no-live-effects boundary
 
-- all seven manifest-listed packet byte lengths and SHA-256 values;
-- packet aggregate and manifest SHA-256 above;
-- ADR bytes at `3529ac8c87da58902cfbe31a02f54f50978badd5`;
-- Decision 102 route/discovery compatibility using the existing compatibility verifier;
-- `live_acquisition_implemented=false` and no-network capability posture.
+Before and after every slice, independently recompute:
 
-No P1 task may modify:
+- all seven packet-manifest byte lengths and SHA-256 values;
+- the packet aggregate and packet-manifest SHA-256 above;
+- the ADR bytes at `404486c6f20f252848c03df3890f1e75fc8216ba`;
+- Decision 102 route/discovery compatibility with the existing compatibility verifier;
+- `live_acquisition_implemented=false`, `signing_implemented=false`, `owner_store_mutation_implemented=false`, and `consumer_activation_implemented=false`.
 
-- any manifest-listed Decision 103 packet file or its manifest;
-- the accepted ADR;
-- Decision 102 packet, golden fixtures, differential fixtures, or compatibility baseline;
-- semantic release protocol packet/runtime surfaces unrelated to this verifier.
+No R0-R4 task may modify the packet, manifest, ADR, Decision 102 packet/fixtures/compatibility baseline, unrelated semantic-release surfaces, owner stores, authoritative refs, credentials, checkpoints, or consumer/runtime state. A packet or ADR byte change stops P1 and requires fresh strict convergence and a superseding ADR.
 
-Any normative packet-byte change stops P1 and requires fresh strict convergence plus a superseding ADR.
+P1 accepts only explicit caller-supplied local bytes, caller-pinned public authority material, and conspicuously synthetic fixtures. It has no network, signing, secret custody, key discovery, ambient registry, owner-store acquisition/mutation, publication, consumer activation, Pi/runtime, provider/model, prompt-projection, or automatic-preflight capability. Passing synthetic publication/currentness objects proves verifier mechanics only.
 
-## P1 authority boundary
-
-P1 implements only deterministic offline validation over explicit caller-supplied local bytes and conspicuously synthetic fixtures. It may:
-
-- parse strict bounded I-JSON;
-- validate closed schema shapes;
-- compute RFC 8785 canonical bytes and all 61 domain-separated digests;
-- verify synthetic Ed25519 credentials/signatures against caller-pinned keys;
-- validate dependency topology, equality joins, authority separation, branch exactness, histories, checkpoints, challenges, and currentness proof shapes;
-- return closed safe errors.
-
-P1 may not create policy, D/U/O, credentials, owner facts, publication events, trusted checkpoints, consumer intent, Pi/runtime state, provider/model activity, prompt projection, or automatic preflight. It has no owner-store acquisition method, no network path, no signing method, and no mutation method. Passing a synthetic currentness fixture proves verifier mechanics only.
-
-## P1 implementation slices
-
-Dependency chain:
+## Sequencing and task gates
 
 ```text
-S0 <- accepted implementation plan
-S1 <- accepted S0 review
-S2 <- accepted S1 review
-S3 <- accepted S2 review
-S4 <- accepted S3 review
+accepted corrected plan -> R0 -> accepted independent R0 review
+                        -> R1 -> accepted independent R1 review
+                        -> R2 -> accepted independent R2 review
+                        -> R3 -> accepted independent R3 review
+                        -> R4 -> accepted independent R4 review
 ```
 
-Each slice gets a fresh AK task and exact predecessor commit/tree/evidence. No task opens before predecessor completion and independent acceptance.
+Every row requires a fresh AK implementation task and fresh independent review. A task records the exact accepted predecessor commit/tree/evidence and cannot open before predecessor acceptance. Findings are repaired in that same bounded row and re-reviewed; no later row may absorb an unresolved finding.
 
-### S0 — packaged schema and strict protocol substrate
+## R0 — package the exact r14 schema and renew the strict schema corpus
 
-New files:
+Allowed new or modified paths:
 
 - `src/rocs_cli/_bootstrap_assets/semantic-router-adopted-policy-v1.schema.zlib`;
 - `src/rocs_cli/semantic_adopted_schema.py`;
@@ -79,20 +61,22 @@ New files:
 - `tests/fixtures/semantic-adopted-policy-v1/schema-corpus.json`;
 - `tests/verify_semantic_adopted_schema.mjs`.
 
-The generated zlib asset is deterministic level-9 compression of the exact 323,224-byte schema. `semantic_adopted_schema.py` checks compressed and decompressed length/hash before parsing. It exposes bytes only; it does not synthesize or rewrite schema. Existing `_bootstrap_assets/*` package-data wiring is reused without broad packaging changes.
+R0 replaces, rather than patches or blesses, the r11 S0 asset. The zlib file is the fixed deterministic level-9 zlib compression of the exact r14 `protocol.schema.json`: decompressed length 324,005, decompressed SHA-256 `e5a55c7a6744868bfc05806a0216eaeb4f82b212f60c3961fdc18672e5529647`, compressed length 18,428, and compressed SHA-256 `948530f81173e760f233ef5a87dd699a762d4e04e16476a443ac7e873e9c2a24`. Loading verifies all four fixed values before parsing; the module exposes exact bytes and never synthesizes or rewrites schema.
 
 Acceptance:
 
-- duplicate-key rejection, strict UTF-8 and I-JSON scalar/integer rules, no floats, forbidden scalar rejection, parser depth 32, collection items 50,000, and pre-allocation byte ceilings; RFC 8785 preserves string bytes and does not normalize to NFC, so positive NFD fixtures remain byte-distinct and valid where the schema permits them;
-- 1 MiB ordinary-object, 16 MiB history, and 32 MiB currentness-proof limits enforced before parse and after canonicalization;
-- all 1,115 local `$ref` occurrences resolve, 68 definitions are transitively referenced, the intentionally unreferenced `hexDigest` definition remains syntactically validated, all 69 definitions are preserved byte-exactly, and no local-reference cycle exists;
-- `tests/verify_semantic_adopted_schema.mjs` independently implements the packet's used Draft 2020-12 subset with Node standard library only; keywords—including arbitrary local JSON Pointer `$ref`, `type`, `const`, `enum`, `required`, `additionalProperties`, `uniqueItems`, `format`, numeric/string/array limits, `allOf`, exact `oneOf`, `if`/`then`, `prefixItems`, and `items:false`—match Python over every schema-corpus case before S0 acceptance;
-- all eight attempt/verdict branches and seven closure/approval projections have positive and overlap-negative fixtures;
-- schema/packet protection and Decision 102 compatibility pass.
+- strict UTF-8/I-JSON, duplicate-key, integer/scalar, forbidden-float, parser-depth 32, collection-item 50,000, and pre-allocation checks remain fail closed; RFC 8785 preserves string bytes without NFC normalization;
+- 1 MiB ordinary-object, 16 MiB history, and 32 MiB currentness-proof limits apply before parse and after canonicalization;
+- all local references and definitions are recounted from r14 rather than copied from r11 evidence; arbitrary local JSON Pointer `$ref`, every used Draft 2020-12 keyword, intentionally unreferenced definitions, and cycle absence are tested;
+- the Python and Node-standard-library-only validators agree over a regenerated strict corpus containing positive, boundary, max/max+1, overlap-negative, and every closed r14 object shape;
+- the corpus specifically covers the new required ontology-inventory source path/raw digest/fixed extractor fields, complete P3 readiness `concept_inventory`, complete request `expected_concept_inventory`, object/digest equality, canonical nonempty Softwareco inventory-source bytes, and rejects r11-shaped omissions;
+- all eight attempt/verdict branches and seven closure/approval projections retain positive and overlap-negative schema coverage;
+- build both wheel and sdist from the clean R0 tree; install each artifact separately offline into a fresh clean environment with no checkout import path, and prove the installed package contains the fixed compressed asset and loads/decompresses it to the exact r14 bytes; independently build/install the isolated-bootstrap distribution in a third clean environment and prove its vendored asset has the same fixed compressed/decompressed identities and is loadable without ambient/system fallback;
+- no r11 corpus expected result is accepted without fresh r14 recomputation; packet protection and Decision 102 compatibility pass.
 
-### S1 — canonical digests and caller-pinned signature verification
+## R1 — revalidate the unchanged digest/signature mechanics atop R0
 
-New files:
+Allowed new or modified paths:
 
 - `src/rocs_cli/semantic_adopted_digests.py`;
 - `src/rocs_cli/semantic_adopted_signatures.py`;
@@ -101,31 +85,23 @@ New files:
 - `tests/fixtures/semantic-adopted-policy-v1/cryptographic-vectors.json`;
 - `tests/fixtures/semantic-adopted-policy-v1/fixture-provenance.json`;
 - `tests/generate_semantic_adopted_fixtures.py`;
-- `tests/verify_semantic_adopted_crypto.mjs`.
+- `tests/verify_semantic_adopted_crypto.mjs`;
+- only if required to preserve the already reviewed direct verify-only primitive: `pyproject.toml`, `uv.lock`, `src/rocs_cli/_bootstrap_assets/pyproject.toml`, `src/rocs_cli/_bootstrap_assets/uv.lock`, and `src/rocs_cli/wave1.py`.
 
-Required bounded dependency/distribution changes:
-
-- `pyproject.toml`;
-- `uv.lock`;
-- `src/rocs_cli/_bootstrap_assets/pyproject.toml`;
-- `src/rocs_cli/_bootstrap_assets/uv.lock`;
-- `src/rocs_cli/wave1.py`.
-
-S1 selects one audited direct Python Ed25519 dependency, declares it in both project and self-contained bootstrap manifests, exact-locks both lockfiles, and includes every new verifier module in the isolated vendored-runtime copy list. Ambient/system fallback is forbidden. The dependency is verify-only in ROCS and independently cross-checked with Node standard cryptography. P1 implements no signing API or private-key custody. The checked-in generator obtains a fresh ephemeral test key from the audited primitive, serializes only public key/message/signature vectors, zeroes/drops private-key references before exit, and emits a provenance record binding generator commit, tool/dependency versions, vector hashes, conspicuously synthetic labels, B0-deny scan, and private-key/secret scan. Fixture generation need not reproduce the random key bytes; verification of the fixed checked-in public vectors is deterministic.
+R1 must first show that r14 leaves the 61 domain names/mappings and signature mechanics unchanged. It then recomputes every vector through the accepted R0 parser/schema. No r11 S1 result is accepted by provenance alone.
 
 Acceptance:
 
-- exact RFC 8785 bytes and all 61 unique digest-name/domain mappings;
-- omitted self-digest fields and raw signature-preimage rules exact;
-- canonical raw-32-byte public-key and exact 64-byte signature decoding, canonical base64 re-encoding, and public-key digest checks;
-- positive vectors plus changed domain, changed body, wrong key, malformed/non-canonical base64, wrong signature length, non-canonical scalar, small-order key, revoked/expired credential, purpose, issuer, trust-root, and signature negatives;
-- Python and independent Node recompute every vector rather than trusting stored booleans;
-- fixture provenance and scans prove no checked-in private key/secret and no B0-derived material;
-- no key discovery, ambient registry, signing API, network, or secret logging.
+- exact RFC 8785 bytes, 61 unique domain mappings, omitted self-digest projections, the separate raw inventory-source SHA-256, and all signature preimages agree in Python and independent Node implementations;
+- Ed25519 accepts only canonical base64 encoding of raw 32-byte public keys and exact 64-byte signatures, verifies public-key digests, and checks credential identity, validity, non-revocation, purpose, issuer, trust root, and caller pins;
+- positives and changed-domain/body, wrong-key, malformed/noncanonical base64, wrong length, noncanonical scalar, small-order key, expired/revoked credential, purpose/issuer/root negatives are recomputed, not stored booleans;
+- the audited dependency remains direct, verify-only, exactly locked in both distributions, copied into the isolated runtime, and has no ambient/system fallback; no dependency change is permitted merely to refresh evidence;
+- the generator uses a fresh ephemeral test key but emits only synthetic public key/message/signature material, drops private references before exit, and records generator commit, tool/dependency versions, hashes, synthetic labels, B0-deny scan, and secret/private-material scan;
+- no signing API, private material, key discovery, network, secret logging, or live authority appears.
 
-### S2 — graph, authority, custody, and execution verifier
+## R2 — fresh r14 graph, authority, real-Git source binding, and execution task
 
-New files:
+Allowed new or modified paths:
 
 - `src/rocs_cli/semantic_adopted_graph.py`;
 - `src/rocs_cli/semantic_adopted_authority.py`;
@@ -137,143 +113,141 @@ New files:
 - `tests/fixtures/semantic-adopted-policy-v1/candidate-support-corpus.json`;
 - `tests/verify_semantic_adopted_execution.mjs`.
 
-Candidate source binding is deliberately two-level to remain constructible. `candidate.owner_git_commit` / `owner_git_tree` identify one exact descendant snapshot containing the policy bytes, provenance bytes, and owner-native inventory source at their candidate paths. The inventory source blob is the canonical owner ID projection used to construct the nested protocol inventory; it is not a serialization of that self-referential inventory object. Decision 102 policy-authority and provenance-source revisions identify exact strict-ancestor source commits and paths whose blobs match their recorded content digests. They do not equal the descendant candidate snapshot commit. Requiring policy, provenance, or the nested inventory serialization to contain the hash of the same commit/tree that contains those bytes is an impossible Git hash fixed point and is forbidden.
+R2 is a fresh task, not an amendment to rejected source-binding work. Its support API uses a closed `CandidateSupport` assembled from descriptor-read explicit local files: candidate, policy, provenance, the canonical inventory source, each named provenance source, and one local owner Git repository. `CandidateSupport` is verified evidence, never a caller assertion.
 
-Acceptance:
+### Constructible r14 source model
 
-- explicit topological graph follows P3 readiness → P4 candidate → P5 preregistration/activation → channel → challenge → unsigned start subject → request → evaluator signature → launch → optional handoff → receipt → closure → attempt → approvals → verdict → P7 publication;
-- every digest back edge, self edge, missing preimage, opaque caller request, or phase-forward dependency rejects;
-- candidate validation consumes explicit bounded policy, provenance, owner-native inventory-source, and local owner-repository inputs; it recomputes the Decision 102 policy/provenance parsers, constructs and verifies the nested inventory coordinate, and recomputes the semantic-binding receipt; policy/provenance/inventory-source paths resolve at the exact descendant candidate commit/tree, while every Decision 102 authority/provenance source path resolves at its exact declared strict-ancestor revision; every supplied byte source equals its resolved blob and every selected ID is proven a member of the owner inventory source; receipt-only self-consistency, prefix-only ownership, copied core ownership, non-ancestor or same-as-snapshot source revisions, missing source bytes, and repository/commit/tree/path drift reject;
-- twelve-principal cardinality/separation, B0 exposure, exact ten-plus-one contamination coverage, 254/255/256 access histories, and one reservation/process rules validate;
-- proof-of-possession, channel/exporter, all deadlines, reservation consumption, custodian-observed spawn, gateway-mediated revocable handle, process termination/reaping, handle close, terminal revoke, and eight branch projections validate;
-- missing/late/wrong-signer closure, direct descriptor transfer, retained handle/process/grant, extra invocation/pass, retry, rerun, and non-completed publish reject;
-- Python/Node differential outcomes and safe error kinds are byte-identical.
+The normative construction separates workflow order from Git ancestry; mandatory `S -> I -> C` or `I -> S -> C` ancestry is forbidden:
 
-### S3 — publication/currentness verifier and CLI
+1. **I exists for P3.** It contains the authoritative canonical inventory-source blob. The verifier proves I's commit/tree and source bytes from the real local ODB and recomputes the inventory preimage. Owner workflow evidence—not Git ancestry—establishes that P3 readiness and its independent request were accepted before P4 policy authoring.
+2. **P4 creates source revisions S as needed.** Each Decision 102 policy-authority/provenance-source revision must be a strict ancestor of C. An S may be on a branch independent of I before both histories merge into C; the verifier does not require or infer I→S, S→I, or wall-clock creation order.
+3. **P4 then creates snapshot C.** C is a strict descendant of I and of every declared S. C contains exact policy and provenance bytes, byte-identical retained copies of every named S source blob, and the byte-identical canonical inventory source from I at its required path. C never contains candidate-object bytes or a candidate serialization; verification enumerates the bounded complete C tree and rejects any blob byte-equal to the externally supplied canonical candidate bytes.
+4. **The candidate is external.** Only after the real C commit and tree IDs exist does the harness/caller construct the candidate object outside Git, binding C as its owner coordinate and I as its nested inventory coordinate. Candidate bytes are explicit local verifier input and are never used to compute C, so no candidate self-hash is possible.
 
-New files:
+The verifier derives only the normative ancestry relations from the local object graph: I→C and each S→C. It proves each I/S/C commit/tree pair and requires I/C commit and tree pairs to differ; it never claims Git proves P3 acceptance time. Every retained entry is one regular blob (`100644` or `100755`); symlink, gitlink, tree, alias, missing, changed, same-revision, nonancestor, candidate bytes in C, replace-object, shallow, partial/promisor, alternate-ODB, or caller-asserted ancestry fails closed.
+
+The actual r14 P3 preimage is mandatory before readiness validation: the canonical source is exactly the RFC 8785 bytes of the closed object `{"ontology_ids":[...],"schema":"softwareco-ontology-inventory-source.v1"}`, with a nonempty sorted unique `co.software.*` array; its raw SHA-256, path, fixed `rocs-softwareco-ontology-inventory-source-v1` extractor, extracted IDs, ontology snapshot, I commit/tree, and inventory-coordinate digest are recomputed. The signed readiness subject nests that complete inventory object and equal digest. Its independent caller request nests a byte-identical expected object and equal digest. Candidate, preregistration, verdict, and currentness joins retain that exact object/digest. A digest alone, nested assertion, repaired JSON, inventory serialization containing C, or r11-shaped readiness/request rejects.
+
+### Full graph, authority, and execution acceptance
+
+- construct and inspect the full active normative graph, not a fixture-selected subgraph: I preimage -> accepted P3 readiness/request -> P4 S revision(s) -> C snapshot -> externally constructed candidate -> reservation/envelope -> execution-contamination subject and stage approvals/request -> preregistration/activation -> channel -> challenge -> unsigned start subject -> request -> evaluator signature -> launch -> optional handoff -> raw receipt -> closure -> attempt -> verdict-approval subject and post-execution custodian/reviewer approvals -> verdict -> P7 publication; every equality/digest edge is represented;
+- reject every back edge, self edge, missing preimage, phase-forward dependency, opaque caller request, and approval over the wrong stage; validate normative `custody_readiness`, `execution_contamination_custodian`, `execution_contamination_independent_review`, `protected_access_activation`, `evaluator_execution_start`, launch/handoff/closure, verdict custodian/reviewer, and publication purposes against their exact subjects and caller pins;
+- verify CandidateSupport by reparsing Decision 102 policy/provenance, owner and per-record source-owner authority, retained S/I/C blobs, canonical extraction, selectable inventory membership, and the complete semantic-binding receipt; prefix ownership, copied `core.*`, receipt-only consistency, absent bytes, or coordinate/path drift rejects;
+- enforce the full twelve-principal cardinality and separation matrix, exact access rights, B0 exposure, 254/255/256 history boundaries, activation append, closure terminal revoke, reservation consumption, one process, gateway-mediated revocable handles, process reaping, handle closure, and no retained grant/process/descriptor;
+- enforce exact timestamps and ordering for credential validity, readiness, reservation, activation, channel, challenge, authorization, launch, handoff, receipt, closure, attempt, approvals, verdict, and publication; changed boundary, late/missing signer, rollback, replay, or reordered history rejects;
+- enforce exactly ten ordered pre-attempt contamination rows plus one separately signed downstream execution-contamination attestation, exact source-digest joins, no B0-derived material, and no candidate/envelope digest cycle;
+- exercise all eight end-to-end branches: the three `not_started` prefixes, the three interrupted zero-pass prefixes, interrupted one-primary-pass, and completed two-pass; no extra invocation/pass, retry, rerun, repair, branch escalation, or non-completed publish;
+- Python and Node independently recompute graph, Git-derived support expectations supplied as retained public fixture facts, authority, timing, history, contamination, and all branch outcomes with byte-identical safe error kinds. Node parity never substitutes caller assertions for Python's Git proof.
+
+## Exact local Git and file resource ceilings
+
+R2 establishes these ceilings and R3 applies them to every verification:
+
+- exactly one explicit local owner repository; no ambient repository and no second ODB;
+- at most 16,384 source records and 16,384 unique object IDs; separately, one aggregate ancestry-work budget of at most 16,384 commit visits/records applies across the union of all I-to-C and every S-to-C proof in one verification—not 16,384 per proof. Shared commits are deduplicated by object ID, every traversal charges the same aggregate counter before use, and aggregate max+1 returns `resource_exhausted`, never a partial authority result;
+- at most 8 Git subprocesses total per verification;
+- at most 12,582,912 stdout bytes and 65,536 stderr bytes per Git subprocess;
+- at most 16,777,216 Git stdout bytes and 524,288 Git stderr bytes aggregate, including blob bodies;
+- each policy, inventory-source, or named source blob at most 1,048,576 bytes; provenance at most 8,388,608 bytes; deduplicated retained provenance-source bytes at most 1,048,576 bytes aggregate;
+- `cat-file --batch-check` precedes body reads; a bounded `rev-list`/ancestry proof precedes acceptance; NUL-delimited tree records are counted before use; excess count/output kills the child and returns `resource_exhausted`;
+- the repository root is opened once with `O_DIRECTORY | O_NOFOLLOW`, anchored by descriptor, identity-rechecked after reads, and used with a closed environment, `--no-replace-objects`, no global/system config, hooks, alternates, shallow state, partial/promisor state, network, or external object helper;
+- max and max+1 tests independently cover every blob, source, object, ancestry, subprocess, stdout, and stderr ceiling. Schema-bounded events, graph edges, signatures, and canonical bytes are pre-counted and processed with linear/indexed joins; no ambient wall-clock performance claim is made.
+
+## R3 — publication/currentness verifier and explicit-local-file CLI
+
+Allowed new or modified paths:
 
 - `src/rocs_cli/semantic_adopted_currentness.py`;
 - `src/rocs_cli/cli_semantic_adopted.py`;
 - `tests/test_semantic_adopted_currentness.py`;
 - `tests/test_semantic_adopted_cli.py`;
 - `tests/fixtures/semantic-adopted-policy-v1/currentness-corpus.json`;
-- `tests/verify_semantic_adopted_currentness.mjs`.
+- `tests/verify_semantic_adopted_currentness.mjs`;
+- bounded wiring only in `src/rocs_cli/cli_semantic_commands.py`, `src/rocs_cli/contracts.py`, and `README.md`.
 
-Bounded existing changes:
-
-- `src/rocs_cli/cli_semantic_commands.py`;
-- `src/rocs_cli/contracts.py`;
-- `README.md`.
-
-CLI surface is explicit-local-input only:
+CLI:
 
 ```text
 rocs semantic-policy validate-object --input <regular-file>
 rocs semantic-policy verify-bundle \
   --input <role>=<regular-file> [--input <role>=<regular-file> ...] \
-  [--owner-repo <local-git-root>]
+  --owner-repo <local-git-root>
 rocs semantic-policy verify-currentness \
   --proof <regular-file> --request <regular-file> \
-  --policy <regular-file> --provenance <regular-file> \
-  --inventory <regular-file> --owner-repo <local-git-root>
+  --candidate <regular-file> --policy <regular-file> \
+  --provenance <regular-file> --inventory-source <regular-file> \
+  --source <canonical-path>=<regular-file> [--source ...] \
+  --owner-repo <local-git-root>
 rocs semantic-policy capabilities
 ```
 
-`validate-object` reports only bounded schema and self-digest validity; its output includes `authority_verified=false`, and it cannot accept or imply any owner, credential, caller-pin, candidate-source, publication, or currentness claim. `verify-bundle` derives a closed required role set from the primary object's schema, rejects missing/extra/duplicate roles, and requires every external caller request, credential/key pin, policy/provenance/inventory byte source, and local owner repository needed by that object. Objects whose full accepted-packet invariants require external support fail closed under `validate-object` and direct the operator to `verify-bundle`; receipt-only self-consistency is never a verification success.
-
-`capabilities` must state `live_acquisition_implemented=false`, `signing_implemented=false`, `owner_store_mutation_implemented=false`, and `consumer_activation_implemented=false`.
+`verify-bundle` derives a closed required-role set from the primary object, including the P3 inventory source and owner repository whenever readiness/candidate authority is claimed, and rejects missing, extra, or duplicate roles. `validate-object` checks only schema/self-digest, reports `authority_verified=false`, and directs externally supported shapes to `verify-bundle`. It cannot infer owner, key, source, publication, or currentness authority.
 
 Acceptance:
 
-- `validate-object`, `verify-bundle`, and `verify-currentness` have disjoint output schemas; only the latter two can return `authority_verified=true`, and only after their exact closed support-role sets and all external pins/source bytes validate;
-- complete append-only publication history, owner head, checkpoint chain, fresh caller challenge, authenticated single-use consumption receipt, external request pins, and action-time proof joins validate;
-- stale H1 after H2 withdrawal/revocation, replayed/expired/duplicate challenge, wrong action/candidate/store/channel/key, fork, rollback, skipped checkpoint, capacity exhaustion, or nested-value-as-pin rejects;
-- only pass verdicts publish; withdraw/revoke history is preserved and revoke is terminal;
-- every path input is opened descriptor-first with `O_NONBLOCK | O_NOFOLLOW`, regular-file `fstat`, pre-read size check, bounded chunked reads, and identity/size/mtime recheck; FIFO, device, socket, symlink, unstable, oversized, or blocking-special inputs reject before content read; stdin is unsupported;
-- the local Git root is opened once with `O_DIRECTORY | O_NOFOLLOW`, anchored through its directory descriptor, and identity-rechecked after all reads; Git uses a closed environment, `--no-replace-objects`, no global/system config, no hooks, no alternates/shallow/partial/promisor state, and no network;
-- policy, provenance, and owner-native inventory-source paths are resolved at the exact descendant candidate commit/tree; every Decision 102 authority/provenance source path is resolved at its exact declared strict-ancestor revision; all are inspected with NUL-delimited tree output and must be one regular blob entry of mode `100644` or `100755`; same-as-snapshot, non-ancestor, symlink `120000`, gitlink `160000`, tree, duplicate/alias, missing, or other modes reject before blob content read;
-- `cat-file --batch-check` runs before any blob body read; each policy/source/inventory blob is at most 1,048,576 bytes, provenance is at most 8,388,608 bytes, source records and unique object IDs are each at most 16,384, and deduplicated provenance-source bytes have the fixed P1 ceiling 1,048,576 bytes; no unbound Decision 102 request value is treated as candidate authority;
-- one verification uses at most eight Git subprocesses, at most 12,582,912 stdout bytes per process and 16,777,216 stdout bytes aggregate including blob bodies, plus at most 65,536 stderr bytes per process and 524,288 stderr bytes aggregate; excess output terminates the child and returns `resource_exhausted`; max/max+1 tests cover every blob/count/output/subprocess ceiling;
-- supplied policy/provenance/inventory-source bytes equal their descendant candidate-commit blobs, every Decision 102 authority/provenance source equals its declared strict-ancestor revision/path blob, and the nested inventory IDs equal the canonical owner-native inventory-source projection before its coordinate digest is checked; validation pre-counts schema-bounded events, graph edges, signatures, and canonicalized bytes and uses linear/indexed joins; worst-case operation count is derived from the packet's 10,000-event/50,000-item ceilings and tested at max/max+1 without an ambient wall-clock claim;
-- no cache, no ambient owner root, deterministic stdout, closed safe stderr, and `--debug` compatibility;
-- malformed/error paths leak no path, object bytes, key, exception, environment, or secret;
-- all pre-existing CLI contracts and Decision 102 route/discovery behavior remain byte-compatible.
+- the three commands have disjoint output schemas; only complete bundle/currentness verification can return `authority_verified=true`;
+- publication history, pass-only publication, append-only withdraw/revoke, terminal revoke, owner head, contiguous checkpoint chain, fresh challenge, authenticated single consumption, caller pins, action-time joins, and all exact R2 I/S/C and P3 inventory-preimage relations validate;
+- recompute and verify the owner read-attestation signature preimage exactly as `rocs-semantic-policy-receipt-signature-v1\0` plus the raw 32-byte attestation-body digest, and the consumption signature preimage exactly as `rocs-semantic-policy-consumption-signature-v1\0` plus the raw 32-byte consumption-body digest; reject JCS bytes, ASCII digest text, changed domain, wrong body/key, malformed digest, or any other preimage;
+- validate the complete closed acquisition capability, clock source, acquisition channel, challenge-consumption store, issuer signing-key, and consumption-signing-key coordinates and approvals: canonical coordinate digests, subjects, purposes, issuers, credentials, public-key digests, trust roots, validity, non-revocation, caller pins, and both signatures must all join; missing, extra, open, identifier-only, ambient, partial-tuple, or proof-nested substitution rejects;
+- derive age only from caller-pinned trusted `trusted_now` minus issuer-attested `capture_finished_at`, require strictly positive age within `max_age_seconds`, require monotonic/non-rolled-back trusted time and `clock_uncertainty_ms <= max_clock_uncertainty_ms`, and reject untrusted or rolled-back `trusted_now`, zero/negative age, stale age, excessive/negative uncertainty, capture reversal, or independently chosen `observed_at`;
+- explicitly mutate timestamps while retaining old signatures to prove redated read and consumption receipts reject; stale, forked, rolled-back, skipped, replayed, expired, duplicate, wrong action/candidate/store/channel/key, capacity-exhausted, withdrawn/revoked, nested-value-as-pin, or non-pass publication also rejects;
+- every file uses descriptor-first `O_NONBLOCK | O_NOFOLLOW`, regular-file `fstat`, pre-read size check, bounded chunked read, and identity/size/mtime recheck; stdin, FIFO, device, socket, symlink, unstable, oversized, or blocking-special input rejects before content use;
+- the exact Git ceilings above apply; there is no cache, network, ambient owner root, mocked ODB, or authority fallback;
+- deterministic stdout, closed safe stderr, and `--debug` compatibility leak no path, object bytes, key, exception, environment, or secret;
+- capabilities reports all four live-effect flags false; Decision 102 and existing CLI contracts remain byte-compatible.
 
-### S4 — independent evidence and rollback rehearsal
+## R4 — independent evidence, synthetic real-Git dogfood, and rollback
 
-New files:
+Allowed new or modified paths:
 
 - `tests/verify_semantic_adopted_policy.mjs`;
 - `tests/verify_semantic_adopted_compatibility.py`;
+- `tests/dogfood_semantic_adopted_policy.py`;
+- only hash-manifested synthetic fixtures under `tests/fixtures/semantic-adopted-policy-v1/` needed by the dogfood.
 
-Run:
+R4 runs:
 
 ```bash
 UV_PYTHON=3.12 uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q
 node tests/verify_semantic_adopted_policy.mjs
+UV_PYTHON=3.12 uv run --frozen python tests/dogfood_semantic_adopted_policy.py
 UV_PYTHON=3.12 uv run --frozen python tests/verify_semantic_adopted_compatibility.py \
   --implementation-base <accepted-plan-commit> \
-  --packet-aggregate 20e8df2547bb4816325c7546a3c0a43b0283c6e0589d123e71b809baa7bfe438
+  --packet-aggregate b3c4c60b8a98d5e739498547c8e65b8613a9ce446c1fa4fa252d58fd4169fb98
 ./scripts/ci/full.sh
 ```
 
-S4 independently recomputes packet/asset hashes, schema behavior, 61 domains, every fixture oracle, Python/Node agreement, CLI contracts, safe errors, and Decision 102 compatibility. It verifies only authorized files differ from `p1_implementation_base_commit`.
+Independent evidence recomputes packet/asset identities, r14 schema behavior, all 61 domains, raw inventory-source digest/extraction, signatures, fixture oracles, Python/Node parity, CLI contracts, safe errors, exact resource ceilings, and Decision 102 compatibility. It proves only authorized paths differ from `p1_implementation_base_commit`.
 
-Rollback rehearsal starts from the final accepted S4 candidate. It first copies the compatibility verifier to a private managed temporary directory, records its SHA-256, and requires an explicit candidate root. In a fresh isolated clone, revert S4, S3, S2, S1, and S0 in reverse order, running the external verifier and surviving tests after each revert. The final tree must equal `p1_implementation_base_commit`; the receipt proves completed P1, including S4-only files, can be removed. Preserve logs and failed evidence; remove only owned scratch.
+### Required synthetic dogfood
 
-P1 dogfood is limited to the checked-in synthetic corpus and explicit local files. It may claim parser, digest, signature-verification, graph, execution-shape, publication-history, currentness-shape, compatibility, resource, error, and rollback evidence only. It may not claim live owner currentness or real policy quality.
+The dogfood creates a fresh private temporary Git repository with no alternates and ordinary Git commands; mocked `git`, in-memory commit graphs, fake ODB adapters, caller-asserted ancestry, and copied commit/tree strings are forbidden. It first creates I with the canonical authoritative inventory source and obtains full P3 acceptance. Only then it creates one or more strict-descendant S source revisions and strict-descendant C. C retains all required I/S bytes and contains policy/provenance, but no candidate bytes. After C commit/tree exist, the harness constructs the candidate as an external explicit local file. The production verifier proves all objects, ordering, ancestry, trees, modes, and retained bytes.
 
-## P2-P7 owner gates
+Using fresh ephemeral synthetic keys, the harness constructs the complete signed P3 readiness subject/receipt and independent request, including byte-identical full inventory objects and equal digests; then the complete P4-P7 synthetic graph, all normative stage-specific signed approvals and caller pins, exact histories/times/contamination, and each of the eight execution/verdict branches. It exercises `validate-object`, `verify-bundle`, and `verify-currentness` through explicit regular files and the real repository. Node dogfood must independently open and inspect that same fresh repository and its actual I, every S, and C commit/tree/blob objects, independently recompute ancestry, retained-byte and candidate-absence facts under the same ceilings, and then verify every branch; Python-derived coordinates, JSON summaries, expected booleans, or other derived Git facts are not Node evidence.
 
-P1 completion does not open P2 automatically. Each later phase requires a separately reviewed owner handoff and task in the repository that owns the effect.
+Only public keys/signatures and conspicuously synthetic data may enter retained evidence. Private keys remain only in permission-restricted owned temporary storage/process memory, never enter verifier inputs or logs, and are destroyed after evidence hashes are sealed. The fail-closed private-material scan covers the complete fixture tree, fixture manifests, generated and retained logs/evidence, staged diff, and every new Git object reachable from each R row tip but not from `p1_implementation_base_commit` (including blobs not named by the diff). It detects PEM armor, OpenSSH private keys, PKCS#8/private-key DER encodings, private or symmetric JWK members, mnemonic/raw seed material, and credential/secret candidates encoded as raw bytes, hex, or base64. The only exceptions are an explicit path+field+SHA-256 allowlist of schema-valid public keys, public authority credentials, signatures, and documented synthetic non-secret vectors; type/name heuristics alone never allowlist. Any undecodable candidate, unallowlisted match, scanner error, unreadable object, or scope gap fails closed. B0 deny scanning covers the same scope.
 
-### P2 — synthetic semantic-owner storage mechanics
+Dogfood must also hit every Git max/max+1 boundary without network, alternates, mocked ODB, live owner refs, live publication/store mutation, signing API, or any P2-P7 effect. The complete repository test suite and `./scripts/ci/full.sh` run after dogfood.
 
-Owner: `softwareco/ontology`. Required before task creation: owner acceptance of exact repository identity, candidate/publication paths, CAS/append-only mechanics, capacity reserve, signing/trust distribution boundary, synthetic fixtures, and rollback. No real policy or publication.
+Rollback starts from the final accepted R4 candidate. Before cloning, record the exact accepted single-row commit IDs for R0, R1, R2, R3, and R4 and prove each row commit's parent is the previously accepted row tip; merge, squash, range guesses, labels, or task IDs cannot substitute. Copy the compatibility verifier to a private managed temporary directory, record its SHA-256, and require an explicit candidate root. In a fresh isolated clone, revert those exact commits R4, R3, R2, R1, and R0 in reverse order. After each revert run the external verifier plus the full CI applicable to that surviving tree, including its complete unit/Node checks and `./scripts/ci/full.sh`, rather than only selected surviving tests. After R0 is reverted, run the complete baseline unit/Node/compatibility/full CI suite from `p1_implementation_base_commit` and require byte-identical final tree equality to that commit. Preserve logs and failed evidence; delete only owned scratch. This proves removal of synthetic P1, not rollback of any live authority or effect.
 
-### P3 — fresh custody readiness and sealed coordinates
+## P2-P7 remain blocked
 
-Owner: an explicitly accepted custodian, proposed `softwareco/owned/dspx`. Required before any D disclosure: fresh source/license/consent policy, independent principals, B0 exposure `disproven` for blind roles, sealed D/U/O coordinates, base access history, deletion/incident controls, and signed caller-pinned readiness. Raw U/O never enters ROCS, Git, AK, Pi, sessions, or intercom.
+R0-R4 are synthetic P1 only. P2 storage, P3 real custody/readiness, P4 real D disclosure/policy/candidate, P5 real reservation/activation, P6 protected U/O execution/verdict, and P7 owner publication remain blocked and unauthorized. Each would require a later explicit decision, correct owner repository, fresh owner-scoped AK task, independent review, authority artifacts, and rollback. No R0-R4 fixture, Git repository, signature, currentness result, or AK record may be promoted into those phases.
 
-### P4 — visible-D policy authoring and candidate freeze
+Trusted live acquisition/currentness, consumer shadowing/adoption, Pi/runtime delivery, prompt projection, provider/model activity, automatic preflight, and fleet rollout remain later decisions after P7; this plan grants no authority for them.
 
-Owner: `softwareco/ontology`. Policy authors may see D only after accepted P3 evidence. Freeze exact Softwareco inventory, policy/provenance bytes, ten-surface contamination manifest, and candidate. U/O remain hidden.
+## File and dependency budgets
 
-### P5 — one-shot reservation, preregistration, and activation
-
-Owner: accepted custodian with independent reviewer. Acquire one non-executing reservation, construct the envelope, sign downstream contamination evidence, validate both independently supplied caller requests, construct their closed preexecution bundle, preregister the exact coordinates, validate every preregistration/reservation/equality join, and only then issue one bounded activation. No protected row read or evaluator spawn until every predecessor validates.
-
-### P6 — one immutable protected evaluation and verdict
-
-Owner: custodian for access/execution evidence; distinct independent reviewer for verdict. Exactly one process invocation, two internal passes only on completion, mandatory process/handle closure and terminal revoke, immutable pass/fail/indeterminate evidence, and no mechanical retry. This is the first real-policy dogfood and only if P1-P5 owner gates are current.
-
-### P7 — semantic-owner publication only
-
-Owner: `softwareco/ontology`. Only a reviewed pass verdict may append publish. Withdrawal/revocation are append-only. P7 does not establish production currentness.
-
-After P7, a separate owner task must implement and independently prove trusted acquisition/currentness before any consumer action. Consumer shadowing, Pi/runtime delivery, prompt projection, provider/model evidence, and automatic preflight remain later decisions in that order.
-
-## File-size and dependency discipline
-
-- each new or modified Python/JavaScript module: below 500 LOC and 50KB;
+- each new or modified Python/JavaScript implementation module: below 500 LOC and 50KB;
 - each test module/verifier: below 1,000 LOC and 80KB;
-- data fixtures are hash-manifested and bounded by their protocol ceiling;
-- the compressed schema asset is generated deterministically and must stay below 50KB;
-- existing modules already near 500 LOC are not extended; new behavior goes in the named modules;
-- no dependency is added without exact lock, license/security review, offline deterministic use, and rollback coverage.
+- data fixtures are hash-manifested and bounded by protocol/input ceilings;
+- deterministic compressed schema asset: below 50KB;
+- do not extend an existing module already near 500 LOC; use the named bounded module;
+- no dependency without exact locks, license/security review, offline deterministic use, and rollback coverage.
 
-## Task-scope template
+## Per-task scope and stop conditions
 
-Every slice task:
+Every R0-R4 AK task enumerates exact allowed paths/output, forbids packet/ADR/unrelated surfaces, records implementation base, predecessor commit/tree, r14 packet/manifest identities, and B0 posture, explicitly proves it neither depends on nor reuses AK 4519 or 4536, commits only its row, and receives independent review before the next task. Timeout, crash, or indeterminate behavior is non-retryable until disposition is proved.
 
-- enumerates every allowed path and exact required output;
-- forbids all packet/ADR paths and unrelated semantic-release/Decision 102 surfaces;
-- depends on the exact accepted predecessor task/evidence;
-- records implementation base, predecessor commit/tree, packet aggregate, manifest hash, and B0 exposure before mutation;
-- commits only its slice and receives independent review before completion;
-- treats timeout/crash/indeterminate effects as non-retryable until disposition is proved.
-
-## Stop conditions
-
-Stop before mutation or before the next phase on packet/ADR drift, schema or Python/Node disagreement, signature primitive uncertainty, unbounded allocation/read, authority substitution, B0-derived fixture content, raw U/O exposure, unexpected repository mutation, live acquisition/signing/store mutation, consumer/Pi/provider/model work, phase/dependency bypass, missing independent review, or rollback uncertainty.
+Stop before mutation or progression on packet/ADR drift; r11 schema/fixture substitution; Python/Node disagreement; signature uncertainty; malformed or missing P3 inventory preimage; equal, fake, nonancestral, replaced, shallow, partial, alternate, mocked, or over-budget Git evidence; changed retained bytes; unbounded allocation/read/traversal; authority or caller-pin substitution; incomplete graph/stage approval/history/timing/contamination/branch coverage; B0-derived or private fixture material; raw U/O exposure; unexpected repository mutation; live acquisition/signing/store/publication/consumer effect; P2-P7 work; Pi/provider/model work; missing independent review; or rollback uncertainty.
