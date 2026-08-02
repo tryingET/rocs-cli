@@ -1,0 +1,13 @@
+{
+  "conspicuously_synthetic": true,
+  "cryptography_version": "46.0.5",
+  "decision98_b0_material_present": false,
+  "entropy_source": "operating-system-randomness",
+  "fixture_sha256": "751efac28ff7f1187135ce991aea1066fee8f7ead07eb0dcfc6371024e182537",
+  "generated_at": "2026-08-02T07:14:16.779650Z",
+  "generator_path": "tests/generate_semantic_adopted_fixtures.py",
+  "generator_sha256": "15e1319439dce39074f9abba61388e2f9e6ab0d3c75a9d917194df539a9aea49",
+  "private_key_serialized": false,
+  "schema": "semantic-adopted-policy-fixture-provenance.v1",
+  "secret_material_serialized": false
+}

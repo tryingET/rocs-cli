@@ -147,7 +147,10 @@ def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: P
             (stage / "uv.lock").write_text(uv_text, "utf-8")
             runtime = stage / "runtime"
             runtime.mkdir()
-            for module_name in ("yaml", "rich", "markdown_it", "mdurl", "pygments"):
+            for module_name in (
+                "yaml", "rich", "markdown_it", "mdurl", "pygments",
+                "cryptography", "cffi", "pycparser", "_cffi_backend",
+            ):
                 spec = importlib.util.find_spec(module_name)
                 if spec is None or spec.origin is None:
                     raise RuntimeError(f"runtime dependency is unavailable: {module_name}")
