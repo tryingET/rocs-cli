@@ -164,10 +164,13 @@ Bounded existing changes:
 - `src/rocs_cli/contracts.py`;
 - `README.md`.
 
-CLI surface is explicit-local-file only:
+CLI surface is explicit-local-input only:
 
 ```text
-rocs semantic-policy verify-object --input <regular-file>
+rocs semantic-policy validate-object --input <regular-file>
+rocs semantic-policy verify-bundle \
+  --input <role>=<regular-file> [--input <role>=<regular-file> ...] \
+  [--owner-repo <local-git-root>]
 rocs semantic-policy verify-currentness \
   --proof <regular-file> --request <regular-file> \
   --policy <regular-file> --provenance <regular-file> \
@@ -175,16 +178,21 @@ rocs semantic-policy verify-currentness \
 rocs semantic-policy capabilities
 ```
 
+`validate-object` reports only bounded schema and self-digest validity; its output includes `authority_verified=false`, and it cannot accept or imply any owner, credential, caller-pin, candidate-source, publication, or currentness claim. `verify-bundle` derives a closed required role set from the primary object's schema, rejects missing/extra/duplicate roles, and requires every external caller request, credential/key pin, policy/provenance/inventory byte source, and local owner repository needed by that object. Objects whose full accepted-packet invariants require external support fail closed under `validate-object` and direct the operator to `verify-bundle`; receipt-only self-consistency is never a verification success.
+
 `capabilities` must state `live_acquisition_implemented=false`, `signing_implemented=false`, `owner_store_mutation_implemented=false`, and `consumer_activation_implemented=false`.
 
 Acceptance:
 
+- `validate-object`, `verify-bundle`, and `verify-currentness` have disjoint output schemas; only the latter two can return `authority_verified=true`, and only after their exact closed support-role sets and all external pins/source bytes validate;
 - complete append-only publication history, owner head, checkpoint chain, fresh caller challenge, authenticated single-use consumption receipt, external request pins, and action-time proof joins validate;
 - stale H1 after H2 withdrawal/revocation, replayed/expired/duplicate challenge, wrong action/candidate/store/channel/key, fork, rollback, skipped checkpoint, capacity exhaustion, or nested-value-as-pin rejects;
 - only pass verdicts publish; withdraw/revoke history is preserved and revoke is terminal;
-- every path input is opened descriptor-first with `O_NOFOLLOW`, regular-file `fstat`, pre-read size check, bounded chunked reads, and identity/size/mtime recheck; FIFO, device, socket, symlink, unstable, oversized, or blocking-special inputs reject before content read; stdin is unsupported;
-- local Git reads use a closed environment, `--no-replace-objects`, no global/system config, no hooks, no alternates/shallow/partial/promisor state, bounded `cat-file --batch-check` before blob reads, and no network; supplied bytes and every provenance source equal exact commit/tree/path blobs;
-- validation pre-counts schema-bounded events, graph edges, signatures, and canonicalized bytes and uses linear/indexed joins; worst-case operation count is derived from the packet's 10,000-event/50,000-item ceilings and tested at max/max+1 without an ambient wall-clock claim;
+- every path input is opened descriptor-first with `O_NONBLOCK | O_NOFOLLOW`, regular-file `fstat`, pre-read size check, bounded chunked reads, and identity/size/mtime recheck; FIFO, device, socket, symlink, unstable, oversized, or blocking-special inputs reject before content read; stdin is unsupported;
+- the local Git root is opened once with `O_DIRECTORY | O_NOFOLLOW`, anchored through its directory descriptor, and identity-rechecked after all reads; Git uses a closed environment, `--no-replace-objects`, no global/system config, no hooks, no alternates/shallow/partial/promisor state, and no network;
+- every policy, provenance, inventory, and provenance-source path is resolved at the exact candidate commit with NUL-delimited tree inspection and must be one regular blob entry of mode `100644` or `100755`; symlink `120000`, gitlink `160000`, tree, duplicate/alias, missing, or other modes reject before blob content read;
+- `cat-file --batch-check` runs before any blob body read; each policy/source/inventory blob is at most 1,048,576 bytes, provenance is at most 8,388,608 bytes, source records and unique object IDs are each at most 16,384, and deduplicated provenance-source bytes are bounded by the candidate-bound Decision 102 `route_limits.policy_bytes` with a hard maximum of 1,048,576 bytes; batch-check stdout is at most 4,194,304 bytes, Git subprocess count is fixed and bounded, and max/max+1 tests cover each ceiling;
+- supplied bytes and every provenance source equal their exact commit/tree/path blobs; validation pre-counts schema-bounded events, graph edges, signatures, and canonicalized bytes and uses linear/indexed joins; worst-case operation count is derived from the packet's 10,000-event/50,000-item ceilings and tested at max/max+1 without an ambient wall-clock claim;
 - no cache, no ambient owner root, deterministic stdout, closed safe stderr, and `--debug` compatibility;
 - malformed/error paths leak no path, object bytes, key, exception, environment, or secret;
 - all pre-existing CLI contracts and Decision 102 route/discovery behavior remain byte-compatible.
