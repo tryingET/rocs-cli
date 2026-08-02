@@ -36,7 +36,7 @@ A cross-owner policy, core-owned policy, or materialized ownership overlay requi
 4. Prove action-time currentness from an authenticated unidirectional monotonic owner-checkpoint chain plus a fresh challenge-bound Ed25519 issuer-attested local read, separate caller verification request, and authenticated single-use challenge-consumption receipt.
 5. Let ROCS validate identity and state without issuing semantic authority.
 6. Preserve B0 as contaminated historical diagnosis only.
-6a. Publish and mechanically enforce a phase-aligned topological digest schedule: signed candidate-free P3 custody readiness → P4 policy/provenance and candidate contamination → candidate → non-executing P5 reservation → attempt envelope → signed P5 execution-contamination attestation → preregistration → P6 execution → post-execution approvals/verdict → P7 publication/currentness.
+6a. Publish and mechanically enforce a phase-aligned topological digest schedule: signed candidate-free P3 custody readiness with no active evaluator grant → P4 policy/provenance and candidate contamination → candidate → non-executing P5 reservation bound to the frozen evaluator operator → attempt envelope → signed P5 execution-contamination attestation → complete caller-request-preimage bundle → preregistration → custodian-signed protected-access activation with one appended evaluator grant → P6 execution → post-execution approvals/verdict → P7 publication/currentness.
 7. Keep consumer/Pi shadowing, prompt projection, providers/models, and automatic preflight outside this decision.
 
 ## Safety problem

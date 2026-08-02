@@ -121,6 +121,15 @@
       "$ref": "#/$defs/custodyReadinessVerificationRequest"
     },
     {
+      "$ref": "#/$defs/preexecutionVerificationBundle"
+    },
+    {
+      "$ref": "#/$defs/protectedAccessActivationSubject"
+    },
+    {
+      "$ref": "#/$defs/protectedAccessActivation"
+    },
+    {
       "$ref": "#/$defs/executionContaminationVerificationRequest"
     }
   ],
@@ -345,6 +354,8 @@
         "independent_review_approval",
         "verdict_approval_subject",
         "verdict_approval_subject_digest",
+        "protected_access_activation",
+        "protected_access_activation_digest",
         "verdict_digest"
       ],
       "properties": {
@@ -468,6 +479,12 @@
           "$ref": "#/$defs/executionContaminationAttestation"
         },
         "execution_contamination_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_access_activation": {
+          "$ref": "#/$defs/protectedAccessActivation"
+        },
+        "protected_access_activation_digest": {
           "$ref": "#/$defs/digest"
         }
       }
@@ -1834,6 +1851,8 @@
         "execution_contamination_verification_request_digest",
         "custodian_authority",
         "independent_review_authority",
+        "preexecution_verification_bundle",
+        "preexecution_verification_bundle_digest",
         "preregistration_digest"
       ],
       "properties": {
@@ -2138,6 +2157,12 @@
         },
         "independent_review_authority": {
           "$ref": "#/$defs/authorityCoordinate"
+        },
+        "preexecution_verification_bundle": {
+          "$ref": "#/$defs/preexecutionVerificationBundle"
+        },
+        "preexecution_verification_bundle_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -2183,6 +2208,8 @@
         "passes",
         "attempt_envelope_digest",
         "execution_receipt_digest",
+        "protected_access_activation",
+        "protected_access_activation_digest",
         "attempt_digest"
       ],
       "properties": {
@@ -2253,6 +2280,12 @@
         },
         "execution_receipt_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "protected_access_activation": {
+          "$ref": "#/$defs/protectedAccessActivation"
+        },
+        "protected_access_activation_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -2300,7 +2333,8 @@
             "single_use_challenge_store",
             "custody_readiness",
             "execution_contamination_custodian",
-            "execution_contamination_independent_review"
+            "execution_contamination_independent_review",
+            "protected_access_activation"
           ]
         },
         "valid_from": {
@@ -3516,7 +3550,21 @@
           "$ref": "#/$defs/identifier"
         },
         "executor_authority": {
-          "$ref": "#/$defs/authorityCoordinate"
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
         },
         "single_invocation_limit": {
           "const": 1
@@ -3619,7 +3667,8 @@
             "single_use_challenge_store",
             "custody_readiness",
             "execution_contamination_custodian",
-            "execution_contamination_independent_review"
+            "execution_contamination_independent_review",
+            "protected_access_activation"
           ]
         },
         "valid_from": {
@@ -3660,6 +3709,7 @@
         "custody_policy_digest",
         "attempt_envelope_digest",
         "execution_contamination_digest",
+        "protected_access_activation_digest",
         "execution_attempt_digest",
         "execution_receipt_digest",
         "metrics_digest",
@@ -3738,6 +3788,9 @@
           "$ref": "#/$defs/identifier"
         },
         "execution_contamination_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_access_activation_digest": {
           "$ref": "#/$defs/digest"
         }
       }
@@ -4259,6 +4312,170 @@
           "$ref": "#/$defs/digest"
         },
         "request_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "preexecutionVerificationBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "custody_readiness_verification_request",
+        "custody_readiness_verification_request_digest",
+        "execution_contamination_verification_request",
+        "execution_contamination_verification_request_digest",
+        "bundle_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-preexecution-verification-bundle.v1"
+        },
+        "custody_readiness_verification_request": {
+          "$ref": "#/$defs/custodyReadinessVerificationRequest"
+        },
+        "custody_readiness_verification_request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_contamination_verification_request": {
+          "$ref": "#/$defs/executionContaminationVerificationRequest"
+        },
+        "execution_contamination_verification_request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "bundle_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "protectedAccessActivationSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "preregistration_digest",
+        "base_access_history_digest",
+        "custodian_authority",
+        "grant_access",
+        "executor_authority",
+        "acceptance_dataset_seal_digest",
+        "operational_dataset_seal_digest",
+        "permissions",
+        "reservation_digest",
+        "issued_at",
+        "expires_at",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-protected-access-activation-subject.v1"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "base_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "executor_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "acceptance_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "permissions": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            {
+              "const": "read_sealed_acceptance"
+            },
+            {
+              "const": "read_sealed_operational"
+            },
+            {
+              "const": "start_reserved_evaluator_process"
+            }
+          ],
+          "items": false
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "grant_access": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            {
+              "const": "sealed_acceptance_rows"
+            },
+            {
+              "const": "sealed_operational_rows"
+            },
+            {
+              "const": "evaluator_bytes"
+            }
+          ],
+          "items": false
+        }
+      }
+    },
+    "protectedAccessActivation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "subject",
+        "base_access_history",
+        "base_access_history_digest",
+        "activated_access_history",
+        "activated_access_history_digest",
+        "custodian_credential",
+        "custodian_approval",
+        "activation_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-protected-access-activation.v1"
+        },
+        "subject": {
+          "$ref": "#/$defs/protectedAccessActivationSubject"
+        },
+        "base_access_history": {
+          "$ref": "#/$defs/accessHistory"
+        },
+        "base_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "activated_access_history": {
+          "$ref": "#/$defs/accessHistory"
+        },
+        "activated_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "custodian_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "activation_digest": {
           "$ref": "#/$defs/digest"
         }
       }

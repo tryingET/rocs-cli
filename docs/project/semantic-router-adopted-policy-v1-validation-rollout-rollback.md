@@ -39,7 +39,7 @@ Rollback: replace the proposal with a new packet aggregate; preserve rejected re
 
 ## P1 — ROCS offline verifier
 
-Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all forty-seven digest domains, acyclic dependency-graph validation, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
+Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all fifty digest domains, acyclic dependency-graph validation, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
 
 Gates:
 
@@ -78,7 +78,7 @@ Before D disclosure:
 
 1. semantic owner freezes the exact Softwareco source snapshot and canonical `co.software.*` inventory digest;
 2. DSPx issues a closed custody policy binding exact source and license/consent authority artifacts, privacy and the complete prohibited-content set, ACL/audit, retention by artifact class, backup handling, verified deletion under every expiry/withdrawal/privacy-exposure trigger, and incident response;
-3. the exact canonical role cardinalities are fixed, including one implementer and two distinct annotators; all twelve principals are pairwise distinct and all authority roles, nested exposure evidence, append-only access history, custody ACL, and the closed role-separation receipt reconcile; all U/O authors, annotators, adjudicator, custodian, evaluator operator, and independent reviewer prove B0 exposure `disproven`;
+3. the exact canonical role cardinalities are fixed, including one implementer and two distinct annotators; all twelve principals are pairwise distinct and all authority roles, nested exposure evidence, append-only base access history, custody ACL, and the closed role-separation receipt reconcile; the base history grants no sealed U/O read or evaluator-process start to the evaluator operator; all U/O authors, annotators, adjudicator, custodian, evaluator operator, and independent reviewer prove B0 exposure `disproven`;
 4. B0-unexposed U/O authors create and seal U=600 and O=96 before D disclosure;
 5. independent annotators/adjudicator complete readiness;
 6. D authors independently create D=360 and freeze its digest without disclosing it to the policy author;
@@ -111,14 +111,15 @@ After candidate freeze and before any U/O observation:
 2. construct the one-attempt envelope over the exact candidate, evaluator/runtime, U/O seals, argv/environment, pass order, that reservation, and rollback plan;
 3. issue the downstream execution-contamination subject/attestation binding the candidate-contamination manifest, candidate, evaluator, and attempt-envelope digests; its `source_digest` equals the envelope digest, it cannot flow back into candidate identity, and custodian plus independent reviewer sign it under exact credentials;
 4. validate a separately supplied execution-contamination verification request that pins both authorities, credentials, stage-specific approvals, trust roots, keys, subject, and attestation;
-5. only after that validation, preregister the exact candidate, both contamination objects, custody/roles/access history, D/U/O digests, evaluator, metrics/floors, exact frozen custodian/reviewer authority coordinates, attempt envelope, and reservation;
-6. verify the published topological dependency schedule has no back edge or cycle.
+5. construct a closed preexecution-verification bundle that nests both complete caller-request preimages and exact request digests, then preregister the candidate, both contamination objects, custody/roles/base-access history, D/U/O digests, evaluator, metrics/floors, exact frozen custodian/reviewer authority coordinates, bundle, attempt envelope, and reservation;
+6. after every signature, request preimage, preregistration, authority, reservation, and equality join validates, obtain one custodian-signed protected-access activation bound to that preregistration, the unchanged P3 base history, exact frozen evaluator operator, U/O seals, reservation, permissions, and expiry; its activated history is exactly the base history plus one terminal grant to that evaluator operator;
+7. verify the published topological dependency schedule has no back edge or cycle.
 
-P5 acquires the non-executing reservation first, then mechanically validates the preregistration, both signed pre-execution authority objects, both independent verification requests, and exact reservation/envelope joins before any process starts. The P3 signature approves only its candidate-free readiness subject; the P5 signatures approve only the exact execution-contamination subject. None approves future execution outcome or preregistration bytes. Reservation acquisition is coordination only and cannot read U/O or invoke the evaluator. P5 must not construct or sign a verdict-approval subject. Execution attempt, receipt, metrics, outcome, custodian verdict approval, and independent verdict approval do not yet exist.
+P5 acquires the non-executing reservation first, then mechanically validates the preregistration, both signed pre-execution authority objects, both complete nested independent verification-request preimages, and exact reservation/envelope joins before issuing the protected-access activation. An opaque request digest is invalid. The P3 signature approves only its candidate-free readiness subject; the P5 signatures approve only the exact execution-contamination subject. None approves future execution outcome or preregistration bytes. Reservation acquisition is coordination only and cannot read U/O or invoke the evaluator. P3 role eligibility and its base history confer no active evaluator access; only the downstream signed activation appends the sole grant, and its issuer must equal the frozen custodian while its executor must equal the frozen evaluator-operator assignment. P5 must not construct or sign a verdict-approval subject. Execution attempt, receipt, metrics, outcome, custodian verdict approval, and independent verdict approval do not yet exist.
 
 ## P6 — one-shot U/O execution, verdict, and post-execution approvals
 
-Custodian starts exactly one process invocation for the immutable P5 preregistration against sealed U/O and frozen candidate. That invocation performs exactly two ordered internal passes, `primary` and `immediate_repeat`, over identical inputs and records both digests. No process retry, second invocation, selective row rerun, extra pass, or same-candidate repair is permitted. Policy authors/implementers receive no row outputs before immutable verdict publication.
+The frozen evaluator operator, under the current custodian-signed protected-access activation, starts exactly one reserved process invocation for the immutable P5 preregistration against sealed U/O and frozen candidate. The custodian authorizes but remains a distinct principal from the executor. That invocation performs exactly two ordered internal passes, `primary` and `immediate_repeat`, over identical inputs and records both digests. No process retry, second invocation, selective row rerun, extra pass, or same-candidate repair is permitted. Policy authors/implementers receive no row outputs before immutable verdict publication.
 
 After the execution receipt, metrics, and outcome are fixed, construct the non-circular verdict-approval subject. Only then may the custodian and distinct independent reviewer sign that exact subject. No pre-execution signature may cover a post-execution value.
 
@@ -166,7 +167,7 @@ Last and separately decided. Requires accepted semantic quality, publication cur
 | P1 synthetic verifier | protocol implementation works on synthetic fixtures |
 | P2 owner-storage rehearsal | append/head/rollback mechanics work on synthetic owner data |
 | P4 D run/candidate freeze | visible development policy behavior and candidate identity only |
-| P5 preregistration rehearsal | acyclic frozen attempt/evidence coordinates only |
+| P5 preregistration/access rehearsal | acyclic caller-pin preimages and signed, no-read-before-validation access activation only |
 | P6 U/O | frozen offline acceptance verdict only |
 | P7 publication rehearsal | owner publication/currentness mechanics only |
 | C1 faux-provider shadow | operational no-injection integration only |
