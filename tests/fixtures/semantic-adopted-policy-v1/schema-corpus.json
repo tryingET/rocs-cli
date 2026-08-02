@@ -327,6 +327,12 @@
       "definition": "dateTime",
       "instance": "0099-12-31T23:59:59Z",
       "valid": true
+    },
+    {
+      "name": "rfc3339_year_0000_valid",
+      "definition": "dateTime",
+      "instance": "0000-01-01T00:00:00Z",
+      "valid": true
     }
   ],
   "prefix_branch_cases": [

@@ -5,7 +5,6 @@ import json
 import re
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime
 from functools import lru_cache
 from typing import Any, Mapping
 
@@ -146,6 +145,8 @@ def _scan_structure(raw: bytes) -> None:
             mark_item()
         if items > MAX_COLLECTION_ITEMS:
             raise AdoptedProtocolError("protocol input exceeds structural limits")
+    if in_string and _decoded_string_bytes(raw, string_start, len(raw)) > MAX_STRING_BYTES:
+        raise AdoptedProtocolError("protocol string exceeds byte limit")
 
 
 def _skip_ws(raw: bytes, index: int) -> int:
@@ -352,13 +353,12 @@ def _date_time_valid(value: str) -> bool:
         and (match.group("month"), match.group("day")) in {("06", "30"), ("12", "31")}
     ):
         return False
-    candidate = value.replace(":60", ":59", 1) if leap else value
-    try:
-        parsed = candidate[:-1] + "+00:00" if candidate.endswith("Z") else candidate
-        datetime.fromisoformat(parsed)
-    except ValueError:
-        return False
-    return True
+    year = int(match.group("year"))
+    month = int(match.group("month"))
+    day = int(match.group("day"))
+    leap_year = year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+    month_days = (31, 29 if leap_year else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+    return day <= month_days[month - 1]
 
 
 def _pattern_matches(pattern: str, value: str) -> bool:

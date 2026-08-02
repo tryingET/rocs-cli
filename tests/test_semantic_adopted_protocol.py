@@ -422,6 +422,9 @@ class AdoptedStrictJsonTests(unittest.TestCase):
     def test_exact_escaped_string_ceiling_and_unclosed_item_overflow(self):
         escaped = b'"' + b"\\u0061" * 65_536 + b'"'
         self.assertEqual(len(strict_json_loads(escaped)), 65_536)
+        for unterminated in (b'"' + b"a" * 65_537, b'"' + b"\\u0061" * 65_537):
+            with self.assertRaisesRegex(AdoptedProtocolError, "string exceeds byte limit"):
+                strict_json_loads(unterminated)
         malformed = b"[" + b"0," * 50_000 + b"0"
         with self.assertRaisesRegex(AdoptedProtocolError, "structural limits"):
             strict_json_loads(malformed)
@@ -463,7 +466,7 @@ class AdoptedSchemaCorpusTests(unittest.TestCase):
         from rocs_cli.semantic_adopted_schema import resolve_pointer
         self.assertEqual(resolve_pointer(root, "#/oneOf/0"), root["oneOf"][0])
         from rocs_cli.semantic_adopted_schema import AdoptedSchemaError
-        for invalid in ("#/oneOf/٠", "#/oneOf/²", "#/oneOf/00"):
+        for invalid in ("#/oneOf/٠", "#/oneOf/²", "#/oneOf/00", "#/oneOf/" + "9" * 5000):
             with self.subTest(pointer=invalid), self.assertRaises(AdoptedSchemaError):
                 resolve_pointer(root, invalid)
         schema = {"$ref": ref}

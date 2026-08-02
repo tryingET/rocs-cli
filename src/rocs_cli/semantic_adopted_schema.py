@@ -73,7 +73,7 @@ def resolve_pointer(root: Any, reference: str) -> Any:
         if type(current) is dict and token in current:
             current = current[token]
         elif type(current) is list:
-            if re.fullmatch(r"0|[1-9][0-9]*", token) is None:
+            if len(token) > 20 or re.fullmatch(r"0|[1-9][0-9]*", token) is None:
                 raise AdoptedSchemaError("packaged schema array reference is invalid")
             index = int(token)
             if index >= len(current):
