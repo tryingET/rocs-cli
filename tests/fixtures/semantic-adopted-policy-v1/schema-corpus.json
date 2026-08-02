@@ -1,0 +1,178 @@
+{
+  "schema": "semantic-adopted-policy-schema-corpus.v1",
+  "branch_inventory": {
+    "executionAttempt": 8,
+    "verdict": 8,
+    "protectedAccessClosureSubject": 7,
+    "verdictApprovalSubject": 7
+  },
+  "cases": [
+    {
+      "name": "digest_valid",
+      "definition": "digest",
+      "instance": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "valid": true
+    },
+    {
+      "name": "digest_uppercase_rejected",
+      "definition": "digest",
+      "instance": "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "valid": false
+    },
+    {
+      "name": "unreferenced_hex_digest_valid",
+      "definition": "hexDigest",
+      "instance": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "valid": true
+    },
+    {
+      "name": "date_time_z_valid",
+      "definition": "dateTime",
+      "instance": "2026-08-02T06:00:00Z",
+      "valid": true
+    },
+    {
+      "name": "date_time_offset_rejected_by_packet_pattern",
+      "definition": "dateTime",
+      "instance": "2026-08-02T06:00:00+00:00",
+      "valid": false
+    },
+    {
+      "name": "identifier_nfd_rejected_by_identifier_pattern_not_parser",
+      "definition": "identifier",
+      "instance": "é",
+      "valid": false
+    },
+    {
+      "name": "attempt_pass_valid",
+      "definition": "attemptPass",
+      "instance": {
+        "pass_kind": "primary",
+        "input_coordinate_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "result_bytes_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "row_receipts_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "valid": true
+    },
+    {
+      "name": "attempt_pass_extra_rejected",
+      "definition": "attemptPass",
+      "instance": {
+        "pass_kind": "primary",
+        "input_coordinate_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "result_bytes_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "row_receipts_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "extra": true
+      },
+      "valid": false
+    },
+    {
+      "name": "error_valid",
+      "definition": "error",
+      "instance": {
+        "schema": "semantic-routing-policy-error.v1",
+        "ok": false,
+        "error": {
+          "kind": "invalid_input",
+          "protocol": "semantic-router-adopted-policy.v1",
+          "limit": 1048576
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "error_limit_too_large",
+      "definition": "error",
+      "instance": {
+        "schema": "semantic-routing-policy-error.v1",
+        "ok": false,
+        "error": {
+          "kind": "resource_exhausted",
+          "protocol": "semantic-router-adopted-policy.v1",
+          "limit": 16777217
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "inline_unique_items",
+      "inline_schema": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {"type": "integer"}
+      },
+      "instance": [1, 2, 3],
+      "valid": true
+    },
+    {
+      "name": "inline_duplicate_items_rejected",
+      "inline_schema": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {"type": "object"}
+      },
+      "instance": [{"a": 1}, {"a": 1}],
+      "valid": false
+    },
+    {
+      "name": "inline_exact_one_of",
+      "inline_schema": {
+        "oneOf": [{"type": "integer", "minimum": 0}, {"const": -1}]
+      },
+      "instance": -1,
+      "valid": true
+    },
+    {
+      "name": "inline_one_of_overlap_rejected",
+      "inline_schema": {
+        "oneOf": [{"type": "integer"}, {"minimum": 0}]
+      },
+      "instance": 1,
+      "valid": false
+    },
+    {
+      "name": "inline_if_then_valid",
+      "inline_schema": {
+        "type": "object",
+        "properties": {"state": {"enum": ["open", "closed"]}, "proof": {"type": ["string", "null"]}},
+        "required": ["state", "proof"],
+        "if": {"properties": {"state": {"const": "closed"}}, "required": ["state"]},
+        "then": {"properties": {"proof": {"type": "string"}}}
+      },
+      "instance": {"state": "closed", "proof": "fixed"},
+      "valid": true
+    },
+    {
+      "name": "inline_if_then_rejected",
+      "inline_schema": {
+        "type": "object",
+        "properties": {"state": {"enum": ["open", "closed"]}, "proof": {"type": ["string", "null"]}},
+        "required": ["state", "proof"],
+        "if": {"properties": {"state": {"const": "closed"}}, "required": ["state"]},
+        "then": {"properties": {"proof": {"type": "string"}}}
+      },
+      "instance": {"state": "closed", "proof": null},
+      "valid": false
+    },
+    {
+      "name": "inline_prefix_items_valid",
+      "inline_schema": {
+        "type": "array",
+        "prefixItems": [{"const": "primary"}, {"const": "immediate_repeat"}],
+        "items": false
+      },
+      "instance": ["primary", "immediate_repeat"],
+      "valid": true
+    },
+    {
+      "name": "inline_prefix_trailing_rejected",
+      "inline_schema": {
+        "type": "array",
+        "prefixItems": [{"const": "primary"}],
+        "items": false
+      },
+      "instance": ["primary", "extra"],
+      "valid": false
+    }
+  ]
+}
