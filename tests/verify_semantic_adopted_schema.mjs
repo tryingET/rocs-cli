@@ -353,6 +353,14 @@ for (const testCase of corpus.cases) {
 
 function inventorySourceIssues(inventory, raw) {
   const issues = [...validate(inventory, schema.$defs.ontologyInventory)];
+  if (!inventory || Array.isArray(inventory) || typeof inventory !== "object") {
+    issues.push("inventoryShape");
+    return issues;
+  }
+  if (!Array.isArray(inventory.ontology_ids)) {
+    issues.push("inventoryShape");
+    return issues;
+  }
   let source;
   try { source = JSON.parse(raw); } catch { return [...issues, "json"]; }
   if (canonical(source) !== raw) issues.push("canonicalSource");
@@ -362,14 +370,22 @@ function inventorySourceIssues(inventory, raw) {
       || !Array.isArray(source.ontology_ids) || source.ontology_ids.length < 1 || source.ontology_ids.length > 2000
       || source.ontology_ids.some((item) => typeof item !== "string" || !/^co\.software\.[A-Za-z0-9][A-Za-z0-9._-]*$/.test(item))
       || canonical(source.ontology_ids) !== canonical([...source.ontology_ids].sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b))))
-      || new Set(source.ontology_ids).size !== source.ontology_ids.length) issues.push("sourceShape");
+      || new Set(source.ontology_ids).size !== source.ontology_ids.length) {
+    issues.push("sourceShape");
+    return issues;
+  }
   if (inventory.inventory_source_digest !== `sha256:${hash(Buffer.from(raw, "utf8"))}`) issues.push("rawDigest");
   if (canonical(inventory.ontology_ids) !== canonical(source.ontology_ids)) issues.push("extractor");
   return issues;
 }
 const inventoryFixture = corpus.r14_inventory_fixture;
+const canonicalInventorySource = corpus.inventory_source_cases[0].raw;
+assert.doesNotThrow(() => inventorySourceIssues(undefined, canonicalInventorySource));
+assert(inventorySourceIssues(undefined, canonicalInventorySource).length > 0);
 for (const testCase of corpus.inventory_source_cases) {
-  const inventory = { ...structuredClone(inventoryFixture), ...structuredClone(testCase.inventory_patch) };
+  const inventory = Object.hasOwn(testCase, "inventory")
+    ? structuredClone(testCase.inventory)
+    : { ...structuredClone(inventoryFixture), ...structuredClone(testCase.inventory_patch) };
   assert.equal(inventorySourceIssues(inventory, testCase.raw).length === 0, testCase.valid, testCase.name);
 }
 for (const testCase of corpus.readiness_inventory_cases) {

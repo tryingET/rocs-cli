@@ -28,6 +28,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+rocs_cli = ["_bootstrap_assets/semantic-router-adopted-policy-v1.schema.zlib"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 120

@@ -314,17 +314,26 @@ class AdoptedSchemaAssetTests(unittest.TestCase):
                 "from pathlib import Path; from rocs_cli.wave1 import _vendor_installed; "
                 f"_vendor_installed(Path({str(vendored)!r}))"
             )
-            dependency_path = next(path for path in sys.path if path.endswith("site-packages"))
-            bootstrap_env = {**os.environ, "PYTHONPATH": dependency_path}
-            subprocess.run([str(environments[0] / "bin/python"), "-c", bootstrap], cwd=temporary, check=True, env=bootstrap_env)
+            subprocess.run([sys.executable, "-I", "-c", bootstrap], cwd=temporary, check=True)
             vendored_asset = vendored / "src/rocs_cli/_bootstrap_assets" / ASSET.name
             self.assertEqual(vendored_asset.read_bytes(), ASSET.read_bytes())
+            isolated_dist = temporary / "isolated-dist"
+            subprocess.run(["uv", "build", "--offline", "--out-dir", str(isolated_dist)], cwd=vendored,
+                           check=True, stdout=subprocess.DEVNULL)
+            isolated_wheel = next(isolated_dist.glob("*.whl"))
+            with zipfile.ZipFile(isolated_wheel) as archive:
+                packaged_assets = [name for name in archive.namelist() if name.startswith("rocs_cli/_bootstrap_assets/")]
+                self.assertEqual(packaged_assets, [member])
+                self.assertEqual(archive.read(member), ASSET.read_bytes())
             isolated_environment = temporary / "venv-isolated"
             subprocess.run([sys.executable, "-m", "venv", str(isolated_environment)], check=True,
                            stdout=subprocess.DEVNULL)
-            isolated_env = {**os.environ, "PYTHONPATH": str(vendored / "src")}
-            result = subprocess.run([str(isolated_environment / "bin/python"), "-c", probe], cwd=temporary,
-                                    env=isolated_env, check=True, text=True, capture_output=True)
+            subprocess.run(["uv", "pip", "install", "--offline", "--no-deps", "--python",
+                            str(isolated_environment / "bin/python"), str(isolated_wheel)],
+                           cwd=temporary, check=True, stdout=subprocess.DEVNULL)
+            clean_env = {key: value for key, value in os.environ.items() if key not in {"PYTHONPATH", "PYTHONHOME"}}
+            result = subprocess.run([str(isolated_environment / "bin/python"), "-I", "-c", probe], cwd=temporary,
+                                    env=clean_env, check=True, text=True, capture_output=True)
             self.assertEqual(result.stdout.strip(), SCHEMA_SHA256)
 
     def test_schema_inventory_references_and_reachability(self):
@@ -516,8 +525,11 @@ class AdoptedSchemaCorpusTests(unittest.TestCase):
         inventory = self.corpus["r14_inventory_fixture"]
         for case in self.corpus["inventory_source_cases"]:
             with self.subTest(case=case["name"]):
-                instance = copy.deepcopy(inventory)
-                instance.update(case["inventory_patch"])
+                if "inventory" in case:
+                    instance = copy.deepcopy(case["inventory"])
+                else:
+                    instance = copy.deepcopy(inventory)
+                    instance.update(case["inventory_patch"])
                 issues = validate_ontology_inventory_source(instance, case["raw"].encode("utf-8"))
                 self.assertEqual(not issues, case["valid"], issues[:2])
         canonical = self.corpus["inventory_source_cases"][0]["raw"].encode("utf-8")
