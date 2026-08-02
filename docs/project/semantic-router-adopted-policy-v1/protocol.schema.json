@@ -131,6 +131,39 @@
     },
     {
       "$ref": "#/$defs/executionContaminationVerificationRequest"
+    },
+    {
+      "$ref": "#/$defs/evaluatorInvocationChallenge"
+    },
+    {
+      "$ref": "#/$defs/evaluatorExecutionStartSubject"
+    },
+    {
+      "$ref": "#/$defs/evaluatorExecutionStartProof"
+    },
+    {
+      "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+    },
+    {
+      "$ref": "#/$defs/protectedAccessClosureSubject"
+    },
+    {
+      "$ref": "#/$defs/protectedAccessClosure"
+    },
+    {
+      "$ref": "#/$defs/evaluatorExecutionLaunchSubject"
+    },
+    {
+      "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+    },
+    {
+      "$ref": "#/$defs/evaluatorAuthenticatedChannelCoordinate"
+    },
+    {
+      "$ref": "#/$defs/protectedDescriptorHandoffSubject"
+    },
+    {
+      "$ref": "#/$defs/protectedDescriptorHandoffReceipt"
     }
   ],
   "$defs": {
@@ -341,6 +374,7 @@
         "execution_contamination_attestation",
         "execution_contamination_digest",
         "execution_attempt",
+        "attempt_state",
         "execution_receipt_digest",
         "metrics_digest",
         "outcome",
@@ -350,12 +384,22 @@
         "attempt_envelope",
         "attempt_envelope_digest",
         "execution_attempt_digest",
+        "evaluator_execution_start_proof_digest",
+        "evaluator_execution_start_verification_request_digest",
+        "evaluator_execution_launch_receipt_digest",
+        "protected_descriptor_handoff_receipt_digest",
+        "protected_access_closure_digest",
         "custodian_approval",
         "independent_review_approval",
         "verdict_approval_subject",
         "verdict_approval_subject_digest",
         "protected_access_activation",
         "protected_access_activation_digest",
+        "evaluator_execution_start_proof",
+        "evaluator_execution_start_verification_request",
+        "evaluator_execution_launch_receipt",
+        "protected_descriptor_handoff_receipt",
+        "protected_access_closure",
         "verdict_digest"
       ],
       "properties": {
@@ -393,7 +437,14 @@
           "$ref": "#/$defs/digest"
         },
         "execution_receipt_digest": {
-          "$ref": "#/$defs/digest"
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         },
         "metrics_digest": {
           "$ref": "#/$defs/digest"
@@ -486,8 +537,265 @@
         },
         "protected_access_activation_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_proof_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "evaluator_execution_start_verification_request_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "protected_access_closure_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_proof": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evaluatorExecutionStartProof"
+            }
+          ]
+        },
+        "evaluator_execution_start_verification_request": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+            }
+          ]
+        },
+        "protected_access_closure": {
+          "$ref": "#/$defs/protectedAccessClosure"
+        },
+        "evaluator_execution_launch_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "evaluator_execution_launch_receipt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+            }
+          ]
+        },
+        "attempt_state": {
+          "enum": [
+            "not_started",
+            "interrupted",
+            "completed"
+          ]
+        },
+        "protected_descriptor_handoff_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "protected_descriptor_handoff_receipt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/protectedDescriptorHandoffReceipt"
+            }
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "attempt_state": {
+                "const": "not_started"
+              }
+            },
+            "required": [
+              "attempt_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "outcome": {
+                "const": "indeterminate"
+              },
+              "execution_attempt": {
+                "properties": {
+                  "attempt_state": {
+                    "const": "not_started"
+                  }
+                },
+                "required": [
+                  "attempt_state"
+                ]
+              },
+              "protected_access_closure": {
+                "properties": {
+                  "subject": {
+                    "properties": {
+                      "attempt_state": {
+                        "const": "not_started"
+                      }
+                    },
+                    "required": [
+                      "attempt_state"
+                    ]
+                  }
+                },
+                "required": [
+                  "subject"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attempt_state": {
+                "const": "interrupted"
+              }
+            },
+            "required": [
+              "attempt_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "outcome": {
+                "const": "indeterminate"
+              },
+              "execution_attempt": {
+                "properties": {
+                  "attempt_state": {
+                    "const": "interrupted"
+                  }
+                },
+                "required": [
+                  "attempt_state"
+                ]
+              },
+              "protected_access_closure": {
+                "properties": {
+                  "subject": {
+                    "properties": {
+                      "attempt_state": {
+                        "const": "interrupted"
+                      }
+                    },
+                    "required": [
+                      "attempt_state"
+                    ]
+                  }
+                },
+                "required": [
+                  "subject"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attempt_state": {
+                "const": "completed"
+              }
+            },
+            "required": [
+              "attempt_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "execution_attempt": {
+                "properties": {
+                  "attempt_state": {
+                    "const": "completed"
+                  }
+                },
+                "required": [
+                  "attempt_state"
+                ]
+              },
+              "protected_access_closure": {
+                "properties": {
+                  "subject": {
+                    "properties": {
+                      "attempt_state": {
+                        "const": "completed"
+                      }
+                    },
+                    "required": [
+                      "attempt_state"
+                    ]
+                  }
+                },
+                "required": [
+                  "subject"
+                ]
+              },
+              "execution_receipt_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "evaluator_execution_start_proof": {
+                "$ref": "#/$defs/evaluatorExecutionStartProof"
+              },
+              "evaluator_execution_start_verification_request": {
+                "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+              },
+              "evaluator_execution_launch_receipt": {
+                "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+              },
+              "protected_descriptor_handoff_receipt": {
+                "$ref": "#/$defs/protectedDescriptorHandoffReceipt"
+              },
+              "evaluator_execution_start_proof_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "evaluator_execution_start_verification_request_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "evaluator_execution_launch_receipt_digest": {
+                "$ref": "#/$defs/digest"
+              },
+              "protected_descriptor_handoff_receipt_digest": {
+                "$ref": "#/$defs/digest"
+              }
+            }
+          }
+        }
+      ]
     },
     "publicationEvent": {
       "type": "object",
@@ -2123,7 +2431,7 @@
           "$ref": "#/$defs/attemptEnvelope"
         },
         "access_history": {
-          "$ref": "#/$defs/accessHistory"
+          "$ref": "#/$defs/baseAccessHistory"
         },
         "access_history_digest": {
           "$ref": "#/$defs/digest"
@@ -2199,6 +2507,7 @@
       "required": [
         "schema",
         "attempt_id",
+        "attempt_state",
         "preregistration_digest",
         "candidate_digest",
         "process_invocations",
@@ -2210,6 +2519,16 @@
         "execution_receipt_digest",
         "protected_access_activation",
         "protected_access_activation_digest",
+        "evaluator_execution_start_proof",
+        "evaluator_execution_start_proof_digest",
+        "evaluator_execution_start_verification_request",
+        "evaluator_execution_start_verification_request_digest",
+        "evaluator_execution_launch_receipt",
+        "evaluator_execution_launch_receipt_digest",
+        "protected_descriptor_handoff_receipt",
+        "protected_descriptor_handoff_receipt_digest",
+        "protected_access_closure",
+        "protected_access_closure_digest",
         "attempt_digest"
       ],
       "properties": {
@@ -2226,7 +2545,9 @@
           "$ref": "#/$defs/digest"
         },
         "process_invocations": {
-          "const": 1
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
         },
         "process_retries": {
           "const": 0
@@ -2239,38 +2560,11 @@
         },
         "passes": {
           "type": "array",
-          "minItems": 2,
+          "minItems": 0,
           "maxItems": 2,
-          "prefixItems": [
-            {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/attemptPass"
-                },
-                {
-                  "properties": {
-                    "pass_kind": {
-                      "const": "primary"
-                    }
-                  }
-                }
-              ]
-            },
-            {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/attemptPass"
-                },
-                {
-                  "properties": {
-                    "pass_kind": {
-                      "const": "immediate_repeat"
-                    }
-                  }
-                }
-              ]
-            }
-          ]
+          "items": {
+            "$ref": "#/$defs/attemptPass"
+          }
         },
         "attempt_digest": {
           "$ref": "#/$defs/digest"
@@ -2279,15 +2573,694 @@
           "$ref": "#/$defs/digest"
         },
         "execution_receipt_digest": {
-          "$ref": "#/$defs/digest"
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         },
         "protected_access_activation": {
           "$ref": "#/$defs/protectedAccessActivation"
         },
         "protected_access_activation_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_proof": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evaluatorExecutionStartProof"
+            }
+          ]
+        },
+        "evaluator_execution_start_proof_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "evaluator_execution_start_verification_request": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+            }
+          ]
+        },
+        "evaluator_execution_start_verification_request_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "protected_access_closure": {
+          "$ref": "#/$defs/protectedAccessClosure"
+        },
+        "protected_access_closure_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_state": {
+          "enum": [
+            "not_started",
+            "interrupted",
+            "completed"
+          ]
+        },
+        "evaluator_execution_launch_receipt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+            }
+          ]
+        },
+        "evaluator_execution_launch_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "protected_descriptor_handoff_receipt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/protectedDescriptorHandoffReceipt"
+            }
+          ]
+        },
+        "protected_descriptor_handoff_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         }
-      }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "not_started"
+            },
+            "process_invocations": {
+              "const": 0
+            },
+            "passes": {
+              "maxItems": 0
+            },
+            "execution_receipt_digest": {
+              "type": "null"
+            },
+            "protected_access_closure": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/protectedAccessClosure"
+                },
+                {
+                  "properties": {
+                    "subject": {
+                      "properties": {
+                        "attempt_state": {
+                          "const": "not_started"
+                        },
+                        "evaluator_execution_start_proof_digest": {
+                          "type": "null"
+                        },
+                        "evaluator_execution_launch_receipt_digest": {
+                          "type": "null"
+                        },
+                        "protected_descriptor_handoff_receipt_digest": {
+                          "type": "null"
+                        },
+                        "execution_receipt_digest": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "attempt_state",
+                        "evaluator_execution_start_proof_digest",
+                        "evaluator_execution_launch_receipt_digest",
+                        "protected_descriptor_handoff_receipt_digest",
+                        "execution_receipt_digest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subject"
+                  ]
+                }
+              ]
+            },
+            "evaluator_execution_start_proof": {
+              "type": "null"
+            },
+            "evaluator_execution_start_verification_request": {
+              "type": "null"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "type": "null"
+            },
+            "evaluator_execution_start_verification_request_digest": {
+              "type": "null"
+            },
+            "evaluator_execution_launch_receipt": {
+              "type": "null"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "type": "null"
+            },
+            "protected_descriptor_handoff_receipt": {
+              "type": "null"
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "attempt_state",
+            "process_invocations",
+            "passes"
+          ]
+        },
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "not_started"
+            },
+            "process_invocations": {
+              "const": 0
+            },
+            "passes": {
+              "maxItems": 0
+            },
+            "execution_receipt_digest": {
+              "type": "null"
+            },
+            "protected_access_closure": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/protectedAccessClosure"
+                },
+                {
+                  "properties": {
+                    "subject": {
+                      "properties": {
+                        "attempt_state": {
+                          "const": "not_started"
+                        },
+                        "evaluator_execution_start_proof_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "evaluator_execution_launch_receipt_digest": {
+                          "type": "null"
+                        },
+                        "protected_descriptor_handoff_receipt_digest": {
+                          "type": "null"
+                        },
+                        "execution_receipt_digest": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "attempt_state",
+                        "evaluator_execution_start_proof_digest",
+                        "evaluator_execution_launch_receipt_digest",
+                        "protected_descriptor_handoff_receipt_digest",
+                        "execution_receipt_digest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subject"
+                  ]
+                }
+              ]
+            },
+            "evaluator_execution_start_proof": {
+              "$ref": "#/$defs/evaluatorExecutionStartProof"
+            },
+            "evaluator_execution_start_verification_request": {
+              "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_start_verification_request_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_launch_receipt": {
+              "type": "null"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "type": "null"
+            },
+            "protected_descriptor_handoff_receipt": {
+              "type": "null"
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "attempt_state",
+            "process_invocations",
+            "passes"
+          ]
+        },
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "not_started"
+            },
+            "process_invocations": {
+              "const": 0
+            },
+            "passes": {
+              "maxItems": 0
+            },
+            "execution_receipt_digest": {
+              "type": "null"
+            },
+            "protected_access_closure": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/protectedAccessClosure"
+                },
+                {
+                  "properties": {
+                    "subject": {
+                      "properties": {
+                        "attempt_state": {
+                          "const": "not_started"
+                        },
+                        "evaluator_execution_start_proof_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "evaluator_execution_launch_receipt_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "protected_descriptor_handoff_receipt_digest": {
+                          "type": "null"
+                        },
+                        "execution_receipt_digest": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "attempt_state",
+                        "evaluator_execution_start_proof_digest",
+                        "evaluator_execution_launch_receipt_digest",
+                        "protected_descriptor_handoff_receipt_digest",
+                        "execution_receipt_digest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subject"
+                  ]
+                }
+              ]
+            },
+            "evaluator_execution_start_proof": {
+              "$ref": "#/$defs/evaluatorExecutionStartProof"
+            },
+            "evaluator_execution_start_verification_request": {
+              "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_start_verification_request_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_launch_receipt": {
+              "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_descriptor_handoff_receipt": {
+              "type": "null"
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "type": "null"
+            }
+          },
+          "required": [
+            "attempt_state",
+            "process_invocations",
+            "passes"
+          ]
+        },
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "interrupted"
+            },
+            "process_invocations": {
+              "const": 1
+            },
+            "passes": {
+              "type": "array",
+              "maxItems": 0
+            },
+            "evaluator_execution_start_proof": {
+              "$ref": "#/$defs/evaluatorExecutionStartProof"
+            },
+            "evaluator_execution_start_verification_request": {
+              "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_start_verification_request_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_launch_receipt": {
+              "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_descriptor_handoff_receipt": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/protectedDescriptorHandoffReceipt"
+                }
+              ]
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/digest"
+                }
+              ]
+            },
+            "execution_receipt_digest": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/digest"
+                }
+              ]
+            },
+            "protected_access_closure": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/protectedAccessClosure"
+                },
+                {
+                  "properties": {
+                    "subject": {
+                      "properties": {
+                        "attempt_state": {
+                          "const": "interrupted"
+                        },
+                        "evaluator_execution_start_proof_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "evaluator_execution_launch_receipt_digest": {
+                          "$ref": "#/$defs/digest"
+                        }
+                      },
+                      "required": [
+                        "attempt_state",
+                        "evaluator_execution_start_proof_digest",
+                        "evaluator_execution_launch_receipt_digest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subject"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "attempt_state",
+            "process_invocations",
+            "passes"
+          ]
+        },
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "interrupted"
+            },
+            "process_invocations": {
+              "const": 1
+            },
+            "passes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "prefixItems": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/attemptPass"
+                    },
+                    {
+                      "properties": {
+                        "pass_kind": {
+                          "const": "primary"
+                        }
+                      },
+                      "required": [
+                        "pass_kind"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "items": false
+            },
+            "evaluator_execution_start_proof": {
+              "$ref": "#/$defs/evaluatorExecutionStartProof"
+            },
+            "evaluator_execution_start_verification_request": {
+              "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_start_verification_request_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_launch_receipt": {
+              "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_descriptor_handoff_receipt": {
+              "$ref": "#/$defs/protectedDescriptorHandoffReceipt"
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "execution_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_access_closure": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/protectedAccessClosure"
+                },
+                {
+                  "properties": {
+                    "subject": {
+                      "properties": {
+                        "attempt_state": {
+                          "const": "interrupted"
+                        },
+                        "evaluator_execution_start_proof_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "evaluator_execution_launch_receipt_digest": {
+                          "$ref": "#/$defs/digest"
+                        }
+                      },
+                      "required": [
+                        "attempt_state",
+                        "evaluator_execution_start_proof_digest",
+                        "evaluator_execution_launch_receipt_digest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subject"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "attempt_state",
+            "process_invocations",
+            "passes"
+          ]
+        },
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "completed"
+            },
+            "process_invocations": {
+              "const": 1
+            },
+            "passes": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/attemptPass"
+                    },
+                    {
+                      "properties": {
+                        "pass_kind": {
+                          "const": "primary"
+                        }
+                      },
+                      "required": [
+                        "pass_kind"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/attemptPass"
+                    },
+                    {
+                      "properties": {
+                        "pass_kind": {
+                          "const": "immediate_repeat"
+                        }
+                      },
+                      "required": [
+                        "pass_kind"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "items": false
+            },
+            "evaluator_execution_start_proof": {
+              "$ref": "#/$defs/evaluatorExecutionStartProof"
+            },
+            "evaluator_execution_start_verification_request": {
+              "$ref": "#/$defs/evaluatorExecutionStartVerificationRequest"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_start_verification_request_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_launch_receipt": {
+              "$ref": "#/$defs/evaluatorExecutionLaunchReceipt"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_descriptor_handoff_receipt": {
+              "$ref": "#/$defs/protectedDescriptorHandoffReceipt"
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "execution_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_access_closure": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/protectedAccessClosure"
+                },
+                {
+                  "properties": {
+                    "subject": {
+                      "properties": {
+                        "attempt_state": {
+                          "const": "completed"
+                        },
+                        "evaluator_execution_start_proof_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "evaluator_execution_launch_receipt_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "protected_descriptor_handoff_receipt_digest": {
+                          "$ref": "#/$defs/digest"
+                        },
+                        "execution_receipt_digest": {
+                          "$ref": "#/$defs/digest"
+                        }
+                      },
+                      "required": [
+                        "attempt_state",
+                        "evaluator_execution_start_proof_digest",
+                        "evaluator_execution_launch_receipt_digest",
+                        "protected_descriptor_handoff_receipt_digest",
+                        "execution_receipt_digest"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subject"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "attempt_state",
+            "process_invocations",
+            "passes"
+          ]
+        }
+      ]
     },
     "approvalArtifact": {
       "type": "object",
@@ -2334,7 +3307,11 @@
             "custody_readiness",
             "execution_contamination_custodian",
             "execution_contamination_independent_review",
-            "protected_access_activation"
+            "protected_access_activation",
+            "evaluator_execution_start",
+            "protected_access_closure",
+            "evaluator_execution_launch",
+            "protected_descriptor_handoff"
           ]
         },
         "valid_from": {
@@ -2791,6 +3768,25 @@
         "expected_custodian_credential",
         "expected_independent_review_credential",
         "expected_semantic_owner_credential",
+        "expected_evaluator_operator_authority",
+        "expected_evaluator_operator_credential",
+        "evaluator_execution_start_approval_digest",
+        "evaluator_execution_start_trust_root_digest",
+        "evaluator_execution_start_public_key_digest",
+        "evaluator_execution_start_proof_digest",
+        "evaluator_execution_start_verification_request_digest",
+        "protected_access_closure_digest",
+        "expected_evaluator_launch_gateway_authority",
+        "expected_evaluator_launch_gateway_credential",
+        "evaluator_execution_launch_approval_digest",
+        "evaluator_execution_launch_trust_root_digest",
+        "evaluator_execution_launch_public_key_digest",
+        "evaluator_execution_launch_receipt_digest",
+        "protected_access_closure_approval_digest",
+        "expected_evaluator_authenticated_channel_coordinate",
+        "evaluator_authenticated_channel_coordinate_digest",
+        "protected_descriptor_handoff_approval_digest",
+        "protected_descriptor_handoff_receipt_digest",
         "request_digest"
       ],
       "properties": {
@@ -2939,6 +3935,91 @@
           "$ref": "#/$defs/digest"
         },
         "consumption_credential_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_evaluator_operator_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "expected_evaluator_operator_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "evaluator_execution_start_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_proof_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_verification_request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_access_closure_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_evaluator_launch_gateway_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "expected_evaluator_launch_gateway_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "evaluator_execution_launch_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_launch_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_launch_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_launch_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_access_closure_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_evaluator_authenticated_channel_coordinate": {
+          "$ref": "#/$defs/evaluatorAuthenticatedChannelCoordinate"
+        },
+        "evaluator_authenticated_channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_descriptor_handoff_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_descriptor_handoff_receipt_digest": {
           "$ref": "#/$defs/digest"
         }
       }
@@ -3481,7 +4562,8 @@
                 "$ref": "#/$defs/digest"
               }
             }
-          }
+          },
+          "uniqueItems": true
         },
         "history_digest": {
           "$ref": "#/$defs/digest"
@@ -3668,7 +4750,11 @@
             "custody_readiness",
             "execution_contamination_custodian",
             "execution_contamination_independent_review",
-            "protected_access_activation"
+            "protected_access_activation",
+            "evaluator_execution_start",
+            "protected_access_closure",
+            "evaluator_execution_launch",
+            "protected_descriptor_handoff"
           ]
         },
         "valid_from": {
@@ -3711,6 +4797,12 @@
         "execution_contamination_digest",
         "protected_access_activation_digest",
         "execution_attempt_digest",
+        "evaluator_execution_start_proof_digest",
+        "evaluator_execution_start_verification_request_digest",
+        "evaluator_execution_launch_receipt_digest",
+        "protected_descriptor_handoff_receipt_digest",
+        "protected_access_closure_digest",
+        "attempt_state",
         "execution_receipt_digest",
         "metrics_digest",
         "outcome",
@@ -3760,7 +4852,14 @@
           "$ref": "#/$defs/digest"
         },
         "execution_receipt_digest": {
-          "$ref": "#/$defs/digest"
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         },
         "metrics_digest": {
           "$ref": "#/$defs/digest"
@@ -3792,8 +4891,113 @@
         },
         "protected_access_activation_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_proof_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "evaluator_execution_start_verification_request_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "protected_access_closure_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_launch_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "attempt_state": {
+          "enum": [
+            "not_started",
+            "interrupted",
+            "completed"
+          ]
+        },
+        "protected_descriptor_handoff_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "attempt_state": {
+                "const": "not_started"
+              }
+            },
+            "required": [
+              "attempt_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "outcome": {
+                "const": "indeterminate"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attempt_state": {
+                "const": "interrupted"
+              }
+            },
+            "required": [
+              "attempt_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "outcome": {
+                "const": "indeterminate"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "attempt_state": {
+                "const": "completed"
+              }
+            },
+            "required": [
+              "attempt_state"
+            ]
+          },
+          "then": {
+            "properties": {}
+          }
+        }
+      ]
     },
     "publicationApprovalSubject": {
       "type": "object",
@@ -4070,6 +5274,8 @@
       "required": [
         "schema",
         "subject",
+        "base_access_history",
+        "base_access_history_digest",
         "custodian_credential",
         "custodian_approval",
         "readiness_digest"
@@ -4088,6 +5294,12 @@
           "$ref": "#/$defs/approvalArtifact"
         },
         "readiness_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "base_access_history": {
+          "$ref": "#/$defs/baseAccessHistory"
+        },
+        "base_access_history_digest": {
           "$ref": "#/$defs/digest"
         }
       }
@@ -4220,6 +5432,8 @@
         "expected_custodian_approval_digest",
         "expected_trust_root_digest",
         "expected_public_key_digest",
+        "expected_base_access_history",
+        "expected_base_access_history_digest",
         "request_digest"
       ],
       "properties": {
@@ -4248,6 +5462,12 @@
           "$ref": "#/$defs/digest"
         },
         "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_base_access_history": {
+          "$ref": "#/$defs/baseAccessHistory"
+        },
+        "expected_base_access_history_digest": {
           "$ref": "#/$defs/digest"
         }
       }
@@ -4355,6 +5575,8 @@
         "schema",
         "preregistration_digest",
         "base_access_history_digest",
+        "activated_access_history_digest",
+        "grant_event_digest",
         "custodian_authority",
         "grant_access",
         "executor_authority",
@@ -4433,6 +5655,12 @@
             }
           ],
           "items": false
+        },
+        "activated_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "grant_event_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -4458,13 +5686,13 @@
           "$ref": "#/$defs/protectedAccessActivationSubject"
         },
         "base_access_history": {
-          "$ref": "#/$defs/accessHistory"
+          "$ref": "#/$defs/baseAccessHistory"
         },
         "base_access_history_digest": {
           "$ref": "#/$defs/digest"
         },
         "activated_access_history": {
-          "$ref": "#/$defs/accessHistory"
+          "$ref": "#/$defs/activatedAccessHistory"
         },
         "activated_access_history_digest": {
           "$ref": "#/$defs/digest"
@@ -4476,6 +5704,1258 @@
           "$ref": "#/$defs/approvalArtifact"
         },
         "activation_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "baseAccessHistory": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/accessHistory"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "events": {
+              "type": "array",
+              "minItems": 12,
+              "maxItems": 254,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sequence",
+                  "principal_id",
+                  "role",
+                  "action",
+                  "access",
+                  "occurred_at",
+                  "previous_event_digest",
+                  "event_digest"
+                ],
+                "properties": {
+                  "sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 256
+                  },
+                  "principal_id": {
+                    "$ref": "#/$defs/identifier"
+                  },
+                  "role": {
+                    "$ref": "#/$defs/roleAssignment/properties/role"
+                  },
+                  "action": {
+                    "enum": [
+                      "assign",
+                      "grant",
+                      "revoke"
+                    ]
+                  },
+                  "access": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "$ref": "#/$defs/roleAssignment/properties/access/items"
+                    }
+                  },
+                  "occurred_at": {
+                    "$ref": "#/$defs/dateTime"
+                  },
+                  "previous_event_digest": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/digest"
+                      }
+                    ]
+                  },
+                  "event_digest": {
+                    "$ref": "#/$defs/digest"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "events"
+          ]
+        }
+      ]
+    },
+    "activatedAccessHistory": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/accessHistory"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "events": {
+              "type": "array",
+              "minItems": 13,
+              "maxItems": 255,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sequence",
+                  "principal_id",
+                  "role",
+                  "action",
+                  "access",
+                  "occurred_at",
+                  "previous_event_digest",
+                  "event_digest"
+                ],
+                "properties": {
+                  "sequence": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 256
+                  },
+                  "principal_id": {
+                    "$ref": "#/$defs/identifier"
+                  },
+                  "role": {
+                    "$ref": "#/$defs/roleAssignment/properties/role"
+                  },
+                  "action": {
+                    "enum": [
+                      "assign",
+                      "grant",
+                      "revoke"
+                    ]
+                  },
+                  "access": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "$ref": "#/$defs/roleAssignment/properties/access/items"
+                    }
+                  },
+                  "occurred_at": {
+                    "$ref": "#/$defs/dateTime"
+                  },
+                  "previous_event_digest": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/digest"
+                      }
+                    ]
+                  },
+                  "event_digest": {
+                    "$ref": "#/$defs/digest"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "events"
+          ]
+        }
+      ]
+    },
+    "evaluatorInvocationChallenge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "preregistration_digest",
+        "attempt_envelope_digest",
+        "reservation_digest",
+        "protected_access_activation_digest",
+        "process_start_id",
+        "nonce",
+        "authenticated_channel_coordinate",
+        "authenticated_channel_coordinate_digest",
+        "issued_at",
+        "expires_at",
+        "challenge_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluator-invocation-challenge.v1"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_access_activation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_start_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nonce": {
+          "$ref": "#/$defs/identifier"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "authenticated_channel_coordinate": {
+          "$ref": "#/$defs/evaluatorAuthenticatedChannelCoordinate"
+        },
+        "authenticated_channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evaluatorExecutionStartSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "preregistration_digest",
+        "attempt_envelope_digest",
+        "reservation_digest",
+        "protected_access_activation_digest",
+        "evaluator_authority",
+        "invocation_challenge_digest",
+        "process_start_id",
+        "authenticated_channel_coordinate",
+        "authenticated_channel_coordinate_digest",
+        "authorized_start_not_after",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluator-execution-start-subject.v1"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_access_activation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "invocation_challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_start_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "authorized_start_not_after": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "authenticated_channel_coordinate": {
+          "$ref": "#/$defs/evaluatorAuthenticatedChannelCoordinate"
+        },
+        "authenticated_channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evaluatorExecutionStartProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "challenge",
+        "challenge_digest",
+        "subject",
+        "subject_digest",
+        "evaluator_credential",
+        "evaluator_approval",
+        "start_proof_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluator-execution-start-proof.v1"
+        },
+        "challenge": {
+          "$ref": "#/$defs/evaluatorInvocationChallenge"
+        },
+        "challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "subject": {
+          "$ref": "#/$defs/evaluatorExecutionStartSubject"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_credential": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCredential"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "evaluator_approval": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/approvalArtifact"
+            },
+            {
+              "properties": {
+                "purpose": {
+                  "const": "evaluator_execution_start"
+                },
+                "issuer": {
+                  "properties": {
+                    "authority_role": {
+                      "const": "evaluator_operator"
+                    }
+                  },
+                  "required": [
+                    "authority_role"
+                  ]
+                }
+              },
+              "required": [
+                "purpose",
+                "issuer"
+              ]
+            }
+          ]
+        },
+        "start_proof_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evaluatorExecutionStartVerificationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "expected_evaluator_authority",
+        "expected_evaluator_credential",
+        "evaluator_trust_root_digest",
+        "evaluator_public_key_digest",
+        "invocation_challenge",
+        "invocation_challenge_digest",
+        "expected_authenticated_channel_coordinate",
+        "expected_authenticated_channel_coordinate_digest",
+        "expected_launch_gateway_authority",
+        "expected_launch_gateway_credential",
+        "launch_gateway_trust_root_digest",
+        "launch_gateway_public_key_digest",
+        "expected_start_subject_digest",
+        "expected_approval_purpose",
+        "request_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluator-execution-start-verification-request.v1"
+        },
+        "expected_evaluator_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "expected_evaluator_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "evaluator_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "invocation_challenge": {
+          "$ref": "#/$defs/evaluatorInvocationChallenge"
+        },
+        "invocation_challenge_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_start_subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_approval_purpose": {
+          "const": "evaluator_execution_start"
+        },
+        "expected_launch_gateway_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "expected_launch_gateway_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "launch_gateway_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "launch_gateway_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_authenticated_channel_coordinate": {
+          "$ref": "#/$defs/evaluatorAuthenticatedChannelCoordinate"
+        },
+        "expected_authenticated_channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "protectedAccessClosureSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "preregistration_digest",
+        "protected_access_activation_digest",
+        "activated_access_history_digest",
+        "terminal_access_history_digest",
+        "revoke_event_digest",
+        "evaluator_execution_start_proof_digest",
+        "evaluator_execution_launch_receipt_digest",
+        "protected_descriptor_handoff_receipt_digest",
+        "reservation_digest",
+        "custodian_authority",
+        "executor_authority",
+        "process_start_id",
+        "execution_receipt_digest",
+        "attempt_state",
+        "closure_reason",
+        "closed_at",
+        "activation_expires_at",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-protected-access-closure-subject.v1"
+        },
+        "preregistration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protected_access_activation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "activated_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "terminal_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "revoke_event_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_start_proof_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "executor_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "process_start_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/identifier"
+            }
+          ]
+        },
+        "execution_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "closure_reason": {
+          "enum": [
+            "completed",
+            "failed",
+            "indeterminate",
+            "expired",
+            "aborted"
+          ]
+        },
+        "closed_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "activation_expires_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "evaluator_execution_launch_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        },
+        "attempt_state": {
+          "enum": [
+            "not_started",
+            "interrupted",
+            "completed"
+          ]
+        },
+        "protected_descriptor_handoff_receipt_digest": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/digest"
+            }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "not_started"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/digest"
+                }
+              ]
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/digest"
+                }
+              ]
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "type": "null"
+            },
+            "process_start_id": {
+              "type": "null"
+            },
+            "execution_receipt_digest": {
+              "type": "null"
+            },
+            "closure_reason": {
+              "enum": [
+                "aborted",
+                "expired"
+              ]
+            }
+          },
+          "required": [
+            "attempt_state"
+          ]
+        },
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "interrupted"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/digest"
+                }
+              ]
+            },
+            "process_start_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "execution_receipt_digest": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/digest"
+                }
+              ]
+            },
+            "closure_reason": {
+              "enum": [
+                "failed",
+                "indeterminate",
+                "expired",
+                "aborted"
+              ]
+            }
+          },
+          "required": [
+            "attempt_state"
+          ]
+        },
+        {
+          "properties": {
+            "attempt_state": {
+              "const": "completed"
+            },
+            "evaluator_execution_start_proof_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "evaluator_execution_launch_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "protected_descriptor_handoff_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "process_start_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "execution_receipt_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "closure_reason": {
+              "const": "completed"
+            }
+          },
+          "required": [
+            "attempt_state"
+          ]
+        }
+      ]
+    },
+    "protectedAccessClosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "subject",
+        "subject_digest",
+        "activated_access_history",
+        "activated_access_history_digest",
+        "terminal_access_history",
+        "terminal_access_history_digest",
+        "custodian_credential",
+        "custodian_approval",
+        "closure_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-protected-access-closure.v1"
+        },
+        "subject": {
+          "$ref": "#/$defs/protectedAccessClosureSubject"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "activated_access_history": {
+          "$ref": "#/$defs/activatedAccessHistory"
+        },
+        "activated_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "terminal_access_history": {
+          "$ref": "#/$defs/accessHistory"
+        },
+        "terminal_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_credential": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCredential"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "custodian_approval": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/approvalArtifact"
+            },
+            {
+              "properties": {
+                "purpose": {
+                  "const": "protected_access_closure"
+                },
+                "issuer": {
+                  "properties": {
+                    "authority_role": {
+                      "const": "custodian"
+                    }
+                  },
+                  "required": [
+                    "authority_role"
+                  ]
+                }
+              },
+              "required": [
+                "purpose",
+                "issuer"
+              ]
+            }
+          ]
+        },
+        "closure_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evaluatorExecutionLaunchSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "evaluator_execution_start_proof_digest",
+        "evaluator_start_verification_request_digest",
+        "evaluator_authority",
+        "launch_gateway_authority",
+        "authenticated_channel_coordinate",
+        "authenticated_channel_coordinate_digest",
+        "reservation_digest",
+        "process_start_id",
+        "reservation_consumptions_before",
+        "reservation_consumptions_after",
+        "launch_authorized_at",
+        "spawn_not_after",
+        "protected_descriptors_opened",
+        "acceptance_dataset_seal_digest",
+        "operational_dataset_seal_digest",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluator-execution-launch-subject.v1"
+        },
+        "evaluator_execution_start_proof_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_start_verification_request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "launch_gateway_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_start_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "reservation_consumptions_before": {
+          "const": 0
+        },
+        "reservation_consumptions_after": {
+          "const": 1
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "authenticated_channel_coordinate": {
+          "$ref": "#/$defs/evaluatorAuthenticatedChannelCoordinate"
+        },
+        "authenticated_channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "launch_authorized_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "spawn_not_after": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "protected_descriptors_opened": {
+          "const": false
+        },
+        "acceptance_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evaluatorExecutionLaunchReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "subject",
+        "subject_digest",
+        "launch_gateway_credential",
+        "launch_gateway_approval",
+        "launch_receipt_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluator-execution-launch-receipt.v1"
+        },
+        "subject": {
+          "$ref": "#/$defs/evaluatorExecutionLaunchSubject"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "launch_gateway_credential": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCredential"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "launch_gateway_approval": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/approvalArtifact"
+            },
+            {
+              "properties": {
+                "purpose": {
+                  "const": "evaluator_execution_launch"
+                },
+                "issuer": {
+                  "properties": {
+                    "authority_role": {
+                      "const": "custodian"
+                    }
+                  },
+                  "required": [
+                    "authority_role"
+                  ]
+                }
+              },
+              "required": [
+                "purpose",
+                "issuer"
+              ]
+            }
+          ]
+        },
+        "launch_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "evaluatorAuthenticatedChannelCoordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "channel_id",
+        "binding_algorithm",
+        "exporter_context",
+        "exporter_digest",
+        "evaluator_authority",
+        "launch_gateway_authority",
+        "established_at",
+        "expires_at",
+        "channel_coordinate_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-evaluator-authenticated-channel-coordinate.v1"
+        },
+        "channel_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "binding_algorithm": {
+          "enum": [
+            "mutual-tls-1.3-exporter-sha256",
+            "unix-peercred-ed25519-exporter-sha256"
+          ]
+        },
+        "exporter_context": {
+          "const": "rocs-semantic-policy-evaluator-launch-v1"
+        },
+        "exporter_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "launch_gateway_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "established_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "expires_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "protectedDescriptorHandoffSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "evaluator_execution_start_proof_digest",
+        "evaluator_execution_launch_receipt_digest",
+        "evaluator_start_verification_request_digest",
+        "evaluator_authority",
+        "launch_gateway_authority",
+        "authenticated_channel_coordinate",
+        "authenticated_channel_coordinate_digest",
+        "reservation_digest",
+        "process_start_id",
+        "acceptance_dataset_seal_digest",
+        "operational_dataset_seal_digest",
+        "descriptor_handoffs_before",
+        "descriptor_handoffs_after",
+        "handed_off_at",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-protected-descriptor-handoff-subject.v1"
+        },
+        "evaluator_execution_start_proof_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_execution_launch_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_start_verification_request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "evaluator_operator"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "launch_gateway_authority": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCoordinate"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "authenticated_channel_coordinate": {
+          "$ref": "#/$defs/evaluatorAuthenticatedChannelCoordinate"
+        },
+        "authenticated_channel_coordinate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reservation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_start_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "acceptance_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "operational_dataset_seal_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "descriptor_handoffs_before": {
+          "const": 0
+        },
+        "descriptor_handoffs_after": {
+          "const": 1
+        },
+        "handed_off_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "protectedDescriptorHandoffReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "subject",
+        "subject_digest",
+        "launch_gateway_credential",
+        "launch_gateway_approval",
+        "handoff_receipt_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-protected-descriptor-handoff-receipt.v1"
+        },
+        "subject": {
+          "$ref": "#/$defs/protectedDescriptorHandoffSubject"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "launch_gateway_credential": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/authorityCredential"
+            },
+            {
+              "properties": {
+                "authority_role": {
+                  "const": "custodian"
+                }
+              },
+              "required": [
+                "authority_role"
+              ]
+            }
+          ]
+        },
+        "launch_gateway_approval": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/approvalArtifact"
+            },
+            {
+              "properties": {
+                "purpose": {
+                  "const": "protected_descriptor_handoff"
+                },
+                "issuer": {
+                  "properties": {
+                    "authority_role": {
+                      "const": "custodian"
+                    }
+                  },
+                  "required": [
+                    "authority_role"
+                  ]
+                }
+              },
+              "required": [
+                "purpose",
+                "issuer"
+              ]
+            }
+          ]
+        },
+        "handoff_receipt_digest": {
           "$ref": "#/$defs/digest"
         }
       }
