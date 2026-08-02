@@ -4,33 +4,33 @@
   "files": [
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-evidence-note.md",
-      "bytes": 11958,
-      "sha256": "d8b9efd9e78cd7dd792589fedbfd2793cfbc726f124084991950edddca1bbbb1"
+      "bytes": 12787,
+      "sha256": "89d0b74c89342b0c96984c199c0ae740c4ae7831696993c1e5ae01992e6cc681"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-problem-brief.md",
-      "bytes": 5005,
-      "sha256": "9147fb573af0bb8a9ff0702bb3365a923949b2fb24fe08f0324e407c605aa756"
+      "bytes": 5431,
+      "sha256": "4d793a4108fe7a9863b602d21fbb152136308e393842d2801459776fc01e5689"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-review-set-plan.md",
-      "bytes": 9197,
-      "sha256": "acdfb709ec4e21f53e000d2c11f2668bb673c0c3fac7cc7dfb31104c9b40a193"
+      "bytes": 10154,
+      "sha256": "d5b1428ef9efcf8d25831d527263e5d1cf6186a53c5b50cc3a8d3a5f4b70fbab"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-rfc.md",
-      "bytes": 20009,
-      "sha256": "c25a6b7b0efac7e7e746dda11d71253bdc1f768f95ed3091e2b2ea0d471b5eb7"
+      "bytes": 21087,
+      "sha256": "bd3ea141a7ad3ab94d3b5b02e608c1b7be40b35bbc62d7637d26089d915da8f6"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1-validation-rollout-rollback.md",
-      "bytes": 19602,
-      "sha256": "dca13acd290b01b23b7352e6c36c7b454491330edbc0ae9f5662be4fdf23e54d"
+      "bytes": 21098,
+      "sha256": "62d58864ec013a60d1d8ad14b1a1486211509d0c085c99156880b90abeba50e0"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1/invariants.md",
-      "bytes": 55265,
-      "sha256": "4a708ca5e9ea507886d6a994c428f3aee3d1111b1f83be93977656622947087c"
+      "bytes": 57359,
+      "sha256": "81ea110fe56541869661a286203a0b888e8e575a2a226cee17d875e69996cfa5"
     },
     {
       "path": "docs/project/semantic-router-adopted-policy-v1/protocol.schema.json",
@@ -38,5 +38,5 @@
       "sha256": "5940be962e14f881f554a68bd9ba669f8a40d891228ac310dfd9a1a67f8a934f"
     }
   ],
-  "packet_aggregate_sha256": "20e8df2547bb4816325c7546a3c0a43b0283c6e0589d123e71b809baa7bfe438"
+  "packet_aggregate_sha256": "190cf2d4116623f83c9af1069617ba4982aa13c4525fc812e044a963bf3eb25b"
 }

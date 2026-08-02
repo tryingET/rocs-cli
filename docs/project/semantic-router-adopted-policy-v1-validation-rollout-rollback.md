@@ -47,7 +47,7 @@ Gates:
 - malformed, duplicate, noncanonical, over-budget, stale/forked history matrices;
 - publish-without-pass, withdrawal, revocation, head/checkpoint fork or regression, identity drift, and proof-age failures;
 - forged/redated issuer receipt; wrapper mutation of signed descriptor-anchored-no-follow/closed-environment/no-network/final-recheck assertions; invalid Ed25519 signature/key approval; circular attestation attempt; replayed custodian/reviewer approval across changed verdict outcome/metrics; replayed semantic-owner approval across changed sequence/action/reason/time; self-asserted repository authority; authority-coordinate/enclosing-approval digest cycles; absent, malformed, non-canonical, or mismatched raw Ed25519 issuer or consumption-credential bytes; partial/ambiguous acquisition-channel, single-use-store, or consumption-signing-key approval subjects; ambient-key-registry dependence; stale H1 replay after withdrawal H2; reused/expired/unconsumed challenge; wrong action/candidate/store/channel; untrusted or revoked approval; broken checkpoint chain; and checkpoint-minimum failures;
-- inventory-prefix impostor or non-member, mismatched parsed Decision 102 policy/provenance/per-record source owner, closed inventory/extractor receipt drift, policy/joint/selected ID outside inventory, custody-role collision including implementer or D-author conflicts, incomplete/duplicate/unjoined B0 surface coverage or unrelated clean source digest, wrong canonical B0 coordinate, candidate→contamination→envelope back edge or any digest cycle, mismatched downstream execution-contamination attestation, attempt-envelope/environment/reservation/rollback drift or retry/rerun, activation or detached-proof bearer replay, opaque/forged channel exporter, unauthenticated evaluator/gateway, absent crash-safe reservation consumption, protected read before descriptor handoff, backdated grant, missing terminal revoke, expiry overrun, access-history reserve exhaustion, 1 MiB/16 MiB/32 MiB object boundaries, and reserved-terminal-event capacity;
+- inventory-prefix impostor or non-member, mismatched parsed Decision 102 policy/provenance/per-record source owner, equal candidate/inventory commit/tree pairs, non-ancestor policy-authority/provenance-source revisions, missing or digest-drifted descendant source copies, changed inventory projection or inventory self-hash, closed inventory/extractor receipt drift, policy/joint/selected ID outside inventory, custody-role collision including implementer or D-author conflicts, incomplete/duplicate/unjoined B0 surface coverage or unrelated clean source digest, wrong canonical B0 coordinate, candidate→contamination→envelope back edge or any digest cycle, mismatched downstream execution-contamination attestation, attempt-envelope/environment/reservation/rollback drift or retry/rerun, activation or detached-proof bearer replay, opaque/forged channel exporter, unauthenticated evaluator/gateway, absent crash-safe reservation consumption, protected read before descriptor handoff, backdated grant, missing terminal revoke, expiry overrun, access-history reserve exhaustion, 1 MiB/16 MiB/32 MiB object boundaries, and reserved-terminal-event capacity;
 - existing Decision 102 route/discovery compatibility unchanged;
 - complete repository gate and reverse rollback rehearsal;
 - `live_acquisition_implemented=false` mechanically observable.
@@ -76,13 +76,13 @@ No live publication occurs in P2.
 
 Before D disclosure:
 
-1. semantic owner freezes the exact Softwareco source snapshot and canonical `co.software.*` inventory digest;
+1. semantic owner freezes the exact Softwareco canonical owner-native inventory source projection at a real commit/tree I, constructs the closed nested inventory coordinate owned by I, and fixes its ontology snapshot, inventory digest, and selectable `co.software.*` IDs;
 2. DSPx issues a closed custody policy binding exact source and license/consent authority artifacts, privacy and the complete prohibited-content set, ACL/audit, retention by artifact class, backup handling, verified deletion under every expiry/withdrawal/privacy-exposure trigger, and incident response;
 3. the exact canonical role cardinalities are fixed, including one implementer and two distinct annotators; all twelve principals are pairwise distinct and all authority roles, nested exposure evidence, append-only base access history, custody ACL, and the closed role-separation receipt reconcile; the base history contains at most 254 events, reserving one event for activation and one for mandatory closure, and grants no sealed U/O read or evaluator-process start to the evaluator operator; all U/O authors, annotators, adjudicator, custodian, evaluator operator, and independent reviewer prove B0 exposure `disproven`;
 4. B0-unexposed U/O authors create and seal U=600 and O=96 before D disclosure;
 5. independent annotators/adjudicator complete readiness;
 6. D authors independently create D=360 and freeze its digest without disclosing it to the policy author;
-7. emit one custodian-signed, domain-digested custody-readiness subject/receipt binding custody policy, role/access history, inventory, sealed D digest, U/O seals, and pre-disclosure readiness—without policy/provenance, candidate, preregistration, execution, metrics, outcome, or verdict fields—and validate it against a separately supplied caller verification request that pins the custodian authority, credential, approval, trust root, and raw public key.
+7. emit one custodian-signed, domain-digested custody-readiness subject/receipt binding custody policy, role/access history, the I-bound inventory coordinate and digest, sealed D digest, U/O seals, and pre-disclosure readiness—without policy/provenance, candidate, preregistration, execution, metrics, outcome, or verdict fields—and validate it against a separately supplied caller verification request that pins the custodian authority, credential, approval, trust root, and raw public key.
 
 P3 cannot name policy/provenance bytes, a candidate, attempt envelope, execution attempt, metrics, outcome, verdict-approval subject, or verdict approval. Raw U/O stays outside Git/AK/ROCS/Pi. The controller receives only the signed readiness object including the exact base-history preimage (at most 254 events), independent caller pins, and digests. D disclosure and policy authoring remain prohibited until that authority verifies.
 
@@ -90,13 +90,16 @@ Stop permanently for the affected set on leakage, B0 derivation, role conflict, 
 
 ## P4 — D disclosure, visible policy authoring, and candidate freeze
 
-Only after accepted P3 evidence may policy authors receive D. They use only the frozen Softwareco ontology sources and D. Every clause alternative has exact owner provenance and contamination review. Selected IDs remain Softwareco-owned.
+Only after accepted P3 evidence may policy authors receive D. They use only the frozen Softwareco ontology sources and D. Every clause alternative has exact owner provenance and contamination review. Decision 102 policy-authority and provenance-source revisions must be real strict ancestors of the eventual candidate snapshot C. Selected IDs remain Softwareco-owned.
+
+P4 freezes C as a strict descendant of I. C contains the exact policy/provenance bytes, exact copies at every named path of the provenance source bytes from their declared revisions, and the unchanged canonical owner-native inventory source projection from I. Candidate owner commit/tree are C; nested inventory owner commit/tree remain I; the pairs must differ. Candidate ontology snapshot/inventory digest/selectable IDs remain byte-equal to the signed P3 inventory coordinate.
 
 Gates:
 
 - D behavior and operational dry-runs under the P1 verifier;
 - candidate contamination manifest freezes the exact ten pre-attempt no-reuse surfaces and contains no candidate or attempt-envelope digest;
-- policy/provenance/candidate digest freeze;
+- local Git proof that I and every declared Decision 102 source revision are strict ancestors of C, candidate and nested-inventory commit/tree pairs differ, all named source bytes remain present and digest-equal in C, and the canonical inventory-source projection is unchanged;
+- policy/provenance/candidate digest freeze without inventory self-hash or caller-supplied ancestry assertions;
 - no U/O access;
 - independent semantic-owner review;
 - rollback by a new candidate before U/O execution, never by rewriting D or candidate history.
@@ -182,7 +185,7 @@ No dogfood level may claim a later evidence dimension.
 
 ## Global stop conditions
 
-Stop on an unauthenticated executor, activation bearer replay, missing/late protected-access closure, terminal evaluator grant, exhausted access-history reserve, protected Decision 102 drift, B0 reuse or incomplete contamination coverage, cross-owner meaning or inventory non-member, missing custody policy, role conflict, U/O exposure, extra invocation/pass/retry/rerun, unreviewed floor change, malformed or incomplete verdict, non-pass publication, stale/forked owner head or checkpoint, replayed/redated/untrusted receipt, exhausted rollback reserve, network or provider/model surprise, dirty owner worktree used as authority, missing recovery owner, consumer substitution, automatic enablement, or restoration uncertainty.
+Stop on an unauthenticated executor, activation bearer replay, missing/late protected-access closure, terminal evaluator grant, exhausted access-history reserve, protected Decision 102 drift, B0 reuse or incomplete contamination coverage, cross-owner meaning or inventory non-member, equal/non-ancestral candidate-inventory coordinates, missing or changed retained source bytes, inventory-projection drift or self-hash, missing custody policy, role conflict, U/O exposure, extra invocation/pass/retry/rerun, unreviewed floor change, malformed or incomplete verdict, non-pass publication, stale/forked owner head or checkpoint, replayed/redated/untrusted receipt, exhausted rollback reserve, network or provider/model surprise, dirty owner worktree used as authority, missing recovery owner, consumer substitution, automatic enablement, or restoration uncertainty.
 
 ## Evidence retention
 
