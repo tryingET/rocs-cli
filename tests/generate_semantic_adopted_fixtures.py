@@ -131,6 +131,17 @@ def main() -> None:
         "private_material_scan": "raw-hex-base64-v1:pass",
         "private_key_serialized": False,
         "secret_material_serialized": False,
+        "dependency_review": {
+            "package": "cryptography",
+            "version": cryptography.__version__,
+            "license_expression": "Apache-2.0 OR BSD-3-Clause",
+            "transitive_licenses": {"cffi": "MIT-0", "pycparser": "BSD-3-Clause"},
+            "scope": "offline-caller-pinned-ed25519-verify-only",
+            "network_calls": False,
+            "signing_api_exposed_by_rocs": False,
+            "independent_node_parity_required": True,
+            "lock_sha256": hashlib.sha256((ROOT / "uv.lock").read_bytes()).hexdigest(),
+        },
     }
     PROVENANCE.write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", "utf-8")
     del private_key, wrong_private_key, private_patterns
