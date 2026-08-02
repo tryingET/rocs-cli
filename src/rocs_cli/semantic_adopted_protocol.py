@@ -71,43 +71,79 @@ def _reject_ijson(value: Any, path: str = "") -> None:
     raise AdoptedProtocolError(f"unsupported JSON value at {path or '/'}")
 
 
+def _decoded_string_bytes(raw: bytes, start: int, end: int) -> int:
+    size = 0
+    index = start
+    while index < end:
+        if raw[index] != 0x5C:
+            size += 1
+            index += 1
+            continue
+        if index + 1 >= end:
+            return MAX_STRING_BYTES + 1
+        if raw[index + 1] != 0x75 or index + 6 > end:
+            size += 1
+            index += 2
+            continue
+        try:
+            code = int(raw[index + 2:index + 6].decode("ascii"), 16)
+        except (UnicodeDecodeError, ValueError):
+            return MAX_STRING_BYTES + 1
+        if 0xD800 <= code <= 0xDBFF and index + 12 <= end and raw[index + 6:index + 8] == b"\\u":
+            try:
+                low = int(raw[index + 8:index + 12].decode("ascii"), 16)
+            except (UnicodeDecodeError, ValueError):
+                return MAX_STRING_BYTES + 1
+            if 0xDC00 <= low <= 0xDFFF:
+                size += 4
+                index += 12
+                continue
+        size += len(chr(code).encode("utf-8", "surrogatepass"))
+        index += 6
+    return size
+
+
 def _scan_structure(raw: bytes) -> None:
-    items = string_wire_bytes = 0
+    items = 0
     stack: list[dict[str, Any]] = []
     in_string = escaped = False
-    for byte in raw:
+    string_start = 0
+
+    def mark_item() -> None:
+        nonlocal items
+        if stack and not stack[-1]["nonempty"]:
+            stack[-1]["nonempty"] = True
+            items += 1
+
+    for index, byte in enumerate(raw):
         if in_string:
-            string_wire_bytes += 1
-            if string_wire_bytes > MAX_STRING_BYTES * 6:
-                raise AdoptedProtocolError("protocol string token exceeds wire limit")
             if escaped:
                 escaped = False
             elif byte == 0x5C:
                 escaped = True
             elif byte == 0x22:
+                if _decoded_string_bytes(raw, string_start, index) > MAX_STRING_BYTES:
+                    raise AdoptedProtocolError("protocol string exceeds byte limit")
                 in_string = False
             continue
         if byte in b" \t\r\n":
             continue
         if byte == 0x22:
-            if stack:
-                stack[-1]["nonempty"] = True
+            mark_item()
             in_string = True
-            string_wire_bytes = 0
+            string_start = index + 1
         elif byte in (0x5B, 0x7B):
-            if stack:
-                stack[-1]["nonempty"] = True
-            stack.append({"opener": byte, "commas": 0, "nonempty": False})
+            mark_item()
+            stack.append({"opener": byte, "nonempty": False})
             if len(stack) > MAX_DEPTH:
                 raise AdoptedProtocolError("protocol input exceeds structural limits")
         elif byte in (0x5D, 0x7D):
             if stack:
-                container = stack.pop()
-                items += container["commas"] + int(container["nonempty"])
+                stack.pop()
         elif byte == 0x2C and stack:
-            stack[-1]["commas"] += 1
-        elif stack:
-            stack[-1]["nonempty"] = True
+            items += 1
+        else:
+            mark_item()
         if items > MAX_COLLECTION_ITEMS:
             raise AdoptedProtocolError("protocol input exceeds structural limits")
 
@@ -288,10 +324,8 @@ def jcs_bytes(value: Any) -> bytes:
 
     return encode(value).encode("utf-8")
 
-
 def _same(left: Any, right: Any) -> bool:
     return type(left) is type(right) and left == right
-
 
 def _type_matches(instance: Any, expected: Any) -> bool:
     if type(expected) is list:
@@ -304,7 +338,6 @@ def _type_matches(instance: Any, expected: Any) -> bool:
         "boolean": type(instance) is bool,
         "null": instance is None,
     }.get(expected, True)
-
 
 def _date_time_valid(value: str) -> bool:
     match = _DATE_TIME.fullmatch(value)
@@ -332,7 +365,6 @@ def _pattern_matches(pattern: str, value: str) -> bool:
     match = re.search(pattern, value)
     return match is not None and (not pattern.endswith("$") or match.end() == len(value))
 
-
 def _validate(instance: Any, schema: Any, root: dict[str, Any], path: str) -> list[ValidationIssue]:
     if schema is True:
         return []
@@ -346,6 +378,8 @@ def _validate(instance: Any, schema: Any, root: dict[str, Any], path: str) -> li
         except AdoptedSchemaError:
             return [ValidationIssue(path, "$ref", "schema reference is unresolved")]
         issues.extend(_validate(instance, target, root, path))
+        if reference == "#/$defs/path" and type(instance) is str and len(instance.encode("utf-8")) > 1024:
+            issues.append(ValidationIssue(path, "maxBytes", "path exceeds UTF-8 byte limit"))
     for branch in schema.get("allOf", []):
         issues.extend(_validate(instance, branch, root, path))
     if "oneOf" in schema:

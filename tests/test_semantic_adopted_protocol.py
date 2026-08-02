@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import pathlib
@@ -125,6 +126,140 @@ def _pattern_matches_case(pattern, case):
     return all(pattern[key] is None or pattern[key] == case[key] for key in pattern)
 
 
+def _merge_instance(left, right):
+    if isinstance(left, dict) and isinstance(right, dict):
+        result = copy.deepcopy(left)
+        for key, value in right.items():
+            result[key] = _merge_instance(result[key], value) if key in result else copy.deepcopy(value)
+        return result
+    return copy.deepcopy(right) if right is not None else copy.deepcopy(left)
+
+
+def _variant(value, index):
+    if index == 0:
+        return value
+    value = copy.deepcopy(value)
+    if isinstance(value, dict):
+        for key in ("sequence", "checkpoint_sequence", "terminal_sequence"):
+            if isinstance(value.get(key), int):
+                value[key] += index
+                return value
+        for key in ("principal_id", "event_digest", "artifact_digest", "candidate_digest", "source_digest"):
+            if key in value:
+                value[key] = _variant(value[key], index)
+                return value
+        for key in value:
+            changed = _variant(value[key], index)
+            if changed != value[key]:
+                value[key] = changed
+                return value
+    elif isinstance(value, list) and value:
+        value[0] = _variant(value[0], index)
+        return value
+    elif isinstance(value, str):
+        if value.startswith("sha256:") or (len(value) == 40 and set(value) <= set("0123456789abcdef")):
+            return value[:-1] + format(index % 16, "x")
+        if value and all(character.isalnum() or character in "._/-:" for character in value):
+            return value + str(index)
+    elif isinstance(value, int):
+        return value + index
+    return value
+
+
+def _dedupe_instance(value):
+    if isinstance(value, dict):
+        return {key: _dedupe_instance(child) for key, child in value.items()}
+    if not isinstance(value, list):
+        return value
+    result = [_dedupe_instance(child) for child in value]
+    seen = set()
+    for index, child in enumerate(result):
+        key = jcs_bytes(child)
+        attempts = 0
+        while key in seen:
+            attempts += 1
+            if attempts > 32:
+                raise AssertionError("generated fixture cannot satisfy uniqueItems")
+            child = _variant(child, index + attempts)
+            result[index] = child
+            key = jcs_bytes(child)
+        seen.add(key)
+    return result
+
+
+def _build_instance(schema, root, choices, current=None, depth=0):
+    if depth > 200 or schema in (True, False) or not isinstance(schema, dict):
+        return None
+    if "$ref" in schema:
+        from rocs_cli.semantic_adopted_schema import resolve_pointer
+        reference = schema["$ref"]
+        name = reference.removeprefix("#/$defs/").split("/", 1)[0] if reference.startswith("#/$defs/") else current
+        base = _build_instance(resolve_pointer(root, reference), root, choices, name, depth + 1)
+        rest = {key: value for key, value in schema.items() if key != "$ref"}
+        return _merge_instance(base, _build_instance(rest, root, choices, current, depth + 1))
+    if "const" in schema:
+        return copy.deepcopy(schema["const"])
+    if "enum" in schema:
+        return copy.deepcopy(schema["enum"][0])
+    if "allOf" in schema:
+        result = None
+        for child in schema["allOf"]:
+            result = _merge_instance(result, _build_instance(child, root, choices, current, depth + 1))
+        rest = {key: value for key, value in schema.items() if key != "allOf"}
+        return _merge_instance(result, _build_instance(rest, root, choices, current, depth + 1))
+    if "oneOf" in schema:
+        index = choices.get(current, 0) if current and schema is root["$defs"].get(current) else 0
+        rest = {key: value for key, value in schema.items() if key != "oneOf"}
+        base = _build_instance(rest, root, choices, current, depth + 1)
+        return _merge_instance(base, _build_instance(schema["oneOf"][index], root, choices, current, depth + 1))
+    kind = schema.get("type")
+    if isinstance(kind, list):
+        kind = kind[0]
+    if kind == "null":
+        return None
+    if kind == "boolean":
+        return False
+    if kind == "integer":
+        return schema.get("minimum", 0)
+    if kind == "string" or "pattern" in schema or "format" in schema:
+        if schema.get("format") == "date-time" or schema.get("pattern") == "Z$":
+            return "2026-08-02T06:00:00Z"
+        pattern = schema.get("pattern", "")
+        if "sha256:" in pattern:
+            return "sha256:" + "a" * 64
+        if "{40}" in pattern:
+            return "a" * 40
+        if "{64}" in pattern:
+            return "a" * 64
+        if "{43}" in pattern:
+            return "A" * 43 + "="
+        if "A-Za-z0-9+/" in pattern:
+            return "A" * max(4, schema.get("minLength", 0))
+        if "co\\.software" in pattern:
+            return "co.software.test"
+        if "(?!/)" in pattern:
+            return "path"
+        return "id" if schema.get("minLength", 0) <= 2 else "x" * schema["minLength"]
+    if kind == "array" or "items" in schema or "prefixItems" in schema:
+        count = schema.get("minItems", len(schema.get("prefixItems", [])))
+        result = []
+        for index in range(count):
+            prefix = schema.get("prefixItems", [])
+            child = prefix[index] if index < len(prefix) else schema.get("items", {})
+            result.append(_build_instance(child, root, choices, current, depth + 1))
+        return [_variant(child, index) for index, child in enumerate(result)] if schema.get("uniqueItems") else result
+    if kind == "object" or "properties" in schema or "required" in schema:
+        result = {
+            key: _build_instance(child, root, choices, current, depth + 1)
+            for key, child in schema.get("properties", {}).items()
+        }
+        from rocs_cli.semantic_adopted_protocol import _validate
+        if schema.get("if") is not None and not _validate(result, schema["if"], root, "") and "then" in schema:
+            result = _merge_instance(result, _build_instance(schema["then"], root, choices, current, depth + 1))
+        return result
+    return None
+
+
 class AdoptedSchemaAssetTests(unittest.TestCase):
     def test_asset_is_exact_deterministic_packet_compression(self):
         raw = SCHEMA.read_bytes()
@@ -195,6 +330,48 @@ class AdoptedSchemaAssetTests(unittest.TestCase):
                         sum(_pattern_matches_case(choice, case) for choice in patterns[definition]), 0
                     )
 
+    def test_generated_full_protocol_instances_make_every_branch_constructible_and_disjoint(self):
+        from rocs_cli.semantic_adopted_protocol import _validate
+
+        root = load_protocol_schema()
+        closure_projection = [0, 1, 2, 3, 4, 5, 5, 6]
+        for index in range(8):
+            choices = {
+                "executionAttempt": index,
+                "verdict": index,
+                "protectedAccessClosureSubject": closure_projection[index],
+                "verdictApprovalSubject": closure_projection[index],
+            }
+            for definition in ("executionAttempt", "verdict"):
+                with self.subTest(definition=definition, branch=index):
+                    fixture = _dedupe_instance(
+                        _build_instance(root["$defs"][definition], root, choices, definition)
+                    )
+                    self.assertFalse(validate_definition(fixture, definition))
+                    matches = sum(
+                        not _validate(fixture, branch, root, "")
+                        for branch in root["$defs"][definition]["oneOf"]
+                    )
+                    self.assertEqual(matches, 1)
+                    closure = (
+                        fixture["protected_access_closure"]["subject"]
+                        if definition == "executionAttempt"
+                        else fixture["protected_access_closure"]["subject"]
+                    )
+                    self.assertFalse(validate_definition(closure, "protectedAccessClosureSubject"))
+                    if definition == "verdict":
+                        approval = fixture["verdict_approval_subject"]
+                        self.assertFalse(validate_definition(approval, "verdictApprovalSubject"))
+        invalid = _dedupe_instance(
+            _build_instance(
+                root["$defs"]["executionAttempt"], root,
+                {"executionAttempt": 0, "protectedAccessClosureSubject": 0},
+                "executionAttempt",
+            )
+        )
+        invalid["evaluator_execution_launch_receipt_digest"] = "sha256:" + "f" * 64
+        self.assertTrue(validate_definition(invalid, "executionAttempt"))
+
 
 class AdoptedStrictJsonTests(unittest.TestCase):
     def test_duplicate_float_noncanonical_and_surrogate_rejected(self):
@@ -242,6 +419,13 @@ class AdoptedStrictJsonTests(unittest.TestCase):
         with self.assertRaisesRegex(AdoptedProtocolError, "structural limits"):
             validate_protocol_bytes(deep)
 
+    def test_exact_escaped_string_ceiling_and_unclosed_item_overflow(self):
+        escaped = b'"' + b"\\u0061" * 65_536 + b'"'
+        self.assertEqual(len(strict_json_loads(escaped)), 65_536)
+        malformed = b"[" + b"0," * 50_000 + b"0"
+        with self.assertRaisesRegex(AdoptedProtocolError, "structural limits"):
+            strict_json_loads(malformed)
+
     def test_only_root_history_and_currentness_discriminators_raise_byte_limit(self):
         history = b'{"schema":"semantic-routing-policy-publication-history.v1"}'
         proof = b'{"schema":"semantic-routing-policy-currentness-proof.v1"}'
@@ -278,9 +462,15 @@ class AdoptedSchemaCorpusTests(unittest.TestCase):
         self.assertEqual(ref, "#/$defs/roleAssignment/properties/role")
         from rocs_cli.semantic_adopted_schema import resolve_pointer
         self.assertEqual(resolve_pointer(root, "#/oneOf/0"), root["oneOf"][0])
+        from rocs_cli.semantic_adopted_schema import AdoptedSchemaError
+        for invalid in ("#/oneOf/٠", "#/oneOf/²", "#/oneOf/00"):
+            with self.subTest(pointer=invalid), self.assertRaises(AdoptedSchemaError):
+                resolve_pointer(root, invalid)
         schema = {"$ref": ref}
         self.assertFalse(_validate_inline("custodian", schema))
         self.assertTrue(_validate_inline("not-a-role", schema))
+        path = "😀" * 300
+        self.assertTrue(_validate_inline(path, {"$ref": "#/$defs/path"}))
 
 
 if __name__ == "__main__":

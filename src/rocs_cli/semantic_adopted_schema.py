@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import zlib
 from copy import deepcopy
 from functools import lru_cache
@@ -72,7 +73,7 @@ def resolve_pointer(root: Any, reference: str) -> Any:
         if type(current) is dict and token in current:
             current = current[token]
         elif type(current) is list:
-            if token != "0" and (not token.isdigit() or token.startswith("0")):
+            if re.fullmatch(r"0|[1-9][0-9]*", token) is None:
                 raise AdoptedSchemaError("packaged schema array reference is invalid")
             index = int(token)
             if index >= len(current):

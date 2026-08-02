@@ -110,8 +110,9 @@ function validDateTime(value) {
   const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(?:\.\d+)?(Z|[+-][0-2]\d:[0-5]\d)$/.exec(value);
   if (!match) return false;
   const [year, month, day] = match.slice(1, 4).map(Number);
-  const calendar = new Date(Date.UTC(year, month - 1, day));
-  if (calendar.getUTCFullYear() !== year || calendar.getUTCMonth() + 1 !== month || calendar.getUTCDate() !== day) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const monthDays = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (day > monthDays[month - 1]) return false;
   if (match[7] !== "Z" && Number(match[7].slice(1, 3)) > 23) return false;
   if (match[6] === "60") return match[7] === "Z" && match[4] === "23" && match[5] === "59" && [[6, 30], [12, 31]].some(([m, d]) => month === m && day === d);
   return true;
@@ -121,7 +122,10 @@ function validate(instance, selected, root = schema) {
   if (selected === true) return [];
   if (selected === false || !selected || typeof selected !== "object" || Array.isArray(selected)) return ["schema"];
   const issues = [];
-  if (selected.$ref) issues.push(...validate(instance, pointer(root, selected.$ref), root));
+  if (selected.$ref) {
+    issues.push(...validate(instance, pointer(root, selected.$ref), root));
+    if (selected.$ref === "#/$defs/path" && typeof instance === "string" && Buffer.byteLength(instance, "utf8") > 1024) issues.push("maxBytes");
+  }
   for (const branch of selected.allOf ?? []) issues.push(...validate(instance, branch, root));
   if (selected.oneOf) {
     const matches = selected.oneOf.filter((branch) => validate(instance, branch, root).length === 0).length;
@@ -164,6 +168,101 @@ function validate(instance, selected, root = schema) {
     if (selected.maximum !== undefined && instance > selected.maximum) issues.push("maximum");
   }
   return issues;
+}
+
+function mergeInstance(left, right) {
+  if (left && right && typeof left === "object" && typeof right === "object" && !Array.isArray(left) && !Array.isArray(right)) {
+    const result = structuredClone(left);
+    for (const [key, value] of Object.entries(right)) result[key] = Object.hasOwn(result, key) ? mergeInstance(result[key], value) : structuredClone(value);
+    return result;
+  }
+  return right === null || right === undefined ? structuredClone(left) : structuredClone(right);
+}
+function variant(value, index) {
+  if (!index) return value;
+  const result = structuredClone(value);
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    for (const key of ["sequence", "checkpoint_sequence", "terminal_sequence"]) {
+      if (Number.isInteger(result[key])) { result[key] += index; return result; }
+    }
+    for (const key of ["principal_id", "event_digest", "artifact_digest", "candidate_digest", "source_digest"]) {
+      if (Object.hasOwn(result, key)) { result[key] = variant(result[key], index); return result; }
+    }
+    for (const key of Object.keys(result)) {
+      const changed = variant(result[key], index);
+      if (canonical(changed) !== canonical(result[key])) { result[key] = changed; return result; }
+    }
+  } else if (Array.isArray(result) && result.length) {
+    result[0] = variant(result[0], index); return result;
+  } else if (typeof result === "string") {
+    if (result.startsWith("sha256:") || (/^[0-9a-f]{40}$/).test(result)) return `${result.slice(0, -1)}${(index % 16).toString(16)}`;
+    if (/^[A-Za-z0-9._/:-]+$/.test(result)) return `${result}${index}`;
+  } else if (Number.isInteger(result)) return result + index;
+  return result;
+}
+function dedupeInstance(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, dedupeInstance(child)]));
+  if (!Array.isArray(value)) return value;
+  const result = value.map(dedupeInstance);
+  const seen = new Set();
+  result.forEach((original, index) => {
+    let child = original; let key = canonical(child); let attempts = 0;
+    while (seen.has(key)) {
+      attempts += 1; assert(attempts <= 32, "generated fixture cannot satisfy uniqueItems");
+      child = variant(child, index + attempts); result[index] = child; key = canonical(child);
+    }
+    seen.add(key);
+  });
+  return result;
+}
+function buildInstance(selected, root, choices, current = null, depth = 0) {
+  assert(depth <= 200, "fixture generation depth");
+  if (selected === true || selected === false || !selected || typeof selected !== "object" || Array.isArray(selected)) return null;
+  if (selected.$ref) {
+    const name = selected.$ref.startsWith("#/$defs/") ? selected.$ref.slice(8).split("/", 1)[0] : current;
+    const base = buildInstance(pointer(root, selected.$ref), root, choices, name, depth + 1);
+    return mergeInstance(base, buildInstance(Object.fromEntries(Object.entries(selected).filter(([key]) => key !== "$ref")), root, choices, current, depth + 1));
+  }
+  if (Object.hasOwn(selected, "const")) return structuredClone(selected.const);
+  if (selected.enum) return structuredClone(selected.enum[0]);
+  if (selected.allOf) {
+    let result = null;
+    for (const child of selected.allOf) result = mergeInstance(result, buildInstance(child, root, choices, current, depth + 1));
+    const rest = Object.fromEntries(Object.entries(selected).filter(([key]) => key !== "allOf"));
+    return mergeInstance(result, buildInstance(rest, root, choices, current, depth + 1));
+  }
+  if (selected.oneOf) {
+    const index = current && selected === root.$defs[current] ? (choices[current] ?? 0) : 0;
+    const rest = Object.fromEntries(Object.entries(selected).filter(([key]) => key !== "oneOf"));
+    return mergeInstance(buildInstance(rest, root, choices, current, depth + 1), buildInstance(selected.oneOf[index], root, choices, current, depth + 1));
+  }
+  const kind = Array.isArray(selected.type) ? selected.type[0] : selected.type;
+  if (kind === "null") return null;
+  if (kind === "boolean") return false;
+  if (kind === "integer") return selected.minimum ?? 0;
+  if (kind === "string" || selected.pattern || selected.format) {
+    if (selected.format === "date-time" || selected.pattern === "Z$") return "2026-08-02T06:00:00Z";
+    const expression = selected.pattern ?? "";
+    if (expression.includes("sha256:")) return `sha256:${"a".repeat(64)}`;
+    if (expression.includes("{40}")) return "a".repeat(40);
+    if (expression.includes("{64}")) return "a".repeat(64);
+    if (expression.includes("{43}")) return `${"A".repeat(43)}=`;
+    if (expression.includes("A-Za-z0-9+/")) return "A".repeat(Math.max(4, selected.minLength ?? 0));
+    if (expression.includes("co\\.software")) return "co.software.test";
+    if (expression.includes("(?!/)")) return "path";
+    return (selected.minLength ?? 0) <= 2 ? "id" : "x".repeat(selected.minLength);
+  }
+  if (kind === "array" || selected.items || selected.prefixItems) {
+    const count = selected.minItems ?? (selected.prefixItems ?? []).length;
+    const result = Array.from({ length: count }, (_, index) => buildInstance(index < (selected.prefixItems ?? []).length ? selected.prefixItems[index] : (selected.items ?? {}), root, choices, current, depth + 1));
+    return selected.uniqueItems ? result.map(variant) : result;
+  }
+  if (kind === "object" || selected.properties || selected.required) {
+    let result = Object.fromEntries(Object.entries(selected.properties ?? {}).map(([key, child]) => [key, buildInstance(child, root, choices, current, depth + 1)]));
+    if (selected.if && validate(result, selected.if, root).length === 0 && selected.then) result = mergeInstance(result, buildInstance(selected.then, root, choices, current, depth + 1));
+    return result;
+  }
+  return null;
 }
 
 for (const [definition, expected] of Object.entries(corpus.branch_inventory)) {
@@ -231,6 +330,17 @@ const impossible = [
 for (const testCase of impossible) {
   for (const definition of ["executionAttempt", "verdict"]) {
     assert.equal(branchPatterns[definition].filter((pattern) => patternMatches(testCase, pattern)).length, 0);
+  }
+}
+const closureProjection = [0, 1, 2, 3, 4, 5, 5, 6];
+for (let index = 0; index < 8; index += 1) {
+  const choices = { executionAttempt: index, verdict: index, protectedAccessClosureSubject: closureProjection[index], verdictApprovalSubject: closureProjection[index] };
+  for (const definition of ["executionAttempt", "verdict"]) {
+    const fixture = dedupeInstance(buildInstance(schema.$defs[definition], schema, choices, definition));
+    assert.equal(validate(fixture, schema.$defs[definition]).length, 0, `full fixture ${definition}:${index}`);
+    assert.equal(schema.$defs[definition].oneOf.filter((branch) => validate(fixture, branch).length === 0).length, 1);
+    assert.equal(validate(fixture.protected_access_closure.subject, schema.$defs.protectedAccessClosureSubject).length, 0);
+    if (definition === "verdict") assert.equal(validate(fixture.verdict_approval_subject, schema.$defs.verdictApprovalSubject).length, 0);
   }
 }
 assert.deepEqual(pointer(schema, "#/oneOf/0"), schema.oneOf[0]);
