@@ -6,7 +6,7 @@
   },
   "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
   "body_domain": "approval_attestation_body",
-  "public_key_digest": "sha256:1b47cf1258373c57a5813e1526031ca46eb61ac08832177d8ac0e8cc1b410b8d",
+  "public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
   "schema": "semantic-adopted-policy-cryptographic-vectors.v1",
   "synthetic": true,
   "vectors": [
@@ -16,6 +16,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -23,10 +24,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "approval_valid",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": true,
@@ -39,6 +40,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "receipt",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -46,10 +48,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "receipt_valid",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "receipt",
       "revoked": false,
-      "signature_base64": "6sNRJJrUwQwiZtiuLkjqWds/gAVVY8+Uxlu0S55oNi/EKh12cm7GmnZZkPiEjDkOZ9FmFRC9nGJU4IMVqoJwDg==",
+      "signature_base64": "RDELtTIS3J2ijb3uaFP2K0zhsXRQ1y4K5nz3q5DM6A278ICBFCY0jUMyvYSMPdQk38n0ZuKR95USeeoGb6h2AA==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": true,
@@ -62,6 +64,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "consumption",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -69,10 +72,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "consumption_valid",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "consumption",
       "revoked": false,
-      "signature_base64": "n1WPmGP6y/Bg2zKXBHZKB2pOX8YmInz2xafIeRAzsudk/37UZ3uJ0Ij4wZxOc4hA/udWuRewqGi7KqnGRymsAw==",
+      "signature_base64": "er7KfQw3fVg10t0TMquC1suHxGD9Y1X955LKDIuP4fTPi9jKaDnFb62gp+KQr5qg7IWnlMrmyDIWXJivceaCAQ==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": true,
@@ -85,6 +88,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -92,10 +96,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "changed_domain_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -108,6 +112,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -115,10 +120,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "changed_body_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -131,6 +136,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -138,10 +144,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "wrong_key_rejected",
-      "public_key_base64": "hCzZOwTBwYntnuQvQeYkvxjKkgITjHMwtkx/vOVGuY0=",
+      "public_key_base64": "xO+t+zO6e+MN7OHFHq8tYeNQU6AjIMkZ+uAwWE1UBII=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -154,6 +160,31 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "coordinated_key_and_signature_substitution_rejected",
+      "public_key_base64": "xO+t+zO6e+MN7OHFHq8tYeNQU6AjIMkZ+uAwWE1UBII=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "gRqpQc7gcQilTBaisDDTYeAupLDMN9t9g7eft8AWvXY/+mVHpTxtDYnhDEp7FqAJdtpynN3H0jql7ah5EwfPDg==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -161,10 +192,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "wrong_signature_length_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRq",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -177,6 +208,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -184,10 +216,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "changed_signature_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDQ==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cw==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -200,6 +232,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -207,10 +240,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "noncanonical_scalar_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxr//////////////////////////////////////////w==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1v//////////////////////////////////////////w==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -223,29 +256,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
-      "expected_purpose": "approval",
-      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-      "issuer": {
-        "authority_role": "synthetic_test",
-        "principal_id": "synthetic-signer"
-      },
-      "name": "small_order_key_rejected",
-      "public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "purpose": "approval",
-      "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
-      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-      "trusted_now": "2026-08-02T06:00:00Z",
-      "valid": false,
-      "valid_from": "2026-01-01T00:00:00Z",
-      "valid_until": "2027-01-01T00:00:00Z"
-    },
-    {
-      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
-      "expected_issuer": {
-        "authority_role": "synthetic_test",
-        "principal_id": "synthetic-signer"
-      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "receipt",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -253,10 +264,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "purpose_pin_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -269,6 +280,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "other"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -276,10 +288,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "issuer_pin_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -292,6 +304,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
       "issuer": {
@@ -299,10 +312,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "trust_root_pin_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -315,6 +328,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -322,10 +336,10 @@
         "principal_id": "synthetic-signer"
       },
       "name": "revoked_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": true,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
@@ -338,6 +352,7 @@
         "authority_role": "synthetic_test",
         "principal_id": "synthetic-signer"
       },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
       "expected_purpose": "approval",
       "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "issuer": {
@@ -345,15 +360,351 @@
         "principal_id": "synthetic-signer"
       },
       "name": "expired_rejected",
-      "public_key_base64": "czJIPLdIX5TSh0pb4Ry1QcTMUOzg0uJHIsG+6cesviU=",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
       "purpose": "approval",
       "revoked": false,
-      "signature_base64": "F4OInAl7ZtRnsEezHpwH2NdnD7lsd4nxhdzs0Z4xPxoAnsGDlJU5fRh+UaStggodM55Pa0wzxz0WLNYP9ZRqDA==",
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
       "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "trusted_now": "2026-08-02T06:00:00Z",
       "valid": false,
       "valid_from": "2026-01-01T00:00:00Z",
       "valid_until": "2026-01-02T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "abbreviated_timestamp_rejected",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "missing_seconds_timestamp_rejected",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "offset_timestamp_rejected",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00+00:00",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "lowercase_zone_timestamp_rejected",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "invalid_calendar_timestamp_rejected",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-02-29T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:849e934cbeb53b038a042724d0feb12574a81bf5de6d6caae391827d26ea0877",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "invalid_leap_second_timestamp_rejected",
+      "public_key_base64": "Re/hRAANHPbnaWWfjYMtseKmrsbUWnOh3ordOoz0x5k=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "ICdpJgtlbURPuu4AAowfqyBP+xrtZw4XOshplfSJP1u1bnVguat+fUAvJdtHu9x/+uBc+hUHsJC9E5QLBxr8Cg==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:60Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:66687aadf862bd776c8fc18b8e9f8e20089714856ee233b3902a591d0d5f2925",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_0_rejected",
+      "public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:63794a3bf8875ac2c32ba6238d27e7e15e56a3b794b8d2d6aec82faef2360e3a",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_1_rejected",
+      "public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:01d0fabd251fcbbe2b93b4b927b26ad2a1a99077152e45ded1e678afa45dbec5",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_2_rejected",
+      "public_key_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:0d34fd0d99957c53e4dc954ddaae5934077f594e73c3fda29f2fff1b232d549a",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_3_rejected",
+      "public_key_base64": "JuiVj8KyJ7BFw/SJ8u+Y8NXfrAXTxjM5sTgCiG1T/AU=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:5204010488ca3338ed6c56bb34a9e26cbc3602857b8d5ec720144dc8fa2b95ca",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_4_rejected",
+      "public_key_base64": "JuiVj8KyJ7BFw/SJ8u+Y8NXfrAXTxjM5sTgCiG1T/IU=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:1381231a2021f331f1b9b69d2f5ff04a2cc77582d08b909ffc0ace9530351722",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_5_rejected",
+      "public_key_base64": "xxdqcD1N2E+6PAt2DRBnDyogU/osOczGTsf9d5KsA3o=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:ea4d97c02b411d7bc6e52582295463fe73127094421423255452b673644001cb",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_6_rejected",
+      "public_key_base64": "xxdqcD1N2E+6PAt2DRBnDyogU/osOczGTsf9d5KsA/o=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    {
+      "body_digest": "sha256:8313941eec9095096fa23f7671b8d21c27b0b80de9821e870aabf493406365b9",
+      "expected_issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "expected_public_key_digest": "sha256:ffe1ea08f3af443b5a2d6497c9b7c5a74a25a2b60ac58b44a22b7b1dd2218bfc",
+      "expected_purpose": "approval",
+      "expected_trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": {
+        "authority_role": "synthetic_test",
+        "principal_id": "synthetic-signer"
+      },
+      "name": "small_order_key_7_rejected",
+      "public_key_base64": "7P///////////////////////////////////////38=",
+      "purpose": "approval",
+      "revoked": false,
+      "signature_base64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "trust_root_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "trusted_now": "2026-08-02T06:00:00Z",
+      "valid": false,
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
     }
   ]
 }
