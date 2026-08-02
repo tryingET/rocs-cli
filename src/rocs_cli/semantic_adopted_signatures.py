@@ -5,6 +5,7 @@ import base64
 import binascii
 import hashlib
 import re
+from datetime import datetime
 from types import MappingProxyType
 from typing import Mapping
 
@@ -63,3 +64,36 @@ def verify_ed25519(
         Ed25519PublicKey.from_public_bytes(public_key).verify(signature, message)
     except (InvalidSignature, ValueError) as exc:
         raise AdoptedSignatureError("Ed25519 signature verification failed") from exc
+
+
+def _timestamp(value: str) -> datetime:
+    if type(value) is not str or not value.endswith("Z"):
+        raise AdoptedSignatureError("signature validity time is malformed")
+    try:
+        return datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as exc:
+        raise AdoptedSignatureError("signature validity time is malformed") from exc
+
+
+def verify_pinned_ed25519(
+    *, purpose: str, expected_purpose: str, body_digest: str,
+    public_key_base64: str, signature_base64: str,
+    issuer: Mapping[str, object], expected_issuer: Mapping[str, object],
+    trust_root_digest: str, expected_trust_root_digest: str,
+    valid_from: str, valid_until: str, trusted_now: str, revoked: bool,
+) -> None:
+    if (
+        purpose != expected_purpose
+        or dict(issuer) != dict(expected_issuer)
+        or trust_root_digest != expected_trust_root_digest
+        or type(revoked) is not bool
+        or revoked
+    ):
+        raise AdoptedSignatureError("signature authority pins do not match")
+    digest_bytes(trust_root_digest)
+    if not _timestamp(valid_from) <= _timestamp(trusted_now) <= _timestamp(valid_until):
+        raise AdoptedSignatureError("signature credential is outside its validity interval")
+    verify_ed25519(
+        purpose=purpose, body_digest=body_digest,
+        public_key_base64=public_key_base64, signature_base64=signature_base64,
+    )

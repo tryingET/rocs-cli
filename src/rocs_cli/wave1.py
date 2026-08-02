@@ -1,15 +1,11 @@
-"""Wave 1 operational capabilities.
-
-This module is deliberately independent of the source checkout: every operation is
-callable as Python and the CLI is only an adapter.
-"""
+"""Source-checkout-independent Wave 1 operational capabilities."""
 
 from __future__ import annotations
 
 import ctypes
 import fcntl
 import hashlib
-import importlib.util
+from importlib import metadata, util
 import json
 import os
 import re
@@ -25,10 +21,7 @@ from typing import Any
 from rocs_cli import __version__
 from rocs_cli.capabilities import class_policy
 from rocs_cli.vendored import (
-    compute_expected_hashes,
-    validate_vendor_source_layout,
-    validate_vendor_target,
-    verify_vendored_hashes,
+    compute_expected_hashes, validate_vendor_source_layout, validate_vendor_target, verify_vendored_hashes,
 )
 
 
@@ -41,7 +34,6 @@ def _emit(value: dict[str, Any], destination: str = "-") -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, "utf-8")
 
-
 def _remove_path(path: Path) -> None:
     if not path.exists() and not path.is_symlink():
         return
@@ -49,7 +41,6 @@ def _remove_path(path: Path) -> None:
         shutil.rmtree(path)
     else:
         path.unlink()
-
 
 def _exchange(a: Path, b: Path) -> None:
     libc = ctypes.CDLL(None, use_errno=True)
@@ -60,14 +51,12 @@ def _exchange(a: Path, b: Path) -> None:
         error = ctypes.get_errno()
         raise RuntimeError(f"atomic generation exchange failed: {os.strerror(error)}")
 
-
 def _fsync_dir(path: Path) -> None:
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     try:
         os.fsync(fd)
     finally:
         os.close(fd)
-
 
 def _publish_sibling(stage: Path, target: Path, *, fail_point: str | None = None) -> None:
     """Publish one complete generation atomically and restore it on a caught failure."""
@@ -100,11 +89,10 @@ def _publish_sibling(stage: Path, target: Path, *, fail_point: str | None = None
         _remove_path(stage)
 
 
-def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: Path, target: Path,
-                        *, effective: str, dry_run: bool = False, use_lock: bool = True) -> dict[str, Any]:
+def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: Path, target: Path, *,
+                        effective: str, dry_run: bool = False, use_lock: bool = True) -> dict[str, Any]:
     """Build the artifact from an explicit, complete asset set."""
-    result = {"schema_version": 2, "tool": "rocs-cli", "version": effective,
-              "target": str(target), "dry_run": dry_run}
+    result = {"schema_version": 2, "tool": "rocs-cli", "version": effective, "target": str(target), "dry_run": dry_run}
     if dry_run:
         return result
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -115,17 +103,8 @@ def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: P
             fcntl.flock(lock_file, fcntl.LOCK_EX)
         stage = Path(tempfile.mkdtemp(prefix=f".{target.name}.stage-", dir=target.parent))
         try:
-            shutil.copytree(
-                package,
-                stage / "src/rocs_cli",
-                ignore=shutil.ignore_patterns(
-                    "__pycache__",
-                    "*.pyc",
-                    ".ruff_cache",
-                    ".mypy_cache",
-                    ".pytest_cache",
-                ),
-            )
+            ignored = shutil.ignore_patterns("__pycache__", "*.pyc", ".ruff_cache", ".mypy_cache", ".pytest_cache")
+            shutil.copytree(package, stage / "src/rocs_cli", ignore=ignored)
             pyproject_text = pyproject.read_text("utf-8")
             version_pattern = r'(?m)^(version\s*=\s*)["\'][^"\']+["\']\s*$'
             pyproject_text, replacements = re.subn(
@@ -151,7 +130,7 @@ def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: P
                 "yaml", "rich", "markdown_it", "mdurl", "pygments",
                 "cryptography", "cffi", "pycparser", "_cffi_backend",
             ):
-                spec = importlib.util.find_spec(module_name)
+                spec = util.find_spec(module_name)
                 if spec is None or spec.origin is None:
                     raise RuntimeError(f"runtime dependency is unavailable: {module_name}")
                 origin = Path(spec.origin)
@@ -159,6 +138,11 @@ def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: P
                     shutil.copytree(origin.parent, runtime / module_name, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
                 else:
                     shutil.copy2(origin, runtime / origin.name)
+            for distribution_name in ("cryptography", "cffi", "pycparser"):
+                distribution = metadata.distribution(distribution_name)
+                record = next(file for file in distribution.files or () if str(file).endswith(".dist-info/METADATA"))
+                dist_info = Path(distribution.locate_file(record)).parent
+                shutil.copytree(dist_info, runtime / dist_info.name)
             (stage / "rocs.py").write_text(
                 "from pathlib import Path\nimport sys\nroot = Path(__file__).resolve().parent\nsys.path[:0] = [str(root / 'runtime'), str(root / 'src')]\nfrom rocs_cli.__main__ import main\nmain()\n",
                 "utf-8",

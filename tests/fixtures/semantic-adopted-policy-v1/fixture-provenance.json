@@ -1,13 +1,32 @@
 {
+  "b0_coordinate_hits": [],
+  "b0_coordinate_set_sha256": "eba79edc6b589ae0392eef46c223bbeced046e7d0aafaf430d6b173936a68869",
+  "b0_scan_algorithm": "exact-five-coordinate-byte-deny-v1",
   "conspicuously_synthetic": true,
   "cryptography_version": "46.0.5",
-  "decision98_b0_material_present": false,
+  "dependency_review": {
+    "independent_node_parity_required": true,
+    "license_expression": "Apache-2.0 OR BSD-3-Clause",
+    "lock_sha256": "024d05882c6b4b8cb973b086575f9a6222d1ac94f38f92f5ee3e3a4819c5eaa2",
+    "network_calls": false,
+    "package": "cryptography",
+    "scope": "offline-caller-pinned-ed25519-verify-only",
+    "signing_api_exposed_by_rocs": false,
+    "transitive_licenses": {
+      "cffi": "MIT-0",
+      "pycparser": "BSD-3-Clause"
+    },
+    "version": "46.0.5"
+  },
   "entropy_source": "operating-system-randomness",
-  "fixture_sha256": "751efac28ff7f1187135ce991aea1066fee8f7ead07eb0dcfc6371024e182537",
-  "generated_at": "2026-08-02T07:14:16.779650Z",
+  "fixture_sha256": "23c6ae798c75631bdf209efda7f42ccac76c928741bb77037cb2c293a3814a95",
+  "generated_at": "2026-08-02T07:33:42.089612Z",
+  "generator_commit": "2c0baa7f0798d3f6e432c14a58f4dac2abc8e55f",
   "generator_path": "tests/generate_semantic_adopted_fixtures.py",
-  "generator_sha256": "15e1319439dce39074f9abba61388e2f9e6ab0d3c75a9d917194df539a9aea49",
+  "generator_sha256": "66133572bf504a80940d7177de43ae57346dc208b91f40070b61a2425e5615b4",
   "private_key_serialized": false,
+  "private_material_scan": "raw-hex-base64-v1:pass",
+  "python_version": "3.12.12",
   "schema": "semantic-adopted-policy-fixture-provenance.v1",
   "secret_material_serialized": false
 }
