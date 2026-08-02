@@ -116,6 +116,12 @@
     },
     {
       "$ref": "#/$defs/error"
+    },
+    {
+      "$ref": "#/$defs/custodyReadinessVerificationRequest"
+    },
+    {
+      "$ref": "#/$defs/executionContaminationVerificationRequest"
     }
   ],
   "$defs": {
@@ -1824,6 +1830,10 @@
         "candidate_digest",
         "execution_contamination_attestation",
         "execution_contamination_digest",
+        "custody_readiness_verification_request_digest",
+        "execution_contamination_verification_request_digest",
+        "custodian_authority",
+        "independent_review_authority",
         "preregistration_digest"
       ],
       "properties": {
@@ -2116,6 +2126,18 @@
         },
         "custody_readiness_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "custody_readiness_verification_request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "execution_contamination_verification_request_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "independent_review_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
         }
       }
     },
@@ -2275,7 +2297,10 @@
             "semantic_revocation",
             "challenge_consumption",
             "consumption_signing_key",
-            "single_use_challenge_store"
+            "single_use_challenge_store",
+            "custody_readiness",
+            "execution_contamination_custodian",
+            "execution_contamination_independent_review"
           ]
         },
         "valid_from": {
@@ -3591,7 +3616,10 @@
             "semantic_revocation",
             "challenge_consumption",
             "consumption_signing_key",
-            "single_use_challenge_store"
+            "single_use_challenge_store",
+            "custody_readiness",
+            "execution_contamination_custodian",
+            "execution_contamination_independent_review"
           ]
         },
         "valid_from": {
@@ -3952,43 +3980,31 @@
       "additionalProperties": false,
       "required": [
         "schema",
-        "candidate_digest",
-        "candidate_contamination_manifest_digest",
-        "attempt_envelope_digest",
-        "evaluator_digest",
-        "source_digest",
-        "overlap_receipt_digest",
-        "derivation_review_digest",
-        "result",
+        "subject",
+        "custodian_credential",
+        "independent_review_credential",
+        "custodian_approval",
+        "independent_review_approval",
         "attestation_digest"
       ],
       "properties": {
         "schema": {
           "const": "semantic-routing-policy-execution-contamination-attestation.v1"
         },
-        "candidate_digest": {
-          "$ref": "#/$defs/digest"
+        "subject": {
+          "$ref": "#/$defs/executionContaminationSubject"
         },
-        "candidate_contamination_manifest_digest": {
-          "$ref": "#/$defs/digest"
+        "custodian_credential": {
+          "$ref": "#/$defs/authorityCredential"
         },
-        "attempt_envelope_digest": {
-          "$ref": "#/$defs/digest"
+        "independent_review_credential": {
+          "$ref": "#/$defs/authorityCredential"
         },
-        "evaluator_digest": {
-          "$ref": "#/$defs/digest"
+        "custodian_approval": {
+          "$ref": "#/$defs/approvalArtifact"
         },
-        "source_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "overlap_receipt_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "derivation_review_digest": {
-          "$ref": "#/$defs/digest"
-        },
-        "result": {
-          "const": "no_reuse"
+        "independent_review_approval": {
+          "$ref": "#/$defs/approvalArtifact"
         },
         "attestation_digest": {
           "$ref": "#/$defs/digest"
@@ -4000,6 +4016,35 @@
       "additionalProperties": false,
       "required": [
         "schema",
+        "subject",
+        "custodian_credential",
+        "custodian_approval",
+        "readiness_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-custody-readiness.v1"
+        },
+        "subject": {
+          "$ref": "#/$defs/custodyReadinessSubject"
+        },
+        "custodian_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "custodian_approval": {
+          "$ref": "#/$defs/approvalArtifact"
+        },
+        "readiness_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "custodyReadinessSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "custodian_authority",
         "custody_policy_digest",
         "role_separation_digest",
         "access_history_digest",
@@ -4009,11 +4054,14 @@
         "operational_dataset_seal_digest",
         "sealed_before_development_disclosure",
         "issued_at",
-        "readiness_digest"
+        "subject_digest"
       ],
       "properties": {
         "schema": {
-          "const": "semantic-routing-policy-custody-readiness.v1"
+          "const": "semantic-routing-policy-custody-readiness-subject.v1"
+        },
+        "custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
         },
         "custody_policy_digest": {
           "$ref": "#/$defs/digest"
@@ -4042,7 +4090,175 @@
         "issued_at": {
           "$ref": "#/$defs/dateTime"
         },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "executionContaminationSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "custodian_authority",
+        "independent_review_authority",
+        "candidate_digest",
+        "candidate_contamination_manifest_digest",
+        "attempt_envelope_digest",
+        "evaluator_digest",
+        "source_digest",
+        "overlap_receipt_digest",
+        "derivation_review_digest",
+        "result",
+        "issued_at",
+        "subject_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-execution-contamination-subject.v1"
+        },
+        "custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "independent_review_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "candidate_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "candidate_contamination_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "attempt_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluator_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "overlap_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "derivation_review_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result": {
+          "const": "no_reuse"
+        },
+        "issued_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "custodyReadinessVerificationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "readiness_digest",
+        "subject_digest",
+        "expected_custodian_authority",
+        "expected_custodian_credential",
+        "expected_custodian_approval_digest",
+        "expected_trust_root_digest",
+        "expected_public_key_digest",
+        "request_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-custody-readiness-verification-request.v1"
+        },
         "readiness_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "expected_custodian_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "expected_custodian_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "request_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "executionContaminationVerificationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "attestation_digest",
+        "subject_digest",
+        "expected_custodian_authority",
+        "expected_independent_review_authority",
+        "expected_custodian_credential",
+        "expected_independent_review_credential",
+        "expected_custodian_approval_digest",
+        "expected_independent_review_approval_digest",
+        "expected_custodian_trust_root_digest",
+        "expected_independent_review_trust_root_digest",
+        "expected_custodian_public_key_digest",
+        "expected_independent_review_public_key_digest",
+        "request_digest"
+      ],
+      "properties": {
+        "schema": {
+          "const": "semantic-routing-policy-execution-contamination-verification-request.v1"
+        },
+        "attestation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "subject_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_custodian_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "expected_independent_review_authority": {
+          "$ref": "#/$defs/authorityCoordinate"
+        },
+        "expected_custodian_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "expected_independent_review_credential": {
+          "$ref": "#/$defs/authorityCredential"
+        },
+        "expected_custodian_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_independent_review_approval_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_custodian_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_independent_review_trust_root_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_custodian_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_independent_review_public_key_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "request_digest": {
           "$ref": "#/$defs/digest"
         }
       }

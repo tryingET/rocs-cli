@@ -39,7 +39,7 @@ Rollback: replace the proposal with a new packet aggregate; preserve rejected re
 
 ## P1 — ROCS offline verifier
 
-Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all forty-three digest domains, acyclic dependency-graph validation, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
+Authorized only after accepted ADR and implementation plan. Implement schema embedding, strict I-JSON/JCS, all forty-seven digest domains, acyclic dependency-graph validation, object/invariant/complete-history validation, safe errors, fixtures, independent Node oracle, and explicit-local-file CLI verification.
 
 Gates:
 
@@ -82,9 +82,9 @@ Before D disclosure:
 4. B0-unexposed U/O authors create and seal U=600 and O=96 before D disclosure;
 5. independent annotators/adjudicator complete readiness;
 6. D authors independently create D=360 and freeze its digest without disclosing it to the policy author;
-7. emit one domain-digested custody-readiness receipt binding custody policy, role/access history, inventory, D digest, U/O seals, and pre-disclosure readiness—without candidate, preregistration, execution, metrics, outcome, or verdict fields.
+7. emit one custodian-signed, domain-digested custody-readiness subject/receipt binding custody policy, role/access history, inventory, sealed D digest, U/O seals, and pre-disclosure readiness—without policy/provenance, candidate, preregistration, execution, metrics, outcome, or verdict fields—and validate it against a separately supplied caller verification request that pins the custodian authority, credential, approval, trust root, and raw public key.
 
-P3 cannot name a candidate, attempt envelope, execution attempt, metrics, outcome, verdict-approval subject, or verdict approval. Raw U/O stays outside Git/AK/ROCS/Pi. The controller receives only digests and readiness receipts.
+P3 cannot name policy/provenance bytes, a candidate, attempt envelope, execution attempt, metrics, outcome, verdict-approval subject, or verdict approval. Raw U/O stays outside Git/AK/ROCS/Pi. The controller receives only the signed readiness object, independent caller pins, and digests. D disclosure and policy authoring remain prohibited until that authority verifies.
 
 Stop permanently for the affected set on leakage, B0 derivation, role conflict, unlicensed/private content, annotation unreadiness, digest drift, or custody uncertainty.
 
@@ -107,12 +107,14 @@ D results are development evidence only.
 
 After candidate freeze and before any U/O observation:
 
-1. construct the one-attempt envelope over the exact candidate, evaluator/runtime, U/O seals, argv/environment, pass order, process reservation, and rollback plan;
-2. issue the downstream execution-contamination attestation binding the candidate-contamination manifest, candidate, evaluator, and attempt-envelope digests; its `source_digest` equals the envelope digest and it cannot flow back into candidate identity;
-3. preregister the exact candidate, both contamination objects, custody/roles/access history, D/U/O digests, evaluator, metrics/floors, and attempt envelope;
-4. verify the published topological dependency schedule has no back edge or cycle.
+1. acquire one custodian-issued, non-executing, expiring single-invocation reservation; it grants no sealed-row read or process-start authority and is released or expires unused on any later validation failure;
+2. construct the one-attempt envelope over the exact candidate, evaluator/runtime, U/O seals, argv/environment, pass order, that reservation, and rollback plan;
+3. issue the downstream execution-contamination subject/attestation binding the candidate-contamination manifest, candidate, evaluator, and attempt-envelope digests; its `source_digest` equals the envelope digest, it cannot flow back into candidate identity, and custodian plus independent reviewer sign it under exact credentials;
+4. validate a separately supplied execution-contamination verification request that pins both authorities, credentials, stage-specific approvals, trust roots, keys, subject, and attestation;
+5. only after that validation, preregister the exact candidate, both contamination objects, custody/roles/access history, D/U/O digests, evaluator, metrics/floors, exact frozen custodian/reviewer authority coordinates, attempt envelope, and reservation;
+6. verify the published topological dependency schedule has no back edge or cycle.
 
-P5 mechanically validates the preregistration and reserves the process. It has no preregistration approval artifact: the P3 custody-readiness receipt is explicitly not an approval of future P5 bytes. P5 must not construct or sign a verdict-approval subject. Execution attempt, receipt, metrics, outcome, custodian verdict approval, and independent verdict approval do not yet exist.
+P5 acquires the non-executing reservation first, then mechanically validates the preregistration, both signed pre-execution authority objects, both independent verification requests, and exact reservation/envelope joins before any process starts. The P3 signature approves only its candidate-free readiness subject; the P5 signatures approve only the exact execution-contamination subject. None approves future execution outcome or preregistration bytes. Reservation acquisition is coordination only and cannot read U/O or invoke the evaluator. P5 must not construct or sign a verdict-approval subject. Execution attempt, receipt, metrics, outcome, custodian verdict approval, and independent verdict approval do not yet exist.
 
 ## P6 — one-shot U/O execution, verdict, and post-execution approvals
 
