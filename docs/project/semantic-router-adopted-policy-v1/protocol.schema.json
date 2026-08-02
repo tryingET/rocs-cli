@@ -8064,6 +8064,7 @@
         "custody_policy_digest",
         "role_separation_digest",
         "access_history_digest",
+        "concept_inventory",
         "concept_inventory_digest",
         "development_dataset_digest",
         "acceptance_dataset_seal_digest",
@@ -8087,6 +8088,9 @@
         },
         "access_history_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "concept_inventory": {
+          "$ref": "#/$defs/ontologyInventory"
         },
         "concept_inventory_digest": {
           "$ref": "#/$defs/digest"
@@ -8185,6 +8189,8 @@
         "expected_public_key_digest",
         "expected_base_access_history",
         "expected_base_access_history_digest",
+        "expected_concept_inventory",
+        "expected_concept_inventory_digest",
         "request_digest"
       ],
       "properties": {
@@ -8219,6 +8225,12 @@
           "$ref": "#/$defs/baseAccessHistory"
         },
         "expected_base_access_history_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "expected_concept_inventory": {
+          "$ref": "#/$defs/ontologyInventory"
+        },
+        "expected_concept_inventory_digest": {
           "$ref": "#/$defs/digest"
         }
       }
