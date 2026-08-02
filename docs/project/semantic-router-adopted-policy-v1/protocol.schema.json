@@ -6729,6 +6729,9 @@
         "owner",
         "owner_git_commit",
         "owner_git_tree",
+        "inventory_source_path",
+        "inventory_source_digest",
+        "inventory_extractor_algorithm",
         "ontology_snapshot_digest",
         "ontology_ids",
         "inventory_digest"
@@ -6745,6 +6748,15 @@
         },
         "owner_git_tree": {
           "$ref": "#/$defs/gitObject"
+        },
+        "inventory_source_path": {
+          "$ref": "#/$defs/path"
+        },
+        "inventory_source_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "inventory_extractor_algorithm": {
+          "const": "rocs-softwareco-ontology-inventory-source-v1"
         },
         "ontology_snapshot_digest": {
           "$ref": "#/$defs/digest"
