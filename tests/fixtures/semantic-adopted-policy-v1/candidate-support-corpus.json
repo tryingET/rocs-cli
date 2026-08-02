@@ -1,10 +1,13 @@
 {
   "candidate": {
-    "candidate_digest": "sha256:35b42cccc2de9d5224396dfe6476fc0c9d9c40ff4650ef991c73964265f32ea4",
+    "candidate_digest": "sha256:10b556b3f178bbe1e16307ce8fa313f94e15f4419c462ca1c44999c49d5cdd39",
     "candidate_id": "CONSPICUOUSLY-SYNTHETIC-NOT-A-RELEASE",
     "contamination_manifest_digest": "sha256:b1cf68ae76b5be0e22712cada0322bf1e53f2052cb47883002e8936dd42a2ed1",
     "ontology_inventory": {
-      "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+      "inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+      "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+      "inventory_source_digest": "sha256:2731255eb6e7e6af786e4ee29ce8e281f893bd8e38d6a57896f20f74246e4249",
+      "inventory_source_path": "synthetic-authority/inventory-source.json",
       "ontology_ids": [
         "co.software.ConspicuouslySynthetic"
       ],
@@ -18,8 +21,8 @@
       "owner_git_tree": "2222222222222222222222222222222222222222",
       "schema": "semantic-routing-policy-ontology-inventory.v1"
     },
-    "ontology_inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
-    "ontology_inventory_path": "synthetic-candidate/inventory.json",
+    "ontology_inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+    "ontology_inventory_path": "synthetic-authority/inventory-source.json",
     "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
     "owner": {
       "namespace": "softwareco.semantic-routing-policy.v1",
@@ -30,10 +33,10 @@
     "owner_git_tree": "2222222222222222222222222222222222222222",
     "policy_path": "synthetic-candidate/policy.json",
     "policy_semantic_binding": {
-      "binding_digest": "sha256:2d29a48f7ad62d60f624e678420003e322b503b0d2206d058be3121a4c98a25e",
+      "binding_digest": "sha256:afa4a9d1f72effd50a8503b4a78f541e650eea6bda0f7657efb1a7efded9a49f",
       "binding_receipt": {
         "extractor_algorithm": "rocs-adopted-policy-binding-v1",
-        "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+        "inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
         "joint_route_sets_digest": "sha256:9eb89a32c1ac842bea4e053dca23ef45d424b821a8fdf07a7c7eb9f182b46d92",
         "policy_concept_ids_digest": "sha256:03c0603b9bdaf2f08337ffc47e2e2a0e72fbc8ff75e1b247ddd13685ad286e89",
         "policy_owner_repository_id": "softwareco/ontology",
@@ -42,12 +45,12 @@
         "provenance_source_owner_repository_ids": [
           "softwareco/ontology"
         ],
-        "receipt_digest": "sha256:d3acf62ebab7e1398ab76bef7a4fd4c8dc322de9fc7cc5266810f23ebc66cb71",
+        "receipt_digest": "sha256:3cf6633eabee0fb0faa5d3a253ece4053390ec98e6a31346b94ef53650edceff",
         "routing_policy_digest": "sha256:f95253f33033546c52ed11f9ab27acd732a4108af2c87c3373ea4da843c39876",
         "schema": "semantic-routing-policy-binding-receipt.v1"
       },
-      "binding_receipt_digest": "sha256:d3acf62ebab7e1398ab76bef7a4fd4c8dc322de9fc7cc5266810f23ebc66cb71",
-      "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+      "binding_receipt_digest": "sha256:3cf6633eabee0fb0faa5d3a253ece4053390ec98e6a31346b94ef53650edceff",
+      "inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
       "joint_route_ontology_id_sets": [],
       "policy_concept_ids": [
         "co.software.ConspicuouslySynthetic"
@@ -68,6 +71,7 @@
       "co.software.ConspicuouslySynthetic"
     ]
   },
+  "candidate_bytes_utf8": "{\"candidate_digest\":\"sha256:10b556b3f178bbe1e16307ce8fa313f94e15f4419c462ca1c44999c49d5cdd39\",\"candidate_id\":\"CONSPICUOUSLY-SYNTHETIC-NOT-A-RELEASE\",\"contamination_manifest_digest\":\"sha256:b1cf68ae76b5be0e22712cada0322bf1e53f2052cb47883002e8936dd42a2ed1\",\"ontology_inventory\":{\"inventory_digest\":\"sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed\",\"inventory_extractor_algorithm\":\"rocs-softwareco-ontology-inventory-source-v1\",\"inventory_source_digest\":\"sha256:2731255eb6e7e6af786e4ee29ce8e281f893bd8e38d6a57896f20f74246e4249\",\"inventory_source_path\":\"synthetic-authority/inventory-source.json\",\"ontology_ids\":[\"co.software.ConspicuouslySynthetic\"],\"ontology_snapshot_digest\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"owner\":{\"namespace\":\"softwareco.semantic-routing-policy.v1\",\"owner_company\":\"softwareco\",\"owner_repository_id\":\"softwareco/ontology\"},\"owner_git_commit\":\"1111111111111111111111111111111111111111\",\"owner_git_tree\":\"2222222222222222222222222222222222222222\",\"schema\":\"semantic-routing-policy-ontology-inventory.v1\"},\"ontology_inventory_digest\":\"sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed\",\"ontology_inventory_path\":\"synthetic-authority/inventory-source.json\",\"ontology_snapshot_digest\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"owner\":{\"namespace\":\"softwareco.semantic-routing-policy.v1\",\"owner_company\":\"softwareco\",\"owner_repository_id\":\"softwareco/ontology\"},\"owner_git_commit\":\"1111111111111111111111111111111111111111\",\"owner_git_tree\":\"2222222222222222222222222222222222222222\",\"policy_path\":\"synthetic-candidate/policy.json\",\"policy_semantic_binding\":{\"binding_digest\":\"sha256:afa4a9d1f72effd50a8503b4a78f541e650eea6bda0f7657efb1a7efded9a49f\",\"binding_receipt\":{\"extractor_algorithm\":\"rocs-adopted-policy-binding-v1\",\"inventory_digest\":\"sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed\",\"joint_route_sets_digest\":\"sha256:9eb89a32c1ac842bea4e053dca23ef45d424b821a8fdf07a7c7eb9f182b46d92\",\"policy_concept_ids_digest\":\"sha256:03c0603b9bdaf2f08337ffc47e2e2a0e72fbc8ff75e1b247ddd13685ad286e89\",\"policy_owner_repository_id\":\"softwareco/ontology\",\"provenance_manifest_digest\":\"sha256:38b86a596cd898ad006b02f3fdf3af96a5a69b528fb50afad657c0a01ae8989c\",\"provenance_policy_owner_repository_id\":\"softwareco/ontology\",\"provenance_source_owner_repository_ids\":[\"softwareco/ontology\"],\"receipt_digest\":\"sha256:3cf6633eabee0fb0faa5d3a253ece4053390ec98e6a31346b94ef53650edceff\",\"routing_policy_digest\":\"sha256:f95253f33033546c52ed11f9ab27acd732a4108af2c87c3373ea4da843c39876\",\"schema\":\"semantic-routing-policy-binding-receipt.v1\"},\"binding_receipt_digest\":\"sha256:3cf6633eabee0fb0faa5d3a253ece4053390ec98e6a31346b94ef53650edceff\",\"inventory_digest\":\"sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed\",\"joint_route_ontology_id_sets\":[],\"policy_concept_ids\":[\"co.software.ConspicuouslySynthetic\"],\"policy_owner_repository_id\":\"softwareco/ontology\",\"provenance_owner_repository_id\":\"softwareco/ontology\",\"provenance_source_owner_repository_ids\":[\"softwareco/ontology\"]},\"provenance_manifest_digest\":\"sha256:38b86a596cd898ad006b02f3fdf3af96a5a69b528fb50afad657c0a01ae8989c\",\"provenance_path\":\"synthetic-candidate/provenance.json\",\"router_algorithm\":\"rocs-symbolic-router-v0\",\"router_protocol\":\"semantic-route-result.v0\",\"routing_policy_digest\":\"sha256:f95253f33033546c52ed11f9ab27acd732a4108af2c87c3373ea4da843c39876\",\"schema\":\"semantic-routing-policy-candidate.v1\",\"selectable_ontology_ids\":[\"co.software.ConspicuouslySynthetic\"]}",
   "contamination_manifest": {
     "b0_decision_id": 98,
     "b0_failure_commit": "0a9d9eed00c4c2875d6a7dd870b8978032c95875",
@@ -161,22 +165,499 @@
     "regression_inputs": "sha256:000000000000000000000000000000000000000000000000000000000000006c",
     "templates": "sha256:000000000000000000000000000000000000000000000000000000000000006d"
   },
-  "inventory": {
-    "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
-    "ontology_ids": [
-      "co.software.ConspicuouslySynthetic"
-    ],
-    "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-    "owner": {
-      "namespace": "softwareco.semantic-routing-policy.v1",
-      "owner_company": "softwareco",
-      "owner_repository_id": "softwareco/ontology"
+  "custody_readiness_receipt": {
+    "base_access_history": {
+      "events": [
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:441bd989adfbed060ef9a0001f959d7da9bfec05037324bd7c2c5bbe2a6355bd",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": null,
+          "principal_id": "synthetic-1",
+          "role": "semantic_owner",
+          "sequence": 1
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:bba8c9539700bc50c5f7b8c7c3d518e8ffd5cbbfefe6bdf9cbb67d151846a53f",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:441bd989adfbed060ef9a0001f959d7da9bfec05037324bd7c2c5bbe2a6355bd",
+          "principal_id": "synthetic-2",
+          "role": "policy_author",
+          "sequence": 2
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:9db70f00ae8956cde2ec9a3c9092ca0d8587025d5ab0647f52e23b338459213d",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:bba8c9539700bc50c5f7b8c7c3d518e8ffd5cbbfefe6bdf9cbb67d151846a53f",
+          "principal_id": "synthetic-3",
+          "role": "development_author",
+          "sequence": 3
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:f4d333a9049299e7e8fde17d8a972eb2c35a393b545cccac6d0ce18f8e287b3b",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:9db70f00ae8956cde2ec9a3c9092ca0d8587025d5ab0647f52e23b338459213d",
+          "principal_id": "synthetic-4",
+          "role": "acceptance_author",
+          "sequence": 4
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:0356510440773e56343c78d50dfbc98541c6afe2bf0c8aa0bad074cac280a4b1",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:f4d333a9049299e7e8fde17d8a972eb2c35a393b545cccac6d0ce18f8e287b3b",
+          "principal_id": "synthetic-5",
+          "role": "operational_author",
+          "sequence": 5
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:41261a13c53faf7008b79ac2da23e5119d9aab0cdb79406f9a0cab7ad679cf73",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:0356510440773e56343c78d50dfbc98541c6afe2bf0c8aa0bad074cac280a4b1",
+          "principal_id": "synthetic-6",
+          "role": "annotator",
+          "sequence": 6
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:b892ad31180ade70ccc4cf647b086ba89289ecd8bf5dcf4c10302abc4ccb3d22",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:41261a13c53faf7008b79ac2da23e5119d9aab0cdb79406f9a0cab7ad679cf73",
+          "principal_id": "synthetic-7",
+          "role": "annotator",
+          "sequence": 7
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:127bf306ddbd1cd65f2eb84fd2ba1335ff162eb00cce5f46344b97a16f169b13",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:b892ad31180ade70ccc4cf647b086ba89289ecd8bf5dcf4c10302abc4ccb3d22",
+          "principal_id": "synthetic-8",
+          "role": "adjudicator",
+          "sequence": 8
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:4dbf8ca21bea4602c0fe3ef31f76391fba2413048da5f221041f362f45870e7a",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:127bf306ddbd1cd65f2eb84fd2ba1335ff162eb00cce5f46344b97a16f169b13",
+          "principal_id": "synthetic-9",
+          "role": "custodian",
+          "sequence": 9
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:7df4e7434e061d36938678c8fcce06a87d16515bf7658a1b69a84e2604fb4b26",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:4dbf8ca21bea4602c0fe3ef31f76391fba2413048da5f221041f362f45870e7a",
+          "principal_id": "synthetic-10",
+          "role": "independent_reviewer",
+          "sequence": 10
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:599ed154bb41fc26bab292b48a557ae9b207630ef687397ec3afe20a3d05f6c0",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:7df4e7434e061d36938678c8fcce06a87d16515bf7658a1b69a84e2604fb4b26",
+          "principal_id": "synthetic-11",
+          "role": "evaluator_operator",
+          "sequence": 11
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:967b1d0a0241f7e1186d8e61302368bdbce00418c6ca7c52e19128414ee97608",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:599ed154bb41fc26bab292b48a557ae9b207630ef687397ec3afe20a3d05f6c0",
+          "principal_id": "synthetic-12",
+          "role": "implementer",
+          "sequence": 12
+        }
+      ],
+      "history_digest": "sha256:a70855fb9b42f602cdf91a9ecbeee816fffd83d0a06c2489dbf931f647e6cbae",
+      "schema": "semantic-routing-policy-access-history.v1"
     },
-    "owner_git_commit": "1111111111111111111111111111111111111111",
-    "owner_git_tree": "2222222222222222222222222222222222222222",
-    "schema": "semantic-routing-policy-ontology-inventory.v1"
+    "base_access_history_digest": "sha256:a70855fb9b42f602cdf91a9ecbeee816fffd83d0a06c2489dbf931f647e6cbae",
+    "custodian_approval": {
+      "artifact_digest": "sha256:f87b8fd5ba6d6ea77dd9491abc4bd9096f30521b261cafa055b453aa0a4abf00",
+      "attestation_body": {
+        "body_digest": "sha256:243d369e21110e67cd486766634f937699f3f0d12b04b5019b222e2e5ce7b41f",
+        "issuer": {
+          "authority_credential_digest": "sha256:e35094546be826a92de14ae93c521a23a7eb818fce76f15b16f8f18bbb998680",
+          "authority_role": "custodian",
+          "git_commit": "6666666666666666666666666666666666666666",
+          "git_tree": "7777777777777777777777777777777777777777",
+          "principal_id": "synthetic-custodian",
+          "repository_id": "synthetic.repository"
+        },
+        "public_key_digest": "sha256:3ee66b3a673594d8ec8d9d5d80c848ffeeb7521e48acdee3a209d2b0071fb555",
+        "purpose": "custody_readiness",
+        "revoked": false,
+        "schema": "semantic-routing-policy-approval-attestation-body.v1",
+        "subject_digest": "sha256:b7eb8d906b208ff026aa1b7d5521382898c8ab2b85a17152cfcdf5bc1dbe2607",
+        "trust_root_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2027-01-01T00:00:00Z"
+      },
+      "issuer": {
+        "authority_credential_digest": "sha256:e35094546be826a92de14ae93c521a23a7eb818fce76f15b16f8f18bbb998680",
+        "authority_role": "custodian",
+        "git_commit": "6666666666666666666666666666666666666666",
+        "git_tree": "7777777777777777777777777777777777777777",
+        "principal_id": "synthetic-custodian",
+        "repository_id": "synthetic.repository"
+      },
+      "public_key_digest": "sha256:3ee66b3a673594d8ec8d9d5d80c848ffeeb7521e48acdee3a209d2b0071fb555",
+      "purpose": "custody_readiness",
+      "revoked": false,
+      "schema": "semantic-routing-policy-approval-artifact.v1",
+      "signature_algorithm": "ed25519",
+      "signature_base64": "nug00ulbux9NT0nlBbJsZqhCo+8SIeBGR4mnOVx0X1bxiyJEirIqYRoiHfl85sOo3e9XLVT0iCr4zu5A1yjbBA==",
+      "subject_digest": "sha256:b7eb8d906b208ff026aa1b7d5521382898c8ab2b85a17152cfcdf5bc1dbe2607",
+      "trust_root_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    "custodian_credential": {
+      "authority_role": "custodian",
+      "credential_digest": "sha256:e35094546be826a92de14ae93c521a23a7eb818fce76f15b16f8f18bbb998680",
+      "git_commit": "6666666666666666666666666666666666666666",
+      "git_tree": "7777777777777777777777777777777777777777",
+      "principal_id": "synthetic-custodian",
+      "public_key_base64": "+7hrjWnvO8wsGe2RMCbvEqctEKtikdfDk2e6YwT59NU=",
+      "public_key_digest": "sha256:3ee66b3a673594d8ec8d9d5d80c848ffeeb7521e48acdee3a209d2b0071fb555",
+      "public_key_encoding": "ed25519-raw-32",
+      "repository_id": "synthetic.repository",
+      "revoked": false,
+      "schema": "semantic-routing-policy-authority-credential.v1",
+      "trust_root_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    "readiness_digest": "sha256:a43fa506eef2fc00495e28eed7368dec5394dc86dfcb9e3b779dd55a98e4a50e",
+    "schema": "semantic-routing-policy-custody-readiness.v1",
+    "subject": {
+      "acceptance_dataset_seal_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "access_history_digest": "sha256:a70855fb9b42f602cdf91a9ecbeee816fffd83d0a06c2489dbf931f647e6cbae",
+      "concept_inventory": {
+        "inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+        "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+        "inventory_source_digest": "sha256:2731255eb6e7e6af786e4ee29ce8e281f893bd8e38d6a57896f20f74246e4249",
+        "inventory_source_path": "synthetic-authority/inventory-source.json",
+        "ontology_ids": [
+          "co.software.ConspicuouslySynthetic"
+        ],
+        "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "owner": {
+          "namespace": "softwareco.semantic-routing-policy.v1",
+          "owner_company": "softwareco",
+          "owner_repository_id": "softwareco/ontology"
+        },
+        "owner_git_commit": "1111111111111111111111111111111111111111",
+        "owner_git_tree": "2222222222222222222222222222222222222222",
+        "schema": "semantic-routing-policy-ontology-inventory.v1"
+      },
+      "concept_inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+      "custodian_authority": {
+        "authority_credential_digest": "sha256:e35094546be826a92de14ae93c521a23a7eb818fce76f15b16f8f18bbb998680",
+        "authority_role": "custodian",
+        "git_commit": "6666666666666666666666666666666666666666",
+        "git_tree": "7777777777777777777777777777777777777777",
+        "principal_id": "synthetic-custodian",
+        "repository_id": "synthetic.repository"
+      },
+      "custody_policy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "development_dataset_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "issued_at": "2026-03-01T00:00:00Z",
+      "operational_dataset_seal_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "role_separation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "schema": "semantic-routing-policy-custody-readiness-subject.v1",
+      "sealed_before_development_disclosure": true,
+      "subject_digest": "sha256:b7eb8d906b208ff026aa1b7d5521382898c8ab2b85a17152cfcdf5bc1dbe2607"
+    }
   },
-  "inventory_bytes_utf8": "{\"inventory_digest\":\"sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f\",\"ontology_ids\":[\"co.software.ConspicuouslySynthetic\"],\"ontology_snapshot_digest\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"owner\":{\"namespace\":\"softwareco.semantic-routing-policy.v1\",\"owner_company\":\"softwareco\",\"owner_repository_id\":\"softwareco/ontology\"},\"owner_git_commit\":\"1111111111111111111111111111111111111111\",\"owner_git_tree\":\"2222222222222222222222222222222222222222\",\"schema\":\"semantic-routing-policy-ontology-inventory.v1\"}",
+  "custody_readiness_request": {
+    "expected_base_access_history": {
+      "events": [
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:441bd989adfbed060ef9a0001f959d7da9bfec05037324bd7c2c5bbe2a6355bd",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": null,
+          "principal_id": "synthetic-1",
+          "role": "semantic_owner",
+          "sequence": 1
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:bba8c9539700bc50c5f7b8c7c3d518e8ffd5cbbfefe6bdf9cbb67d151846a53f",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:441bd989adfbed060ef9a0001f959d7da9bfec05037324bd7c2c5bbe2a6355bd",
+          "principal_id": "synthetic-2",
+          "role": "policy_author",
+          "sequence": 2
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:9db70f00ae8956cde2ec9a3c9092ca0d8587025d5ab0647f52e23b338459213d",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:bba8c9539700bc50c5f7b8c7c3d518e8ffd5cbbfefe6bdf9cbb67d151846a53f",
+          "principal_id": "synthetic-3",
+          "role": "development_author",
+          "sequence": 3
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:f4d333a9049299e7e8fde17d8a972eb2c35a393b545cccac6d0ce18f8e287b3b",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:9db70f00ae8956cde2ec9a3c9092ca0d8587025d5ab0647f52e23b338459213d",
+          "principal_id": "synthetic-4",
+          "role": "acceptance_author",
+          "sequence": 4
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:0356510440773e56343c78d50dfbc98541c6afe2bf0c8aa0bad074cac280a4b1",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:f4d333a9049299e7e8fde17d8a972eb2c35a393b545cccac6d0ce18f8e287b3b",
+          "principal_id": "synthetic-5",
+          "role": "operational_author",
+          "sequence": 5
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:41261a13c53faf7008b79ac2da23e5119d9aab0cdb79406f9a0cab7ad679cf73",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:0356510440773e56343c78d50dfbc98541c6afe2bf0c8aa0bad074cac280a4b1",
+          "principal_id": "synthetic-6",
+          "role": "annotator",
+          "sequence": 6
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:b892ad31180ade70ccc4cf647b086ba89289ecd8bf5dcf4c10302abc4ccb3d22",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:41261a13c53faf7008b79ac2da23e5119d9aab0cdb79406f9a0cab7ad679cf73",
+          "principal_id": "synthetic-7",
+          "role": "annotator",
+          "sequence": 7
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:127bf306ddbd1cd65f2eb84fd2ba1335ff162eb00cce5f46344b97a16f169b13",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:b892ad31180ade70ccc4cf647b086ba89289ecd8bf5dcf4c10302abc4ccb3d22",
+          "principal_id": "synthetic-8",
+          "role": "adjudicator",
+          "sequence": 8
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:4dbf8ca21bea4602c0fe3ef31f76391fba2413048da5f221041f362f45870e7a",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:127bf306ddbd1cd65f2eb84fd2ba1335ff162eb00cce5f46344b97a16f169b13",
+          "principal_id": "synthetic-9",
+          "role": "custodian",
+          "sequence": 9
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:7df4e7434e061d36938678c8fcce06a87d16515bf7658a1b69a84e2604fb4b26",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:4dbf8ca21bea4602c0fe3ef31f76391fba2413048da5f221041f362f45870e7a",
+          "principal_id": "synthetic-10",
+          "role": "independent_reviewer",
+          "sequence": 10
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:599ed154bb41fc26bab292b48a557ae9b207630ef687397ec3afe20a3d05f6c0",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:7df4e7434e061d36938678c8fcce06a87d16515bf7658a1b69a84e2604fb4b26",
+          "principal_id": "synthetic-11",
+          "role": "evaluator_operator",
+          "sequence": 11
+        },
+        {
+          "access": [
+            "ontology_sources"
+          ],
+          "action": "assign",
+          "event_digest": "sha256:967b1d0a0241f7e1186d8e61302368bdbce00418c6ca7c52e19128414ee97608",
+          "occurred_at": "2026-03-01T00:00:00Z",
+          "previous_event_digest": "sha256:599ed154bb41fc26bab292b48a557ae9b207630ef687397ec3afe20a3d05f6c0",
+          "principal_id": "synthetic-12",
+          "role": "implementer",
+          "sequence": 12
+        }
+      ],
+      "history_digest": "sha256:a70855fb9b42f602cdf91a9ecbeee816fffd83d0a06c2489dbf931f647e6cbae",
+      "schema": "semantic-routing-policy-access-history.v1"
+    },
+    "expected_base_access_history_digest": "sha256:a70855fb9b42f602cdf91a9ecbeee816fffd83d0a06c2489dbf931f647e6cbae",
+    "expected_concept_inventory": {
+      "inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+      "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+      "inventory_source_digest": "sha256:2731255eb6e7e6af786e4ee29ce8e281f893bd8e38d6a57896f20f74246e4249",
+      "inventory_source_path": "synthetic-authority/inventory-source.json",
+      "ontology_ids": [
+        "co.software.ConspicuouslySynthetic"
+      ],
+      "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "owner": {
+        "namespace": "softwareco.semantic-routing-policy.v1",
+        "owner_company": "softwareco",
+        "owner_repository_id": "softwareco/ontology"
+      },
+      "owner_git_commit": "1111111111111111111111111111111111111111",
+      "owner_git_tree": "2222222222222222222222222222222222222222",
+      "schema": "semantic-routing-policy-ontology-inventory.v1"
+    },
+    "expected_concept_inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+    "expected_custodian_approval_digest": "sha256:f87b8fd5ba6d6ea77dd9491abc4bd9096f30521b261cafa055b453aa0a4abf00",
+    "expected_custodian_authority": {
+      "authority_credential_digest": "sha256:e35094546be826a92de14ae93c521a23a7eb818fce76f15b16f8f18bbb998680",
+      "authority_role": "custodian",
+      "git_commit": "6666666666666666666666666666666666666666",
+      "git_tree": "7777777777777777777777777777777777777777",
+      "principal_id": "synthetic-custodian",
+      "repository_id": "synthetic.repository"
+    },
+    "expected_custodian_credential": {
+      "authority_role": "custodian",
+      "credential_digest": "sha256:e35094546be826a92de14ae93c521a23a7eb818fce76f15b16f8f18bbb998680",
+      "git_commit": "6666666666666666666666666666666666666666",
+      "git_tree": "7777777777777777777777777777777777777777",
+      "principal_id": "synthetic-custodian",
+      "public_key_base64": "+7hrjWnvO8wsGe2RMCbvEqctEKtikdfDk2e6YwT59NU=",
+      "public_key_digest": "sha256:3ee66b3a673594d8ec8d9d5d80c848ffeeb7521e48acdee3a209d2b0071fb555",
+      "public_key_encoding": "ed25519-raw-32",
+      "repository_id": "synthetic.repository",
+      "revoked": false,
+      "schema": "semantic-routing-policy-authority-credential.v1",
+      "trust_root_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "valid_from": "2026-01-01T00:00:00Z",
+      "valid_until": "2027-01-01T00:00:00Z"
+    },
+    "expected_public_key_digest": "sha256:3ee66b3a673594d8ec8d9d5d80c848ffeeb7521e48acdee3a209d2b0071fb555",
+    "expected_trust_root_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+    "readiness_digest": "sha256:a43fa506eef2fc00495e28eed7368dec5394dc86dfcb9e3b779dd55a98e4a50e",
+    "request_digest": "sha256:2e220db0eb444526054a8e6c3b2f4328e401375f207557ea62340896b6c2e006",
+    "schema": "semantic-routing-policy-custody-readiness-verification-request.v1",
+    "subject_digest": "sha256:b7eb8d906b208ff026aa1b7d5521382898c8ab2b85a17152cfcdf5bc1dbe2607"
+  },
+  "custody_readiness_subject": {
+    "acceptance_dataset_seal_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "access_history_digest": "sha256:a70855fb9b42f602cdf91a9ecbeee816fffd83d0a06c2489dbf931f647e6cbae",
+    "concept_inventory": {
+      "inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+      "inventory_extractor_algorithm": "rocs-softwareco-ontology-inventory-source-v1",
+      "inventory_source_digest": "sha256:2731255eb6e7e6af786e4ee29ce8e281f893bd8e38d6a57896f20f74246e4249",
+      "inventory_source_path": "synthetic-authority/inventory-source.json",
+      "ontology_ids": [
+        "co.software.ConspicuouslySynthetic"
+      ],
+      "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "owner": {
+        "namespace": "softwareco.semantic-routing-policy.v1",
+        "owner_company": "softwareco",
+        "owner_repository_id": "softwareco/ontology"
+      },
+      "owner_git_commit": "1111111111111111111111111111111111111111",
+      "owner_git_tree": "2222222222222222222222222222222222222222",
+      "schema": "semantic-routing-policy-ontology-inventory.v1"
+    },
+    "concept_inventory_digest": "sha256:beacd0220aa0766acbcec75a2b12615520141cf4ec5a88977da1fdd381dd08ed",
+    "custodian_authority": {
+      "authority_credential_digest": "sha256:e35094546be826a92de14ae93c521a23a7eb818fce76f15b16f8f18bbb998680",
+      "authority_role": "custodian",
+      "git_commit": "6666666666666666666666666666666666666666",
+      "git_tree": "7777777777777777777777777777777777777777",
+      "principal_id": "synthetic-custodian",
+      "repository_id": "synthetic.repository"
+    },
+    "custody_policy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "development_dataset_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "issued_at": "2026-03-01T00:00:00Z",
+    "operational_dataset_seal_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "role_separation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "schema": "semantic-routing-policy-custody-readiness-subject.v1",
+    "sealed_before_development_disclosure": true,
+    "subject_digest": "sha256:b7eb8d906b208ff026aa1b7d5521382898c8ab2b85a17152cfcdf5bc1dbe2607"
+  },
+  "inventory_source_bytes_utf8": "{\"ontology_ids\":[\"co.software.ConspicuouslySynthetic\"],\"schema\":\"softwareco-ontology-inventory-source.v1\"}",
   "policy": {
     "authority": {
       "owner_repo": "softwareco/ontology",

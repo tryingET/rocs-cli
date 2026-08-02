@@ -1,320 +1,174 @@
 from __future__ import annotations
-
-import base64
-import copy
+import base64, copy, hashlib, json, os, subprocess, tempfile, unittest
 from contextlib import nullcontext
-import hashlib
-import json
 from pathlib import Path
-import tempfile
-import unittest
 from unittest.mock import patch
-
 import rocs_cli.semantic_adopted_authority as authority_module
-from rocs_cli.semantic_adopted_authority import (
-    AdoptedAuthorityError, ROLE_ORDER, verify_authority_credential,
-    verify_candidate_support, verify_contamination_manifest,
-    verify_principal_separation,
-)
+from rocs_cli.semantic_adopted_authority import AdoptedAuthorityError, ROLE_ORDER, verify_authority_credential, verify_candidate_support, verify_contamination_manifest, verify_principal_separation
 from rocs_cli.semantic_adopted_digests import object_digest
 from rocs_cli.semantic_adopted_protocol import jcs_bytes
 from rocs_cli.semantic_router_protocol import object_digest as d102_digest
-
+from rocs_cli.semantic_adopted_signatures import signature_message
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 CORPUS = Path(__file__).parent / "fixtures/semantic-adopted-policy-v1/candidate-support-corpus.json"
-
-def _sha(raw: bytes) -> str:
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
-
-
-
+def _sha(raw: bytes) -> str: return "sha256:" + hashlib.sha256(raw).hexdigest()
 class CandidateSupportTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls) -> None:
-        cls.fixture = json.loads(CORPUS.read_text("utf-8"))
-
-    def fresh(self):
-        value = copy.deepcopy(self.fixture)
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        root = Path(temporary.name)
-        (root / ".git/objects/pack").mkdir(parents=True)
-        (root / ".git/config").write_text("[user]\n\tname = Synthetic\n", "utf-8")
-        policy = jcs_bytes(value["policy"])
-        provenance = jcs_bytes(value["provenance"])
-        inventory = value["inventory_bytes_utf8"].encode("utf-8")
-        blobs = {
-            value["candidate"]["policy_path"]: policy,
-            value["candidate"]["provenance_path"]: provenance,
-            value["candidate"]["ontology_inventory_path"]: inventory,
-            "synthetic-authority/meaning.txt": value["source_text"].encode(),
-        }
-        return value, policy, provenance, inventory, root, blobs
-
-    def runner(self, value, blobs):
-        commit, tree = value["candidate"]["owner_git_commit"], value["candidate"]["owner_git_tree"]
-        oids = {path: hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
-                for path, raw in blobs.items()}
-        by_oid = {oids[path]: raw for path, raw in blobs.items()}
-        calls = []
-        def run(command, **kwargs):
-            calls.append(command)
-            args = command[command.index("-c", command.index("-c") + 1) + 2:]  # ignored; inspect tail
-            data, output = kwargs.get("input", b""), kwargs["stdout"]
-            if "config" in command:
-                raw = b"user.name\nSynthetic\0"
-            elif "for-each-ref" in command:
-                raw = b""
-            elif "--batch-check=%(objectname) %(objecttype) %(objectsize)" in command:
-                rows = []
-                for expression in data.decode().splitlines():
-                    if expression == commit:
-                        rows.append(f"{commit} commit 123")
-                    elif expression == f"{commit}^{{tree}}":
-                        rows.append(f"{tree} tree 123")
-                    else:
-                        path = expression.split(":", 1)[1]
-                        raw_blob = blobs[path]
-                        rows.append(f"{oids[path]} blob {len(raw_blob)}")
-                raw = ("\n".join(rows) + "\n").encode()
-            elif "ls-tree" in command:
-                raw = b"".join(
-                    f"100644 blob {oids[path]}\t{path}".encode() + b"\0"
-                    for path in sorted(blobs)
-                )
-            elif "--batch" in command:
-                chunks = []
-                for oid in data.decode().splitlines():
-                    blob = by_oid[oid]
-                    chunks.append(f"{oid} blob {len(blob)}\n".encode() + blob + b"\n")
-                raw = b"".join(chunks)
+    def setUpClass(cls):
+        cls.fixture = json.loads(CORPUS.read_text()); cls.private_raw = hashlib.sha256(b"authority-test-only-private-seed").digest(); cls.signing_key = Ed25519PrivateKey.from_private_bytes(cls.private_raw)
+    def git(self, root, *args, data=None):
+        env={**os.environ,"GIT_AUTHOR_NAME":"Synthetic","GIT_AUTHOR_EMAIL":"s@example.invalid","GIT_COMMITTER_NAME":"Synthetic","GIT_COMMITTER_EMAIL":"s@example.invalid"}
+        return subprocess.run(["git",*args],cwd=root,input=data,env=env,check=True,stdout=subprocess.PIPE).stdout.strip().decode()
+    def sync_readiness(self, v, inventory):
+        s=v["custody_readiness_subject"]; r=v["custody_readiness_receipt"]; q=v["custody_readiness_request"]; cred=r["custodian_credential"]
+        public=self.signing_key.public_key().public_bytes(Encoding.Raw,PublicFormat.Raw);cred["public_key_base64"]=base64.b64encode(public).decode();cred["public_key_digest"]=_sha(public);cred["credential_digest"]=object_digest("authority_credential",cred,"credential_digest");authority=s["custodian_authority"];authority["authority_credential_digest"]=cred["credential_digest"]
+        s["concept_inventory"]=copy.deepcopy(inventory);s["concept_inventory_digest"]=inventory["inventory_digest"];s["subject_digest"]=object_digest("custody_readiness_subject",s,"subject_digest")
+        r["subject"]=copy.deepcopy(s); a=r["custodian_approval"];a.update(issuer=copy.deepcopy(authority),subject_digest=s["subject_digest"],public_key_digest=cred["public_key_digest"]);body=a["attestation_body"]
+        for field in ("issuer","subject_digest","purpose","valid_from","valid_until","revoked","trust_root_digest","public_key_digest"): body[field]=copy.deepcopy(a[field])
+        body["body_digest"]=object_digest("approval_attestation_body",body,"body_digest");a["signature_base64"]=base64.b64encode(self.signing_key.sign(signature_message("approval",body["body_digest"]))).decode();a["artifact_digest"]=object_digest("approval_artifact",a,"artifact_digest");r["readiness_digest"]=object_digest("custody_readiness",r,"readiness_digest")
+        q.update(readiness_digest=r["readiness_digest"],subject_digest=s["subject_digest"],expected_custodian_authority=copy.deepcopy(authority),expected_custodian_credential=copy.deepcopy(cred),expected_custodian_approval_digest=a["artifact_digest"],expected_public_key_digest=cred["public_key_digest"],expected_concept_inventory=copy.deepcopy(inventory),expected_concept_inventory_digest=inventory["inventory_digest"]);q["request_digest"]=object_digest("custody_readiness_verification_request",q,"request_digest")
+    def sync_candidate(self,v):
+        p,g,c=v["policy"],v["provenance"],v["candidate"]
+        g["provenance_manifest_digest"]=d102_digest("provenance_manifest",g);p["provenance_manifest_digest"]=g["provenance_manifest_digest"];p["routing_policy_digest"]=d102_digest("routing_policy",p)
+        c["routing_policy_digest"]=p["routing_policy_digest"];c["provenance_manifest_digest"]=g["provenance_manifest_digest"]
+        receipt=c["policy_semantic_binding"]["binding_receipt"];receipt["routing_policy_digest"]=p["routing_policy_digest"];receipt["provenance_manifest_digest"]=g["provenance_manifest_digest"];receipt["inventory_digest"]=c["ontology_inventory_digest"];receipt["receipt_digest"]=object_digest("policy_binding_receipt",receipt,"receipt_digest")
+        binding=c["policy_semantic_binding"];binding["inventory_digest"]=c["ontology_inventory_digest"];binding["binding_receipt_digest"]=receipt["receipt_digest"];binding["binding_digest"]=object_digest("policy_semantic_binding",binding,"binding_digest")
+        row=next(x for x in v["contamination_manifest"]["coverage"] if x["surface"]=="policy");row["source_digest"]=p["routing_policy_digest"];m=v["contamination_manifest"];m["manifest_digest"]=object_digest("contamination_manifest",m,"manifest_digest");c["contamination_manifest_digest"]=m["manifest_digest"];c["candidate_digest"]=object_digest("candidate",c,"candidate_digest")
+    def fresh(self, extra_sources=0):
+        v=copy.deepcopy(self.fixture); td=tempfile.TemporaryDirectory();self.addCleanup(td.cleanup);root=Path(td.name);self.git(root,"init","-q")
+        invraw=v["inventory_source_bytes_utf8"].encode(); ip=v["candidate"]["ontology_inventory_path"]; source=v["source_text"].encode();sp="synthetic-authority/meaning.txt"
+        (root/ip).parent.mkdir(parents=True);(root/ip).write_bytes(invraw);self.git(root,"add",".");self.git(root,"commit","-qm","inventory");I=self.git(root,"rev-parse","HEAD");IT=self.git(root,"rev-parse","HEAD^{tree}");base=self.git(root,"rev-parse","HEAD^") if False else None
+        # S is intentionally unrelated to I: an orphan source root, later merged into C.
+        self.git(root,"checkout","--orphan","source","-q");self.git(root,"rm","-rf",".");(root/sp).parent.mkdir(parents=True,exist_ok=True);(root/sp).write_bytes(source);self.git(root,"add",".");self.git(root,"commit","-qm","source");S=self.git(root,"rev-parse","HEAD")
+        extras=[]
+        for n in range(extra_sources):
+            path=f"synthetic-authority/extra-{n}.txt";data=f"extra-{n}\n".encode();(root/path).write_bytes(data);self.git(root,"add",path);self.git(root,"commit","-qm",f"source {n}");extras.append((self.git(root,"rev-parse","HEAD"),path,data))
+        v["_extra_sources"]=extras;v["policy"]["authority"]["revision"]=S;v["provenance"]["policy_revision"]=S
+        for x in v["provenance"]["records"]: x["source_revision"]=S
+        self.sync_candidate(v); policy=jcs_bytes(v["policy"]); provenance=jcs_bytes(v["provenance"])
+        c=v["candidate"];(root/c["policy_path"]).parent.mkdir(parents=True,exist_ok=True);(root/c["policy_path"]).write_bytes(policy);(root/c["provenance_path"]).write_bytes(provenance);self.git(root,"add",".");self.git(root,"commit","-qm","policy")
+        self.git(root,"merge","--allow-unrelated-histories","--no-ff","-qm","candidate",I);C=self.git(root,"rev-parse","HEAD");CT=self.git(root,"rev-parse","HEAD^{tree}")
+        inventory=copy.deepcopy(c["ontology_inventory"]);inventory.update(owner_git_commit=I,owner_git_tree=IT,inventory_source_digest=_sha(invraw));inventory["inventory_digest"]=object_digest("ontology_inventory",inventory,"inventory_digest")
+        c.update(owner_git_commit=C,owner_git_tree=CT,ontology_inventory=inventory,ontology_inventory_digest=inventory["inventory_digest"],ontology_snapshot_digest=inventory["ontology_snapshot_digest"],selectable_ontology_ids=inventory["ontology_ids"]);self.sync_readiness(v,inventory);self.sync_candidate(v)
+        return v,root,policy,provenance,invraw,I,S,C
+    def verify(self,args):
+        v,root,policy,provenance,invraw,*_=args
+        key=(v["policy"]["authority"]["revision"],v["policy"]["authority"]["path"]);sources={key:v["source_text"].encode()}
+        return verify_candidate_support(jcs_bytes(v["candidate"]),policy_bytes=policy,provenance_bytes=provenance,inventory_source_bytes=invraw,source_bytes=sources,custody_readiness_subject=v["custody_readiness_subject"],custody_readiness_receipt=v["custody_readiness_receipt"],custody_readiness_request=v["custody_readiness_request"],contamination_manifest=v["contamination_manifest"],contamination_source_digests=v["contamination_non_policy_source_digests"],local_git_root=root)
+    def test_real_git_positive_unrelated_i_s_and_external_immutable_candidate(self):
+        args=self.fresh();result=self.verify(args);v,root,*_=args
+        self.assertFalse((root/"synthetic-candidate/candidate.json").exists());self.assertEqual(result.candidate_bytes,jcs_bytes(v["candidate"]));self.assertEqual(result.candidate_digest,v["candidate"]["candidate_digest"])
+        v["candidate"]["candidate_id"]="later-mutation";self.assertNotIn(b"later-mutation",result.candidate_bytes)
+    def test_candidate_requires_canonical_bytes_and_exact_named_sources(self):
+        args=self.fresh();v=args[0];self.assertEqual(self.fixture["candidate_bytes_utf8"].encode(),jcs_bytes(self.fixture["candidate"]))
+        with self.assertRaises(AdoptedAuthorityError): verify_candidate_support(v["candidate"],policy_bytes=args[2],provenance_bytes=args[3],inventory_source_bytes=args[4],source_bytes={},custody_readiness_subject=v["custody_readiness_subject"],custody_readiness_receipt=v["custody_readiness_receipt"],custody_readiness_request=v["custody_readiness_request"],contamination_manifest=v["contamination_manifest"],contamination_source_digests=v["contamination_non_policy_source_digests"],local_git_root=args[1])
+        candidate=jcs_bytes(v["candidate"])
+        with self.assertRaisesRegex(AdoptedAuthorityError,"canonical JCS"): verify_candidate_support(b" "+candidate,policy_bytes=args[2],provenance_bytes=args[3],inventory_source_bytes=args[4],source_bytes={},custody_readiness_subject=v["custody_readiness_subject"],custody_readiness_receipt=v["custody_readiness_receipt"],custody_readiness_request=v["custody_readiness_request"],contamination_manifest=v["contamination_manifest"],contamination_source_digests=v["contamination_non_policy_source_digests"],local_git_root=args[1])
+        key=(args[6],"synthetic-authority/meaning.txt")
+        for sources in ({},{key:b"wrong"},{key:v["source_text"].encode(),("0"*40,"extra"):b"x"}):
+            with self.assertRaises(AdoptedAuthorityError): verify_candidate_support(candidate,policy_bytes=args[2],provenance_bytes=args[3],inventory_source_bytes=args[4],source_bytes=sources,custody_readiness_subject=v["custody_readiness_subject"],custody_readiness_receipt=v["custody_readiness_receipt"],custody_readiness_request=v["custody_readiness_request"],contamination_manifest=v["contamination_manifest"],contamination_source_digests=v["contamination_non_policy_source_digests"],local_git_root=args[1])
+    def test_real_same_and_nonancestor_source_attacks(self):
+        for attack in ("same","nonancestor"):
+            args=self.fresh();v,root,policy,provenance,raw,I,S,C=args
+            revision=C
+            if attack=="nonancestor":
+                (root/"other").write_text("x");self.git(root,"add","other");self.git(root,"commit","-qm","later");revision=self.git(root,"rev-parse","HEAD")
+            with self.subTest(attack=attack),self.assertRaisesRegex(AdoptedAuthorityError,"strict candidate ancestor"):
+                authority_module._git_proof(root,v["candidate"],jcs_bytes(v["candidate"]),raw,policy,provenance,[(revision,"synthetic-authority/meaning.txt",_sha(v["source_text"].encode()))],{(revision,"synthetic-authority/meaning.txt"):v["source_text"].encode()})
+    def recommit(self,args,path,raw):
+        v,root,*_=args;(root/path).write_bytes(raw);self.git(root,"add",path);self.git(root,"commit","-qm","attack");v["candidate"]["owner_git_commit"]=self.git(root,"rev-parse","HEAD");v["candidate"]["owner_git_tree"]=self.git(root,"rev-parse","HEAD^{tree}");self.sync_candidate(v)
+    def test_real_i_same_nonancestor_tree_and_source_path_attacks(self):
+        for attack in ("same_i", "nonancestor_i", "same_tree", "source_path"):
+            args=self.fresh();v,root,policy,provenance,raw,I,S,C=args;c=copy.deepcopy(v["candidate"]);inv=c["ontology_inventory"]
+            if attack=="same_i": inv.update(owner_git_commit=C,owner_git_tree=c["owner_git_tree"])
+            elif attack=="nonancestor_i":
+                (root/"later").write_text("x");self.git(root,"add","later");self.git(root,"commit","-qm","later");inv.update(owner_git_commit=self.git(root,"rev-parse","HEAD"),owner_git_tree=self.git(root,"rev-parse","HEAD^{tree}"))
+            elif attack=="same_tree": inv["owner_git_tree"]=c["owner_git_tree"]
+            claims=[(S,"missing/source",_sha(v["source_text"].encode()))] if attack=="source_path" else [(S,"synthetic-authority/meaning.txt",_sha(v["source_text"].encode()))]
+            with self.subTest(attack=attack),self.assertRaises(AdoptedAuthorityError): authority_module._git_proof(root,c,jcs_bytes(c),raw,policy,provenance,claims,{(rev,path):v["source_text"].encode() for rev,path,_digest in claims})
+    def test_real_multi_s_batched_complete_tree_and_hidden_candidate_bytes(self):
+        args=self.fresh(extra_sources=5);v,root,policy,provenance,raw,I,S,C=args;base=(S,"synthetic-authority/meaning.txt",_sha(v["source_text"].encode()));claims=[base]+[(rev,path,_sha(data)) for rev,path,data in v["_extra_sources"]];sources={(S,base[1]):v["source_text"].encode(),**{(rev,path):data for rev,path,data in v["_extra_sources"]}}
+        real_run,real_popen=subprocess.run,subprocess.Popen
+        with patch.object(authority_module.subprocess,"run",wraps=real_run) as runs,patch.object(authority_module.subprocess,"Popen",wraps=real_popen) as popens:
+            authority_module._git_proof(root,v["candidate"],jcs_bytes(v["candidate"]),raw,policy,provenance,claims,sources)
+        self.assertLessEqual(runs.call_count+popens.call_count,8)
+        hidden=v["_extra_sources"][-1][2]
+        with self.assertRaisesRegex(AdoptedAuthorityError,"present inside"): authority_module._git_proof(root,v["candidate"],hidden,raw,policy,provenance,claims,sources)
+    def test_repository_descriptor_replacement_rejects(self):
+        args=self.fresh();v,root,*_=args;original_close=authority_module._CatFile.close;done=False
+        def replace(cat):
+            nonlocal done
+            original_close(cat)
+            if not done:
+                moved=Path(str(root)+"-moved");root.rename(moved);root.mkdir();done=True;self.addCleanup(lambda: moved.exists() and __import__("shutil").rmtree(moved))
+        with patch.object(authority_module._CatFile,"close",replace),self.assertRaisesRegex(AdoptedAuthorityError,"descriptor identity"): self.verify(args)
+    def test_real_retained_source_and_inventory_drift_attacks(self):
+        for kind,path in (("source","synthetic-authority/meaning.txt"),("inventory",self.fixture["candidate"]["ontology_inventory_path"])):
+            args=self.fresh();self.recommit(args,path,b"drift")
+            with self.subTest(kind=kind),self.assertRaises(AdoptedAuthorityError): self.verify(args)
+    def test_real_nonregular_source_mode_attack(self):
+        args=self.fresh();v,root,*_=args;path=root/"synthetic-authority/meaning.txt";path.unlink();path.symlink_to("nonregular-target");self.git(root,"add","synthetic-authority/meaning.txt");self.git(root,"commit","-qm","mode attack");v["candidate"]["owner_git_commit"]=self.git(root,"rev-parse","HEAD");v["candidate"]["owner_git_tree"]=self.git(root,"rev-parse","HEAD^{tree}");self.sync_candidate(v)
+        with self.assertRaisesRegex(AdoptedAuthorityError,"unsafe mode"): self.verify(args)
+    def test_path_extractor_and_p3_preimage_attacks(self):
+        attacks=(lambda v:v["candidate"].__setitem__("ontology_inventory_path","wrong/path"),lambda v:v["candidate"]["ontology_inventory"].__setitem__("inventory_extractor_algorithm","wrong"),lambda v:v["custody_readiness_request"].__setitem__("expected_concept_inventory_digest","sha256:"+"9"*64))
+        for n,attack in enumerate(attacks):
+            args=self.fresh();attack(args[0]);self.sync_candidate(args[0])
+            with self.subTest(n=n),self.assertRaises(AdoptedAuthorityError): self.verify(args)
+    def test_canonical_inventory_source_boundaries(self):
+        for raw in (b' {"ontology_ids":["co.software.ConspicuouslySynthetic"],"schema":"softwareco-ontology-inventory-source.v1"}',b'{"ontology_ids":[],"schema":"softwareco-ontology-inventory-source.v1"}',b'{"ontology_ids":["core.Impostor"],"schema":"softwareco-ontology-inventory-source.v1"}'):
+            args=self.fresh();args=list(args);args[4]=raw
+            with self.assertRaisesRegex(AdoptedAuthorityError,"inventory preimage"): self.verify(args)
+    def test_real_source_resource_attack_and_input_ceilings(self):
+        args=self.fresh();v,root,*_=args;raw=b"x"*(authority_module._MAX_FILE+1);self.recommit(args,"synthetic-authority/meaning.txt",raw)
+        with self.assertRaises(AdoptedAuthorityError) as caught: authority_module._git_proof(root,v["candidate"],jcs_bytes(v["candidate"]),args[4],args[2],args[3],[(args[6],"synthetic-authority/meaning.txt",_sha(raw))],{(args[6],"synthetic-authority/meaning.txt"):raw})
+        self.assertEqual(caught.exception.kind,"resource_exhausted")
+        for limit in (authority_module._MAX_FILE,authority_module._MAX_PROVENANCE,authority_module._MAX_METADATA): self.assertEqual(len(b"x"*limit),limit);self.assertEqual(len(b"x"*(limit+1)),limit+1)
+    def test_every_declared_acquisition_max_and_max_plus_one(self):
+        A=authority_module
+        cases=[((A._MAX_FILE,A._MAX_PROVENANCE,A._MAX_FILE),{}),((0,0,0),{"sources":[A._MAX_FILE]}),((0,0,0),{"sources":[A._MAX_SOURCE_TOTAL]}),((0,0,0),{"contents":[A._MAX_CONTENT_TOTAL]}),((0,0,0),{"records":A._MAX_RECORDS}),((0,0,0),{"objects":A._MAX_OBJECTS})]
+        for args,kw in cases: A._acquisition_bounds(*args,**kw)
+        failures=[((A._MAX_FILE+1,0,0),{}),((0,A._MAX_PROVENANCE+1,0),{}),((0,0,A._MAX_FILE+1),{}),((0,0,0),{"sources":[A._MAX_FILE+1]}),((0,0,0),{"sources":[A._MAX_SOURCE_TOTAL,1]}),((0,0,0),{"contents":[A._MAX_CONTENT_TOTAL,1]}),((0,0,0),{"records":A._MAX_RECORDS+1}),((0,0,0),{"objects":A._MAX_OBJECTS+1})]
+        for args,kw in failures:
+            with self.assertRaises(AdoptedAuthorityError) as caught: A._acquisition_bounds(*args,**kw)
+            self.assertEqual(caught.exception.kind,"resource_exhausted")
+    def test_real_metadata_process_and_isolated_output_boundaries(self):
+        args=self.fresh();gitdir=str(args[1]/".git")
+        for extra in (0,1):
+            data=b"x"*(authority_module._MAX_METADATA+extra)
+            if not extra: authority_module._run_git(gitdir,["hash-object","--stdin"],budget=authority_module._GitBudget(),data=data,limit=128)
             else:
-                raise AssertionError(command)
-            output.write(raw)
-            return type("Result", (), {"returncode": 0})()
-        return run, calls
-
-    def verify(self, value, policy, provenance, inventory, root, blobs):
-        runner, calls = self.runner(value, blobs)
-        with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=runner):
-            result = verify_candidate_support(
-                value["candidate"], policy_bytes=policy, provenance_bytes=provenance,
-                inventory_bytes=inventory, contamination_manifest=value["contamination_manifest"],
-                contamination_source_digests=value["contamination_non_policy_source_digests"],
-                local_git_root=root,
-            )
-        self.assertLessEqual(len(calls), 8)
-        return result
-
-    def sync(self, value):
-        policy, provenance = value["policy"], value["provenance"]
-        provenance["provenance_manifest_digest"] = d102_digest("provenance_manifest", provenance)
-        policy["provenance_manifest_digest"] = provenance["provenance_manifest_digest"]
-        policy["routing_policy_digest"] = d102_digest("routing_policy", policy)
-        candidate = value["candidate"]
-        candidate["routing_policy_digest"] = policy["routing_policy_digest"]
-        candidate["provenance_manifest_digest"] = provenance["provenance_manifest_digest"]
-        receipt = candidate["policy_semantic_binding"]["binding_receipt"]
-        receipt["routing_policy_digest"] = policy["routing_policy_digest"]
-        receipt["provenance_manifest_digest"] = provenance["provenance_manifest_digest"]
-        receipt["receipt_digest"] = object_digest("policy_binding_receipt", receipt, "receipt_digest")
-        binding = candidate["policy_semantic_binding"]
-        binding["binding_receipt_digest"] = receipt["receipt_digest"]
-        binding["binding_digest"] = object_digest("policy_semantic_binding", binding, "binding_digest")
-        policy_row = next(row for row in value["contamination_manifest"]["coverage"] if row["surface"] == "policy")
-        policy_row["source_digest"] = policy["routing_policy_digest"]
-        manifest = value["contamination_manifest"]
-        manifest["manifest_digest"] = object_digest("contamination_manifest", manifest, "manifest_digest")
-        candidate["contamination_manifest_digest"] = manifest["manifest_digest"]
-        candidate["candidate_digest"] = object_digest("candidate", candidate, "candidate_digest")
-
-    def test_exact_batched_candidate_and_eight_process_ceiling(self):
-        args = self.fresh()
-        result = self.verify(*args)
-        self.assertEqual(result.policy_concept_ids, ("co.software.ConspicuouslySynthetic",))
-        self.assertEqual(result.candidate_bytes, jcs_bytes(args[0]["candidate"]))
-        self.assertEqual(result.candidate_digest, args[0]["candidate"]["candidate_digest"])
-        args[0]["candidate"]["candidate_id"] = "mutated-after-proof"
-        self.assertNotIn(b"mutated-after-proof", result.candidate_bytes)
-        with self.assertRaises(AttributeError): result.candidate_digest = "changed"
-
-    def test_parent_and_caller_source_revisions_reject_before_git(self):
-        for target in ("authority", "record"):
-            with self.subTest(target=target):
-                value, policy, provenance, inventory, root, blobs = self.fresh()
-                if target == "authority":
-                    value["policy"]["authority"]["revision"] = "9" * 40
-                    value["provenance"]["policy_revision"] = "9" * 40
+                with self.assertRaisesRegex(AdoptedAuthorityError,"input") as caught: authority_module._run_git(gitdir,["hash-object","--stdin"],budget=authority_module._GitBudget(),data=data,limit=128)
+                self.assertEqual(caught.exception.kind,"resource_exhausted")
+        b=authority_module._GitBudget()
+        for _ in range(authority_module._MAX_GIT_PROCESSES): authority_module._run_git(gitdir,["rev-parse","HEAD"],budget=b,limit=128)
+        with self.assertRaisesRegex(AdoptedAuthorityError,"subprocess") as caught: authority_module._run_git(gitdir,["rev-parse","HEAD"],budget=b,limit=128)
+        self.assertEqual(caught.exception.kind,"resource_exhausted")
+        def invoke(out=b"",err=b"",budget=None):
+            def run(_cmd,**kw): kw["stdout"].write(out);kw["stderr"].write(err);return type("R",(),{"returncode":0})()
+            with patch.object(authority_module.subprocess,"run",side_effect=run): return authority_module._run_git("/tmp/x",["x"],budget=budget or authority_module._GitBudget(),limit=authority_module._MAX_STDOUT)
+        self.assertEqual(len(invoke(out=b"x"*authority_module._MAX_STDOUT)),authority_module._MAX_STDOUT)
+        with self.assertRaises(AdoptedAuthorityError) as caught: invoke(out=b"x"*(authority_module._MAX_STDOUT+1))
+        self.assertEqual(caught.exception.kind,"resource_exhausted")
+        self.assertEqual(invoke(err=b"x"*authority_module._MAX_STDERR),b"")
+        with self.assertRaises(AdoptedAuthorityError) as caught: invoke(err=b"x"*(authority_module._MAX_STDERR+1))
+        self.assertEqual(caught.exception.kind,"resource_exhausted")
+        for field,maximum in (("stdout",authority_module._MAX_STDOUT_TOTAL),("stderr",authority_module._MAX_STDERR_TOTAL)):
+            for extra in (0,1):
+                budget=authority_module._GitBudget();setattr(budget,field,maximum-1);kw={"out" if field=="stdout" else "err":b"x"*(1+extra)}
+                if not extra: invoke(budget=budget,**kw)
                 else:
-                    value["provenance"]["records"][0]["source_revision"] = "9" * 40
-                self.sync(value)
-                policy, provenance = jcs_bytes(value["policy"]), jcs_bytes(value["provenance"])
-                blobs[value["candidate"]["policy_path"]] = policy
-                blobs[value["candidate"]["provenance_path"]] = provenance
-                with self.assertRaisesRegex(AdoptedAuthorityError, "candidate commit"):
-                    self.verify(value, policy, provenance, inventory, root, blobs)
-
-    def test_full_inventory_blob_bytes_not_ontology_projection(self):
-        value, policy, provenance, inventory, root, blobs = self.fresh()
-        inventory = b" \n" + inventory + b"\n"
-        blobs[value["candidate"]["ontology_inventory_path"]] = inventory
-        self.verify(value, policy, provenance, inventory, root, blobs)
-        blobs[value["candidate"]["ontology_inventory_path"]] = jcs_bytes({"ontology_ids": value["inventory"]["ontology_ids"]})
-        with self.assertRaises(AdoptedAuthorityError):
-            self.verify(value, policy, provenance, inventory, root, blobs)
-
-    def test_policy_provenance_inventory_and_per_source_exact_boundaries(self):
-        for name, maximum in (("policy", 1_048_576), ("provenance", 8_388_608),
-                              ("inventory", 1_048_576)):
-            for extra in (0, 1):
-                value, policy, provenance, inventory, root, blobs = self.fresh()
-                values = {"policy": policy, "provenance": provenance, "inventory": inventory}
-                values[name] += b" " * (maximum + extra - len(values[name]))
-                blobs[value["candidate"][f"{name if name != 'inventory' else 'ontology_inventory'}_path"]] = values[name]
-                context = nullcontext() if extra == 0 else self.assertRaisesRegex(AdoptedAuthorityError, name)
-                with self.subTest(name=name, extra=extra), context:
-                    self.verify(value, values["policy"], values["provenance"], values["inventory"], root, blobs)
-        for extra in (0, 1):
-            value, _policy, _provenance, _inventory, root, _blobs = self.fresh()
-            raw = b"x" * (1_048_576 + extra); blobs = {"source": raw}
-            runner, _calls = self.runner(value, blobs)
-            expected = {"source": (_sha(raw), None, "source")}
-            context = nullcontext() if extra == 0 else self.assertRaisesRegex(AdoptedAuthorityError, "byte limit")
-            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=runner), context:
-                authority_module._git_blobs(root, value["candidate"]["owner_git_commit"],
-                                            value["candidate"]["owner_git_tree"], expected)
-
-    def test_source_aggregate_exact_max_max_plus_one_and_prior_false_acceptance(self):
-        for sizes, accepted in (((524_288, 524_288), True), ((524_288, 524_289), False),
-                                ((600_000, 600_000), False)):
-            with self.subTest(sizes=sizes):
-                value, _policy, _provenance, _inventory, root, _blobs = self.fresh()
-                blobs = {f"source-{index}": b"x" * size for index, size in enumerate(sizes)}
-                expected = {path: (_sha(raw), None, "source") for path, raw in blobs.items()}
-                runner, calls = self.runner(value, blobs)
-                context = self.assertRaisesRegex(AdoptedAuthorityError, "aggregate byte limit") if not accepted else nullcontext()
-                with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=runner), context:
-                    authority_module._git_blobs(
-                        root, value["candidate"]["owner_git_commit"],
-                        value["candidate"]["owner_git_tree"], expected,
-                    )
-                self.assertLessEqual(len(calls), 8)
-
-    def test_content_aggregate_exact_max_and_max_plus_one(self):
-        for extra in (0, 1):
-            value, _policy, _provenance, _inventory, root, _blobs = self.fresh()
-            unit = b"x" * 1_048_576
-            blobs = {f"content-{index}": unit for index in range(11)}
-            if extra: blobs["content-extra"] = b"x"
-            expected = {path: (_sha(raw), None, "policy") for path, raw in blobs.items()}
-            runner, _calls = self.runner(value, blobs)
-            context = nullcontext() if not extra else self.assertRaisesRegex(AdoptedAuthorityError, "aggregate byte limit")
-            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=runner), context:
-                authority_module._git_blobs(root, value["candidate"]["owner_git_commit"],
-                                            value["candidate"]["owner_git_tree"], expected)
-
-    def test_source_record_count_exact_max_and_max_plus_one(self):
-        for extra in (0, 1):
-            records = [None] * (authority_module._MAX_SOURCE_RECORDS + extra)
-            context = nullcontext() if not extra else self.assertRaisesRegex(AdoptedAuthorityError, "source-record")
-            with context: authority_module._source_record_bound(records)
-
-    def test_unique_object_id_exact_max_and_max_plus_one(self):
-        def tree(count):
-            return b"".join(
-                f"100644 blob {index:040x}\tpath-{index}".encode() + b"\0"
-                for index in range(count)
-            )
-        self.assertEqual(len(authority_module._tree_modes(tree(16_384), set())), 16_384)
-        with self.assertRaisesRegex(AdoptedAuthorityError, "unique object"):
-            authority_module._tree_modes(tree(16_385), set())
-
-    def test_git_output_and_process_exact_boundaries(self):
-        def invoke(stdout=b"", stderr=b"", budget=None):
-            budget = budget or authority_module._GitBudget()
-            def run(_command, **kwargs):
-                kwargs["stdout"].write(stdout); kwargs["stderr"].write(stderr)
-                return type("Result", (), {"returncode": 0})()
-            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=run):
-                return authority_module._run_git(
-                    "/synthetic/.git", ["synthetic"], budget=budget,
-                    limit=authority_module._MAX_STDOUT,
-                )
-        self.assertEqual(len(invoke(stdout=b"x" * 12_582_912)), 12_582_912)
-        with self.assertRaises(AdoptedAuthorityError):
-            invoke(stdout=b"x" * 12_582_913)
-        self.assertEqual(invoke(stderr=b"x" * 65_536), b"")
-        with self.assertRaises(AdoptedAuthorityError):
-            invoke(stderr=b"x" * 65_537)
-        for field, maximum in (("stdout", 16_777_216), ("stderr", 524_288)):
-            for extra, accepted in ((0, True), (1, False)):
-                budget = authority_module._GitBudget()
-                setattr(budget, field, maximum - 1)
-                kwargs = {field: b"x" * (1 + extra)}
-                with self.subTest(field=field, extra=extra):
-                    if accepted:
-                        invoke(budget=budget, **kwargs)
-                        self.assertEqual(getattr(budget, field), maximum)
-                    else:
-                        with self.assertRaises(AdoptedAuthorityError):
-                            invoke(budget=budget, **kwargs)
-        for extra in (0, 1):
-            data = b"x" * (authority_module._MAX_METADATA + extra)
-            def empty(_command, **kwargs): return type("Result", (), {"returncode": 0})()
-            context = nullcontext() if not extra else self.assertRaisesRegex(AdoptedAuthorityError, "input")
-            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=empty), context:
-                authority_module._run_git("/synthetic/.git", ["synthetic"], budget=authority_module._GitBudget(),
-                                          data=data, limit=authority_module._MAX_STDOUT)
-        budget = authority_module._GitBudget()
-        for _ in range(8):
-            invoke(budget=budget)
-        self.assertEqual(budget.processes, 8)
-        with self.assertRaisesRegex(AdoptedAuthorityError, "subprocess count"):
-            invoke(budget=budget)
-
-    def test_unsafe_state_rejects_without_git_subprocess(self):
-        for relative in ("shallow", "objects/info/alternates", "info/grafts"):
-            with self.subTest(relative=relative):
-                value, policy, provenance, inventory, root, blobs = self.fresh()
-                path = root / ".git" / relative
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("unsafe\n")
-                with patch("rocs_cli.semantic_adopted_authority.subprocess.run") as run:
-                    with self.assertRaisesRegex(AdoptedAuthorityError, "unsafe"):
-                        verify_candidate_support(
-                            value["candidate"], policy_bytes=policy, provenance_bytes=provenance,
-                            inventory_bytes=inventory, contamination_manifest=value["contamination_manifest"],
-                            contamination_source_digests=value["contamination_non_policy_source_digests"],
-                            local_git_root=root,
-                        )
-                    run.assert_not_called()
-
-    def test_all_ten_contamination_source_coordinates_join(self):
-        value, policy, provenance, inventory, root, blobs = self.fresh()
-        verify_contamination_manifest(
-            value["contamination_manifest"], policy_source_digest=value["policy"]["routing_policy_digest"],
-            non_policy_source_digests=value["contamination_non_policy_source_digests"],
-        )
-        bad = dict(value["contamination_non_policy_source_digests"])
-        bad["aliases"] = "sha256:" + "9" * 64
-        with self.assertRaisesRegex(AdoptedAuthorityError, "coordinate differs"):
-            verify_contamination_manifest(
-                value["contamination_manifest"], policy_source_digest=value["policy"]["routing_policy_digest"],
-                non_policy_source_digests=bad,
-            )
-
-    def test_candidate_and_execution_fixtures_are_value_aware_private_material_free(self):
-        fixture_dir = CORPUS.parent
-        public_files = [CORPUS, fixture_dir / "execution-corpus.json"]
-        seeds = [bytes(range(32)), bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc4"
-                                                    "4449c5697b326919703bac031cae7f60")]
-        patterns = [b"BEGIN PRIVATE KEY", b"BEGIN OPENSSH PRIVATE KEY", b"private_key_base64",
-                    b'"private_key"', b'"privateKey"', b'"private-key"', b'"seed"']
-        for seed in seeds:
-            patterns.extend((seed, seed.hex().encode(), base64.b64encode(seed)))
-        for path in public_files:
-            raw = path.read_bytes()
-            for pattern in patterns:
-                with self.subTest(path=path.name, pattern=pattern[:24]): self.assertNotIn(pattern, raw)
+                    with self.assertRaises(AdoptedAuthorityError) as caught: invoke(budget=budget,**kw)
+                    self.assertEqual(caught.exception.kind,"resource_exhausted")
+    def test_ten_contamination_coordinates_recomputed(self):
+        args=self.fresh();v=args[0];verify_contamination_manifest(v["contamination_manifest"],policy_source_digest=v["policy"]["routing_policy_digest"],non_policy_source_digests=v["contamination_non_policy_source_digests"])
+        v["contamination_non_policy_source_digests"]["aliases"]="sha256:"+"9"*64
+        with self.assertRaises(AdoptedAuthorityError): self.verify(args)
+    def test_fixture_private_material_scan(self):
+        raws=[CORPUS.read_bytes(),(CORPUS.parent/"execution-corpus.json").read_bytes()];seeds=[self.private_raw,hashlib.sha256(b"corpus-only-signing-seed").digest(),bytes(range(32)),bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")];patterns=[b"BEGIN PRIVATE KEY",b"private_key_base64",b'"private_key"',b'"seed"']
+        for seed in seeds: patterns += [seed,seed.hex().encode(),base64.b64encode(seed)]
+        for raw in raws:
+            for pattern in patterns: self.assertNotIn(pattern,raw)
 
 class AuthorityCredentialAndSeparationTests(unittest.TestCase):
     def credential(self, role="custodian", principal="synthetic-principal"):

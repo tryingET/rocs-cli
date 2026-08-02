@@ -12,8 +12,7 @@ from rocs_cli.semantic_adopted_authority import (
 )
 from rocs_cli.semantic_adopted_digests import object_digest
 from rocs_cli.semantic_adopted_graph import (
-    AdoptedGraphError, ExecutionGraphSupport, extract_execution_graph,
-    verify_execution_graph,
+    AdoptedGraphError, ExecutionGraphSupport, extract_execution_graph, verify_graph,
 )
 from rocs_cli.semantic_adopted_protocol import jcs_bytes, validate_protocol
 from rocs_cli.semantic_adopted_signatures import AdoptedSignatureError, verify_ed25519
@@ -164,8 +163,9 @@ def verify_execution_bundle(bundle: Mapping[str, Any], *, support: ExecutionGrap
         return ("schema_invalid",)
     errors: list[str] = []
     try:
-        verify_execution_graph(bundle, support)
+        # Extract fixed external preimages once, then verify that exact closed graph.
         objects = extract_execution_graph(bundle, support)
+        verify_graph(objects)
     except AdoptedGraphError as exc:
         kind = {"schema_invalid": "schema_invalid", "digest_mismatch": "digest_mismatch",
                 "nested_mismatch": "nested_mismatch"}.get(exc.kind, "authority_invalid")

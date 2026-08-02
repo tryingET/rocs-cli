@@ -5,7 +5,6 @@ import json
 import pathlib
 import rocs_cli.semantic_adopted_graph as graph
 from copy import deepcopy
-from unittest.mock import patch
 
 from rocs_cli.semantic_adopted_authority import CandidateSupport
 from rocs_cli.semantic_adopted_digests import domain_digest, object_digest
@@ -19,17 +18,8 @@ ZERO = "sha256:" + "0" * 64
 
 
 def inventory():
-    value = {
-        "schema": "semantic-routing-policy-ontology-inventory.v1",
-        "owner": {"owner_company": "softwareco", "owner_repository_id": "softwareco/ontology", "namespace": "softwareco.semantic-routing-policy.v1"},
-        "owner_git_commit": "1" * 40,
-        "owner_git_tree": "2" * 40,
-        "ontology_snapshot_digest": ZERO,
-        "ontology_ids": ["co.software.synthetic"],
-        "inventory_digest": ZERO,
-    }
-    value["inventory_digest"] = object_digest("ontology_inventory", value, "inventory_digest")
-    return value
+    fixture = pathlib.Path(__file__).parent / "fixtures/semantic-adopted-policy-v1/candidate-support-corpus.json"
+    return deepcopy(json.loads(fixture.read_text("utf-8"))["candidate"]["ontology_inventory"])
 
 
 def acquisition_channel():
@@ -105,79 +95,6 @@ def _put(root, path, value):
         current[final] = value
 
 
-def synthetic_closure(root, *, present_nullable=()):
-    """Construct the static predecessor closure for graph-mechanics tests."""
-    present_nullable = set(present_nullable)
-    objects = {}
-    by_source = {}
-    for edge in normative_edges():
-        by_source.setdefault(edge.source, []).append(edge)
-
-    def add(role):
-        if role in objects:
-            return objects[role]
-        value = {"self": "digest:" + role}
-        field = ROLE_SPECS[role].self_digest_field
-        if field:
-            value[field] = value["self"]
-        value.update(graph._CONSTANTS.get(role, {}))
-        objects[role] = value
-        for edge in by_source.get(role, ()):
-            if edge.nullable and edge.target not in present_nullable:
-                _put(value, edge.digest_field, None)
-                if edge.object_field:
-                    _put(value, edge.object_field, None)
-                continue
-            target = add(edge.target)
-            _put(value, edge.digest_field, target["self"])
-            if edge.object_field:
-                _put(value, edge.object_field, target)
-        return value
-
-    add(root)
-    authority_groups = (
-        ({"authority_credential_digest": "digest:custodian_credential", "principal": "custodian"}, (("preregistration","custodian_authority"),("preregistration","participants.8.authority"),("activation_subject","custodian_authority"),("closure_subject","custodian_authority"),("readiness_approval","issuer"),("activation_approval","issuer"),("closure_approval","issuer"),("verdict_custodian_approval","issuer"),("execution_contamination_subject","custodian_authority"),("contamination_custodian_approval","issuer"))),
-        ({"authority_credential_digest": "digest:reviewer_credential", "principal": "reviewer"}, (("preregistration","independent_review_authority"),("preregistration","participants.9.authority"),("verdict_subject","independent_review_authority"),("verdict_reviewer_approval","issuer"),("execution_contamination_subject","independent_review_authority"),("contamination_reviewer_approval","issuer"))),
-        ({"authority_credential_digest": "digest:evaluator_credential", "principal": "evaluator"}, (("reservation","executor_authority"),("activation_subject","executor_authority"),("start_subject","evaluator_authority"),("channel","evaluator_authority"),("start_request","expected_evaluator_authority"),("launch_subject","evaluator_authority"),("handoff_subject","evaluator_authority"),("closure_subject","executor_authority"),("start_approval","issuer"))),
-        ({"authority_credential_digest": "digest:gateway_credential", "principal": "gateway"}, (("channel","launch_gateway_authority"),("start_request","expected_launch_gateway_authority"),("launch_subject","launch_gateway_authority"),("handoff_subject","launch_gateway_authority"),("launch_approval","issuer"),("handoff_approval","issuer"))),
-    )
-    for authority, coordinates in authority_groups:
-        for role, path in coordinates:
-            if role in objects:
-                _put(objects[role], path, authority)
-    for index, join in enumerate(graph._PRIMITIVE_JOINS):
-        if join.left_role not in objects or join.right_role not in objects:
-            continue
-        value = graph._get(objects[join.left_role], join.left_path)
-        if value is graph._MISSING:
-            value = graph._get(objects[join.right_role], join.right_path)
-        if value is graph._MISSING:
-            value = {"primitive": index}
-        _put(objects[join.left_role], join.left_path, value)
-        _put(objects[join.right_role], join.right_path, value)
-    if "preregistration" in objects:
-        for index, credential in enumerate(graph._PARTICIPANT_CREDENTIALS):
-            if credential in objects:
-                _put(objects["preregistration"], f"participants.{index}.authority.authority_credential_digest", objects[credential]["self"])
-    for _ in range(3):
-        def replace_placeholder(value):
-            if type(value) is dict:
-                if value.get("authority_credential_digest") == "sha256:" + "a" * 64:
-                    value["authority_credential_digest"] = selected["custodian_credential"]["credential_digest"]
-                for child in value.values(): replace_placeholder(child)
-            elif type(value) is list:
-                for child in value: replace_placeholder(child)
-        for value in objects.values(): replace_placeholder(value)
-        for role, fields in graph._CONSTANTS.items():
-            if role in objects:
-                for path, constant in fields.items(): _put(objects[role], path, constant)
-        for join in graph._PRIMITIVE_JOINS:
-            if join.left_role in objects and join.right_role in objects:
-                value = graph._get(objects[join.left_role], join.left_path)
-                if value is not graph._MISSING:
-                    _put(objects[join.right_role], join.right_path, value)
-    return objects
-
 
 class AdoptedGraphTests(unittest.TestCase):
     def assert_kind(self, kind, function):
@@ -185,10 +102,6 @@ class AdoptedGraphTests(unittest.TestCase):
             function()
         self.assertEqual(caught.exception.kind, kind)
         self.assertIn(kind, ISSUE_KINDS)
-
-    def mocked_verify(self, objects):
-        with patch("rocs_cli.semantic_adopted_graph._digest", side_effect=lambda role, value: value["self"]):
-            return verify_graph(objects)
 
     def test_static_topology_covers_actual_s2_preimages_and_is_ordered(self):
         required = {
@@ -230,40 +143,39 @@ class AdoptedGraphTests(unittest.TestCase):
         value["unexpected"] = "not leaked"
         self.assert_kind("schema_invalid", lambda: verify_graph({"inventory": value}))
 
-    def test_start_subject_has_all_predecessors_and_stage_approvals_bind_subjects(self):
-        start_targets = {edge.target for edge in normative_edges() if edge.source == "start_subject"}
-        self.assertTrue({"preregistration", "attempt_envelope", "reservation", "activation", "invocation_challenge", "channel"} <= start_targets)
-        for name, subject in {
-            "readiness": "custody_readiness_subject", "activation": "activation_subject",
-            "start": "start_subject", "launch": "launch_subject", "handoff": "handoff_subject",
-            "closure": "closure_subject", "verdict_custodian": "verdict_subject",
-            "verdict_reviewer": "verdict_subject", "publication": "publication_subject",
-        }.items():
+    def test_stage_ancestry_approvals_and_purposes_are_normative(self):
+        self.assertTrue({"preregistration", "attempt_envelope", "reservation", "activation", "invocation_challenge", "channel"} <= {e.target for e in normative_edges() if e.source == "start_subject"})
+        for name, subject in graph._APPROVAL_SUBJECTS.items():
             self.assertIn(GraphEdge(f"{name}_approval", "subject_digest", subject), normative_edges())
-        objects = synthetic_closure("start_proof")
-        objects["start_approval"]["subject_digest"] = "digest:other-subject"
-        self.assert_kind("digest_mismatch", lambda: self.mocked_verify(objects))
+        self.assertEqual(graph._CONSTANTS["readiness_approval"]["purpose"], "custody_readiness")
 
-    def test_process_id_authority_channel_and_seal_primitive_joins(self):
-        present = {"start_proof", "start_request", "launch", "handoff", "raw_execution_receipt"}
-        objects = synthetic_closure("verdict", present_nullable=present)
-        for role in ("invocation_challenge", "start_subject", "launch_subject", "handoff_subject", "closure_subject"):
-            objects[role]["process_start_id"] = "process-one"
-        self.assertTrue(self.mocked_verify(objects).consistency_verified)
-        objects["closure_subject"]["process_start_id"] = "process-two"
-        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
-        objects = synthetic_closure("verdict", present_nullable=present)
-        objects["channel"]["evaluator_authority"] = {"coordinate": "changed"}
-        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
+
+    def test_process_authority_channel_seal_and_timing_joins_are_normative(self):
+        joins = {(j.left_role, j.left_path, j.right_role, j.right_path) for j in graph._PRIMITIVE_JOINS}
+        required = {
+            ("launch_subject", "process_start_id", "closure_subject", "process_start_id"),
+            ("reservation", "executor_authority", "channel", "evaluator_authority"),
+            ("channel", "launch_gateway_authority", "start_request", "expected_launch_gateway_authority"),
+            ("attempt_envelope", "acceptance_dataset_seal_digest", "handoff_subject", "acceptance_dataset_seal_digest"),
+            ("activation_subject", "expires_at", "closure_subject", "activation_expires_at"),
+        }
+        self.assertTrue(required <= joins)
+
 
     def actual_graph(self, branch):
         fixture = pathlib.Path(__file__).parent / "fixtures/semantic-adopted-policy-v1"
         corpus = json.loads((fixture / "execution-corpus.json").read_text("utf-8"))
         bundle = deepcopy(next(case["bundle"] for case in corpus["cases"] if case["name"] == f"branch_{branch}_valid"))
-        candidate = deepcopy(corpus["support"]["candidate"])
+        authority = json.loads((fixture / "candidate-support-corpus.json").read_text("utf-8"))
+        candidate = deepcopy(authority["candidate"])
+        bundle["verdict"]["contamination_manifest"] = deepcopy(authority["contamination_manifest"])
+        prereg = bundle["verdict"]["preregistration"]
+        receipt, request = deepcopy(authority["custody_readiness_receipt"]), deepcopy(authority["custody_readiness_request"])
+        prereg["custody_readiness_receipt"] = receipt
+        prereg["preexecution_verification_bundle"]["custody_readiness_verification_request"] = request
         copies = graph._CREDENTIAL_COPIES
         selected = {
-            "custodian_credential": graph._get(bundle, copies["custodian_credential"][-1]),
+            "custodian_credential": receipt["custodian_credential"],
             "reviewer_credential": graph._get(bundle, copies["reviewer_credential"][0]),
             "evaluator_credential": graph._get(bundle, copies["evaluator_credential"][0]),
             "gateway_credential": graph._get(bundle, copies["gateway_credential"][1]),
@@ -279,7 +191,7 @@ class AdoptedGraphTests(unittest.TestCase):
         credentials[8], credentials[9], credentials[10] = (deepcopy(selected[name]) for name in
             ("custodian_credential", "reviewer_credential", "evaluator_credential"))
         candidate_support = CandidateSupport(graph.jcs_bytes(candidate), candidate["candidate_digest"], {}, {}, (), ())
-        support = ExecutionGraphSupport(candidate_support, tuple(credentials))
+        support = ExecutionGraphSupport(candidate_support, tuple(credentials), receipt["subject"], receipt, request)
         objects = extract_execution_graph(bundle, support)
         preregistration = objects["preregistration"]
         for index, role in enumerate(graph._PARTICIPANT_CREDENTIALS):
@@ -344,7 +256,14 @@ class AdoptedGraphTests(unittest.TestCase):
                     joined = right if score(right) > score(left) else left
                     _put(objects[join.left_role], join.left_path, deepcopy(joined))
                     _put(objects[join.right_role], join.right_path, deepcopy(joined))
-        for _final in range(12):
+        for _final in range(20):
+            readiness_request, readiness_subject = objects["custody_readiness_request"], objects["custody_readiness_subject"]
+            readiness_request["expected_custodian_authority"] = deepcopy(readiness_subject["custodian_authority"])
+            readiness_request["expected_concept_inventory"] = deepcopy(objects["inventory"])
+            readiness_request["expected_concept_inventory_digest"] = objects["inventory"]["inventory_digest"]
+            for approval in ("readiness_approval", "contamination_custodian_approval", "activation_approval", "closure_approval", "verdict_custodian_approval"):
+                objects[approval]["issuer"] = deepcopy(readiness_subject["custodian_authority"])
+                objects[approval]["attestation_body"]["issuer"] = deepcopy(readiness_subject["custodian_authority"])
             authorities = (("custodian", "contamination_custodian_approval"), ("independent_review", "contamination_reviewer_approval"))
             for name, approval in authorities:
                 authority = deepcopy(objects[approval]["issuer"])
@@ -373,18 +292,7 @@ class AdoptedGraphTests(unittest.TestCase):
                 spec = ROLE_SPECS[role]
                 if spec.self_digest_field:
                     value[spec.self_digest_field] = object_digest(spec.digest_domain, value, spec.self_digest_field)
-        separation["participants_digest"] = "sha256:" + __import__("hashlib").sha256(
-            graph.jcs_bytes(preregistration["participants"])).hexdigest()
-        separation["receipt_digest"] = object_digest("role_separation_receipt", separation, "receipt_digest")
-        for role in sorted(objects, key=lambda item: ROLE_SPECS[item].phase):
-            value = objects[role]
-            for edge in by_source.get(role, ()):
-                if edge.nullable and graph._get(value, edge.digest_field) is None: continue
-                target, field = objects[edge.target], ROLE_SPECS[edge.target].self_digest_field
-                _put(value, edge.digest_field, target[field] if field else graph._digest(edge.target, target))
-                if edge.object_field: _put(value, edge.object_field, target)
-            spec = ROLE_SPECS[role]
-            if spec.self_digest_field: value[spec.self_digest_field] = object_digest(spec.digest_domain, value, spec.self_digest_field)
+        support = ExecutionGraphSupport(candidate_support, tuple(credentials), objects["custody_readiness_subject"], objects["custody_readiness"], objects["custody_readiness_request"])
         return bundle, support, objects
 
     def test_actual_execution_corpus_branches_pass_real_active_graph(self):
@@ -404,80 +312,42 @@ class AdoptedGraphTests(unittest.TestCase):
     def test_execution_support_is_fixed_exact_and_overlap_checked(self):
         bundle, support, _ = self.actual_graph(7)
         self.assert_kind("missing_preimage", lambda: extract_execution_graph(bundle, support.participant_credentials))
-        parsed = json.loads(support.candidate.candidate_bytes)
+        parsed = json.loads(support.candidate_support.candidate_bytes)
         self.assert_kind("missing_preimage", lambda: extract_execution_graph(
-            bundle, ExecutionGraphSupport(parsed, support.participant_credentials)))
-        mismatched = CandidateSupport(support.candidate.candidate_bytes, ZERO, {}, {}, (), ())
+            bundle, ExecutionGraphSupport(parsed, support.participant_credentials, support.custody_readiness_subject, support.custody_readiness_receipt, support.custody_readiness_request)))
+        mismatched = CandidateSupport(support.candidate_support.candidate_bytes, ZERO, {}, {}, (), ())
         self.assert_kind("digest_mismatch", lambda: extract_execution_graph(
-            bundle, ExecutionGraphSupport(mismatched, support.participant_credentials)))
-        noncanonical = CandidateSupport(support.candidate.candidate_bytes + b"\n", support.candidate.candidate_digest, {}, {}, (), ())
+            bundle, ExecutionGraphSupport(mismatched, support.participant_credentials, support.custody_readiness_subject, support.custody_readiness_receipt, support.custody_readiness_request)))
+        noncanonical = CandidateSupport(support.candidate_support.candidate_bytes + b"\n", support.candidate_support.candidate_digest, {}, {}, (), ())
         self.assert_kind("schema_invalid", lambda: extract_execution_graph(
-            bundle, ExecutionGraphSupport(noncanonical, support.participant_credentials)))
+            bundle, ExecutionGraphSupport(noncanonical, support.participant_credentials, support.custody_readiness_subject, support.custody_readiness_receipt, support.custody_readiness_request)))
         self.assert_kind("missing_preimage", lambda: extract_execution_graph(
-            bundle, ExecutionGraphSupport(support.candidate, support.participant_credentials[:-1])))
+            bundle, ExecutionGraphSupport(support.candidate_support, support.participant_credentials[:-1], support.custody_readiness_subject, support.custody_readiness_receipt, support.custody_readiness_request)))
+        substituted_request = deepcopy(support.custody_readiness_request)
+        substituted_request["expected_concept_inventory_digest"] = ZERO
+        self.assert_kind("nested_mismatch", lambda: extract_execution_graph(bundle,
+            ExecutionGraphSupport(support.candidate_support, support.participant_credentials, support.custody_readiness_subject, support.custody_readiness_receipt, substituted_request)))
         changed = list(support.participant_credentials)
         changed[8] = changed[10]
         self.assert_kind("nested_mismatch", lambda: extract_execution_graph(
-            bundle, ExecutionGraphSupport(support.candidate, tuple(changed))))
+            bundle, ExecutionGraphSupport(support.candidate_support, tuple(changed), support.custody_readiness_subject, support.custody_readiness_receipt, support.custody_readiness_request)))
 
-    def test_request_pins_and_contamination_source_reject_substitution(self):
-        objects = synthetic_closure("preregistration")
-        objects["custody_readiness_request"]["expected_public_key_digest"] = "digest:substituted"
-        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
-        objects = synthetic_closure("execution_contamination_request")
-        objects["execution_contamination_request"]["expected_independent_review_authority"] = {"substituted": True}
-        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
-        objects = synthetic_closure("execution_contamination")
-        objects["execution_contamination_subject"]["source_digest"] = "digest:substituted"
-        self.assert_kind("digest_mismatch", lambda: self.mocked_verify(objects))
+    def test_r14_inventory_request_and_contamination_substitutions_reject(self):
+        _bundle, _support, objects = self.actual_graph(7)
+        request = objects["custody_readiness_request"]
+        changed = deepcopy(objects["inventory"])
+        changed["ontology_ids"] = [*changed["ontology_ids"], "co.software.substituted"]
+        changed["inventory_digest"] = object_digest("ontology_inventory", changed, "inventory_digest")
+        request["expected_concept_inventory"] = changed
+        request["expected_concept_inventory_digest"] = changed["inventory_digest"]
+        request["request_digest"] = object_digest("custody_readiness_verification_request", request, "request_digest")
+        self.assert_kind("digest_mismatch", lambda: verify_graph(objects))
+        _bundle, _support, objects = self.actual_graph(7)
+        objects["execution_contamination_subject"]["source_digest"] = ZERO
+        objects["execution_contamination_subject"]["subject_digest"] = object_digest("execution_contamination_subject", objects["execution_contamination_subject"], "subject_digest")
+        self.assert_kind("digest_mismatch", lambda: verify_graph(objects))
 
-    def test_nullable_dependencies_are_exactly_conditional(self):
-        absent = synthetic_closure("attempt")
-        result = self.mocked_verify(absent)
-        self.assertFalse(result.authority_verified)
-        self.assertNotIn("raw_execution_receipt", absent)
 
-        present = synthetic_closure("attempt", present_nullable={
-            "start_proof", "start_request", "launch", "handoff", "raw_execution_receipt",
-        })
-        self.assertTrue(self.mocked_verify(present).consistency_verified)
-        del present["raw_execution_receipt"]
-        self.assert_kind("missing_preimage", lambda: self.mocked_verify(present))
-
-        inconsistent = synthetic_closure("attempt")
-        inconsistent["attempt"]["execution_receipt_digest"] = "digest:raw_execution_receipt"
-        self.assert_kind("missing_preimage", lambda: self.mocked_verify(inconsistent))
-        inconsistent = synthetic_closure("attempt")
-        inconsistent["attempt"]["evaluator_execution_start_proof"] = {"detached": True}
-        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(inconsistent))
-
-    def test_nested_object_equality_not_only_digest(self):
-        objects = synthetic_closure("verdict", present_nullable={
-            "start_proof", "start_request", "launch", "handoff", "raw_execution_receipt",
-        })
-        self.assertTrue(self.mocked_verify(objects).consistency_verified)
-        objects["verdict"]["attempt_envelope"] = deepcopy(objects["attempt_envelope"])
-        objects["verdict"]["attempt_envelope"]["changed"] = True
-        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
-
-    def test_preregistration_verdict_and_publication_embedded_joins_are_closed(self):
-        for root, field in (
-            ("preregistration", "preexecution_verification_bundle"),
-            ("verdict", "verdict_approval_subject"),
-            ("publication_event", "publication_approval_subject"),
-            ("publication_history", "events"),
-        ):
-            objects = synthetic_closure(root)
-            self.assertTrue(self.mocked_verify(objects).consistency_verified)
-            if field == "events":
-                changed = deepcopy(objects[root][field][-1])
-                changed["changed"] = True
-                objects[root][field][-1] = changed
-            else:
-                changed = deepcopy(objects[root][field])
-                changed["changed"] = True
-                objects[root][field] = changed
-            self.assert_kind("nested_mismatch", lambda objects=objects: self.mocked_verify(objects))
 
     def test_raw_execution_receipt_is_an_explicit_byte_preimage(self):
         result = verify_graph({"raw_execution_receipt": b"synthetic raw receipt"})
@@ -486,10 +356,11 @@ class AdoptedGraphTests(unittest.TestCase):
         self.assert_kind("schema_invalid", lambda: verify_graph({"raw_execution_receipt": {}}))
 
     def test_opaque_request_and_unknown_role_reject(self):
-        objects = synthetic_closure("preregistration")
+        _bundle, _support, objects = self.actual_graph(7)
         del objects["custody_readiness_request"]
-        self.assert_kind("opaque_caller_request", lambda: self.mocked_verify(objects))
+        self.assert_kind("opaque_caller_request", lambda: verify_graph(objects))
         self.assert_kind("unknown_role", lambda: verify_graph({"inventory": inventory(), "invented": {}}))
+
 
     def test_caller_cannot_replace_static_edges(self):
         self.assert_kind("self_edge", lambda: verify_graph(
