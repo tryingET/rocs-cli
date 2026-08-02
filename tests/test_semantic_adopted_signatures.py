@@ -35,7 +35,7 @@ class AdoptedSignatureTests(unittest.TestCase):
             arguments = {
                 key: vector[key] for key in (
                     "purpose", "expected_purpose", "body_digest", "public_key_base64",
-                    "signature_base64", "issuer", "expected_issuer", "trust_root_digest",
+                    "expected_public_key_digest", "signature_base64", "issuer", "expected_issuer", "trust_root_digest",
                     "expected_trust_root_digest", "valid_from", "valid_until", "trusted_now", "revoked",
                 )
             }
@@ -47,6 +47,14 @@ class AdoptedSignatureTests(unittest.TestCase):
                         verify_pinned_ed25519(**arguments)
 
     def test_key_digest_and_signature_message_are_exact(self):
+        self.assertEqual(
+            sum(vector["name"].startswith("small_order_key_") for vector in self.payload["vectors"]),
+            8,
+        )
+        self.assertIn(
+            "coordinated_key_and_signature_substitution_rejected",
+            {vector["name"] for vector in self.payload["vectors"]},
+        )
         valid = self.payload["vectors"][0]
         self.assertEqual(
             self.payload["body_digest"],

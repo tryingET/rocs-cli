@@ -37,6 +37,22 @@ def raw_private(key: Ed25519PrivateKey) -> bytes:
     )
 
 
+def digest(raw: bytes) -> str:
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+SMALL_ORDER_PUBLIC_KEYS = (
+    bytes(32),
+    b"\x00" * 31 + b"\x80",
+    b"\x01" + b"\x00" * 31,
+    bytes.fromhex("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05"),
+    bytes.fromhex("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85"),
+    bytes.fromhex("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a"),
+    bytes.fromhex("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa"),
+    bytes.fromhex("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"),
+)
+
+
 def main() -> None:
     body = {
         "schema": "synthetic-adopted-policy-signature-body.v1",
@@ -57,6 +73,7 @@ def main() -> None:
     common = {
         "body_digest": body_digest,
         "public_key_base64": b64(public_raw),
+        "expected_public_key_digest": digest(public_raw),
         "issuer": issuer,
         "expected_issuer": issuer,
         "trust_root_digest": trust_root,
@@ -75,27 +92,48 @@ def main() -> None:
         })
     approval = vectors[0]
     approval_signature = base64.b64decode(approval["signature_base64"])
+    wrong_signature = wrong_private_key.sign(
+        SIGNATURE_PREFIXES["approval"] + bytes.fromhex(body_digest.removeprefix("sha256:"))
+    )
     vectors.extend([
         {**approval, "name": "changed_domain_rejected", "body_digest": domain_digest("candidate", body), "valid": False},
         {**approval, "name": "changed_body_rejected", "body_digest": "sha256:" + "f" * 64, "valid": False},
         {**approval, "name": "wrong_key_rejected", "public_key_base64": b64(wrong_public_raw), "valid": False},
+        {
+            **approval, "name": "coordinated_key_and_signature_substitution_rejected",
+            "public_key_base64": b64(wrong_public_raw), "signature_base64": b64(wrong_signature), "valid": False,
+        },
         {**approval, "name": "wrong_signature_length_rejected", "signature_base64": b64(approval_signature[:-1]), "valid": False},
         {**approval, "name": "changed_signature_rejected", "signature_base64": b64(approval_signature[:-1] + bytes([approval_signature[-1] ^ 1])), "valid": False},
         {**approval, "name": "noncanonical_scalar_rejected", "signature_base64": b64(approval_signature[:32] + b"\xff" * 32), "valid": False},
-        {**approval, "name": "small_order_key_rejected", "public_key_base64": b64(b"\0" * 32), "valid": False},
         {**approval, "name": "purpose_pin_rejected", "expected_purpose": "receipt", "valid": False},
         {**approval, "name": "issuer_pin_rejected", "expected_issuer": {**issuer, "principal_id": "other"}, "valid": False},
         {**approval, "name": "trust_root_pin_rejected", "expected_trust_root_digest": "sha256:" + "2" * 64, "valid": False},
         {**approval, "name": "revoked_rejected", "revoked": True, "valid": False},
         {**approval, "name": "expired_rejected", "valid_until": "2026-01-02T00:00:00Z", "valid": False},
+        {**approval, "name": "abbreviated_timestamp_rejected", "valid_from": "2026-01-01Z", "valid": False},
+        {**approval, "name": "missing_seconds_timestamp_rejected", "valid_from": "2026-01-01T00:00Z", "valid": False},
+        {**approval, "name": "offset_timestamp_rejected", "valid_from": "2026-01-01T00:00:00+00:00", "valid": False},
+        {**approval, "name": "lowercase_zone_timestamp_rejected", "valid_from": "2026-01-01T00:00:00z", "valid": False},
+        {**approval, "name": "invalid_calendar_timestamp_rejected", "valid_from": "2026-02-29T00:00:00Z", "valid": False},
+        {**approval, "name": "invalid_leap_second_timestamp_rejected", "valid_from": "2026-01-01T00:00:60Z", "valid": False},
     ])
+    identity_forgery = b"\x01" + b"\x00" * 63
+    vectors.extend({
+        **approval,
+        "name": f"small_order_key_{index}_rejected",
+        "public_key_base64": b64(raw),
+        "expected_public_key_digest": digest(raw),
+        "signature_base64": b64(identity_forgery),
+        "valid": False,
+    } for index, raw in enumerate(SMALL_ORDER_PUBLIC_KEYS))
     payload = {
         "schema": "semantic-adopted-policy-cryptographic-vectors.v1",
         "synthetic": True,
         "body": body,
         "body_digest": body_digest,
         "body_domain": "approval_attestation_body",
-        "public_key_digest": "sha256:" + hashlib.sha256(public_raw).hexdigest(),
+        "public_key_digest": digest(public_raw),
         "vectors": vectors,
     }
     VECTORS.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")

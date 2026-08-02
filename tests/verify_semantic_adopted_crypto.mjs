@@ -49,6 +49,33 @@ function digestBytes(value) {
   assert.match(value, /^sha256:[0-9a-f]{64}$/);
   return Buffer.from(value.slice(7), "hex");
 }
+const smallOrderPublicKeys = new Set([
+  "00".repeat(32),
+  "00".repeat(31) + "80",
+  "01" + "00".repeat(31),
+  "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05",
+  "26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85",
+  "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+  "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa",
+  "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+]);
+function strictDateTime(value) {
+  assert.equal(typeof value, "string");
+  assert(value.length <= 65_536);
+  const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(?:\.(\d+))?Z$/.exec(value);
+  assert(match);
+  const [year, month, day, hour, minute, second] = match.slice(1, 7).map(Number);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const monthDays = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  assert(day <= monthDays[month - 1]);
+  assert(second !== 60 || (hour === 23 && minute === 59 && ((month === 6 && day === 30) || (month === 12 && day === 31))));
+  return { base: match.slice(1, 7).join(""), fraction: match[7] ?? "" };
+}
+function dateTimeLessOrEqual(left, right) {
+  if (left.base !== right.base) return left.base < right.base;
+  const width = Math.max(left.fraction.length, right.fraction.length);
+  return left.fraction.padEnd(width, "0") <= right.fraction.padEnd(width, "0");
+}
 function verify(vector) {
   try {
     assert.equal(vector.purpose, vector.expected_purpose);
@@ -56,9 +83,15 @@ function verify(vector) {
     assert.equal(vector.trust_root_digest, vector.expected_trust_root_digest);
     digestBytes(vector.trust_root_digest);
     assert.equal(vector.revoked, false);
-    assert(new Date(vector.valid_from) <= new Date(vector.trusted_now));
-    assert(new Date(vector.trusted_now) <= new Date(vector.valid_until));
+    const validFrom = strictDateTime(vector.valid_from);
+    const trustedNow = strictDateTime(vector.trusted_now);
+    const validUntil = strictDateTime(vector.valid_until);
+    assert(dateTimeLessOrEqual(validFrom, trustedNow));
+    assert(dateTimeLessOrEqual(trustedNow, validUntil));
     const rawKey = canonicalBase64(vector.public_key_base64, 32);
+    assert.equal(`sha256:${hash(rawKey)}`, vector.expected_public_key_digest);
+    digestBytes(vector.expected_public_key_digest);
+    assert(!smallOrderPublicKeys.has(rawKey.toString("hex")));
     const signature = canonicalBase64(vector.signature_base64, 64);
     const der = Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), rawKey]);
     const key = crypto.createPublicKey({ key: der, format: "der", type: "spki" });
