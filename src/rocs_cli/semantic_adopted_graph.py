@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping
 from rocs_cli.semantic_adopted_digests import domain_digest, object_digest
-from rocs_cli.semantic_adopted_protocol import jcs_bytes, validate_definition
+from rocs_cli.semantic_adopted_authority import CandidateSupport
+from rocs_cli.semantic_adopted_protocol import jcs_bytes, strict_json_loads, validate_definition
 ISSUE_KINDS = frozenset({"invalid_input", "unknown_role", "missing_preimage", "schema_invalid", "self_edge", "back_edge", "phase_forward_edge", "digest_mismatch", "nested_mismatch", "opaque_caller_request", "topology_invalid"})
 class AdoptedGraphError(ValueError):
     def __init__(self, kind: str, role: str | None = None):
@@ -11,21 +12,20 @@ class AdoptedGraphError(ValueError):
         self.role = role if type(role) is str and role in ROLE_SPECS else None
         super().__init__(self.kind if self.role is None else f"{self.kind}:{self.role}")
 @dataclass(frozen=True)
-class GraphEdge:
-    source: str; digest_field: str; target: str; object_field: str | None = None; nullable: bool = False
+class GraphEdge: source: str; digest_field: str; target: str; object_field: str | None = None; nullable: bool = False
 @dataclass(frozen=True)
-class RoleSpec:
-    phase: int; definition: str | None; schema: str | None; digest_domain: str | None; self_digest_field: str | None
+class RoleSpec: phase: int; definition: str | None; schema: str | None; digest_domain: str | None; self_digest_field: str | None
 @dataclass(frozen=True)
-class GraphConsistency:
-    consistency_verified: bool; authority_verified: bool; roles_verified: tuple[str, ...]
+class ExecutionGraphSupport:
+    candidate_support: CandidateSupport; participant_credentials: tuple[Mapping[str, Any], ...]
+    @property
+    def candidate(self) -> CandidateSupport: return self.candidate_support
+@dataclass(frozen=True)
+class GraphConsistency: consistency_verified: bool; authority_verified: bool; roles_verified: tuple[str, ...]
 _SPECS: dict[str, RoleSpec] = {}; _EDGES: list[GraphEdge] = []
-def _role(role: str, phase: int, definition: str, schema: str, domain: str, field: str) -> None:
-    _SPECS[role] = RoleSpec(phase, definition, schema, domain, field)
-def _projection(role: str, phase: int, domain: str | None) -> None:
-    _SPECS[role] = RoleSpec(phase, None, None, domain, None)
-def _edge(source: str, digest: str, target: str, obj: str | None = None, nullable: bool = False) -> None:
-    _EDGES.append(GraphEdge(source, digest, target, obj, nullable))
+def _role(role: str, phase: int, definition: str, schema: str, domain: str, field: str) -> None: _SPECS[role] = RoleSpec(phase, definition, schema, domain, field)
+def _projection(role: str, phase: int, domain: str | None) -> None: _SPECS[role] = RoleSpec(phase, None, None, domain, None)
+def _edge(source: str, digest: str, target: str, obj: str | None = None, nullable: bool = False) -> None: _EDGES.append(GraphEdge(source, digest, target, obj, nullable))
 _role("inventory", 0, "ontologyInventory", "semantic-routing-policy-ontology-inventory.v1", "ontology_inventory", "inventory_digest")
 _role("custody_policy", 0, "custodyPolicy", "semantic-routing-policy-custody-policy.v1", "custody_policy", "policy_digest")
 for name in ("base_access_history", "activated_access_history", "terminal_access_history"):
@@ -162,6 +162,7 @@ for args in (
     ("execution_contamination_subject", "candidate_digest", "candidate"),
     ("execution_contamination_subject", "candidate_contamination_manifest_digest", "candidate_contamination"),
     ("execution_contamination_subject", "attempt_envelope_digest", "attempt_envelope"),
+    ("execution_contamination_subject", "source_digest", "attempt_envelope"),
     ("execution_contamination", "subject.subject_digest", "execution_contamination_subject", "subject"),
     ("execution_contamination", "custodian_credential.credential_digest", "custodian_credential", "custodian_credential"),
     ("execution_contamination", "independent_review_credential.credential_digest", "reviewer_credential", "independent_review_credential"),
@@ -270,8 +271,7 @@ for args in (
 ): _edge(*args)
 _edge("publication_history", "events.-1.event_digest", "publication_event", "events.-1")
 @dataclass(frozen=True)
-class PrimitiveJoin:
-    left_role: str; left_path: str; right_role: str; right_path: str
+class PrimitiveJoin: left_role: str; left_path: str; right_role: str; right_path: str
 _PRIMITIVE_JOINS = tuple(PrimitiveJoin(*item) for item in (
     ("invocation_challenge","process_start_id","start_subject","process_start_id"), ("start_subject","process_start_id","launch_subject","process_start_id"),
     ("launch_subject","process_start_id","handoff_subject","process_start_id"), ("launch_subject","process_start_id","closure_subject","process_start_id"),
@@ -294,9 +294,10 @@ _PRIMITIVE_JOINS += tuple(PrimitiveJoin(*item) for item in (
     ("contamination_custodian_approval","issuer","execution_contamination_subject","custodian_authority"), ("contamination_reviewer_approval","issuer","execution_contamination_subject","independent_review_authority"),
     ("publication_approval","issuer","publication_subject","semantic_owner_authority"),
     ("preregistration","custodian_authority","preregistration","participants.8.authority"), ("preregistration","independent_review_authority","preregistration","participants.9.authority"),
+    ("custody_readiness_request","expected_custodian_authority","custody_readiness_subject","custodian_authority"), ("custody_readiness_request","expected_custodian_authority","preregistration","custodian_authority"), ("custody_readiness_request","expected_custodian_credential","custody_readiness","custodian_credential"), ("custody_readiness_request","expected_custodian_approval_digest","custody_readiness","custodian_approval.artifact_digest"), ("custody_readiness_request","expected_trust_root_digest","custody_readiness","custodian_credential.trust_root_digest"), ("custody_readiness_request","expected_public_key_digest","custody_readiness","custodian_credential.public_key_digest"), ("execution_contamination_request","expected_custodian_authority","execution_contamination_subject","custodian_authority"), ("execution_contamination_request","expected_custodian_authority","preregistration","custodian_authority"), ("execution_contamination_request","expected_independent_review_authority","execution_contamination_subject","independent_review_authority"), ("execution_contamination_request","expected_independent_review_authority","preregistration","independent_review_authority"), ("execution_contamination_request","expected_custodian_credential","execution_contamination","custodian_credential"), ("execution_contamination_request","expected_independent_review_credential","execution_contamination","independent_review_credential"), ("execution_contamination_request","expected_custodian_approval_digest","execution_contamination","custodian_approval.artifact_digest"), ("execution_contamination_request","expected_independent_review_approval_digest","execution_contamination","independent_review_approval.artifact_digest"), ("execution_contamination_request","expected_custodian_trust_root_digest","execution_contamination","custodian_credential.trust_root_digest"), ("execution_contamination_request","expected_custodian_public_key_digest","execution_contamination","custodian_credential.public_key_digest"), ("execution_contamination_request","expected_independent_review_trust_root_digest","execution_contamination","independent_review_credential.trust_root_digest"), ("execution_contamination_request","expected_independent_review_public_key_digest","execution_contamination","independent_review_credential.public_key_digest"),
 ))
 _CONSTANTS = {**{f"{name}_approval": {"purpose": purpose, "revoked": False} for name, purpose in {
-    "readiness":"custody_readiness", "contamination_custodian":"execution_contamination_custodian", "contamination_reviewer":"execution_contamination_independent_review", "activation":"protected_access_activation", "start":"evaluator_execution_start", "launch":"evaluator_execution_launch", "handoff":"protected_descriptor_handoff", "closure":"protected_access_closure", "verdict_custodian":"verdict_custodian", "verdict_reviewer":"verdict_independent_review", "publication":"publication_publish"}.items()},
+    "readiness":"custody_readiness", "contamination_custodian":"execution_contamination_custodian", "contamination_reviewer":"execution_contamination_independent_review", "activation":"protected_access_activation", "start":"evaluator_execution_start", "launch":"evaluator_execution_launch", "handoff":"protected_descriptor_handoff", "closure":"protected_access_closure", "verdict_custodian":"custody", "verdict_reviewer":"independent_review", "publication":"semantic_publication"}.items()},
     "launch_subject":{"reservation_consumptions_before":0,"reservation_consumptions_after":1,"protected_descriptors_opened":False}, "handoff_subject":{"descriptor_handoffs_before":0,"descriptor_handoffs_after":1,"direct_os_descriptor_transfer":False}}
 _order = {role: spec.phase * 100 for role, spec in _SPECS.items()}
 for _ in range(len(_SPECS)):
@@ -313,8 +314,7 @@ else:
 for _name, _spec in tuple(_SPECS.items()):
     _SPECS[_name] = RoleSpec(_order[_name], _spec.definition, _spec.schema, _spec.digest_domain, _spec.self_digest_field)
 ROLE_SPECS: Mapping[str, RoleSpec] = MappingProxyType(_SPECS)
-def normative_edges() -> tuple[GraphEdge, ...]:
-    return tuple(_EDGES)
+def normative_edges() -> tuple[GraphEdge, ...]: return tuple(_EDGES)
 def _get(value: Any, path: str) -> Any:
     current = value
     for token in path.split("."):
@@ -378,10 +378,8 @@ def _embedded_self_digests(value: Any, role: str) -> None:
                 raise AdoptedGraphError("digest_mismatch", role)
             prior = actual
     if schema == "semantic-routing-policy-preregistration.v1":
-        participants = value.get("participants")
-        receipt = value.get("role_separation_receipt")
-        if type(participants) is not list or type(receipt) is not dict or receipt.get("participants_digest") != "sha256:" + hashlib.sha256(jcs_bytes(participants)).hexdigest():
-            raise AdoptedGraphError("digest_mismatch", role)
+        participants, receipt = value.get("participants"), value.get("role_separation_receipt")
+        if type(participants) is not list or type(receipt) is not dict or receipt.get("participants_digest") != "sha256:" + hashlib.sha256(jcs_bytes(participants)).hexdigest(): raise AdoptedGraphError("digest_mismatch", role)
     if schema == "semantic-routing-policy-publication-history.v1":
         prior = None
         for event in value.get("events", []):
@@ -391,71 +389,73 @@ def _embedded_self_digests(value: Any, role: str) -> None:
     for child in value.values():
         _embedded_self_digests(child, role)
 def _edge_failure(edge: GraphEdge) -> str | None:
-    if edge.source == edge.target:
-        return "self_edge"
+    if edge.source == edge.target: return "self_edge"
     source, target = ROLE_SPECS.get(edge.source), ROLE_SPECS.get(edge.target)
-    if source is None or target is None:
-        return "unknown_role"
-    if target.phase > source.phase:
-        return "phase_forward_edge"
+    if source is None or target is None: return "unknown_role"
+    if target.phase > source.phase: return "phase_forward_edge"
     if target.phase == source.phase:
         return "back_edge"
     return None
-_BUNDLE_PATHS = {
-    "attempt":"attempt", "verdict":"verdict", "preregistration":"verdict.preregistration",
-    "custody_policy":"verdict.custody_policy", "candidate_contamination":"verdict.contamination_manifest",
-    "attempt_envelope":"verdict.attempt_envelope", "reservation":"verdict.attempt_envelope.process_reservation",
-    "rollback_plan":"verdict.attempt_envelope.rollback_plan", "base_access_history":"verdict.preregistration.access_history",
-    "role_separation":"verdict.preregistration.role_separation_receipt", "custody_readiness":"verdict.preregistration.custody_readiness_receipt",
-    "custody_readiness_subject":"verdict.preregistration.custody_readiness_receipt.subject",
-    "readiness_approval":"verdict.preregistration.custody_readiness_receipt.custodian_approval",
-    "execution_contamination":"verdict.execution_contamination_attestation", "execution_contamination_subject":"verdict.execution_contamination_attestation.subject",
-    "contamination_custodian_approval":"verdict.execution_contamination_attestation.custodian_approval",
-    "contamination_reviewer_approval":"verdict.execution_contamination_attestation.independent_review_approval",
-    "preexecution_bundle":"verdict.preregistration.preexecution_verification_bundle",
-    "custody_readiness_request":"verdict.preregistration.preexecution_verification_bundle.custody_readiness_verification_request",
-    "execution_contamination_request":"verdict.preregistration.preexecution_verification_bundle.execution_contamination_verification_request",
-    "activation":"verdict.protected_access_activation", "activation_subject":"verdict.protected_access_activation.subject",
-    "activated_access_history":"verdict.protected_access_activation.activated_access_history",
-    "start_proof":"attempt.evaluator_execution_start_proof", "start_request":"attempt.evaluator_execution_start_verification_request",
-    "invocation_challenge":"attempt.evaluator_execution_start_proof.challenge", "start_subject":"attempt.evaluator_execution_start_proof.subject",
-    "channel":"attempt.evaluator_execution_start_proof.challenge.authenticated_channel_coordinate",
-    "start_approval":"attempt.evaluator_execution_start_proof.evaluator_approval",
-    "launch":"attempt.evaluator_execution_launch_receipt", "launch_subject":"attempt.evaluator_execution_launch_receipt.subject",
-    "launch_approval":"attempt.evaluator_execution_launch_receipt.launch_gateway_approval",
-    "handoff":"attempt.protected_descriptor_handoff_receipt", "handoff_subject":"attempt.protected_descriptor_handoff_receipt.subject",
-    "handoff_approval":"attempt.protected_descriptor_handoff_receipt.launch_gateway_approval",
-    "closure":"attempt.protected_access_closure", "closure_subject":"attempt.protected_access_closure.subject",
-    "closure_approval":"attempt.protected_access_closure.custodian_approval", "terminal_access_history":"attempt.protected_access_closure.terminal_access_history",
-    "verdict_subject":"verdict.verdict_approval_subject", "verdict_custodian_approval":"verdict.custodian_approval",
-    "verdict_reviewer_approval":"verdict.independent_review_approval",
-}
-def extract_execution_graph(bundle: Mapping[str, Any], supplied_roles: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    supplied_roles = bundle.get("graph_roles") if supplied_roles is None and type(bundle) is dict else supplied_roles
-    if type(bundle) is not dict or type(supplied_roles) is not dict or set(supplied_roles) != set(ROLE_SPECS):
-        raise AdoptedGraphError("missing_preimage")
-    result = dict(supplied_roles)
+_BUNDLE_PATHS = {'attempt': 'attempt', 'verdict': 'verdict', 'preregistration': 'verdict.preregistration', 'custody_policy': 'verdict.custody_policy', 'candidate_contamination': 'verdict.contamination_manifest', 'attempt_envelope': 'verdict.attempt_envelope', 'reservation': 'verdict.attempt_envelope.process_reservation', 'rollback_plan': 'verdict.attempt_envelope.rollback_plan', 'base_access_history': 'verdict.preregistration.access_history', 'role_separation': 'verdict.preregistration.role_separation_receipt', 'custody_readiness': 'verdict.preregistration.custody_readiness_receipt', 'custody_readiness_subject': 'verdict.preregistration.custody_readiness_receipt.subject', 'readiness_approval': 'verdict.preregistration.custody_readiness_receipt.custodian_approval', 'execution_contamination': 'verdict.execution_contamination_attestation', 'execution_contamination_subject': 'verdict.execution_contamination_attestation.subject', 'contamination_custodian_approval': 'verdict.execution_contamination_attestation.custodian_approval', 'contamination_reviewer_approval': 'verdict.execution_contamination_attestation.independent_review_approval', 'preexecution_bundle': 'verdict.preregistration.preexecution_verification_bundle', 'custody_readiness_request': 'verdict.preregistration.preexecution_verification_bundle.custody_readiness_verification_request', 'execution_contamination_request': 'verdict.preregistration.preexecution_verification_bundle.execution_contamination_verification_request', 'activation': 'verdict.protected_access_activation', 'activation_subject': 'verdict.protected_access_activation.subject', 'activated_access_history': 'verdict.protected_access_activation.activated_access_history', 'activation_approval': 'verdict.protected_access_activation.custodian_approval', 'start_proof': 'verdict.evaluator_execution_start_proof', 'start_request': 'verdict.evaluator_execution_start_verification_request', 'invocation_challenge': 'verdict.evaluator_execution_start_proof.challenge', 'start_subject': 'verdict.evaluator_execution_start_proof.subject', 'channel': 'verdict.evaluator_execution_start_proof.challenge.authenticated_channel_coordinate', 'start_approval': 'verdict.evaluator_execution_start_proof.evaluator_approval', 'launch': 'verdict.evaluator_execution_launch_receipt', 'launch_subject': 'verdict.evaluator_execution_launch_receipt.subject', 'launch_approval': 'verdict.evaluator_execution_launch_receipt.launch_gateway_approval', 'handoff': 'verdict.protected_descriptor_handoff_receipt', 'handoff_subject': 'verdict.protected_descriptor_handoff_receipt.subject', 'handoff_approval': 'verdict.protected_descriptor_handoff_receipt.launch_gateway_approval', 'closure': 'verdict.protected_access_closure', 'closure_subject': 'verdict.protected_access_closure.subject', 'closure_approval': 'verdict.protected_access_closure.custodian_approval', 'terminal_access_history': 'verdict.protected_access_closure.terminal_access_history', 'verdict_subject': 'verdict.verdict_approval_subject', 'verdict_custodian_approval': 'verdict.custodian_approval', 'verdict_reviewer_approval': 'verdict.independent_review_approval'}
+_CANDIDATE_PATHS = {"candidate":"", "inventory":"ontology_inventory", "semantic_binding":"policy_semantic_binding", "binding_receipt":"policy_semantic_binding.binding_receipt", "policy_concept_ids":"policy_semantic_binding.policy_concept_ids", "joint_route_sets":"policy_semantic_binding.joint_route_ontology_id_sets"}
+_CREDENTIAL_COPIES = {
+ "custodian_credential": ("verdict.preregistration.custody_readiness_receipt.custodian_credential", "verdict.execution_contamination_attestation.custodian_credential", "verdict.protected_access_activation.custodian_credential", "verdict.protected_access_closure.custodian_credential"),
+ "reviewer_credential": ("verdict.execution_contamination_attestation.independent_review_credential",),
+ "evaluator_credential": ("verdict.evaluator_execution_start_proof.evaluator_credential", "verdict.evaluator_execution_start_verification_request.expected_evaluator_credential"),
+ "gateway_credential": ("verdict.evaluator_execution_start_verification_request.expected_launch_gateway_credential", "verdict.evaluator_execution_launch_receipt.launch_gateway_credential", "verdict.protected_descriptor_handoff_receipt.launch_gateway_credential")}
+def _active_execution_roles(objects: Mapping[str, Any]) -> set[str]:
+    active, pending, by_source = set(), ["verdict"], {}
+    for edge in _EDGES: by_source.setdefault(edge.source, []).append(edge)
+    while pending:
+        role = pending.pop()
+        if role in active: continue
+        if role not in objects: raise AdoptedGraphError("missing_preimage", role)
+        active.add(role)
+        for edge in by_source.get(role, ()):
+            if not (edge.nullable and _get(objects[role], edge.digest_field) is None): pending.append(edge.target)
+    return active
+def extract_execution_graph(bundle: Mapping[str, Any], support: ExecutionGraphSupport) -> dict[str, Any]:
+    if type(bundle) is not dict or type(support) is not ExecutionGraphSupport or type(support.candidate_support) is not CandidateSupport or type(support.participant_credentials) is not tuple or len(support.participant_credentials) != 12: raise AdoptedGraphError("missing_preimage")
+    verified = support.candidate_support
+    try: candidate = strict_json_loads(verified.candidate_bytes)
+    except (TypeError, ValueError): raise AdoptedGraphError("schema_invalid", "candidate") from None
+    if type(candidate) is not dict or jcs_bytes(candidate) != verified.candidate_bytes: raise AdoptedGraphError("schema_invalid", "candidate")
+    if candidate.get("candidate_digest") != verified.candidate_digest: raise AdoptedGraphError("digest_mismatch", "candidate")
+    result: dict[str, Any] = {}
     for role, path in _BUNDLE_PATHS.items():
         value = _get(bundle, path)
-        if value is not _MISSING and value is not None:
-            result[role] = value
+        if value is not _MISSING and value is not None: result[role] = value
+    for role, path in _CANDIDATE_PATHS.items():
+        value = candidate if not path else _get(candidate, path)
+        if value is _MISSING or value is None: raise AdoptedGraphError("missing_preimage", role)
+        result[role] = value
+    participants = _get(result.get("preregistration"), "participants")
+    if type(participants) is not list or len(participants) != 12: raise AdoptedGraphError("missing_preimage", "preregistration")
+    for index, (role, credential) in enumerate(zip(_PARTICIPANT_CREDENTIALS, support.participant_credentials)):
+        if type(credential) is not dict: raise AdoptedGraphError("missing_preimage", role)
+        evidence = _get(participants[index], "b0_exposure_evidence")
+        if evidence is _MISSING: raise AdoptedGraphError("missing_preimage", f"exposure_{index:02d}")
+        result[role], result[f"exposure_{index:02d}"] = credential, evidence
+    for role, paths in _CREDENTIAL_COPIES.items():
+        present = [value for path in paths if (value := _get(bundle, path)) is not _MISSING and value is not None]
+        if role == "gateway_credential" and present: result[role] = present[0]
+        if any(value != result[role] for value in present): raise AdoptedGraphError("nested_mismatch", role)
     for name in _APPROVALS:
-        approval = result[f"{name}_approval"]
-        if type(approval) is not dict or type(approval.get("attestation_body")) is not dict:
-            raise AdoptedGraphError("missing_preimage", f"{name}_approval")
-        result[f"{name}_approval_body"] = approval["attestation_body"]
+        role = f"{name}_approval"
+        if role not in result: continue
+        body = _get(result[role], "attestation_body")
+        if body is _MISSING: raise AdoptedGraphError("missing_preimage", role)
+        result[f"{name}_approval_body"] = body
     encoded = bundle.get("execution_receipt_base64")
     if encoded is not None:
         try:
             import base64
             result["raw_execution_receipt"] = base64.b64decode(encoded, validate=True)
-        except (TypeError, ValueError):
-            raise AdoptedGraphError("invalid_input") from None
-    if set(result) != set(ROLE_SPECS):
-        raise AdoptedGraphError("missing_preimage")
-    return result
-def verify_execution_graph(bundle: Mapping[str, Any], supplied_roles: Mapping[str, Any] | None = None) -> GraphConsistency:
-    return verify_graph(extract_execution_graph(bundle, supplied_roles))
+        except (TypeError, ValueError): raise AdoptedGraphError("invalid_input") from None
+    active = _active_execution_roles(result)
+    return {role: result[role] for role in active}
+def verify_execution_graph(bundle: Mapping[str, Any], support: ExecutionGraphSupport) -> GraphConsistency:
+    return verify_graph(extract_execution_graph(bundle, support))
 def verify_graph(objects: Mapping[str, Any], *, edges: Iterable[GraphEdge] | None = None) -> GraphConsistency:
     if not isinstance(objects, Mapping) or not objects or any(type(role) is not str for role in objects):
         raise AdoptedGraphError("invalid_input")

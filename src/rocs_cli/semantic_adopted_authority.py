@@ -9,19 +9,16 @@ from rocs_cli.semantic_adopted_protocol import jcs_bytes, strict_json_loads, val
 from rocs_cli.semantic_router_invariants import validate_invariants as validate_v0_invariants
 from rocs_cli.semantic_router_protocol import RouteProtocolError, parse_policy_bytes, parse_provenance_bytes
 OWNER_REPOSITORY = "softwareco/ontology"
-ROLE_ORDER = ("semantic_owner", "policy_author", "development_author", "acceptance_author",
-              "operational_author", "annotator", "annotator", "adjudicator", "custodian",
-              "independent_reviewer", "evaluator_operator", "implementer")
+ROLE_ORDER = ("semantic_owner", "policy_author", "development_author", "acceptance_author", "operational_author", "annotator", "annotator", "adjudicator", "custodian", "independent_reviewer", "evaluator_operator", "implementer")
 _STAMP = re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$")
 _IDENTITY_FIELDS = ("repository_id", "git_commit", "git_tree", "principal_id", "authority_role")
 class AdoptedAuthorityError(ValueError):
     pass
 @dataclass(frozen=True)
 class CandidateSupport:
-    policy: dict[str, Any]
-    provenance: dict[str, Any]
-    policy_concept_ids: tuple[str, ...]
-    joint_route_ontology_id_sets: tuple[tuple[str, ...], ...]
+    candidate_bytes: bytes; candidate_digest: str
+    policy: dict[str, Any]; provenance: dict[str, Any]
+    policy_concept_ids: tuple[str, ...]; joint_route_ontology_id_sets: tuple[tuple[str, ...], ...]
 def _fail(message: str) -> None:
     raise AdoptedAuthorityError(message)
 def _schema(value: Any, definition: str) -> None:
@@ -31,10 +28,11 @@ def _schema(value: Any, definition: str) -> None:
         raise AdoptedAuthorityError(f"invalid {definition}") from exc
     if issues:
         _fail(f"invalid {definition}: {issues[0].instance_path or '/'}")
-def _sha(raw: bytes) -> str:
-    return "sha256:" + hashlib.sha256(raw).hexdigest()
+def _sha(raw: bytes) -> str: return "sha256:" + hashlib.sha256(raw).hexdigest()
 def _sorted_strings(values: Sequence[str]) -> list[str]:
     return sorted(values, key=lambda value: value.encode("utf-8"))
+def _source_record_bound(records: Sequence[Any]) -> None:
+    if len(records) > _MAX_SOURCE_RECORDS: _fail("provenance source-record count exceeds bound")
 def verify_authority_credential(
     authority: Mapping[str, Any], credential: Mapping[str, Any], *, trusted_now: str
 ) -> None:
@@ -149,8 +147,12 @@ _GIT_ENV = {
     "GIT_ALLOW_PROTOCOL": "", "GIT_NO_LAZY_FETCH": "1", "GIT_OPTIONAL_LOCKS": "0",
     "GIT_PAGER": "cat", "PAGER": "cat",
 }
-_MAX_FILE, _MAX_PROVENANCE, _MAX_SOURCE_TOTAL = 1_048_576, 8_388_608, 8_388_608
-_MAX_CONTENT_TOTAL, _MAX_METADATA = 18_874_368, 16_777_216
+_MAX_FILE, _MAX_PROVENANCE, _MAX_SOURCE_TOTAL = 1_048_576, 8_388_608, 1_048_576
+_MAX_CONTENT_TOTAL, _MAX_METADATA = 11_534_336, 16_777_216; _MAX_OBJECTS, _MAX_STDOUT, _MAX_STDOUT_TOTAL = 16_384, 12_582_912, 16_777_216
+_MAX_STDERR, _MAX_STDERR_TOTAL, _MAX_GIT_PROCESSES, _MAX_SOURCE_RECORDS = 65_536, 524_288, 8, 16_384
+@dataclass
+class _GitBudget:
+    stdout: int = 0; stderr: int = 0; processes: int = 0
 def _git_root(value: os.PathLike[str] | str) -> tuple[str, str]:
     raw = os.fspath(value)
     if type(raw) is not str or not os.path.isabs(raw) or os.path.normpath(raw) != raw:
@@ -210,27 +212,32 @@ def _unsafe_state(git_dir: str) -> tuple[tuple[str, int, int, int], ...]:
     except OSError as exc:
         raise AdoptedAuthorityError("unsafe local Git state") from exc
     return tuple(result)
-def _run_git(git_dir: str, args: Sequence[str], *, data: bytes = b"", limit: int) -> bytes:
-    if len(data) > _MAX_METADATA:
-        _fail("Git inspection input exceeds aggregate bound")
+def _run_git(git_dir: str, args: Sequence[str], *, budget: _GitBudget,
+             data: bytes = b"", limit: int) -> bytes:
+    if len(data) > _MAX_METADATA: _fail("Git inspection input exceeds aggregate bound")
+    budget.processes += 1
+    if budget.processes > _MAX_GIT_PROCESSES: _fail("Git subprocess count exceeds bound")
+    stdout_limit = min(limit, _MAX_STDOUT, _MAX_STDOUT_TOTAL - budget.stdout)
+    stderr_limit = min(_MAX_STDERR, _MAX_STDERR_TOTAL - budget.stderr)
+    if stdout_limit < 0 or stderr_limit < 0: _fail("Git inspection output exceeds aggregate bound")
     command = [
         _GIT, "--no-replace-objects", f"--git-dir={git_dir}",
         "-c", "core.hooksPath=/dev/null", "-c", "credential.helper=",
         "-c", "protocol.allow=never", "-c", "maintenance.auto=false", *args,
     ]
     def bound() -> None:
-        resource.setrlimit(resource.RLIMIT_FSIZE, (limit + 1, limit + 1))
+        ceiling = max(stdout_limit, stderr_limit) + 1; resource.setrlimit(resource.RLIMIT_FSIZE, (ceiling, ceiling))
     try:
-        with tempfile.TemporaryFile() as output:
-            completed = subprocess.run(
-                command, cwd="/", env=dict(_GIT_ENV), input=data, stdout=output,
-                stderr=subprocess.DEVNULL, timeout=30, check=False, preexec_fn=bound,
-            )
-            output.seek(0)
-            raw = output.read(limit + 1)
+        with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+            completed = subprocess.run(command, cwd="/", env=dict(_GIT_ENV), input=data,
+                stdout=output, stderr=errors, timeout=30, check=False, preexec_fn=bound)
+            output.flush(); errors.flush(); output_size = os.fstat(output.fileno()).st_size; error_size = os.fstat(errors.fileno()).st_size
+            output.seek(0); raw = output.read(stdout_limit + 1); errors.seek(0); error = errors.read(stderr_limit + 1)
     except (OSError, subprocess.SubprocessError) as exc:
         raise AdoptedAuthorityError("bounded local Git inspection failed") from exc
-    if completed.returncode or len(raw) > limit:
+    budget.stdout += output_size; budget.stderr += error_size
+    if (completed.returncode or output_size > stdout_limit or error_size > stderr_limit
+            or budget.stdout > _MAX_STDOUT_TOTAL or budget.stderr > _MAX_STDERR_TOTAL):
         _fail("bounded local Git inspection failed")
     return raw
 def _safe_config(raw: bytes) -> None:
@@ -248,34 +255,31 @@ def _safe_config(raw: bytes) -> None:
         _fail("unsafe local Git config")
 def _batch_check(raw: bytes, count: int) -> list[tuple[str, str, int]]:
     lines = raw.splitlines()
-    if len(lines) != count:
-        _fail("Git object inventory differs")
+    if len(lines) != count: _fail("Git object inventory differs")
     result = []
     for line in lines:
         fields = line.split()
-        if len(fields) != 3 or len(fields[0]) != 40 or not fields[2].isdigit():
-            _fail("Git object inventory differs")
+        if len(fields) != 3 or len(fields[0]) != 40 or not fields[2].isdigit(): _fail("Git object inventory differs")
         try:
             result.append((fields[0].decode("ascii"), fields[1].decode("ascii"), int(fields[2])))
         except (UnicodeError, ValueError) as exc:
             raise AdoptedAuthorityError("Git object inventory differs") from exc
     return result
-def _tree_modes(raw: bytes) -> dict[str, tuple[str, str]]:
+def _tree_modes(raw: bytes, object_ids: set[str]) -> dict[str, tuple[str, str]]:
     result = {}
     for row in raw.split(b"\0"):
-        if not row:
-            continue
+        if not row: continue
         metadata, separator, path = row.partition(b"\t")
         fields = metadata.split()
-        if not separator or len(fields) != 3:
-            _fail("Git tree inventory differs")
+        if not separator or len(fields) != 3: _fail("Git tree inventory differs")
         try:
             name = path.decode("utf-8", "strict")
             value = (fields[0].decode("ascii"), fields[2].decode("ascii"))
         except UnicodeError as exc:
             raise AdoptedAuthorityError("Git tree inventory differs") from exc
-        if name in result:
-            _fail("Git tree inventory contains duplicate paths")
+        if name in result: _fail("Git tree inventory contains duplicate paths")
+        object_ids.add(value[1])
+        if len(object_ids) > _MAX_OBJECTS: _fail("Git object inventory exceeds unique object bound")
         result[name] = value
     return result
 def _batch_content(raw: bytes, checked: Sequence[tuple[str, str, int]]) -> list[bytes]:
@@ -291,8 +295,7 @@ def _batch_content(raw: bytes, checked: Sequence[tuple[str, str, int]]) -> list[
             _fail("Git batch content framing differs")
         result.append(raw[start:finish])
         offset = finish + 1
-    if offset != len(raw):
-        _fail("Git batch content has trailing output")
+    if offset != len(raw): _fail("Git batch content has trailing output")
     return result
 def _git_blobs(
     local_git_root: os.PathLike[str] | str, commit: str, tree: str,
@@ -300,52 +303,47 @@ def _git_blobs(
 ) -> dict[str, bytes]:
     root, git_dir = _git_root(local_git_root)
     fingerprint = _repo_fingerprint(root, git_dir)
-    if _unsafe_state(git_dir):
-        _fail("unsafe local Git state")
-    config_before = _run_git(git_dir, ["config", "--local", "--no-includes", "--null", "--list"], limit=_MAX_FILE)
+    budget = _GitBudget()
+    if _unsafe_state(git_dir): _fail("unsafe local Git state")
+    config_before = _run_git(git_dir, ["config", "--local", "--no-includes", "--null", "--list"], budget=budget, limit=_MAX_FILE)
     _safe_config(config_before)
-    replace_before = _run_git(git_dir, ["for-each-ref", "--format=%(refname)", "refs/replace"], limit=65_536)
-    if replace_before.strip():
-        _fail("unsafe local Git replace state")
+    replace_before = _run_git(git_dir, ["for-each-ref", "--format=%(refname)", "refs/replace"], budget=budget, limit=65_536)
+    if replace_before.strip(): _fail("unsafe local Git replace state")
     expressions = [commit, f"{commit}^{{tree}}", *(f"{commit}:{path}" for path in expected)]
     request = b"".join(item.encode("ascii") + b"\n" for item in expressions)
     check_args = ["cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)"]
-    checked_raw = _run_git(git_dir, check_args, data=request, limit=_MAX_METADATA)
+    checked_raw = _run_git(git_dir, check_args, budget=budget, data=request, limit=_MAX_METADATA)
     checked = _batch_check(checked_raw, len(expressions))
-    if checked[0][0:2] != (commit, "commit") or checked[1][0:2] != (tree, "tree"):
-        _fail("candidate commit/tree resolution differs")
+    object_ids = {row[0] for row in checked}
+    if len(object_ids) > _MAX_OBJECTS: _fail("Git object inventory exceeds unique object bound")
+    if checked[0][0:2] != (commit, "commit") or checked[1][0:2] != (tree, "tree"): _fail("candidate commit/tree resolution differs")
     blobs = checked[2:]
-    tree_raw = _run_git(git_dir, ["ls-tree", "-rz", "--full-tree", commit], limit=_MAX_METADATA)
-    modes = _tree_modes(tree_raw)
+    tree_raw = _run_git(git_dir, ["ls-tree", "-rz", "--full-tree", commit], budget=budget, limit=_MAX_METADATA)
+    modes = _tree_modes(tree_raw, object_ids)
     source_total = content_total = 0
     for (path, (digest, supplied, category)), (oid, kind, size) in zip(expected.items(), blobs):
         mode = modes.get(path); allowed_modes = ("100644", "100755") if category == "source" else ("100644",)
-        if kind != "blob" or mode is None or mode[0] not in allowed_modes or mode[1] != oid:
-            _fail("candidate path is not one exact permitted blob")
+        if kind != "blob" or mode is None or mode[0] not in allowed_modes or mode[1] != oid: _fail("candidate path is not one exact permitted blob")
         limit = _MAX_PROVENANCE if category == "provenance" else _MAX_FILE
-        if size > limit:
-            _fail("candidate Git blob exceeds category byte limit")
+        if size > limit: _fail("candidate Git blob exceeds category byte limit")
         content_total += size
-        if category == "source":
-            source_total += size
-        if supplied is not None and len(supplied) != size:
-            _fail("supplied bytes differ from Git blob size")
+        if category == "source": source_total += size
+        if supplied is not None and len(supplied) != size: _fail("supplied bytes differ from Git blob size")
         if len(digest) != 71:
             _fail("source digest coordinate differs")
-    if source_total > _MAX_SOURCE_TOTAL or content_total > _MAX_CONTENT_TOTAL:
-        _fail("candidate Git blobs exceed aggregate byte limit")
+    if source_total > _MAX_SOURCE_TOTAL or content_total > _MAX_CONTENT_TOTAL: _fail("candidate Git blobs exceed aggregate byte limit")
     oid_request = b"".join(oid.encode("ascii") + b"\n" for oid, _kind, _size in blobs)
     content_limit = content_total + len(blobs) * 128 + 1024
-    content_raw = _run_git(git_dir, ["cat-file", "--batch"], data=oid_request, limit=content_limit)
+    content_raw = _run_git(git_dir, ["cat-file", "--batch"], budget=budget, data=oid_request, limit=content_limit)
     contents = _batch_content(content_raw, blobs)
     result = {}
     for (path, (digest, supplied, _category)), raw in zip(expected.items(), contents):
         if _sha(raw) != digest or (supplied is not None and raw != supplied):
             _fail("candidate Git blob byte/digest join differs")
         result[path] = raw
-    config_after = _run_git(git_dir, ["config", "--local", "--no-includes", "--null", "--list"], limit=_MAX_FILE)
-    replace_after = _run_git(git_dir, ["for-each-ref", "--format=%(refname)", "refs/replace"], limit=65_536)
-    checked_after = _run_git(git_dir, check_args, data=request, limit=_MAX_METADATA)
+    config_after = _run_git(git_dir, ["config", "--local", "--no-includes", "--null", "--list"], budget=budget, limit=_MAX_FILE)
+    replace_after = _run_git(git_dir, ["for-each-ref", "--format=%(refname)", "refs/replace"], budget=budget, limit=65_536)
+    checked_after = _run_git(git_dir, check_args, budget=budget, data=request, limit=_MAX_METADATA)
     if (
         config_after != config_before or replace_after != replace_before
         or checked_after != checked_raw or _unsafe_state(git_dir)
@@ -387,6 +385,8 @@ def verify_candidate_support(
     _schema(candidate, "candidate")
     if any(type(raw) is not bytes for raw in (policy_bytes, provenance_bytes, inventory_bytes)):
         _fail("policy, provenance, and inventory inputs must be bytes")
+    for name, raw, limit in (("policy", policy_bytes, _MAX_FILE), ("provenance", provenance_bytes, _MAX_PROVENANCE), ("inventory", inventory_bytes, _MAX_FILE)):
+        if len(raw) > limit: _fail(f"candidate {name} exceeds byte limit")
     try:
         inventory = strict_json_loads(inventory_bytes, max_bytes=_MAX_FILE)
     except ValueError as exc:
@@ -422,6 +422,7 @@ def verify_candidate_support(
         _fail("Decision 102 policy/provenance invariants differ")
     if policy["authority"]["owner_repo"] != OWNER_REPOSITORY or provenance["policy_owner_repo"] != OWNER_REPOSITORY:
         _fail("Decision 102 policy owner differs")
+    _source_record_bound(provenance["records"])
     if any(record["source_owner_repo"] != OWNER_REPOSITORY for record in provenance["records"]):
         _fail("Decision 102 provenance source owner differs")
     if candidate["routing_policy_digest"] != policy["routing_policy_digest"] or candidate["provenance_manifest_digest"] != provenance["provenance_manifest_digest"]:
@@ -473,8 +474,6 @@ def verify_candidate_support(
     )
     if candidate["contamination_manifest_digest"] != contamination_manifest["manifest_digest"]:
         _fail("candidate contamination manifest digest differs")
-    if len(policy_bytes) > _MAX_FILE or len(provenance_bytes) > _MAX_PROVENANCE:
-        _fail("candidate policy/provenance exceeds byte limits")
     expected_sources: dict[str, tuple[str, bytes | None, str]] = {}
     commit = candidate["owner_git_commit"]
     def add(path: str, digest: str, raw: bytes | None, category: str) -> None:
@@ -496,4 +495,5 @@ def verify_candidate_support(
     _git_blobs(local_git_root, commit, candidate["owner_git_tree"], expected_sources)
     if candidate["candidate_digest"] != object_digest("candidate", dict(candidate), "candidate_digest"):
         _fail("candidate digest differs")
-    return CandidateSupport(policy, provenance, tuple(concepts), tuple(tuple(row) for row in joints))
+    candidate_bytes = jcs_bytes(dict(candidate))
+    return CandidateSupport(candidate_bytes, candidate["candidate_digest"], policy, provenance, tuple(concepts), tuple(tuple(row) for row in joints))

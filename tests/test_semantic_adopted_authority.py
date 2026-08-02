@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
+from contextlib import nullcontext
 import hashlib
 import json
 from pathlib import Path
@@ -9,6 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import rocs_cli.semantic_adopted_authority as authority_module
 from rocs_cli.semantic_adopted_authority import (
     AdoptedAuthorityError, ROLE_ORDER, verify_authority_credential,
     verify_candidate_support, verify_contamination_manifest,
@@ -129,6 +131,11 @@ class CandidateSupportTests(unittest.TestCase):
         args = self.fresh()
         result = self.verify(*args)
         self.assertEqual(result.policy_concept_ids, ("co.software.ConspicuouslySynthetic",))
+        self.assertEqual(result.candidate_bytes, jcs_bytes(args[0]["candidate"]))
+        self.assertEqual(result.candidate_digest, args[0]["candidate"]["candidate_digest"])
+        args[0]["candidate"]["candidate_id"] = "mutated-after-proof"
+        self.assertNotIn(b"mutated-after-proof", result.candidate_bytes)
+        with self.assertRaises(AttributeError): result.candidate_digest = "changed"
 
     def test_parent_and_caller_source_revisions_reject_before_git(self):
         for target in ("authority", "record"):
@@ -155,11 +162,114 @@ class CandidateSupportTests(unittest.TestCase):
         with self.assertRaises(AdoptedAuthorityError):
             self.verify(value, policy, provenance, inventory, root, blobs)
 
-    def test_each_source_and_aggregate_bounds_reject(self):
-        value, policy, provenance, inventory, root, blobs = self.fresh()
-        blobs["synthetic-authority/meaning.txt"] = b"x" * (1_048_576 + 1)
-        with self.assertRaisesRegex(AdoptedAuthorityError, "byte limit"):
-            self.verify(value, policy, provenance, inventory, root, blobs)
+    def test_policy_provenance_inventory_and_per_source_exact_boundaries(self):
+        for name, maximum in (("policy", 1_048_576), ("provenance", 8_388_608),
+                              ("inventory", 1_048_576)):
+            for extra in (0, 1):
+                value, policy, provenance, inventory, root, blobs = self.fresh()
+                values = {"policy": policy, "provenance": provenance, "inventory": inventory}
+                values[name] += b" " * (maximum + extra - len(values[name]))
+                blobs[value["candidate"][f"{name if name != 'inventory' else 'ontology_inventory'}_path"]] = values[name]
+                context = nullcontext() if extra == 0 else self.assertRaisesRegex(AdoptedAuthorityError, name)
+                with self.subTest(name=name, extra=extra), context:
+                    self.verify(value, values["policy"], values["provenance"], values["inventory"], root, blobs)
+        for extra in (0, 1):
+            value, _policy, _provenance, _inventory, root, _blobs = self.fresh()
+            raw = b"x" * (1_048_576 + extra); blobs = {"source": raw}
+            runner, _calls = self.runner(value, blobs)
+            expected = {"source": (_sha(raw), None, "source")}
+            context = nullcontext() if extra == 0 else self.assertRaisesRegex(AdoptedAuthorityError, "byte limit")
+            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=runner), context:
+                authority_module._git_blobs(root, value["candidate"]["owner_git_commit"],
+                                            value["candidate"]["owner_git_tree"], expected)
+
+    def test_source_aggregate_exact_max_max_plus_one_and_prior_false_acceptance(self):
+        for sizes, accepted in (((524_288, 524_288), True), ((524_288, 524_289), False),
+                                ((600_000, 600_000), False)):
+            with self.subTest(sizes=sizes):
+                value, _policy, _provenance, _inventory, root, _blobs = self.fresh()
+                blobs = {f"source-{index}": b"x" * size for index, size in enumerate(sizes)}
+                expected = {path: (_sha(raw), None, "source") for path, raw in blobs.items()}
+                runner, calls = self.runner(value, blobs)
+                context = self.assertRaisesRegex(AdoptedAuthorityError, "aggregate byte limit") if not accepted else nullcontext()
+                with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=runner), context:
+                    authority_module._git_blobs(
+                        root, value["candidate"]["owner_git_commit"],
+                        value["candidate"]["owner_git_tree"], expected,
+                    )
+                self.assertLessEqual(len(calls), 8)
+
+    def test_content_aggregate_exact_max_and_max_plus_one(self):
+        for extra in (0, 1):
+            value, _policy, _provenance, _inventory, root, _blobs = self.fresh()
+            unit = b"x" * 1_048_576
+            blobs = {f"content-{index}": unit for index in range(11)}
+            if extra: blobs["content-extra"] = b"x"
+            expected = {path: (_sha(raw), None, "policy") for path, raw in blobs.items()}
+            runner, _calls = self.runner(value, blobs)
+            context = nullcontext() if not extra else self.assertRaisesRegex(AdoptedAuthorityError, "aggregate byte limit")
+            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=runner), context:
+                authority_module._git_blobs(root, value["candidate"]["owner_git_commit"],
+                                            value["candidate"]["owner_git_tree"], expected)
+
+    def test_source_record_count_exact_max_and_max_plus_one(self):
+        for extra in (0, 1):
+            records = [None] * (authority_module._MAX_SOURCE_RECORDS + extra)
+            context = nullcontext() if not extra else self.assertRaisesRegex(AdoptedAuthorityError, "source-record")
+            with context: authority_module._source_record_bound(records)
+
+    def test_unique_object_id_exact_max_and_max_plus_one(self):
+        def tree(count):
+            return b"".join(
+                f"100644 blob {index:040x}\tpath-{index}".encode() + b"\0"
+                for index in range(count)
+            )
+        self.assertEqual(len(authority_module._tree_modes(tree(16_384), set())), 16_384)
+        with self.assertRaisesRegex(AdoptedAuthorityError, "unique object"):
+            authority_module._tree_modes(tree(16_385), set())
+
+    def test_git_output_and_process_exact_boundaries(self):
+        def invoke(stdout=b"", stderr=b"", budget=None):
+            budget = budget or authority_module._GitBudget()
+            def run(_command, **kwargs):
+                kwargs["stdout"].write(stdout); kwargs["stderr"].write(stderr)
+                return type("Result", (), {"returncode": 0})()
+            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=run):
+                return authority_module._run_git(
+                    "/synthetic/.git", ["synthetic"], budget=budget,
+                    limit=authority_module._MAX_STDOUT,
+                )
+        self.assertEqual(len(invoke(stdout=b"x" * 12_582_912)), 12_582_912)
+        with self.assertRaises(AdoptedAuthorityError):
+            invoke(stdout=b"x" * 12_582_913)
+        self.assertEqual(invoke(stderr=b"x" * 65_536), b"")
+        with self.assertRaises(AdoptedAuthorityError):
+            invoke(stderr=b"x" * 65_537)
+        for field, maximum in (("stdout", 16_777_216), ("stderr", 524_288)):
+            for extra, accepted in ((0, True), (1, False)):
+                budget = authority_module._GitBudget()
+                setattr(budget, field, maximum - 1)
+                kwargs = {field: b"x" * (1 + extra)}
+                with self.subTest(field=field, extra=extra):
+                    if accepted:
+                        invoke(budget=budget, **kwargs)
+                        self.assertEqual(getattr(budget, field), maximum)
+                    else:
+                        with self.assertRaises(AdoptedAuthorityError):
+                            invoke(budget=budget, **kwargs)
+        for extra in (0, 1):
+            data = b"x" * (authority_module._MAX_METADATA + extra)
+            def empty(_command, **kwargs): return type("Result", (), {"returncode": 0})()
+            context = nullcontext() if not extra else self.assertRaisesRegex(AdoptedAuthorityError, "input")
+            with patch("rocs_cli.semantic_adopted_authority.subprocess.run", side_effect=empty), context:
+                authority_module._run_git("/synthetic/.git", ["synthetic"], budget=authority_module._GitBudget(),
+                                          data=data, limit=authority_module._MAX_STDOUT)
+        budget = authority_module._GitBudget()
+        for _ in range(8):
+            invoke(budget=budget)
+        self.assertEqual(budget.processes, 8)
+        with self.assertRaisesRegex(AdoptedAuthorityError, "subprocess count"):
+            invoke(budget=budget)
 
     def test_unsafe_state_rejects_without_git_subprocess(self):
         for relative in ("shallow", "objects/info/alternates", "info/grafts"):
@@ -191,6 +301,20 @@ class CandidateSupportTests(unittest.TestCase):
                 value["contamination_manifest"], policy_source_digest=value["policy"]["routing_policy_digest"],
                 non_policy_source_digests=bad,
             )
+
+    def test_candidate_and_execution_fixtures_are_value_aware_private_material_free(self):
+        fixture_dir = CORPUS.parent
+        public_files = [CORPUS, fixture_dir / "execution-corpus.json"]
+        seeds = [bytes(range(32)), bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc4"
+                                                    "4449c5697b326919703bac031cae7f60")]
+        patterns = [b"BEGIN PRIVATE KEY", b"BEGIN OPENSSH PRIVATE KEY", b"private_key_base64",
+                    b'"private_key"', b'"privateKey"', b'"private-key"', b'"seed"']
+        for seed in seeds:
+            patterns.extend((seed, seed.hex().encode(), base64.b64encode(seed)))
+        for path in public_files:
+            raw = path.read_bytes()
+            for pattern in patterns:
+                with self.subTest(path=path.name, pattern=pattern[:24]): self.assertNotIn(pattern, raw)
 
 class AuthorityCredentialAndSeparationTests(unittest.TestCase):
     def credential(self, role="custodian", principal="synthetic-principal"):

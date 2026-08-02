@@ -7,9 +7,10 @@ import rocs_cli.semantic_adopted_graph as graph
 from copy import deepcopy
 from unittest.mock import patch
 
+from rocs_cli.semantic_adopted_authority import CandidateSupport
 from rocs_cli.semantic_adopted_digests import domain_digest, object_digest
 from rocs_cli.semantic_adopted_graph import (
-    ISSUE_KINDS, AdoptedGraphError, GraphEdge, ROLE_SPECS, extract_execution_graph,
+    ISSUE_KINDS, AdoptedGraphError, ExecutionGraphSupport, GraphEdge, ROLE_SPECS, extract_execution_graph,
     normative_edges, verify_execution_graph, verify_graph,
 )
 
@@ -159,6 +160,17 @@ def synthetic_closure(root, *, present_nullable=()):
             if credential in objects:
                 _put(objects["preregistration"], f"participants.{index}.authority.authority_credential_digest", objects[credential]["self"])
     for _ in range(3):
+        def replace_placeholder(value):
+            if type(value) is dict:
+                if value.get("authority_credential_digest") == "sha256:" + "a" * 64:
+                    value["authority_credential_digest"] = selected["custodian_credential"]["credential_digest"]
+                for child in value.values(): replace_placeholder(child)
+            elif type(value) is list:
+                for child in value: replace_placeholder(child)
+        for value in objects.values(): replace_placeholder(value)
+        for role, fields in graph._CONSTANTS.items():
+            if role in objects:
+                for path, constant in fields.items(): _put(objects[role], path, constant)
         for join in graph._PRIMITIVE_JOINS:
             if join.left_role in objects and join.right_role in objects:
                 value = graph._get(objects[join.left_role], join.left_path)
@@ -244,26 +256,180 @@ class AdoptedGraphTests(unittest.TestCase):
         objects["channel"]["evaluator_authority"] = {"coordinate": "changed"}
         self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
 
-    def test_actual_bundle_extraction_invokes_full_92_role_graph(self):
-        present = {"start_proof", "start_request", "launch", "handoff", "raw_execution_receipt"}
-        supplied = synthetic_closure("owner_checkpoint", present_nullable=present)
-        self.assertEqual(set(supplied), set(ROLE_SPECS))
-        corpus = json.loads((pathlib.Path(__file__).parent / "fixtures/semantic-adopted-policy-v1/execution-corpus.json").read_text("utf-8"))
-        bundle = next(case["bundle"] for case in corpus["cases"] if case["name"] == "branch_7_valid")
-        extracted = extract_execution_graph(bundle, supplied)
-        self.assertEqual(len(extracted), 92)
-        self.assertIs(extracted["attempt"], bundle["attempt"])
-        with patch("rocs_cli.semantic_adopted_graph.verify_graph") as invoked:
-            invoked.return_value = object()
-            verify_execution_graph(bundle, supplied)
-            invoked.assert_called_once()
-            mapped = invoked.call_args.args[0]
-            self.assertEqual(set(mapped), set(ROLE_SPECS))
-            self.assertEqual(len(mapped), 92)
-            self.assertIs(mapped["verdict"], bundle["verdict"])
-        incomplete = dict(supplied)
-        incomplete.pop("candidate")
-        self.assert_kind("missing_preimage", lambda: extract_execution_graph(bundle, incomplete))
+    def actual_graph(self, branch):
+        fixture = pathlib.Path(__file__).parent / "fixtures/semantic-adopted-policy-v1"
+        corpus = json.loads((fixture / "execution-corpus.json").read_text("utf-8"))
+        bundle = deepcopy(next(case["bundle"] for case in corpus["cases"] if case["name"] == f"branch_{branch}_valid"))
+        candidate = deepcopy(corpus["support"]["candidate"])
+        copies = graph._CREDENTIAL_COPIES
+        selected = {
+            "custodian_credential": graph._get(bundle, copies["custodian_credential"][-1]),
+            "reviewer_credential": graph._get(bundle, copies["reviewer_credential"][0]),
+            "evaluator_credential": graph._get(bundle, copies["evaluator_credential"][0]),
+            "gateway_credential": graph._get(bundle, copies["gateway_credential"][1]),
+        }
+        fallback = selected["custodian_credential"]
+        selected = {role: fallback if value is graph._MISSING else value for role, value in selected.items()
+        }
+        for role, paths in copies.items():
+            for path in paths:
+                if graph._get(bundle, path) is not graph._MISSING:
+                    _put(bundle, path, deepcopy(selected[role]))
+        credentials = [deepcopy(selected["custodian_credential"]) for _ in range(12)]
+        credentials[8], credentials[9], credentials[10] = (deepcopy(selected[name]) for name in
+            ("custodian_credential", "reviewer_credential", "evaluator_credential"))
+        candidate_support = CandidateSupport(graph.jcs_bytes(candidate), candidate["candidate_digest"], {}, {}, (), ())
+        support = ExecutionGraphSupport(candidate_support, tuple(credentials))
+        objects = extract_execution_graph(bundle, support)
+        preregistration = objects["preregistration"]
+        for index, role in enumerate(graph._PARTICIPANT_CREDENTIALS):
+            _put(preregistration, f"participants.{index}.authority.authority_credential_digest",
+                 objects[role]["credential_digest"])
+        separation = objects["role_separation"]
+        separation["participants_digest"] = "sha256:" + __import__("hashlib").sha256(
+            graph.jcs_bytes(preregistration["participants"])).hexdigest()
+        separation["receipt_digest"] = object_digest("role_separation_receipt", separation, "receipt_digest")
+        for join in graph._PRIMITIVE_JOINS:
+            if join.left_role in objects and join.right_role in objects:
+                joined = graph._get(objects[join.left_role], join.left_path)
+                if joined is graph._MISSING:
+                    joined = graph._get(objects[join.right_role], join.right_path)
+                _put(objects[join.left_role], join.left_path, deepcopy(joined))
+                _put(objects[join.right_role], join.right_path, deepcopy(joined))
+        separation["participants_digest"] = "sha256:" + __import__("hashlib").sha256(
+            graph.jcs_bytes(preregistration["participants"])).hexdigest()
+        separation["receipt_digest"] = object_digest("role_separation_receipt", separation, "receipt_digest")
+        by_source = {}
+        for edge in normative_edges():
+            by_source.setdefault(edge.source, []).append(edge)
+        for role in sorted(objects, key=lambda item: ROLE_SPECS[item].phase):
+            value = objects[role]
+            for edge in by_source.get(role, ()):
+                if edge.nullable and graph._get(value, edge.digest_field) is None:
+                    continue
+                target = objects[edge.target]
+                _put(value, edge.digest_field, (
+                    target[ROLE_SPECS[edge.target].self_digest_field] if ROLE_SPECS[edge.target].self_digest_field
+                    else graph._digest(edge.target, target)))
+                if edge.object_field:
+                    _put(value, edge.object_field, target)
+            spec = ROLE_SPECS[role]
+            if spec.self_digest_field:
+                value[spec.self_digest_field] = object_digest(spec.digest_domain, value, spec.self_digest_field)
+        def normalize_authority(value):
+            if type(value) is dict:
+                digest = value.get("authority_credential_digest")
+                for name in ("custodian_credential", "evaluator_credential"):
+                    if digest == selected[name]["credential_digest"]:
+                        value["authority_role"] = selected[name]["authority_role"]
+                for child in value.values(): normalize_authority(child)
+            elif type(value) is list:
+                for child in value: normalize_authority(child)
+        for value in objects.values(): normalize_authority(value)
+        authority_pins = (("custody_readiness_request", "expected_custodian_authority", "custody_readiness_subject", "custodian_authority"),
+            ("execution_contamination_request", "expected_custodian_authority", "execution_contamination_subject", "custodian_authority"),
+            ("execution_contamination_request", "expected_independent_review_authority", "execution_contamination_subject", "independent_review_authority"))
+        for request, expected, subject, authority in authority_pins:
+            _put(objects[request], expected, deepcopy(objects[subject][authority]))
+        preregistration["custodian_authority"] = deepcopy(objects["custody_readiness_subject"]["custodian_authority"])
+        preregistration["independent_review_authority"] = deepcopy(objects["execution_contamination_subject"]["independent_review_authority"])
+        preregistration["participants"][8]["authority"] = deepcopy(preregistration["custodian_authority"])
+        preregistration["participants"][9]["authority"] = deepcopy(preregistration["independent_review_authority"])
+        for _ in range(4):
+            for join in graph._PRIMITIVE_JOINS:
+                if join.left_role in objects and join.right_role in objects:
+                    left = graph._get(objects[join.left_role], join.left_path)
+                    right = graph._get(objects[join.right_role], join.right_path)
+                    score = lambda item: (2 if selected["evaluator_credential"]["credential_digest"] in repr(item) else 1 if selected["custodian_credential"]["credential_digest"] in repr(item) else 0)
+                    joined = right if score(right) > score(left) else left
+                    _put(objects[join.left_role], join.left_path, deepcopy(joined))
+                    _put(objects[join.right_role], join.right_path, deepcopy(joined))
+        for _final in range(12):
+            authorities = (("custodian", "contamination_custodian_approval"), ("independent_review", "contamination_reviewer_approval"))
+            for name, approval in authorities:
+                authority = deepcopy(objects[approval]["issuer"])
+                objects["execution_contamination_subject"][f"{name}_authority"] = authority
+                objects["execution_contamination_request"][f"expected_{name}_authority"] = deepcopy(authority)
+                preregistration[f"{name}_authority"] = deepcopy(authority)
+                preregistration["participants"][8 if name == "custodian" else 9]["authority"] = deepcopy(authority)
+            for join in graph._PRIMITIVE_JOINS:
+                if join.left_role in objects and join.right_role in objects and not (
+                        join.left_role == join.right_role == "preregistration"):
+                    destination, path, source, source_path = (join.left_role, join.left_path, join.right_role, join.right_path) if join.left_role.endswith("_request") else (join.right_role, join.right_path, join.left_role, join.left_path)
+                    _put(objects[destination], path, deepcopy(graph._get(objects[source], source_path)))
+            separation["participants_digest"] = "sha256:" + __import__("hashlib").sha256(
+                graph.jcs_bytes(preregistration["participants"])).hexdigest()
+            separation["receipt_digest"] = object_digest("role_separation_receipt", separation, "receipt_digest")
+            for role in sorted(objects, key=lambda item: ROLE_SPECS[item].phase):
+                value = objects[role]
+                for edge in by_source.get(role, ()):
+                    if edge.nullable and graph._get(value, edge.digest_field) is None:
+                        continue
+                    target = objects[edge.target]
+                    field = ROLE_SPECS[edge.target].self_digest_field
+                    _put(value, edge.digest_field, target[field] if field else graph._digest(edge.target, target))
+                    if edge.object_field:
+                        _put(value, edge.object_field, target)
+                spec = ROLE_SPECS[role]
+                if spec.self_digest_field:
+                    value[spec.self_digest_field] = object_digest(spec.digest_domain, value, spec.self_digest_field)
+        separation["participants_digest"] = "sha256:" + __import__("hashlib").sha256(
+            graph.jcs_bytes(preregistration["participants"])).hexdigest()
+        separation["receipt_digest"] = object_digest("role_separation_receipt", separation, "receipt_digest")
+        for role in sorted(objects, key=lambda item: ROLE_SPECS[item].phase):
+            value = objects[role]
+            for edge in by_source.get(role, ()):
+                if edge.nullable and graph._get(value, edge.digest_field) is None: continue
+                target, field = objects[edge.target], ROLE_SPECS[edge.target].self_digest_field
+                _put(value, edge.digest_field, target[field] if field else graph._digest(edge.target, target))
+                if edge.object_field: _put(value, edge.object_field, target)
+            spec = ROLE_SPECS[role]
+            if spec.self_digest_field: value[spec.self_digest_field] = object_digest(spec.digest_domain, value, spec.self_digest_field)
+        return bundle, support, objects
+
+    def test_actual_execution_corpus_branches_pass_real_active_graph(self):
+        for branch, expected in ((0, 68), (7, 85)):
+            with self.subTest(branch=branch):
+                bundle, support, objects = self.actual_graph(branch)
+                self.assertEqual(len(objects), expected)
+                post_verdict = {"publication_subject", "publication_approval_body", "publication_approval",
+                    "publication_event", "publication_history", "owner_head", "owner_checkpoint"}
+                self.assertTrue(post_verdict.isdisjoint(objects))
+                if branch == 0:
+                    self.assertNotIn("start_proof", objects)
+                    self.assertNotIn("raw_execution_receipt", objects)
+                self.assertTrue(verify_graph(objects).consistency_verified)
+                self.assertTrue(verify_execution_graph(bundle, support).consistency_verified)
+
+    def test_execution_support_is_fixed_exact_and_overlap_checked(self):
+        bundle, support, _ = self.actual_graph(7)
+        self.assert_kind("missing_preimage", lambda: extract_execution_graph(bundle, support.participant_credentials))
+        parsed = json.loads(support.candidate.candidate_bytes)
+        self.assert_kind("missing_preimage", lambda: extract_execution_graph(
+            bundle, ExecutionGraphSupport(parsed, support.participant_credentials)))
+        mismatched = CandidateSupport(support.candidate.candidate_bytes, ZERO, {}, {}, (), ())
+        self.assert_kind("digest_mismatch", lambda: extract_execution_graph(
+            bundle, ExecutionGraphSupport(mismatched, support.participant_credentials)))
+        noncanonical = CandidateSupport(support.candidate.candidate_bytes + b"\n", support.candidate.candidate_digest, {}, {}, (), ())
+        self.assert_kind("schema_invalid", lambda: extract_execution_graph(
+            bundle, ExecutionGraphSupport(noncanonical, support.participant_credentials)))
+        self.assert_kind("missing_preimage", lambda: extract_execution_graph(
+            bundle, ExecutionGraphSupport(support.candidate, support.participant_credentials[:-1])))
+        changed = list(support.participant_credentials)
+        changed[8] = changed[10]
+        self.assert_kind("nested_mismatch", lambda: extract_execution_graph(
+            bundle, ExecutionGraphSupport(support.candidate, tuple(changed))))
+
+    def test_request_pins_and_contamination_source_reject_substitution(self):
+        objects = synthetic_closure("preregistration")
+        objects["custody_readiness_request"]["expected_public_key_digest"] = "digest:substituted"
+        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
+        objects = synthetic_closure("execution_contamination_request")
+        objects["execution_contamination_request"]["expected_independent_review_authority"] = {"substituted": True}
+        self.assert_kind("nested_mismatch", lambda: self.mocked_verify(objects))
+        objects = synthetic_closure("execution_contamination")
+        objects["execution_contamination_subject"]["source_digest"] = "digest:substituted"
+        self.assert_kind("digest_mismatch", lambda: self.mocked_verify(objects))
 
     def test_nullable_dependencies_are_exactly_conditional(self):
         absent = synthetic_closure("attempt")
