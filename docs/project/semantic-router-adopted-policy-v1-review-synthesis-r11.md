@@ -55,7 +55,8 @@ P1 ROCS offline verifier
 → P4 visible-D policy authoring and candidate freeze
 → P5 one-shot reservation/preregistration/activation
 → P6 one immutable protected evaluation and independent verdict
-→ P7 owner publication/currentness
+→ P7 semantic-owner publication only
+→ later separately reviewed trusted acquisition/currentness implementation and live proof
 → later exact-consumer shadow decision
 → later prompt-projection canary
 → automatic preflight last
