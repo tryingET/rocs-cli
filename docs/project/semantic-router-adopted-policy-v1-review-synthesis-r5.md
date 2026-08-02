@@ -18,7 +18,15 @@ This synthesis controls only the exact packet accepted in [`semantic-router-adop
 - aggregate `198b0203511650abd72f33962096f9b5004932de5163804849b60a057c814f0b`;
 - manifest SHA-256 `22beb1a62e625e02ef1b98da62b871782b8585c4cc47a1faf45feeb2805981df`.
 
-All three required lanes accepted that identity. Earlier rejected revisions remain non-authorizing history.
+All three required lanes accepted that identity:
+
+| Required lane | Final reviewer lineage | Outcome |
+|---|---|---|
+| semantic authority and publication boundary | `dispatch-1785623427853` | accept |
+| protocol, cryptography, currentness, and resource safety | `dispatch-1785623427853-1` | accept |
+| empirical independence, custody, contamination, and one-shot evaluation | `dispatch-1785623427854` | accept |
+
+Unresolved minority findings: none. Superseding packet revision required: no. Earlier rejected revisions remain non-authorizing history.
 
 ## Synthesis
 
