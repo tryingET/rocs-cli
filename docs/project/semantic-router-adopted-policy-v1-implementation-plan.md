@@ -55,6 +55,7 @@ Every row requires a fresh AK implementation task and fresh independent review. 
 Allowed new or modified paths:
 
 - `src/rocs_cli/_bootstrap_assets/semantic-router-adopted-policy-v1.schema.zlib`;
+- `src/rocs_cli/_bootstrap_assets/pyproject.toml` (package-data wiring only);
 - `src/rocs_cli/semantic_adopted_schema.py`;
 - `src/rocs_cli/semantic_adopted_protocol.py`;
 - `tests/test_semantic_adopted_protocol.py`;
@@ -62,6 +63,7 @@ Allowed new or modified paths:
 - `tests/verify_semantic_adopted_schema.mjs`.
 
 R0 replaces, rather than patches or blesses, the r11 S0 asset. The zlib file is the fixed deterministic level-9 zlib compression of the exact r14 `protocol.schema.json`: decompressed length 324,005, decompressed SHA-256 `e5a55c7a6744868bfc05806a0216eaeb4f82b212f60c3961fdc18672e5529647`, compressed length 18,428, and compressed SHA-256 `948530f81173e760f233ef5a87dd699a762d4e04e16476a443ac7e873e9c2a24`. Loading verifies all four fixed values before parsing; the module exposes exact bytes and never synthesizes or rewrites schema.
+ The isolated-bootstrap manifest change may only declare the fixed schema asset as package data; dependency, entry-point, build-backend, and runtime behavior changes remain outside R0.
 
 Acceptance:
 
