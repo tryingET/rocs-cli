@@ -14,6 +14,7 @@ from rocs_cli.semantic_adopted_protocol import (
     schema_definitions,
     strict_json_loads,
     validate_definition,
+    validate_protocol_bytes,
 )
 from rocs_cli.semantic_adopted_schema import (
     COMPRESSED_SHA256,
@@ -63,6 +64,67 @@ def _branch_signature(branch):
     return jcs_bytes(projected)
 
 
+def _find_property(node, name):
+    if isinstance(node, dict):
+        if name in node.get("properties", {}):
+            return node["properties"][name]
+        for key in ("allOf", "oneOf"):
+            for child in node.get(key, []):
+                found = _find_property(child, name)
+                if found is not None:
+                    return found
+        for child in node.get("properties", {}).values():
+            found = _find_property(child, name)
+            if found is not None:
+                return found
+    return None
+
+
+def _presence(node):
+    if node is None:
+        return None
+    if node.get("type") == "null":
+        return False
+    if "$ref" in node or node.get("type") not in (None, "null"):
+        return True
+    choices = node.get("oneOf", [])
+    states = {_presence(choice) for choice in choices}
+    return states.pop() if len(states) == 1 else None
+
+
+def _pass_kinds(node):
+    if node is None:
+        return None
+    if node.get("maxItems") == 0:
+        return []
+    kinds = []
+    for item in node.get("prefixItems", []):
+        pass_kind = _find_property(item, "pass_kind")
+        if pass_kind and "const" in pass_kind:
+            kinds.append(pass_kind["const"])
+    return kinds or None
+
+
+def _branch_pattern(branch):
+    state = _find_property(branch, "attempt_state")
+    invocations = _find_property(branch, "process_invocations")
+    outcome = _find_property(branch, "outcome")
+    return {
+        "state": state.get("const") if state else None,
+        "invocations": invocations.get("const") if invocations else None,
+        "passes": _pass_kinds(_find_property(branch, "passes")),
+        "proof": _presence(_find_property(branch, "evaluator_execution_start_proof_digest")),
+        "launch": _presence(_find_property(branch, "evaluator_execution_launch_receipt_digest")),
+        "handoff": _presence(_find_property(branch, "protected_descriptor_handoff_receipt_digest")),
+        "receipt": _presence(_find_property(branch, "execution_receipt_digest")),
+        "outcome": outcome.get("const") if outcome else None,
+    }
+
+
+def _pattern_matches_case(pattern, case):
+    return all(pattern[key] is None or pattern[key] == case[key] for key in pattern)
+
+
 class AdoptedSchemaAssetTests(unittest.TestCase):
     def test_asset_is_exact_deterministic_packet_compression(self):
         raw = SCHEMA.read_bytes()
@@ -109,6 +171,30 @@ class AdoptedSchemaAssetTests(unittest.TestCase):
             signatures = [_branch_signature(branch) for branch in branches]
             self.assertEqual(len(signatures), len(set(signatures)), definition)
 
+    def test_every_truthful_prefix_has_one_positive_nonoverlapping_projection(self):
+        root = load_protocol_schema()
+        corpus = json.loads(CORPUS.read_text())
+        patterns = {
+            name: [_branch_pattern(branch) for branch in root["$defs"][name]["oneOf"]]
+            for name in corpus["branch_inventory"]
+        }
+        for case in corpus["prefix_branch_cases"]:
+            for definition, choices in patterns.items():
+                with self.subTest(case=case["name"], definition=definition):
+                    matches = sum(_pattern_matches_case(choice, case) for choice in choices)
+                    self.assertEqual(matches, 1)
+        impossible = [
+            {**corpus["prefix_branch_cases"][0], "launch": True},
+            {**corpus["prefix_branch_cases"][3], "receipt": True},
+            {**corpus["prefix_branch_cases"][7], "passes": ["primary"]},
+        ]
+        for case in impossible:
+            for definition in ("executionAttempt", "verdict"):
+                with self.subTest(impossible=case["name"], definition=definition):
+                    self.assertEqual(
+                        sum(_pattern_matches_case(choice, case) for choice in patterns[definition]), 0
+                    )
+
 
 class AdoptedStrictJsonTests(unittest.TestCase):
     def test_duplicate_float_noncanonical_and_surrogate_rejected(self):
@@ -138,6 +224,23 @@ class AdoptedStrictJsonTests(unittest.TestCase):
             strict_json_loads(b" " * (MAX_ORDINARY_BYTES + 1))
         with self.assertRaisesRegex(AdoptedProtocolError, "structural limits"):
             strict_json_loads(("[" * 33 + "]" * 33).encode())
+
+    def test_nested_empty_collections_count_elements_not_openers(self):
+        accepted = b"[" + b",".join([b"[]"] * 25_001) + b"]"
+        self.assertEqual(len(strict_json_loads(accepted)), 25_001)
+        rejected = b"[" + b",".join([b"[]"] * 50_001) + b"]"
+        with self.assertRaisesRegex(AdoptedProtocolError, "structural limits"):
+            strict_json_loads(rejected)
+
+    def test_string_byte_limit_and_preparser_depth_apply_before_protocol_parse(self):
+        with self.assertRaisesRegex(AdoptedProtocolError, "string exceeds byte limit"):
+            strict_json_loads(json.dumps("x" * 65_537).encode())
+        deep = (
+            b'{"schema":"semantic-routing-policy-currentness-proof.v1","x":'
+            + b"[" * 33 + b"0" + b"]" * 33 + b"}"
+        )
+        with self.assertRaisesRegex(AdoptedProtocolError, "structural limits"):
+            validate_protocol_bytes(deep)
 
     def test_only_root_history_and_currentness_discriminators_raise_byte_limit(self):
         history = b'{"schema":"semantic-routing-policy-publication-history.v1"}'
@@ -173,6 +276,8 @@ class AdoptedSchemaCorpusTests(unittest.TestCase):
         root = load_protocol_schema()
         ref = root["$defs"]["accessHistory"]["properties"]["events"]["items"]["properties"]["role"]["$ref"]
         self.assertEqual(ref, "#/$defs/roleAssignment/properties/role")
+        from rocs_cli.semantic_adopted_schema import resolve_pointer
+        self.assertEqual(resolve_pointer(root, "#/oneOf/0"), root["oneOf"][0])
         schema = {"$ref": ref}
         self.assertFalse(_validate_inline("custodian", schema))
         self.assertTrue(_validate_inline("not-a-role", schema))

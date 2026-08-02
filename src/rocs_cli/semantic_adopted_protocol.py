@@ -18,10 +18,12 @@ MAX_HISTORY_BYTES = 16_777_216
 MAX_CURRENTNESS_BYTES = 33_554_432
 MAX_DEPTH = 32
 MAX_COLLECTION_ITEMS = 50_000
+MAX_STRING_BYTES = 65_536
 MAX_SAFE_INTEGER = 9_007_199_254_740_991
 _DATE_TIME = re.compile(
-    r"^(?:[0-9]{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])"
-    r"T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]+)?(?:Z|[+-][0-2][0-9]:[0-5][0-9])$"
+    r"^(?P<year>[0-9]{4})-(?P<month>0[1-9]|1[0-2])-(?P<day>0[1-9]|[12][0-9]|3[01])"
+    r"T(?P<hour>[01][0-9]|2[0-3]):(?P<minute>[0-5][0-9]):(?P<second>[0-5][0-9]|60)"
+    r"(?:\.[0-9]+)?(?P<zone>Z|[+-][0-2][0-9]:[0-5][0-9])$"
 )
 
 
@@ -46,6 +48,8 @@ def _reject_ijson(value: Any, path: str = "") -> None:
     if type(value) is str:
         if any(0xD800 <= ord(character) <= 0xDFFF for character in value):
             raise AdoptedProtocolError(f"non-scalar string at {path or '/'}")
+        if len(value.encode("utf-8")) > MAX_STRING_BYTES:
+            raise AdoptedProtocolError(f"string exceeds byte limit at {path or '/'}")
         return
     if type(value) is int:
         if not -MAX_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
@@ -68,11 +72,14 @@ def _reject_ijson(value: Any, path: str = "") -> None:
 
 
 def _scan_structure(raw: bytes) -> None:
-    depth = items = 0
-    stack: list[int] = []
+    items = string_wire_bytes = 0
+    stack: list[dict[str, Any]] = []
     in_string = escaped = False
     for byte in raw:
         if in_string:
+            string_wire_bytes += 1
+            if string_wire_bytes > MAX_STRING_BYTES * 6:
+                raise AdoptedProtocolError("protocol string token exceeds wire limit")
             if escaped:
                 escaped = False
             elif byte == 0x5C:
@@ -80,18 +87,28 @@ def _scan_structure(raw: bytes) -> None:
             elif byte == 0x22:
                 in_string = False
             continue
+        if byte in b" \t\r\n":
+            continue
         if byte == 0x22:
+            if stack:
+                stack[-1]["nonempty"] = True
             in_string = True
+            string_wire_bytes = 0
         elif byte in (0x5B, 0x7B):
-            stack.append(byte)
-            depth = max(depth, len(stack))
-            items += 1
+            if stack:
+                stack[-1]["nonempty"] = True
+            stack.append({"opener": byte, "commas": 0, "nonempty": False})
+            if len(stack) > MAX_DEPTH:
+                raise AdoptedProtocolError("protocol input exceeds structural limits")
         elif byte in (0x5D, 0x7D):
             if stack:
-                stack.pop()
-        elif byte == 0x2C:
-            items += 1
-        if depth > MAX_DEPTH or items > MAX_COLLECTION_ITEMS:
+                container = stack.pop()
+                items += container["commas"] + int(container["nonempty"])
+        elif byte == 0x2C and stack:
+            stack[-1]["commas"] += 1
+        elif stack:
+            stack[-1]["nonempty"] = True
+        if items > MAX_COLLECTION_ITEMS:
             raise AdoptedProtocolError("protocol input exceeds structural limits")
 
 
@@ -159,6 +176,8 @@ def _skip_value(raw: bytes, index: int) -> int:
             in_string = True
         elif byte in (0x5B, 0x7B):
             stack.append(byte)
+            if len(stack) > MAX_DEPTH:
+                raise AdoptedProtocolError("protocol discriminator exceeds depth limit")
         elif byte in (0x5D, 0x7D):
             stack.pop()
     if stack:
@@ -288,15 +307,30 @@ def _type_matches(instance: Any, expected: Any) -> bool:
 
 
 def _date_time_valid(value: str) -> bool:
-    if _DATE_TIME.fullmatch(value) is None:
+    match = _DATE_TIME.fullmatch(value)
+    if match is None:
         return False
+    zone = match.group("zone")
+    if zone != "Z" and int(zone[1:3]) > 23:
+        return False
+    leap = match.group("second") == "60"
+    if leap and not (
+        zone == "Z" and match.group("hour") == "23" and match.group("minute") == "59"
+        and (match.group("month"), match.group("day")) in {("06", "30"), ("12", "31")}
+    ):
+        return False
+    candidate = value.replace(":60", ":59", 1) if leap else value
     try:
-        parsed = value[:-1] + "+00:00" if value.endswith("Z") else value
+        parsed = candidate[:-1] + "+00:00" if candidate.endswith("Z") else candidate
         datetime.fromisoformat(parsed)
     except ValueError:
         return False
-    offset = value[-6:] if not value.endswith("Z") else "+00:00"
-    return not (offset[0] in "+-" and int(offset[1:3]) > 23)
+    return True
+
+
+def _pattern_matches(pattern: str, value: str) -> bool:
+    match = re.search(pattern, value)
+    return match is not None and (not pattern.endswith("$") or match.end() == len(value))
 
 
 def _validate(instance: Any, schema: Any, root: dict[str, Any], path: str) -> list[ValidationIssue]:
@@ -365,7 +399,7 @@ def _validate(instance: Any, schema: Any, root: dict[str, Any], path: str) -> li
             issues.append(ValidationIssue(path, "minLength", "string is too short"))
         if "maxLength" in schema and len(instance) > schema["maxLength"]:
             issues.append(ValidationIssue(path, "maxLength", "string is too long"))
-        if "pattern" in schema and re.search(schema["pattern"], instance) is None:
+        if "pattern" in schema and not _pattern_matches(schema["pattern"], instance):
             issues.append(ValidationIssue(path, "pattern", "string does not match pattern"))
         if schema.get("format") == "date-time" and not _date_time_valid(instance):
             issues.append(ValidationIssue(path, "format", "string is not an RFC 3339 date-time"))
@@ -402,7 +436,10 @@ def validate_definition(instance: Any, definition: str) -> tuple[ValidationIssue
     selected = root["$defs"].get(definition)
     if type(selected) is not dict:
         raise AdoptedProtocolError("unknown protocol definition")
-    return tuple(_validate(instance, selected, root, ""))
+    issues = list(_validate(instance, selected, root, ""))
+    if definition == "path" and type(instance) is str and len(instance.encode("utf-8")) > 1024:
+        issues.append(ValidationIssue("", "maxBytes", "path exceeds UTF-8 byte limit"))
+    return tuple(issues)
 
 
 def validate_protocol(instance: Any) -> tuple[ValidationIssue, ...]:
@@ -416,6 +453,9 @@ def validate_protocol(instance: Any) -> tuple[ValidationIssue, ...]:
 
 
 def validate_protocol_bytes(raw: bytes) -> tuple[dict[str, Any], tuple[ValidationIssue, ...]]:
+    if type(raw) is not bytes or len(raw) > MAX_CURRENTNESS_BYTES:
+        raise AdoptedProtocolError("protocol input exceeds absolute byte limit")
+    _scan_structure(raw)
     limit = protocol_byte_limit(raw)
     value = strict_json_loads(raw, max_bytes=limit)
     if type(value) is not dict:

@@ -43,8 +43,14 @@ function pointer(root, reference) {
   let current = root;
   for (const raw of reference.slice(2).split("/")) {
     const token = raw.replaceAll("~1", "/").replaceAll("~0", "~");
-    assert(current && typeof current === "object" && !Array.isArray(current) && Object.hasOwn(current, token));
-    current = current[token];
+    if (Array.isArray(current)) {
+      assert.match(token, /^(?:0|[1-9][0-9]*)$/);
+      assert(Number(token) < current.length);
+      current = current[Number(token)];
+    } else {
+      assert(current && typeof current === "object" && Object.hasOwn(current, token));
+      current = current[token];
+    }
   }
   return current;
 }
@@ -101,13 +107,14 @@ function typeMatches(instance, expected) {
 }
 
 function validDateTime(value) {
-  const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-][0-2]\d:[0-5]\d)$/.exec(value);
+  const match = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(?:\.\d+)?(Z|[+-][0-2]\d:[0-5]\d)$/.exec(value);
   if (!match) return false;
-  const normalized = value.endsWith("Z") ? value : value.replace(/([+-]\d\d):(\d\d)$/, "$1$2");
-  const parsed = new Date(normalized);
-  if (Number.isNaN(parsed.getTime())) return false;
   const [year, month, day] = match.slice(1, 4).map(Number);
-  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day;
+  const calendar = new Date(Date.UTC(year, month - 1, day));
+  if (calendar.getUTCFullYear() !== year || calendar.getUTCMonth() + 1 !== month || calendar.getUTCDate() !== day) return false;
+  if (match[7] !== "Z" && Number(match[7].slice(1, 3)) > 23) return false;
+  if (match[6] === "60") return match[7] === "Z" && match[4] === "23" && match[5] === "59" && [[6, 30], [12, 31]].some(([m, d]) => month === m && day === d);
+  return true;
 }
 
 function validate(instance, selected, root = schema) {
@@ -147,8 +154,9 @@ function validate(instance, selected, root = schema) {
       for (let index = start; index < instance.length; index += 1) issues.push(...validate(instance[index], selected.items, root));
     }
   } else if (typeof instance === "string") {
-    if (instance.length < (selected.minLength ?? 0)) issues.push("minLength");
-    if (selected.maxLength !== undefined && instance.length > selected.maxLength) issues.push("maxLength");
+    const codePoints = [...instance].length;
+    if (codePoints < (selected.minLength ?? 0)) issues.push("minLength");
+    if (selected.maxLength !== undefined && codePoints > selected.maxLength) issues.push("maxLength");
     if (selected.pattern && !(new RegExp(selected.pattern, "u")).test(instance)) issues.push("pattern");
     if (selected.format === "date-time" && !validDateTime(instance)) issues.push("format");
   } else if (Number.isSafeInteger(instance)) {
@@ -163,9 +171,74 @@ for (const [definition, expected] of Object.entries(corpus.branch_inventory)) {
   assert.equal(branches.length, expected);
   assert.equal(new Set(branches.map(canonical)).size, expected, `${definition} duplicate branch`);
 }
+function findProperty(node, name) {
+  if (!node || typeof node !== "object" || Array.isArray(node)) return null;
+  if (node.properties && Object.hasOwn(node.properties, name)) return node.properties[name];
+  for (const key of ["allOf", "oneOf"]) {
+    for (const child of node[key] ?? []) {
+      const found = findProperty(child, name);
+      if (found) return found;
+    }
+  }
+  for (const child of Object.values(node.properties ?? {})) {
+    const found = findProperty(child, name);
+    if (found) return found;
+  }
+  return null;
+}
+function presence(node) {
+  if (!node) return null;
+  if (node.type === "null") return false;
+  if (node.$ref || (node.type !== undefined && node.type !== "null")) return true;
+  const states = new Set((node.oneOf ?? []).map(presence));
+  return states.size === 1 ? [...states][0] : null;
+}
+function passKinds(node) {
+  if (!node) return null;
+  if (node.maxItems === 0) return [];
+  const kinds = (node.prefixItems ?? []).map((item) => findProperty(item, "pass_kind")?.const).filter(Boolean);
+  return kinds.length ? kinds : null;
+}
+function branchPattern(branch) {
+  const constant = (name) => findProperty(branch, name)?.const ?? null;
+  return {
+    state: constant("attempt_state"),
+    invocations: constant("process_invocations"),
+    passes: passKinds(findProperty(branch, "passes")),
+    proof: presence(findProperty(branch, "evaluator_execution_start_proof_digest")),
+    launch: presence(findProperty(branch, "evaluator_execution_launch_receipt_digest")),
+    handoff: presence(findProperty(branch, "protected_descriptor_handoff_receipt_digest")),
+    receipt: presence(findProperty(branch, "execution_receipt_digest")),
+    outcome: constant("outcome"),
+  };
+}
+function patternMatches(testCase, pattern) {
+  return Object.entries(pattern).every(([key, value]) => value === null || canonical(value) === canonical(testCase[key]));
+}
+const branchPatterns = Object.fromEntries(Object.keys(corpus.branch_inventory).map((name) => [
+  name, schema.$defs[name].oneOf.map(branchPattern),
+]));
+for (const testCase of corpus.prefix_branch_cases) {
+  for (const [definition, patterns] of Object.entries(branchPatterns)) {
+    assert.equal(patterns.filter((pattern) => patternMatches(testCase, pattern)).length, 1, `${definition}:${testCase.name}`);
+  }
+}
+const impossible = [
+  { ...corpus.prefix_branch_cases[0], launch: true },
+  { ...corpus.prefix_branch_cases[3], receipt: true },
+  { ...corpus.prefix_branch_cases[7], passes: ["primary"] },
+];
+for (const testCase of impossible) {
+  for (const definition of ["executionAttempt", "verdict"]) {
+    assert.equal(branchPatterns[definition].filter((pattern) => patternMatches(testCase, pattern)).length, 0);
+  }
+}
+assert.deepEqual(pointer(schema, "#/oneOf/0"), schema.oneOf[0]);
 for (const testCase of corpus.cases) {
   const selected = testCase.definition ? schema.$defs[testCase.definition] : testCase.inline_schema;
-  assert.equal(validate(testCase.instance, selected).length === 0, testCase.valid, testCase.name);
+  const schemaValid = validate(testCase.instance, selected).length === 0;
+  const invariantValid = testCase.definition !== "path" || Buffer.byteLength(testCase.instance, "utf8") <= 1024;
+  assert.equal(schemaValid && invariantValid, testCase.valid, testCase.name);
 }
 
 console.log(JSON.stringify({

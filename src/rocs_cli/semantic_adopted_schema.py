@@ -31,12 +31,18 @@ def _sha256(raw: bytes) -> str:
 
 @lru_cache(maxsize=1)
 def schema_bytes() -> bytes:
-    compressed = files("rocs_cli").joinpath(ASSET_NAME).read_bytes()
+    try:
+        compressed = files("rocs_cli").joinpath(ASSET_NAME).read_bytes()
+    except OSError as exc:
+        raise AdoptedSchemaError("packaged adopted-policy schema asset is unavailable") from exc
     if len(compressed) != COMPRESSED_BYTE_LENGTH or _sha256(compressed) != COMPRESSED_SHA256:
         raise AdoptedSchemaError("packaged adopted-policy schema asset mismatch")
     decoder = zlib.decompressobj()
-    raw = decoder.decompress(compressed, SCHEMA_BYTE_LENGTH + 1)
-    raw += decoder.flush()
+    try:
+        raw = decoder.decompress(compressed, SCHEMA_BYTE_LENGTH + 1)
+        raw += decoder.flush()
+    except zlib.error as exc:
+        raise AdoptedSchemaError("packaged adopted-policy schema compression is invalid") from exc
     if (
         len(raw) != SCHEMA_BYTE_LENGTH
         or _sha256(raw) != SCHEMA_SHA256
@@ -63,9 +69,17 @@ def resolve_pointer(root: Any, reference: str) -> Any:
     current = root
     for raw in reference[2:].split("/"):
         token = raw.replace("~1", "/").replace("~0", "~")
-        if type(current) is not dict or token not in current:
+        if type(current) is dict and token in current:
+            current = current[token]
+        elif type(current) is list:
+            if token != "0" and (not token.isdigit() or token.startswith("0")):
+                raise AdoptedSchemaError("packaged schema array reference is invalid")
+            index = int(token)
+            if index >= len(current):
+                raise AdoptedSchemaError("packaged schema array reference is out of range")
+            current = current[index]
+        else:
             raise AdoptedSchemaError("packaged schema contains an unresolved reference")
-        current = current[token]
     return current
 
 
