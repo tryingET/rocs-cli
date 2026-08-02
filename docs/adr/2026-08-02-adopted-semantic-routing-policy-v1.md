@@ -1,17 +1,19 @@
 ---
-summary: "Accept an owner-issued Softwareco semantic-routing policy coordinate, independent offline acceptance contract, and authenticated action-time currentness proof."
+summary: "Rejected Decision 103 ADR draft over cyclic r5 packet; retained as review history pending a corrected packet and ADR."
 read_when:
   - "Implementing or reviewing Decision 103."
   - "Planning any real semantic-routing policy, publication, consumer shadow, or automatic preflight."
 type: "adr"
-status: "accepted"
+status: "rejected"
 decision_id: 103
 ---
 # ADR — Adopted semantic-routing policy v1
 
-- Status: Accepted
+- Status: Rejected draft
 - Date: 2026-08-02
 - Decision: 103
+
+> This r5-bound draft was rejected by executability review `dispatch-1785629031503` for a digest cycle and impossible phase timing. It is non-authorizing history. Decision 103 remains `decision_pending` with no recorded ADR. A later commit may replace this file only after a corrected packet receives fresh strict review.
 
 ## Context
 
