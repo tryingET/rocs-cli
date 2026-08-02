@@ -1,0 +1,2918 @@
+{
+  "schema": "semantic-adopted-execution-corpus.v1",
+  "error_kinds": [
+    "projection_invalid",
+    "principal_separation",
+    "b0_coverage",
+    "history_boundary",
+    "reservation_process",
+    "custody_order",
+    "attempt_verdict_branch",
+    "retry_rerun_forbidden",
+    "closure_required"
+  ],
+  "cases": [
+    {
+      "name": "not_started_no_proof",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 0,
+        "attempt_state": "not_started",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": null,
+          "channel": null,
+          "launch": null,
+          "handoff": null,
+          "receipt": null,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "not_started_proof_only",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 0,
+        "attempt_state": "not_started",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": 1,
+          "channel": null,
+          "launch": null,
+          "handoff": null,
+          "receipt": null,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "not_started_launch_ready",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 0,
+        "attempt_state": "not_started",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": null,
+          "receipt": null,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "interrupted_before_handoff",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "interrupted",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": null,
+          "receipt": null,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "interrupted_after_handoff",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "interrupted",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": null,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "interrupted_receipt_zero_pass",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "interrupted",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "interrupted_primary",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "interrupted",
+        "passes": [
+          "primary"
+        ],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "completed_repeat",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "minimum_history_valid",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 12,
+          "activated": 13,
+          "terminal": 14
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": []
+    },
+    {
+      "name": "duplicate_principal",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p1"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "principal_separation"
+      ]
+    },
+    {
+      "name": "wrong_role_matrix",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "principal_separation"
+      ]
+    },
+    {
+      "name": "b0_only_nine",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "b0_coverage"
+      ]
+    },
+    {
+      "name": "b0_assessor_overlap",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p10",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "b0_coverage"
+      ]
+    },
+    {
+      "name": "base_over_254",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 255,
+          "activated": 256,
+          "terminal": 257
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "history_boundary"
+      ]
+    },
+    {
+      "name": "activated_not_successor",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 254,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "history_boundary"
+      ]
+    },
+    {
+      "name": "terminal_over_256",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 257
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "history_boundary"
+      ]
+    },
+    {
+      "name": "no_reservation",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 0,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "reservation_process"
+      ]
+    },
+    {
+      "name": "two_processes",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 2,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "reservation_process",
+        "attempt_verdict_branch"
+      ]
+    },
+    {
+      "name": "launch_before_channel",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 3,
+          "launch": 2,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "custody_order"
+      ]
+    },
+    {
+      "name": "handoff_before_launch",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 4,
+          "handoff": 3,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "custody_order"
+      ]
+    },
+    {
+      "name": "receipt_same_time_as_handoff",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 4,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "custody_order"
+      ]
+    },
+    {
+      "name": "launch_without_proof",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 0,
+        "attempt_state": "not_started",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": null,
+          "channel": null,
+          "launch": 3,
+          "handoff": null,
+          "receipt": null,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "attempt_verdict_branch"
+      ]
+    },
+    {
+      "name": "completed_without_repeat",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "attempt_verdict_branch"
+      ]
+    },
+    {
+      "name": "retry_forbidden",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 1,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "retry_rerun_forbidden"
+      ]
+    },
+    {
+      "name": "rerun_forbidden",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 1,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "retry_rerun_forbidden"
+      ]
+    },
+    {
+      "name": "not_closed",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": false
+      },
+      "expected_error_kinds": [
+        "closure_required"
+      ]
+    },
+    {
+      "name": "closure_missing",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": null
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "closure_required"
+      ]
+    },
+    {
+      "name": "closure_before_receipt",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 4
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "custody_order"
+      ]
+    },
+    {
+      "name": "unknown_property",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 1,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true,
+        "secret_detail": "x"
+      },
+      "expected_error_kinds": [
+        "projection_invalid"
+      ]
+    },
+    {
+      "name": "boolean_process_rejected",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": true,
+        "attempt_state": "completed",
+        "passes": [
+          "primary",
+          "immediate_repeat"
+        ],
+        "outcome": "pass",
+        "timeline": {
+          "proof": 1,
+          "channel": 2,
+          "launch": 3,
+          "handoff": 4,
+          "receipt": 5,
+          "closure": 10
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "projection_invalid"
+      ]
+    },
+    {
+      "name": "negative_closure_coordinate",
+      "projection": {
+        "principals": [
+          {
+            "role": "semantic_owner",
+            "principal_id": "p1"
+          },
+          {
+            "role": "policy_author",
+            "principal_id": "p2"
+          },
+          {
+            "role": "development_author",
+            "principal_id": "p3"
+          },
+          {
+            "role": "acceptance_author",
+            "principal_id": "p4"
+          },
+          {
+            "role": "operational_author",
+            "principal_id": "p5"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p6"
+          },
+          {
+            "role": "annotator",
+            "principal_id": "p7"
+          },
+          {
+            "role": "adjudicator",
+            "principal_id": "p8"
+          },
+          {
+            "role": "custodian",
+            "principal_id": "p9"
+          },
+          {
+            "role": "independent_reviewer",
+            "principal_id": "p10"
+          },
+          {
+            "role": "evaluator_operator",
+            "principal_id": "p11"
+          },
+          {
+            "role": "implementer",
+            "principal_id": "p12"
+          }
+        ],
+        "b0_covered_principals": [
+          "p1",
+          "p2",
+          "p3",
+          "p4",
+          "p5",
+          "p6",
+          "p7",
+          "p8",
+          "p9",
+          "p10"
+        ],
+        "b0_assessor_principal": "p11",
+        "history": {
+          "base": 254,
+          "activated": 255,
+          "terminal": 256
+        },
+        "reservation_count": 1,
+        "process_invocations": 0,
+        "attempt_state": "not_started",
+        "passes": [],
+        "outcome": "indeterminate",
+        "timeline": {
+          "proof": null,
+          "channel": null,
+          "launch": null,
+          "handoff": null,
+          "receipt": null,
+          "closure": -1
+        },
+        "retry_count": 0,
+        "rerun_count": 0,
+        "closed": true
+      },
+      "expected_error_kinds": [
+        "custody_order"
+      ]
+    }
+  ]
+}

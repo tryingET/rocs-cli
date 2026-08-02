@@ -1,0 +1,197 @@
+{
+  "candidate": {
+    "candidate_digest": "sha256:6e7fd4b50307b8413b8f02f792b75a8f0c421174414506f694723985f3bf474d",
+    "candidate_id": "CONSPICUOUSLY-SYNTHETIC-NOT-A-RELEASE",
+    "contamination_manifest_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "ontology_inventory": {
+      "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+      "ontology_ids": [
+        "co.software.ConspicuouslySynthetic"
+      ],
+      "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "owner": {
+        "namespace": "softwareco.semantic-routing-policy.v1",
+        "owner_company": "softwareco",
+        "owner_repository_id": "softwareco/ontology"
+      },
+      "owner_git_commit": "1111111111111111111111111111111111111111",
+      "owner_git_tree": "2222222222222222222222222222222222222222",
+      "schema": "semantic-routing-policy-ontology-inventory.v1"
+    },
+    "ontology_inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+    "ontology_inventory_path": "synthetic-candidate/inventory.json",
+    "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "owner": {
+      "namespace": "softwareco.semantic-routing-policy.v1",
+      "owner_company": "softwareco",
+      "owner_repository_id": "softwareco/ontology"
+    },
+    "owner_git_commit": "1111111111111111111111111111111111111111",
+    "owner_git_tree": "2222222222222222222222222222222222222222",
+    "policy_path": "synthetic-candidate/policy.json",
+    "policy_semantic_binding": {
+      "binding_digest": "sha256:2d29a48f7ad62d60f624e678420003e322b503b0d2206d058be3121a4c98a25e",
+      "binding_receipt": {
+        "extractor_algorithm": "rocs-adopted-policy-binding-v1",
+        "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+        "joint_route_sets_digest": "sha256:9eb89a32c1ac842bea4e053dca23ef45d424b821a8fdf07a7c7eb9f182b46d92",
+        "policy_concept_ids_digest": "sha256:03c0603b9bdaf2f08337ffc47e2e2a0e72fbc8ff75e1b247ddd13685ad286e89",
+        "policy_owner_repository_id": "softwareco/ontology",
+        "provenance_manifest_digest": "sha256:38b86a596cd898ad006b02f3fdf3af96a5a69b528fb50afad657c0a01ae8989c",
+        "provenance_policy_owner_repository_id": "softwareco/ontology",
+        "provenance_source_owner_repository_ids": [
+          "softwareco/ontology"
+        ],
+        "receipt_digest": "sha256:d3acf62ebab7e1398ab76bef7a4fd4c8dc322de9fc7cc5266810f23ebc66cb71",
+        "routing_policy_digest": "sha256:f95253f33033546c52ed11f9ab27acd732a4108af2c87c3373ea4da843c39876",
+        "schema": "semantic-routing-policy-binding-receipt.v1"
+      },
+      "binding_receipt_digest": "sha256:d3acf62ebab7e1398ab76bef7a4fd4c8dc322de9fc7cc5266810f23ebc66cb71",
+      "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+      "joint_route_ontology_id_sets": [],
+      "policy_concept_ids": [
+        "co.software.ConspicuouslySynthetic"
+      ],
+      "policy_owner_repository_id": "softwareco/ontology",
+      "provenance_owner_repository_id": "softwareco/ontology",
+      "provenance_source_owner_repository_ids": [
+        "softwareco/ontology"
+      ]
+    },
+    "provenance_manifest_digest": "sha256:38b86a596cd898ad006b02f3fdf3af96a5a69b528fb50afad657c0a01ae8989c",
+    "provenance_path": "synthetic-candidate/provenance.json",
+    "router_algorithm": "rocs-symbolic-router-v0",
+    "router_protocol": "semantic-route-result.v0",
+    "routing_policy_digest": "sha256:f95253f33033546c52ed11f9ab27acd732a4108af2c87c3373ea4da843c39876",
+    "schema": "semantic-routing-policy-candidate.v1",
+    "selectable_ontology_ids": [
+      "co.software.ConspicuouslySynthetic"
+    ]
+  },
+  "inventory": {
+    "inventory_digest": "sha256:a21215c3a59286819a2d010f010b94ed73b4db40fcf3f685ea0630373c08b41f",
+    "ontology_ids": [
+      "co.software.ConspicuouslySynthetic"
+    ],
+    "ontology_snapshot_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    "owner": {
+      "namespace": "softwareco.semantic-routing-policy.v1",
+      "owner_company": "softwareco",
+      "owner_repository_id": "softwareco/ontology"
+    },
+    "owner_git_commit": "1111111111111111111111111111111111111111",
+    "owner_git_tree": "2222222222222222222222222222222222222222",
+    "schema": "semantic-routing-policy-ontology-inventory.v1"
+  },
+  "policy": {
+    "authority": {
+      "owner_repo": "softwareco/ontology",
+      "path": "synthetic-authority/meaning.txt",
+      "review_ref": "SYNTHETIC-DECISION-102-REVIEW",
+      "revision": "1111111111111111111111111111111111111111",
+      "source_content_digest": "sha256:815ff47166c0602d27ff988445e3ae88debcd95ea8f6cf5fb90fcb8d7c375135"
+    },
+    "concepts": [
+      {
+        "exclude_any": [],
+        "ont_id": "co.software.ConspicuouslySynthetic",
+        "support_any": [
+          {
+            "all_of": [
+              {
+                "any_of": [
+                  {
+                    "kind": "token",
+                    "value": "fabricated"
+                  }
+                ],
+                "group_id": "concept-group"
+              }
+            ],
+            "clause_id": "concept-support"
+          }
+        ]
+      }
+    ],
+    "domain": {
+      "admit_any": [
+        {
+          "all_of": [
+            {
+              "any_of": [
+                {
+                  "kind": "token",
+                  "value": "synthetic"
+                }
+              ],
+              "group_id": "domain-group"
+            }
+          ],
+          "clause_id": "domain-admit"
+        }
+      ],
+      "domain_id": "synthetic-domain",
+      "exclude_any": []
+    },
+    "joint_routes": [],
+    "normalization": "nfkc-casefold-ws-v0",
+    "policy_id": "conspicuously-synthetic-policy",
+    "provenance_manifest_digest": "sha256:38b86a596cd898ad006b02f3fdf3af96a5a69b528fb50afad657c0a01ae8989c",
+    "routing_policy_digest": "sha256:f95253f33033546c52ed11f9ab27acd732a4108af2c87c3373ea4da843c39876",
+    "schema": "semantic-routing-policy.v0",
+    "tokenization": "unicode-ln-sequence-v0",
+    "unicode_data": "15.0.0"
+  },
+  "provenance": {
+    "policy_id": "conspicuously-synthetic-policy",
+    "policy_owner_repo": "softwareco/ontology",
+    "policy_path": "synthetic-authority/meaning.txt",
+    "policy_revision": "1111111111111111111111111111111111111111",
+    "policy_source_content_digest": "sha256:815ff47166c0602d27ff988445e3ae88debcd95ea8f6cf5fb90fcb8d7c375135",
+    "provenance_manifest_digest": "sha256:38b86a596cd898ad006b02f3fdf3af96a5a69b528fb50afad657c0a01ae8989c",
+    "records": [
+      {
+        "author": "synthetic-author-never-real",
+        "b0_exposure": "confirmed",
+        "clause_id": "concept-support",
+        "contamination_scan_receipt": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "created_at": "2026-08-01T00:00:00Z",
+        "development_case_ids": [
+          "SYNTHETIC-NOT-EVIDENCE"
+        ],
+        "group_id": "concept-group",
+        "kind": "token",
+        "review_ref": "SYNTHETIC-ONLY",
+        "source_content_digest": "sha256:815ff47166c0602d27ff988445e3ae88debcd95ea8f6cf5fb90fcb8d7c375135",
+        "source_owner_repo": "softwareco/ontology",
+        "source_path": "synthetic-authority/meaning.txt",
+        "source_revision": "1111111111111111111111111111111111111111",
+        "value": "fabricated"
+      },
+      {
+        "author": "synthetic-author-never-real",
+        "b0_exposure": "confirmed",
+        "clause_id": "domain-admit",
+        "contamination_scan_receipt": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "created_at": "2026-08-01T00:00:00Z",
+        "development_case_ids": [
+          "SYNTHETIC-NOT-EVIDENCE"
+        ],
+        "group_id": "domain-group",
+        "kind": "token",
+        "review_ref": "SYNTHETIC-ONLY",
+        "source_content_digest": "sha256:815ff47166c0602d27ff988445e3ae88debcd95ea8f6cf5fb90fcb8d7c375135",
+        "source_owner_repo": "softwareco/ontology",
+        "source_path": "synthetic-authority/meaning.txt",
+        "source_revision": "1111111111111111111111111111111111111111",
+        "value": "synthetic"
+      }
+    ],
+    "schema": "semantic-routing-provenance.v0"
+  },
+  "resolved_owner_commit": "1111111111111111111111111111111111111111",
+  "resolved_owner_tree": "2222222222222222222222222222222222222222",
+  "schema": "semantic-adopted-authority-candidate-support-corpus.synthetic-v1",
+  "source_text": "CONSPICUOUSLY SYNTHETIC SOFTWARECO ONTOLOGY MEANING; NOT PRODUCTION.\n",
+  "warning": "CONSPICUOUSLY SYNTHETIC; NOT AUTHORITY, EVIDENCE, CREDENTIALS, OR A RELEASE"
+}
