@@ -1,0 +1,43 @@
+{
+  "aggregate_algorithm": "sha256(jcs(entries))",
+  "decision_id": 104,
+  "entries": [
+    {
+      "bytes": 6674,
+      "path": "docs/project/semantic-evaluation-custody-broker-v1-evidence-note.md",
+      "sha256": "056ef68c266f5ff4e84a967b0dbce831a097a7cd8f45453aafef4534e493dbca"
+    },
+    {
+      "bytes": 4764,
+      "path": "docs/project/semantic-evaluation-custody-broker-v1-problem-brief.md",
+      "sha256": "a8a669757ba9e1be3c98e2b5c98770aa9f0af0f663b62643cd76a4f1053ebb8a"
+    },
+    {
+      "bytes": 5306,
+      "path": "docs/project/semantic-evaluation-custody-broker-v1-review-set-plan.md",
+      "sha256": "f41e2141a8ae120080b7c2b653dd9efcef7756fc809b69fb277db7f577104626"
+    },
+    {
+      "bytes": 28115,
+      "path": "docs/project/semantic-evaluation-custody-broker-v1-rfc.md",
+      "sha256": "6f8a0cb601486c67b402530325f8e87f74a58c96333be8dbc997db05517b04de"
+    },
+    {
+      "bytes": 14583,
+      "path": "docs/project/semantic-evaluation-custody-broker-v1-validation-rollout-rollback.md",
+      "sha256": "14e3747e497de93570fca181c6e9d1067ff59e245149d93ef510ef7f16cae23e"
+    },
+    {
+      "bytes": 15248,
+      "path": "docs/project/semantic-evaluation-custody-broker-v1/invariants.md",
+      "sha256": "7cef70d2b08375a1244fd97d947b7ef274de77e2efdea9bd3f0f797179a9877e"
+    },
+    {
+      "bytes": 194652,
+      "path": "docs/project/semantic-evaluation-custody-broker-v1/state-machine.json",
+      "sha256": "fd2c6394df654d1430b54ae9f0703b501875a5f6cd98323e00a2f7fbee616c8e"
+    }
+  ],
+  "packet_aggregate_sha256": "bcd1f056d5353d6b28183dbbdf1ff31b91b44870a4d88facb497c28e65244ec5",
+  "schema": "semantic-evaluation-custody-broker-packet-manifest.v1"
+}
