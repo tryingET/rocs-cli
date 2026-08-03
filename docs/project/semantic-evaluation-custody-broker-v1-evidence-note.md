@@ -28,7 +28,7 @@ The global-machine approach was structurally wrong, not merely unfinished. It at
 The appropriate correction is owner-local executable machines joined by immutable evidence contracts:
 
 - DSPx owns only runtime effects and execution evidence it truly mediates;
-- ROCS owns semantic and deterministic evaluation truth;
+- the semantic owner owns immutable policy meaning; ROCS owns deterministic evaluation under that owner-defined meaning;
 - Decision 53 continues to own publication/currentness;
 - Decision 104 owns only the cross-owner boundary and invariants.
 

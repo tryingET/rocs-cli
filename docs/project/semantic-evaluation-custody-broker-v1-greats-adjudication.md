@@ -41,7 +41,7 @@ What architecture should replace Decision 103's rejected combined proof graph wh
 
 - **Core claim:** Decisions should align with systems and teams that can implement, test, operate, and revise them independently.
 - **Premises:** Cross-owner designs fail when one repository specifies another owner's runtime in implementation detail. Small reversible decisions expose integration risk sooner.
-- **Strongest case:** DSPx already owns execution episodes and receipt-backed empirical evidence; ROCS owns semantics; Decision 53 already owns publication/currentness. Separate decisions let each owner accept its actual obligations.
+- **Strongest case:** DSPx already owns execution episodes and receipt-backed empirical evidence; the semantic owner owns immutable policy meaning; ROCS owns deterministic evaluation under that meaning; Decision 53 already owns publication/currentness. Separate decisions let each owner accept its actual obligations.
 - **What it sees that others miss:** Architectural review is not credible when the named owner has not accepted the machinery attributed to it.
 
 ## MODE 2 — CONFRONTATION
