@@ -5,9 +5,9 @@ read_when:
 type: "rfc"
 status: "in_review"
 decision_id: 106
-rfc_revision: "semantic-evaluation-machine-v1-r1"
+rfc_revision: "semantic-evaluation-machine-v1-r2"
 ---
-# RFC — Decision 106 deterministic semantic-evaluation boundary r1
+# RFC — Decision 106 deterministic semantic-evaluation boundary r2
 
 ## Decision requested
 
@@ -15,11 +15,11 @@ Return **`reject_current_direction`** for a Decision 106 semantic-evaluation mac
 
 The exact producer fixture is accepted and structurally verifiable, but it is intentionally digest-only and non-semantic. No semantic-owner policy bytes, subject preimages, typed preimage contract, or acquisition authority exist. Calling projection identity or schema conformance a semantic verdict would be an authority and evidence error.
 
-This RFC requests an explicit terminal rejection rather than an ADR for a fake machine. A future semantic owner may initiate a new decision after supplying independently reviewable policy meaning and authorized subject bytes. That future work must not reopen task `4618` or silently revise this rejection into implementation authority.
+This RFC requests an explicit rejection closure rather than an ADR for a fake machine. A future semantic owner may initiate a new decision after supplying independently reviewable policy meaning and authorized subject bytes. That future work must not reopen task `4618` or silently revise this rejection into implementation authority.
 
 ## Inputs reviewed
 
-Decision 106 r1 reviews exactly these prerequisite identities:
+Decision 106 r2 reviews exactly these prerequisite identities:
 
 - Decision 104 accepted owner partition, AK decision `104`, accepted ADR Git object `e319240d7de8d43f234c53558977248050507056`;
 - Decision 105 accepted projection-byte gate, task `4614`;
@@ -28,6 +28,8 @@ Decision 106 r1 reviews exactly these prerequisite identities:
 - exact schema: `8227` bytes, SHA-256 `d42569781d23c625627d92a9f37ea9c26211c92c403b0dcdb45b0360c386c532`.
 
 The producer-byte gate authorizes no ROCS consumption by itself. Task `4618` is the separate ROCS-owner decision-support authorization. The Decision 105 lifecycle is not represented here as fully closed; only its exact accepted implementation and byte gate are used.
+
+R1 at commit `c53a16a14562e1ed69ba4f49c171e35b62a2956f` reached unanimous substantive rejection, but its legal-next-move text incorrectly combined terminal state `superseded` with outcome `rejected` in a direct transition from `review_pending`. AK rejected that transition before mutation. R2 changes the workflow path only: current AK represents a reviewed rejection through `decision_pending -> tasks_reevaluation_pending(outcome=rejected) -> unblocked(outcome=rejected)`. R1 artifacts remain immutable history and cannot close Decision 106.
 
 ## Fixed authority partition
 
@@ -111,15 +113,19 @@ If strict review agrees, the legal next move is:
 
 1. preserve this RFC and all lane results as immutable rejection evidence;
 2. record no Decision 106 ADR;
-3. transition Decision 106 to terminal `superseded` with outcome `rejected` and this controlling synthesis as evidence;
-4. complete task `4618` as reviewed owner-boundary adjudication;
-5. keep Decision 107 blocked because Decision 106 exposes no accepted output interface.
+3. advance Decision 106 from `review_pending` to `decision_pending` without setting an outcome;
+4. advance it from `decision_pending` to `tasks_reevaluation_pending` with outcome `rejected` and the controlling r2 synthesis as evidence;
+5. reevaluate decision-support task `4618` as `still_valid`, record its evidence, and complete it as reviewed owner-boundary adjudication;
+6. advance Decision 106 from `tasks_reevaluation_pending` to `unblocked`, retaining outcome `rejected` and no ADR;
+7. keep Decision 107 blocked because Decision 106 exposes no accepted output interface.
+
+For a rejected decision, AK's final `unblocked` state means task reevaluation is complete; it does not mean accepted architecture, implementation readiness, or execution authority. The controlling outcome remains `rejected`.
 
 If any lane finds a constructible existing input or a material wording defect, it must return `revise_rfc` rather than forcing rejection or ADR readiness. `ready_for_adr` is lawful only if exact existing inputs support a real semantic machine; this RFC identifies none.
 
 ## Future reopening boundary
 
-A future proposal must use a new decision and task after the semantic owner provides exact policy and authorized subject contracts. It must cite this rejection, preserve Decision 105's nonclaims, and rerun strict producer/semantic/ROCS/governance review. It cannot treat future owner inputs as retroactive evidence for Decision 106 r1.
+A future proposal must use a new decision and task after the semantic owner provides exact policy and authorized subject contracts. It must cite this rejection, preserve Decision 105's nonclaims, and rerun strict producer/semantic/ROCS/governance review. It cannot treat future owner inputs as retroactive evidence for Decision 106 r2.
 
 ## Non-authorization
 

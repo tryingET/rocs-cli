@@ -1,5 +1,5 @@
 ---
-summary: "Exact-byte four-lane strict review plan for Decision 106 r1 constructibility adjudication."
+summary: "Exact-byte four-lane strict review plan for Decision 106 r2 constructibility and rejection-workflow adjudication."
 read_when:
   - "Running or synthesizing Decision 106 review."
 type: "review_set_plan"
@@ -8,7 +8,7 @@ decision_id: 106
 review_mode: "strict_convergence"
 review_closure_mode: "multi_lane_requires_synthesis"
 ---
-# Review set plan — Decision 106 r1
+# Review set plan — Decision 106 r2
 
 ## Reviewed set
 
@@ -40,7 +40,7 @@ The external prerequisite is immutable and excluded from this repository aggrega
 | ROCS constructibility | Can ROCS execute a semantic predicate from existing exact inputs? | accepted bytes, canonicalization, available operands, deterministic derivation, failure classification, no conformance/verdict conflation |
 | Semantic-owner boundary | Is policy meaning and subject selection supplied by its owner? | policy bytes/identity/provenance, subject preimages, acquisition rights, verdict vocabulary/precedence, no ROCS invention |
 | DSPx producer contract | Does the RFC preserve Decision 105 evidence and nonclaims exactly? | digest-only disclosure, return/failure meaning, eligibility, replay, generic schema versus exact fixture, incomplete lifecycle-closure caveat |
-| Governance/security | Does any result escalate authority or enable substitution? | whole-object and field-role substitution, Decision 53/107 boundary, AK non-authority, no publication/currentness/activation |
+| Governance/security | Does any result escalate authority or enable substitution? | whole-object and field-role substitution, Decision 53/107 boundary, AK non-authority, no publication/currentness/activation, exact representability of the rejected-outcome AK path |
 
 ## Lane protocol
 
@@ -50,9 +50,10 @@ Each lane must:
 2. independently reproduce the external projection length/hash and schema hash;
 3. classify each finding as blocker, material improvement, or note;
 4. state whether any currently accepted artifact supplies semantic policy bytes, subject preimages, typed digest joins, and acquisition authority;
-5. state one explicit outcome: `ready_for_adr`, `revise_rfc`, or `reject_current_direction`;
-6. state the legal next move;
-7. grant no implementation, Decision 107, data access, publication, activation, or live authority.
+5. verify the r2 legal path is exactly representable by AK and that `unblocked` with outcome `rejected` grants no ADR or implementation authority;
+6. state one explicit outcome: `ready_for_adr`, `revise_rfc`, or `reject_current_direction`;
+7. state the legal next move;
+8. grant no implementation, Decision 107, data access, publication, activation, or live authority.
 
 A reviewer timeout, transport failure, missing hash reproduction, scope mismatch, or invented owner fact yields no verdict.
 
@@ -67,6 +68,7 @@ Strict convergence applies; there is no vote or threshold.
 - zero unresolved blocker or material wording defect in the rejection packet;
 - exact agreement that conformance cannot be relabeled as semantic verdict;
 - exact agreement that future owner-supplied policy/subject contracts require a new decision;
+- exact agreement that the current AK rejection path is `review_pending -> decision_pending -> tasks_reevaluation_pending(outcome=rejected) -> unblocked(outcome=rejected)` with no ADR;
 - explicit confirmation that Decision 107 remains blocked.
 
 Any material packet defect forces `revise_rfc`. Any architecture-shaping disagreement prevents synthesis. `ready_for_adr` requires a constructible current machine and therefore cannot be inferred from prerequisite acceptance alone.
@@ -81,3 +83,4 @@ Stop without synthesis if:
 - a reviewer treats schema validity, a digest, a return, a receipt, a test, Git, or AK state as semantic truth;
 - a reviewer invents policy meaning, raw-data access, producer eligibility, publication/currentness, or Decision 107 authority;
 - final Decision 105 lifecycle closure is claimed without canonical owner evidence.
+- a reviewer treats rejected `unblocked` workflow state as accepted architecture or execution authority.
