@@ -115,6 +115,8 @@ def copy_validator_candidate(candidate: Path) -> Path:
     (candidate / "scripts").mkdir()
     for name in ("protocol.schema.json", "validate_vectors.py", "validate_vectors.mjs"):
         shutil.copy2(PACKET / name, packet / name)
+    for name in ("python", "node"):
+        shutil.copytree(PACKET / name, packet / name)
     for name in FROZEN_PATHS:
         destination = candidate / name
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -265,24 +267,44 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
                     self.assertFalse(schema_accepts(event, event_schema, schema))
 
     def test_validators_are_independent_stdlib_executors_without_behavior_oracles(self) -> None:
-        python_path = PACKET / "validate_vectors.py"
-        node_path = PACKET / "validate_vectors.mjs"
-        python_source = python_path.read_text("utf-8")
-        node_source = node_path.read_text("utf-8")
-        tree = ast.parse(python_source)
-        imports = {
-            alias.name.split(".")[0]
-            for node in ast.walk(tree)
-            if isinstance(node, ast.Import)
-            for alias in node.names
-        }
-        imports.update(
-            node.module.split(".")[0]
-            for node in ast.walk(tree)
-            if isinstance(node, ast.ImportFrom) and node.module is not None
+        python_paths = [PACKET / "validate_vectors.py", *sorted((PACKET / "python").glob("*.py"))]
+        node_paths = [PACKET / "validate_vectors.mjs", *sorted((PACKET / "node").glob("*.mjs"))]
+        python_sources = {path: path.read_text("utf-8") for path in python_paths}
+        node_sources = {path: path.read_text("utf-8") for path in node_paths}
+
+        standard_imports: set[str] = set()
+        local_imports: set[str] = set()
+        for source in python_sources.values():
+            tree = ast.parse(source)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    standard_imports.update(alias.name.split(".")[0] for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.module is not None:
+                    target = node.module.split(".")[0]
+                    (local_imports if target == "python" else standard_imports).add(target)
+        self.assertLessEqual(
+            standard_imports,
+            {"__future__", "base64", "binascii", "hashlib", "json", "re", "struct", "sys", "unicodedata", "pathlib", "typing"},
         )
-        self.assertLessEqual(imports, {"__future__", "base64", "binascii", "hashlib", "json", "re", "struct", "sys", "unicodedata", "pathlib", "typing"})
-        self.assertEqual(re.findall(r'from\s+"([^"]+)"', node_source), ["node:crypto", "node:fs", "node:path", "node:url"])
+        self.assertEqual(local_imports, {"python"})
+
+        node_source = "\n".join(node_sources.values())
+        node_imports = set(re.findall(r'from\s+"([^"]+)"', node_source))
+        self.assertEqual(
+            node_imports,
+            {
+                "node:crypto",
+                "node:fs",
+                "node:path",
+                "node:url",
+                "./common.mjs",
+                "./node/common.mjs",
+                "./node/protocol.mjs",
+                "./schedule.mjs",
+            },
+        )
+
+        python_source = "\n".join(python_sources.values())
         self.assertNotIn("validate_vectors.mjs", python_source)
         self.assertNotIn("validate_vectors.py", node_source)
         for source in (python_source, node_source):
@@ -290,7 +312,10 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
             self.assertNotIn("semantic-release-v0", source)
             self.assertNotIn("semantic-pi-delivery", source)
 
-        python_runner = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "run_attempt")
+        protocol_tree = ast.parse((PACKET / "python" / "protocol.py").read_text("utf-8"))
+        python_runner = next(
+            node for node in protocol_tree.body if isinstance(node, ast.FunctionDef) and node.name == "run_attempt"
+        )
         spec_keys = {
             node.slice.value
             for node in ast.walk(python_runner)
@@ -301,9 +326,23 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
             and isinstance(node.slice.value, str)
         }
         self.assertFalse({"id", "expected"} & spec_keys)
-        node_runner = node_source[node_source.index("function runAttempt"):node_source.index("function frozenAggregate")]
+        node_protocol = node_sources[PACKET / "node" / "protocol.mjs"]
+        node_runner = node_protocol[node_protocol.index("function runAttempt"):node_protocol.index("export { runAttempt }")]
         self.assertNotRegex(node_runner, r"\bspec\s*(?:\.id|\[\s*['\"]id['\"]\s*\])")
         self.assertNotRegex(node_runner, r"\bspec\s*(?:\.expected|\[\s*['\"]expected['\"]\s*\])")
+
+    def test_validator_modules_stay_within_code_readability_budget(self) -> None:
+        paths = [
+            PACKET / "validate_vectors.py",
+            PACKET / "validate_vectors.mjs",
+            *sorted((PACKET / "python").glob("*.py")),
+            *sorted((PACKET / "node").glob("*.mjs")),
+        ]
+        for path in paths:
+            with self.subTest(path=path.relative_to(ROOT)):
+                raw = path.read_bytes()
+                self.assertLessEqual(len(raw), 50_000)
+                self.assertLessEqual(len(raw.decode("utf-8").splitlines()), 500)
 
     def test_standalone_validators_report_full_independent_conformance(self) -> None:
         reports = []
