@@ -60,6 +60,13 @@ Scope (MVP):
 - Emit `authority-receipt.json` plus per-command `authority-receipt.<command>.json` artifacts inside that managed `dist/` directory for `build`/`validate` runs so local consumers can see authority mode and per-layer resolution sources without losing multi-step evidence.
 - Resolve layered ontology refs from a local workspace only.
 
+Ontology source contract (opt-in):
+- A layer opts in only through `rocs.source_contract: ontology-markdown-v1` in the `manifest.yaml` adjacent to that layer's `src/` root. Layers without the selector retain legacy behavior; mixed views dispatch each layer separately before cross-layer identity/reference checks.
+- V1 admits the closed 1 MiB, strict-UTF-8, exact-delimiter frontmatter profile and exact concept/relation paths and fields documented in [`docs/project/ontology-markdown-v1.md`](docs/project/ontology-markdown-v1.md). YAML duplicates, aliases, merges, tags, non-string keys, unknown fields, malformed lifecycle/reference data, unsafe membership, and placeholders fail closed.
+- Every interpreting source operation uses the shared dispatcher: validate/build/summary/lint/diff/graph/inverse checks/normalize, both pack modes, discover/route, and transaction source reads. `rules` and the current `explain` implementation do not open source documents.
+- A `rocs-source-contract-conformance.v1` claim is source-contract/schema/reference-only, binds the exact admitted corpus digest and operation, and is emitted only after complete success. Rejected, partial, or resource-exhausted operations emit no such claim. It is not a semantic-correctness, publication, adoption, activation, or currentness verdict.
+- `context create` is deliberately raw UTF-8 custody: its capsule contains no source-conformance claim. Any transaction or other later interpreter re-admits selected bytes through the layer contract.
+
 Layer refs (optional):
 - Supported locator form: `<repo:<workspace-relative-project-path>@<ref>>`
   - example: `<repo:core/ontology-kernel@main>`
@@ -115,7 +122,7 @@ CI profile wrapper (template-side policy contract):
   - `main-strict`: requires `--resolve-refs` and defaults workspace matching to `strict` (authoritative fail-closed gate)
 - `ROCS_WORKSPACE_REF_MODE` remains an explicit override when a caller intentionally needs different behavior.
 - This same wrapper is the recommended local hook/Pi entrypoint for pre-push or pre-merge checks.
-- Bootstrapped consumers run the checked-in `tools/rocs-cli` bundle with isolated system `python3 -I -S -B`; the generated wrapper verifies an embedded digest of `VENDORED_HASHES.json` and then every bundled file before import. It does not require `uv`, a source checkout, network access, or ambient `PYTHONPATH`. Bootstrap from an installed wheel or sdist uses immutable packaged seed assets; explicit `rocs vendor TARGET` remains source-project based.
+- Bootstrapped consumers run the checked-in `tools/rocs-cli` bundle with isolated system `python3 -I -S -B`; the generated wrapper verifies an embedded digest of `VENDORED_HASHES.json` and then every bundled file before import. It does not require `uv`, a source checkout, network access, or ambient `PYTHONPATH`. Explicit `rocs vendor TARGET` is source-project based; schema-3 generation requires a provenance-bearing Git SHA-1 checkout (or an already verified schema-3 bundle for re-vendoring).
 - Bootstrap serializes publication with a persistent external sibling lock named `.<repo>.rocs-bootstrap.lock`; it preflights and reports that coordination path separately, never exchanges or unlinks its inode, and creates no undeclared lock inside the consumer tree.
 - `ontology_repo` consumers use root `manifest.yaml` and `src/`; required/optional consumers retain the nested `ontology/` layout. Generated hooks resolve the repository from their installed path, matching Git's real hook invocation contract.
 - See `docs/ref-resolution-ci-strategy.md` for the architecture/policy rationale and migration guidance.
@@ -131,7 +138,7 @@ Constitutional foundry (proposal-only, offline):
 - Rule adoption/activation is outside this repository/runtime and requires a separate owner decision and an ordinary reviewed deterministic Python implementation. See `docs/project/wave4-constitution-coverage.md`.
 
 Intelligence membrane (optional, offline by default):
-- `context create` emits a canonical, content-addressed schema-1 capsule from explicitly named UTF-8 files. Inputs are tagged `path` or `ref`; symlinks, traversal, duplicate paths, and files outside `--root` fail closed.
+- `context create` emits a canonical, content-addressed schema-1 raw-custody capsule from explicitly named UTF-8 files. Inputs are tagged `path` or `ref`; symlinks, traversal, duplicate paths, and files outside `--root` fail closed. Capture neither parses ontology Markdown nor emits source-contract/semantic conformance; interpreting transaction paths re-admit opted-in bytes.
 - A model/adapter may only consume capsule bytes and return proposal bytes. The importable `ProposalAdapter` protocol grants no shell, filesystem, network, validation, or approval authority, and ROCS invokes no adapter or network by default.
 - `proposal validate` treats strict JSON proposals as untrusted data. Unknown fields/capabilities, digest drift, undeclared paths, and ref-layer writes fail closed.
 - `proposal compile` additionally requires a separate schema-1 operator approval bound to the proposal digest. It emits a deterministic schema-1 plan and never applies operations. `--out` is a relative path bounded by an existing `--artifact-root`, which must be disjoint from `--ontology-root`; absolute paths, traversal, symlinks, command-input collisions, and capsule path/ref-layer collisions fail closed. Plans bind tool/registry versions, capsule/proposal/approval digests, closed capabilities, exact paths, human authority, verifier, rollback, and proposed operations.
@@ -140,7 +147,7 @@ Intelligence membrane (optional, offline by default):
 Wave 1 convergence CLI (the former script API was removed with no shims):
 - `rocs bootstrap TARGET --class required|optional|ontology_repo [--dry-run]` installs the complete class contract.
 - `rocs converge TARGET --class required|optional|ontology_repo [--dry-run]` idempotently restores that contract and removes replaced generated scripts.
-- `rocs vendor TARGET [--release-version X.Y.Z] [--dry-run]` publishes `pyproject.toml`, `README.md`, the complete package, and schema-2 `VENDORED_HASHES.json`.
+- `rocs vendor TARGET [--release-version X.Y.Z] [--dry-run]` publishes `pyproject.toml`, `README.md`, the complete package, and one schema-3 `VENDORED_HASHES.json` materialization receipt. The receipt binds the current 40-hex Git SHA-1 commit, exact bundled `uv.lock`, every regular bundle file, and a SHA-256-over-JCS manifest digest.
 - `rocs fleet` provides distinct `observe`, `plan`, `apply`, and `run` operations. Each takes a workspace root and policy; apply supports dry-run and run supports audit-only, patch, or apply mode.
 - `rocs release plan|apply --version X.Y.Z`, `rocs verify PATH`, `rocs cleanup`, and `rocs doctor` provide release, integrity, maintenance, and standalone acceptance operations.
 - Scheduling assets retained under `scripts/{cron,systemd}` invoke `rocs fleet run`; they contain no operational behavior.
@@ -187,6 +194,10 @@ removed without a compatibility shim and replaced by closed conditional
 filesystem-effect and required-authority-artifact rules. See
 [`docs/project/wave7-effects-contract-coverage.md`](docs/project/wave7-effects-contract-coverage.md).
 
-A consumer is pinned by `VENDORED_HASHES.json` schema 2. `rocs vendor TARGET`
-publishes the complete package and lock; `rocs verify TARGET` checks identity and
-every locked byte. It does not depend on a sibling checkout or workspace PATH.
+A consumer is pinned by `VENDORED_HASHES.json` schema 3. `rocs vendor TARGET`
+publishes one exact package materialization; `rocs verify TARGET` checks the
+Git-SHA-1-shaped source commit, bundled lock digest, complete path/hash set, and
+RFC 8785/JCS receipt digest. This proves exact local bundle identity and
+provenance only—not canonical cross-builder bytes, package publication, semantic
+correctness, or consumer adoption/currentness. Verification does not depend on a
+sibling checkout or workspace PATH.

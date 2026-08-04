@@ -131,7 +131,17 @@ def cmd_route(args: argparse.Namespace) -> int:
         )
         if any(layer.kind != "path" or layer.source != "path" for layer in layers):
             raise RouteProtocolError("invalid_ontology")
-        layers = [LayerSpec(layer.name, repo / layer.origin, layer.origin, layer.kind, layer.source) for layer in layers]
+        layers = [
+            LayerSpec(
+                layer.name,
+                repo / layer.origin,
+                layer.origin,
+                layer.kind,
+                layer.source,
+                layer.source_contract,
+            )
+            for layer in layers
+        ]
         corpus = capture_corpus(
             layers,
             profile=str(request["profile"]),

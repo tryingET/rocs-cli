@@ -20,6 +20,21 @@ class TransactionError(MembraneError):
     pass
 
 
+def _admit_interpreted_source(root: Path, operation: str) -> dict[str, Any] | None:
+    """Re-admit source bytes only for opted-in layers; raw context capture never calls this."""
+    try:
+        from rocs_cli.repo_view import load_repo_view
+        from rocs_cli.source_contract import SOURCE_CONTRACT_V1
+
+        shallow = load_repo_view(root, profile=None, resolve_refs=True, load_docs=False)
+        if not any(layer.source_contract == SOURCE_CONTRACT_V1 for layer in shallow.layers):
+            return None
+        view = load_repo_view(root, profile=None, resolve_refs=True)
+        return view.source_conformance(operation, complete_success=True)
+    except Exception as exc:
+        raise TransactionError(f"{operation} source-contract admission failed: {exc}") from exc
+
+
 def _sha(data: bytes) -> str:
     return "sha256:" + hashlib.sha256(data).hexdigest()
 
@@ -162,6 +177,7 @@ def validate_authority_artifact(value: Any, capsule: Any, owner: str, ontology_r
 
 def prepare_transaction(plan: Any, capsule: Any, ontology_root: Path, effects: Any, owner: str, authority_artifact: Any) -> dict[str, Any]:
     p = validate_plan(plan, capsule); cap = validate_capsule_current(capsule, ontology_root)
+    _admit_interpreted_source(ontology_root, "transaction.prepare")
     if not isinstance(owner, str) or not owner.startswith("owner:") or owner == "owner:" or owner.strip() != owner:
         raise TransactionError("invalid owner")
     authority = validate_authority_artifact(authority_artifact, cap, owner, ontology_root)
@@ -242,10 +258,22 @@ def _check_preimages(t: dict[str, Any], root: Path) -> None:
             raise TransactionError(f"base bytes or mode drift: {item['path']}")
 
 
-def simulate_transaction(tx: Any, plan: Any, capsule: Any, root: Path, authority_artifact: Any) -> dict[str, Any]:
+def simulate_transaction(
+    tx: Any,
+    plan: Any,
+    capsule: Any,
+    root: Path,
+    authority_artifact: Any,
+    *,
+    _operation: str = "transaction.simulate",
+) -> dict[str, Any]:
     t = validate_transaction(tx); p = validate_plan(plan, capsule); cap = validate_capsule_current(capsule, root); authority = validate_authority_artifact(authority_artifact, cap, t["owner"], root)
+    conformance = _admit_interpreted_source(root, _operation)
     _binding(t, p, cap, authority); _check_preimages(t, root)
-    return {"ok": True, "transaction_digest": t["transaction_digest"], "writes": len(t["operations"]), "mutated": False}
+    result: dict[str, Any] = {"ok": True, "transaction_digest": t["transaction_digest"], "writes": len(t["operations"]), "mutated": False}
+    if conformance is not None:
+        result["source_contract_conformance"] = conformance
+    return result
 
 
 def _approval(value: Any, digest: str) -> str:
@@ -275,14 +303,24 @@ def _receipt(value: Any, tx: Any) -> dict[str, Any]:
     return r
 
 
-def verify_receipt(receipt: Any, tx: Any, root: Path) -> dict[str, Any]:
+def verify_receipt(
+    receipt: Any,
+    tx: Any,
+    root: Path,
+    *,
+    _operation: str = "transaction.verify",
+) -> dict[str, Any]:
     r = _receipt(receipt, tx); root = _safe_root(root, "ontology root")
+    conformance = _admit_interpreted_source(root, _operation)
     for item in r["postimages"]:
         target = _contained_file(root, item["path"])
         if (_sha(target.read_bytes()) != item["sha256"]
                 or stat.S_IMODE(os.lstat(target).st_mode) != item["mode"]):
             raise TransactionError(f"post-apply drift: {item['path']}")
-    return {"ok": True, "receipt_digest": r["receipt_digest"], "status": r["status"]}
+    result: dict[str, Any] = {"ok": True, "receipt_digest": r["receipt_digest"], "status": r["status"]}
+    if conformance is not None:
+        result["source_contract_conformance"] = conformance
+    return result
 
 
 # Persistence and generation-atomic lifecycle implementation lives separately.

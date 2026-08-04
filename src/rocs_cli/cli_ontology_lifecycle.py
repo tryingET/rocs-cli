@@ -42,6 +42,7 @@ def cmd_resolve(args: argparse.Namespace) -> int:
             "src_root": str(layer_spec.src_root),
             "kind": layer_spec.kind,
             "source": layer_spec.source,
+            "source_contract": layer_spec.source_contract,
         }
         if args.show_resolve_details:
             entry["details"] = (resolution_notes or {}).get(layer_spec.name)
@@ -93,6 +94,7 @@ def cmd_summary(args: argparse.Namespace) -> int:
             "src_root": str(layer_spec.src_root),
             "kind": layer_spec.kind,
             "source": layer_spec.source,
+            "source_contract": layer_spec.source_contract,
         }
         if args.show_resolve_details:
             entry["details"] = (resolution_notes or {}).get(layer_spec.name)
@@ -106,6 +108,9 @@ def cmd_summary(args: argparse.Namespace) -> int:
         "layers": layer_entries,
         "counts": {"concepts": len(view.concepts), "relations": len(view.relations)},
     }
+    conformance = view.source_conformance("summary", complete_success=True)
+    if conformance is not None:
+        payload["source_contract_conformance"] = conformance
     if not args.json:
         get_console().print(f"repo: {repo}")
         get_console().print(f"profile: {profile_name}")
@@ -187,6 +192,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
     )
 
     ok = not findings
+    conformance = view.source_conformance("validate", complete_success=ok)
     _write_authority_receipt_if_possible(
         repo,
         command="validate",
@@ -196,6 +202,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
         workspace_ref_mode=ws_mode,
         layers=view.layers,
         result=_finding_summary(findings),
+        source_contract_conformance=conformance,
     )
     if findings:
         if args.json:
@@ -208,7 +215,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
         return 1
 
     if args.json:
-        get_console().print_json(json.dumps({"ok": True, "findings": [], "budget": budget_payload}))
+        success_payload: dict[str, object] = {"ok": True, "findings": [], "budget": budget_payload}
+        if conformance is not None:
+            success_payload["source_contract_conformance"] = conformance
+        get_console().print_json(json.dumps(success_payload))
     else:
         get_console().print("[green]rocs validate: OK[/green]")
     return 0
@@ -283,6 +293,7 @@ def cmd_build(args: argparse.Namespace) -> int:
         json.dumps(build_id_index(concepts=view.concepts, relations=view.relations), indent=2, sort_keys=True) + "\n",
         "utf-8",
     )
+    conformance = view.source_conformance("build", complete_success=True)
     authority_receipt_out = _write_authority_receipt_if_possible(
         repo,
         command="build",
@@ -291,6 +302,7 @@ def cmd_build(args: argparse.Namespace) -> int:
         resolve_refs_requested=bool(args.resolve_refs),
         workspace_ref_mode=ws_mode,
         layers=view.layers,
+        source_contract_conformance=conformance,
     )
     if args.json:
         files = {
@@ -311,6 +323,7 @@ def cmd_build(args: argparse.Namespace) -> int:
                         "files": files,
                     },
                     "counts": payload.get("counts"),
+                    **({"source_contract_conformance": conformance} if conformance is not None else {}),
                 }
             )
         )

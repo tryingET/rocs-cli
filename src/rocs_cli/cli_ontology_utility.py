@@ -21,6 +21,7 @@ from rocs_cli.inverses import check_inverses
 from rocs_cli.layers import parse_ref_locator, repo_root as _repo_root, resolve_layers, resolve_ref_repo_root
 from rocs_cli.lint import lint_docs
 from rocs_cli.managed_surface import ensure_managed_output_file
+from rocs_cli.model import collect_docs
 from rocs_cli.normalize import normalize_tree
 from rocs_cli.pack import build_pack, pack_config_from_profile
 from rocs_cli.rules import RULES
@@ -93,16 +94,16 @@ def cmd_pack(args: argparse.Namespace) -> int:
 
     packed, pack_meta = build_pack(concepts=view.concepts, relations=view.relations, root_id=cid, config=cfg)
     if args.json:
-        get_console().print_json(
-            json.dumps(
-                {
-                    "repo": str(view.repo),
-                    "profile": view.meta.get("profile"),
-                    "pack": pack_meta,
-                    "docs": [{"ont_id": d.ont_id, "kind": d.kind, "path": d.path} for d in packed],
-                }
-            )
-        )
+        payload: dict[str, object] = {
+            "repo": str(view.repo),
+            "profile": view.meta.get("profile"),
+            "pack": pack_meta,
+            "docs": [{"ont_id": d.ont_id, "kind": d.kind, "path": d.path} for d in packed],
+        }
+        conformance = view.source_conformance("pack", complete_success=True)
+        if conformance is not None:
+            payload["source_contract_conformance"] = conformance
+        get_console().print_json(json.dumps(payload))
         return 0
 
     first = True
@@ -131,30 +132,40 @@ def cmd_lint(args: argparse.Namespace) -> int:
             raise SystemExit(f"unknown lint rule ids: {unknown}")
     if rule_filter is not None:
         findings = [f for f in findings if f.rule_id in rule_filter]
+    failed = bool(findings and fail_on_warn)
     if args.json:
-        get_console().print_json(json.dumps({"findings": _findings_to_json(findings)}))
+        payload: dict[str, object] = {"findings": _findings_to_json(findings)}
+        conformance = view.source_conformance("lint", complete_success=not failed)
+        if conformance is not None:
+            payload["source_contract_conformance"] = conformance
+        get_console().print_json(json.dumps(payload))
     else:
         if findings:
             get_console().print("[yellow]rocs lint[/yellow]")
             _print_findings(findings)
         else:
             get_console().print("[green]rocs lint: OK[/green]")
-    if findings and fail_on_warn:
+    if failed:
         return 1
     return 0
 
 def cmd_check_inverses(args: argparse.Namespace) -> int:
     view = _load_view(args)
     findings = check_inverses(view.relations, fix=args.fix)
+    failed = any(f.severity == "error" for f in findings)
     if args.json:
-        get_console().print_json(json.dumps({"findings": _findings_to_json(findings)}))
+        payload: dict[str, object] = {"findings": _findings_to_json(findings)}
+        conformance = view.source_conformance("check-inverses", complete_success=not failed)
+        if conformance is not None:
+            payload["source_contract_conformance"] = conformance
+        get_console().print_json(json.dumps(payload))
     else:
         if not findings:
             get_console().print("[green]rocs check-inverses: OK[/green]")
         else:
             get_console().print("[yellow]rocs check-inverses[/yellow]")
             _print_findings(findings)
-    if any(f.severity == "error" for f in findings):
+    if failed:
         return 1
     return 0
 
@@ -186,7 +197,11 @@ def cmd_graph(args: argparse.Namespace) -> int:
     fmt = "json" if args.json else args.format
     write_graph(out, fmt=fmt, nodes=nodes, edges=edges, layout=layout, direction=direction)
     if args.json:
-        get_console().print_json(json.dumps({"ok": True, "out": str(out), "format": fmt}))
+        payload: dict[str, object] = {"ok": True, "out": str(out), "format": fmt}
+        conformance = view.source_conformance("graph", complete_success=True)
+        if conformance is not None:
+            payload["source_contract_conformance"] = conformance
+        get_console().print_json(json.dumps(payload))
     else:
         get_console().print(f"[green]wrote[/green] {out}")
     return 0
@@ -235,11 +250,14 @@ def cmd_normalize(args: argparse.Namespace) -> int:
         only="path",
         layer=args.layer,
     )
+    concepts, relations = collect_docs(layers)
+    admitted = [*concepts.values(), *relations.values()]
     changed_paths: list[str] = []
     for layer_spec in layers:
-        for c in normalize_tree(layer_spec.src_root, apply=args.apply):
-            if c.changed:
-                changed_paths.append(str(c.path))
+        layer_docs = [doc for doc in admitted if doc.layer_name == layer_spec.name]
+        for change in normalize_tree(layer_spec.src_root, apply=args.apply, documents=layer_docs):
+            if change.changed:
+                changed_paths.append(str(change.path))
 
     if changed_paths and not args.apply:
         get_console().print("[yellow]rocs normalize: changes needed (rerun with --apply)[/yellow]")

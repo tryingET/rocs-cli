@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -12,6 +13,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from rocs_cli import __version__
 
@@ -178,6 +180,21 @@ class Wave1ContractTests(unittest.TestCase):
         self.assertEqual(normalize_header(seed_lock), normalize_header(root_lock))
         self.assertIn(f'version = "{__version__}"', (assets / "pyproject.toml").read_text("utf-8"))
 
+    def test_installed_bootstrap_without_commit_provenance_retains_schema_two(self) -> None:
+        from rocs_cli.wave1 import bootstrap
+
+        root = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "consumer"
+            shutil.copytree(root / "tests/fixtures/standalone-consumer", repo)
+            with patch("rocs_cli.wave1._source_commit", return_value=None):
+                result = bootstrap(repo, "required")
+            receipt = json.loads(
+                (repo / "tools/rocs-cli/VENDORED_HASHES.json").read_text("utf-8")
+            )
+            self.assertEqual(result["schema_version"], 2)
+            self.assertEqual(receipt["schema_version"], 2)
+
     def test_vendor_dry_run_version_and_target_boundaries(self) -> None:
         from rocs_cli.wave1 import vendor
 
@@ -192,7 +209,22 @@ class Wave1ContractTests(unittest.TestCase):
             self.assertIn('version = "9.8.7-test"', (target / "pyproject.toml").read_text("utf-8"))
             self.assertIn('name = "rocs-cli"\nversion = "9.8.7-test"', (target / "uv.lock").read_text("utf-8"))
             manifest = json.loads((target / "VENDORED_HASHES.json").read_text("utf-8"))
+            self.assertEqual(manifest["schema_version"], 3)
             self.assertEqual(manifest["upstream_version"], "9.8.7-test")
+            self.assertEqual(
+                manifest["source_commit"],
+                subprocess.run(
+                    ["git", "-C", str(root), "rev-parse", "--verify", "HEAD^{commit}"],
+                    check=True,
+                    text=True,
+                    capture_output=True,
+                ).stdout.strip(),
+            )
+            self.assertEqual(
+                manifest["uv_lock_sha256"],
+                hashlib.sha256((target / "uv.lock").read_bytes()).hexdigest(),
+            )
+            self.assertRegex(manifest["bundle_manifest_digest"], r"^sha256:[0-9a-f]{64}$")
             with self.assertRaises(ValueError):
                 vendor(root, root / "nested-artifact", dry_run=True)
 
@@ -207,6 +239,15 @@ class Wave1ContractTests(unittest.TestCase):
             shutil.copytree(root / "src/rocs_cli", package)
             for name in ("pyproject.toml", "README.md", "uv.lock"):
                 shutil.copy2(root / name, source / name)
+            subprocess.run(["git", "init", "-q", str(source)], check=True)
+            subprocess.run(["git", "-C", str(source), "add", "."], check=True)
+            subprocess.run(
+                [
+                    "git", "-C", str(source), "-c", "user.name=ROCS Test",
+                    "-c", "user.email=rocs-test@example.invalid", "commit", "-qm", "fixture",
+                ],
+                check=True,
+            )
 
             for cache_name in (".ruff_cache", ".mypy_cache", ".pytest_cache"):
                 cache = package / "_bootstrap_assets" / cache_name

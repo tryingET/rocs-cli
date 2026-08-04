@@ -13,6 +13,7 @@ from typing import Any
 from rocs_cli.intelligence import _canonical, _digest, _exact
 from rocs_cli.transactions import (
     TransactionError,
+    _admit_interpreted_source,
     _approval,
     _contained_file,
     _receipt,
@@ -238,7 +239,7 @@ def apply_transaction(tx: Any, plan: Any, capsule: Any, approval: Any, root: Pat
         recovery_complete = True
         if out.exists() or out.is_symlink():
             raise TransactionError("content-addressed receipt already exists")
-        simulate_transaction(t, plan, capsule, root, authority_artifact)
+        simulate_transaction(t, plan, capsule, root, authority_artifact, _operation="transaction.apply")
         stage = Path(tempfile.mkdtemp(prefix=".rocs-generation-", dir=root.parent)); shutil.copytree(root, stage, dirs_exist_ok=True, symlinks=True)
         for op in t["operations"]: (stage / op["path"]).write_text(op["content"], "utf-8")
         _full_validate(stage)
@@ -256,7 +257,7 @@ def apply_transaction(tx: Any, plan: Any, capsule: Any, approval: Any, root: Pat
         if inject_failure == "after_exchange": raise TransactionError("injected failure after exchange")
         if inject_failure == "receipt_write": raise TransactionError("injected receipt write failure")
         _write_exclusive(out, receipt)
-        verify_receipt(receipt, t, root)
+        verify_receipt(receipt, t, root, _operation="transaction.apply")
         if inject_failure == "after_receipt": raise TransactionError("injected failure after durable receipt")
         journal.unlink(); _fsync_dir(rr); shutil.rmtree(stage); return receipt
     except BaseException:
@@ -323,8 +324,13 @@ def rollback_transaction(receipt: Any, tx: Any, root: Path, inject_failure: str 
     try:
         recovered = _recover_all_pending(root, root.parent)
         if r["transaction_digest"] in recovered:
-            return {"ok": True, "receipt_digest": r["receipt_digest"], "status": "rolled_back"}
-        verify_receipt(r, tx, root)
+            result: dict[str, Any] = {"ok": True, "receipt_digest": r["receipt_digest"], "status": "rolled_back"}
+            conformance = _admit_interpreted_source(root, "transaction.rollback")
+            if conformance is not None:
+                result["source_contract_conformance"] = conformance
+            return result
+        verified = verify_receipt(r, tx, root, _operation="transaction.rollback")
+        conformance = verified.get("source_contract_conformance")
         stage = Path(tempfile.mkdtemp(prefix=".rocs-rollback-", dir=root.parent)); exchanged = False
         journal = root.parent / ".rocs-rollback-pending.json"
         try:
@@ -332,6 +338,9 @@ def rollback_transaction(receipt: Any, tx: Any, root: Path, inject_failure: str 
             for item in r["preimages"]:
                 target = stage / item["path"]
                 target.write_bytes(bytes.fromhex(item["content_hex"])); target.chmod(item["mode"])
+            restored_conformance = _admit_interpreted_source(stage, "transaction.rollback")
+            if restored_conformance is not None:
+                conformance = restored_conformance
             _fsync_tree(stage)
             j = {"schema_version": 1, "kind": "rollback", "transaction_digest": r["transaction_digest"],
                  "receipt_digest": r["receipt_digest"], "root": str(root), "stage": str(stage),
@@ -346,6 +355,9 @@ def rollback_transaction(receipt: Any, tx: Any, root: Path, inject_failure: str 
                 try: _exchange(root, stage); _fsync_dir(root.parent)
                 except Exception as exc: raise TransactionError(f"rollback compensation failed; journal retained: {exc}") from exc
             journal.unlink(missing_ok=True); shutil.rmtree(stage, ignore_errors=True); raise
-        return {"ok": True, "receipt_digest": r["receipt_digest"], "status": "rolled_back"}
+        result = {"ok": True, "receipt_digest": r["receipt_digest"], "status": "rolled_back"}
+        if conformance is not None:
+            result["source_contract_conformance"] = conformance
+        return result
     finally:
         os.close(lock_fd)

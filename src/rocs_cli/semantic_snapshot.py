@@ -15,6 +15,16 @@ from yaml.nodes import MappingNode, Node, SequenceNode
 
 from rocs_cli.layers import LayerSpec
 from rocs_cli.semantic_protocol import document_digest, jcs_bytes, object_digest, strict_json_loads, validate_invariants
+from rocs_cli.source_contract import (
+    SOURCE_CONTRACT_V1,
+    ParsedSourceDocument,
+    SourceContractError,
+    SourceContractSelectorError,
+    classify_v1_reference_entry,
+    dispatch_source_document,
+    source_contract_from_manifest_bytes,
+    validate_resolved_corpus,
+)
 from rocs_cli.workspace import git_head_sha
 
 
@@ -40,6 +50,8 @@ class DiscoveryDocument:
     relations: tuple[str, ...]
     examples: tuple[str, ...]
     anti_examples: tuple[str, ...]
+    ont: dict[str, Any] | None = None
+    source_contract: str | None = None
 
 
 @dataclass(frozen=True)
@@ -67,6 +79,7 @@ class _CapturedFile:
     kind: str
     raw: bytes
     document_digest: str
+    source_contract: str | None = None
 
 
 @dataclass(frozen=True)
@@ -235,6 +248,47 @@ def _scan_tree(
     return found
 
 
+def _scan_v1_kind(
+    directory_fd: int,
+    prefix: PurePosixPath,
+    *,
+    layer: str,
+    layer_order: int,
+    kind: str,
+    file_limit: int,
+    remaining_files: list[int],
+    remaining_bytes: list[int],
+) -> list[_CapturedFile]:
+    before = os.fstat(directory_fd)
+    found: list[_CapturedFile] = []
+    try:
+        entries = sorted(os.scandir(directory_fd), key=lambda entry: os.fsencode(entry.name))
+    except OSError as exc:
+        raise SnapshotError("snapshot_changed", "corpus changed during enumeration") from exc
+    for entry in entries:
+        try:
+            mode = entry.stat(follow_symlinks=False).st_mode
+            selected = classify_v1_reference_entry(kind, entry.name, mode)
+        except SourceContractError as exc:
+            raise SnapshotError(exc.kind, "v1 reference membership is invalid") from exc
+        except OSError as exc:
+            raise SnapshotError("snapshot_changed", "corpus changed during enumeration") from exc
+        if not selected:
+            continue
+        if remaining_files[0] <= 0:
+            raise SnapshotError("resource_exhausted", "corpus file count limit exceeded")
+        raw = _read_file_at(directory_fd, entry.name, file_limit=file_limit, remaining_bytes=remaining_bytes)
+        remaining_files[0] -= 1
+        logical = (prefix / entry.name).as_posix()
+        found.append(_CapturedFile(
+            layer, layer_order, logical, "concept" if kind == "concepts" else "relation",
+            raw, document_digest(raw), SOURCE_CONTRACT_V1,
+        ))
+    if not _same_stat(before, os.fstat(directory_fd)):
+        raise SnapshotError("snapshot_changed", "corpus changed during enumeration")
+    return found
+
+
 def _yaml_value(raw: bytes, *, max_depth: int, item_budget: list[int]) -> Any:
     try:
         text = raw.decode("utf-8", "strict")
@@ -307,7 +361,7 @@ def _string_list(value: Any, field: str, *, required: bool = False) -> tuple[str
     return tuple(value)
 
 
-def _parse_document(captured: _CapturedFile, *, max_depth: int, item_budget: list[int]) -> DiscoveryDocument:
+def _parse_legacy_document(captured: _CapturedFile, *, max_depth: int, item_budget: list[int]) -> DiscoveryDocument:
     try:
         text = captured.raw.decode("utf-8", "strict")
     except UnicodeDecodeError as exc:
@@ -317,22 +371,18 @@ def _parse_document(captured: _CapturedFile, *, max_depth: int, item_budget: lis
     end = text.find("\n---\n", 4)
     if end < 0:
         raise SnapshotError("invalid_ontology", "ontology document has invalid front matter")
-    front_raw = text[4:end].encode("utf-8")
-    front = _yaml_value(front_raw, max_depth=max_depth, item_budget=item_budget)
+    front = _yaml_value(text[4:end].encode("utf-8"), max_depth=max_depth, item_budget=item_budget)
     if type(front) is not dict or set(front) != {"ont"} or type(front.get("ont")) is not dict:
         raise SnapshotError("invalid_ontology", "ontology front matter is invalid")
     ont = front["ont"]
-    ont_id = ont.get("id")
-    ont_type = ont.get("type")
-    description = ont.get("description")
+    ont_id, ont_type, description = ont.get("id"), ont.get("type"), ont.get("description")
     if type(ont_id) is not str or _ONT_ID_RE.fullmatch(ont_id) is None:
         raise SnapshotError("invalid_ontology", "ontology identity is invalid")
     if type(ont_type) is not str or type(description) is not str or not description.strip():
         raise SnapshotError("invalid_ontology", "ontology type and description must be non-empty strings")
     if ont_type != captured.kind:
         raise SnapshotError("invalid_ontology", "ontology type does not match document location")
-    allowed = _CONCEPT_KEYS if ont_type == "concept" else _RELATION_KEYS
-    if set(ont) - allowed:
+    if set(ont) - (_CONCEPT_KEYS if ont_type == "concept" else _RELATION_KEYS):
         raise SnapshotError("invalid_ontology", "ontology contains unknown fields")
     status = ont.get("status", "active")
     if status not in ("active", "deprecated"):
@@ -355,7 +405,41 @@ def _parse_document(captured: _CapturedFile, *, max_depth: int, item_budget: lis
         labels=_string_list(ont.get("labels"), "labels", required=True),
         synonyms=_string_list(ont.get("synonyms"), "synonyms"), description=description,
         relations=tuple(relations), examples=_string_list(ont.get("examples"), "examples"),
-        anti_examples=_string_list(ont.get("anti_examples"), "anti_examples"),
+        anti_examples=_string_list(ont.get("anti_examples"), "anti_examples"), ont=ont,
+    )
+
+
+def _parse_document(captured: _CapturedFile, *, max_depth: int, item_budget: list[int]) -> DiscoveryDocument:
+    try:
+        parsed = dispatch_source_document(
+            captured.source_contract,
+            captured.raw,
+            captured.logical_path,
+            legacy_parser=lambda _raw, _path: _parse_legacy_document(
+                captured, max_depth=max_depth, item_budget=item_budget
+            ),
+            operation_max_depth=max_depth,
+            operation_max_items=max(0, item_budget[0]),
+            defer_placeholder=True,
+        )
+    except SourceContractError as exc:
+        raise SnapshotError(exc.kind, "ontology document violates its selected source contract") from exc
+    if isinstance(parsed, DiscoveryDocument):
+        return parsed
+    assert isinstance(parsed, ParsedSourceDocument)
+    item_budget[0] -= parsed.collection_items
+    ont = parsed.ont
+    relations = tuple(
+        value
+        for edge in ont.get("relations", [])
+        for value in (edge["type"], edge["target"])
+    )
+    return DiscoveryDocument(
+        ont_id=parsed.ont_id, kind=parsed.kind, layer=captured.layer, layer_order=captured.layer_order,
+        logical_path=captured.logical_path, raw=captured.raw, document_digest=captured.document_digest,
+        labels=tuple(ont["labels"]), synonyms=tuple(ont.get("synonyms", [])), description=ont["description"],
+        relations=relations, examples=tuple(ont.get("examples", [])), anti_examples=tuple(ont.get("anti_examples", [])),
+        ont=ont, source_contract=SOURCE_CONTRACT_V1,
     )
 
 
@@ -399,6 +483,12 @@ def _capture_generation(layers: list[LayerSpec], profile: str, limits: dict[str,
                 if exc.kind == "snapshot_changed":
                     raise SnapshotError("invalid_ontology", "ontology manifest is unavailable") from exc
                 raise
+            try:
+                selected_contract = source_contract_from_manifest_bytes(manifest_raw)
+            except SourceContractSelectorError as exc:
+                raise SnapshotError("invalid_ontology", "ontology source contract selector is invalid") from exc
+            if layer.source_contract is not None and layer.source_contract != selected_contract:
+                raise SnapshotError("snapshot_changed", "ontology source contract selector changed during capture")
             files.append(_CapturedFile(layer.name, layer_order, "manifest.yaml", "manifest", manifest_raw, document_digest(manifest_raw)))
             profiles_fd = _open_dir_chain(root_fd, ("profiles",), optional=True)
             if profiles_fd is not None:
@@ -411,16 +501,38 @@ def _capture_generation(layers: list[LayerSpec], profile: str, limits: dict[str,
                 finally:
                     os.close(profiles_fd)
             source_rel = layer.src_root.absolute().relative_to(layer.src_root.parent.absolute())
-            reference_fd = _open_dir_chain(root_fd, tuple(source_rel.parts) + ("reference",), optional=True)
-            if reference_fd is not None:
-                try:
-                    files.extend(_scan_tree(
-                        reference_fd, PurePosixPath("reference"), suffix=".md", layer=layer.name,
-                        layer_order=layer_order, kind=None, file_limit=limits["file_bytes"],
-                        remaining_files=remaining_files, remaining_bytes=remaining_bytes,
-                    ))
-                finally:
-                    os.close(reference_fd)
+            if selected_contract == SOURCE_CONTRACT_V1:
+                for reference_kind in ("concepts", "relations"):
+                    reference_fd = _open_dir_chain(
+                        root_fd,
+                        tuple(source_rel.parts) + ("reference", reference_kind),
+                        optional=True,
+                    )
+                    if reference_fd is not None:
+                        try:
+                            files.extend(_scan_v1_kind(
+                                reference_fd,
+                                PurePosixPath("reference") / reference_kind,
+                                layer=layer.name,
+                                layer_order=layer_order,
+                                kind=reference_kind,
+                                file_limit=limits["file_bytes"],
+                                remaining_files=remaining_files,
+                                remaining_bytes=remaining_bytes,
+                            ))
+                        finally:
+                            os.close(reference_fd)
+            else:
+                reference_fd = _open_dir_chain(root_fd, tuple(source_rel.parts) + ("reference",), optional=True)
+                if reference_fd is not None:
+                    try:
+                        files.extend(_scan_tree(
+                            reference_fd, PurePosixPath("reference"), suffix=".md", layer=layer.name,
+                            layer_order=layer_order, kind=None, file_limit=limits["file_bytes"],
+                            remaining_files=remaining_files, remaining_bytes=remaining_bytes,
+                        ))
+                    finally:
+                        os.close(reference_fd)
             if not _same_stat(root_stat, os.fstat(root_fd)):
                 raise SnapshotError("snapshot_changed", "corpus root changed during capture")
         finally:
@@ -433,6 +545,10 @@ def _capture_generation(layers: list[LayerSpec], profile: str, limits: dict[str,
         _parse_document(item, max_depth=limits["parser_depth"], item_budget=item_budget)
         for item in files if item.kind in ("concept", "relation")
     )
+    try:
+        validate_resolved_corpus(documents)
+    except SourceContractError as exc:
+        raise SnapshotError(exc.kind, "resolved corpus violates its selected source contract") from exc
     identities = [(document.ont_id, document.kind) for document in documents]
     if len(identities) != len(set(identities)):
         raise SnapshotError("invalid_ontology", "duplicate ontology semantic identity")

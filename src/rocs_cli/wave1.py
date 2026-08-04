@@ -26,10 +26,13 @@ from rocs_cli import __version__
 from rocs_cli.capabilities import class_policy
 from rocs_cli.vendored import (
     compute_expected_hashes,
+    read_vendored_hashes,
     validate_vendor_source_layout,
     validate_vendor_target,
     verify_vendored_hashes,
+    write_materialization_receipt,
 )
+from rocs_cli.workspace import git_head_sha
 
 
 def _emit(value: dict[str, Any], destination: str = "-") -> None:
@@ -101,10 +104,18 @@ def _publish_sibling(stage: Path, target: Path, *, fail_point: str | None = None
 
 
 def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: Path, target: Path,
-                        *, effective: str, dry_run: bool = False, use_lock: bool = True) -> dict[str, Any]:
-    """Build the artifact from an explicit, complete asset set."""
-    result = {"schema_version": 2, "tool": "rocs-cli", "version": effective,
-              "target": str(target), "dry_run": dry_run}
+                        *, effective: str, source_commit: str | None, dry_run: bool = False,
+                        use_lock: bool = True) -> dict[str, Any]:
+    """Build one exact artifact from an explicit, complete asset set.
+
+    Source and previously verified schema-3 bundles emit the new materialization
+    receipt. Installed legacy wheels without build-time commit provenance retain
+    schema 2 instead of inventing a Git identity or breaking bootstrap.
+    """
+    result = {"schema_version": 3 if source_commit else 2, "tool": "rocs-cli",
+              "version": effective, "target": str(target), "dry_run": dry_run}
+    if source_commit:
+        result["source_commit"] = source_commit
     if dry_run:
         return result
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -160,14 +171,23 @@ def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: P
                 "from pathlib import Path\nimport sys\nroot = Path(__file__).resolve().parent\nsys.path[:0] = [str(root / 'runtime'), str(root / 'src')]\nfrom rocs_cli.__main__ import main\nmain()\n",
                 "utf-8",
             )
-            manifest = {
-                "schema_version": 2,
-                "artifact": "rocs-cli-self-contained",
-                "upstream_project": "ai-society/core/rocs-cli",
-                "upstream_version": effective,
-                "files": compute_expected_hashes(stage),
-            }
-            (stage / "VENDORED_HASHES.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", "utf-8")
+            if source_commit is not None:
+                write_materialization_receipt(
+                    stage,
+                    upstream_version=effective,
+                    source_commit=source_commit,
+                )
+            else:
+                manifest = {
+                    "schema_version": 2,
+                    "artifact": "rocs-cli-self-contained",
+                    "upstream_project": "ai-society/core/rocs-cli",
+                    "upstream_version": effective,
+                    "files": compute_expected_hashes(stage),
+                }
+                (stage / "VENDORED_HASHES.json").write_text(
+                    json.dumps(manifest, indent=2, sort_keys=True) + "\n", "utf-8"
+                )
             ok, errors = verify_vendored_hashes(stage)
             if not ok:
                 raise RuntimeError("staged vendor verification failed: " + "; ".join(errors))
@@ -180,13 +200,31 @@ def _vendor_from_assets(package: Path, pyproject: Path, readme: Path, uv_lock: P
     return result
 
 
+def _source_commit(project: Path, *, required: bool = True) -> str | None:
+    commit = git_head_sha(project)
+    if commit is None:
+        receipt_path = project / "VENDORED_HASHES.json"
+        if receipt_path.is_file() and not receipt_path.is_symlink():
+            try:
+                inherited = read_vendored_hashes(project).get("source_commit")
+            except (OSError, ValueError, json.JSONDecodeError):
+                inherited = None
+            commit = inherited if isinstance(inherited, str) else None
+    if commit is None or re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+        if required:
+            raise RuntimeError("schema-3 materialization requires the current Git SHA-1 source commit")
+        return None
+    return commit
+
+
 def vendor(source: Path, target: Path, *, version: str | None = None, dry_run: bool = False) -> dict[str, Any]:
     """Vendor a truthful source project; installed-distribution bootstrap is separate."""
     source, target = source.resolve(), target.expanduser().resolve()
     pyproject, readme, package = validate_vendor_source_layout(source)
     validate_vendor_target(repo_root=source, target=target)
     return _vendor_from_assets(package, pyproject, readme, source / "uv.lock", target,
-                               effective=version or __version__, dry_run=dry_run)
+                               effective=version or __version__, source_commit=_source_commit(source),
+                               dry_run=dry_run)
 
 
 def _vendor_installed(target: Path) -> dict[str, Any]:
@@ -196,8 +234,10 @@ def _vendor_installed(target: Path) -> dict[str, Any]:
         if not (assets / name).is_file():
             raise RuntimeError(f"installed distribution is missing bootstrap asset: {name}")
     # Bootstrap already owns the stable consumer lock. Do not open a second lock.
+    project = package.parents[1]
     return _vendor_from_assets(package, assets / "pyproject.toml", assets / "README.md",
-                               assets / "uv.lock", target, effective=__version__, use_lock=False)
+                               assets / "uv.lock", target, effective=__version__,
+                               source_commit=_source_commit(project, required=False), use_lock=False)
 
 
 def verify(path: Path) -> tuple[dict[str, Any], int]:

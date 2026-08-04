@@ -85,6 +85,7 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
                 "origin": layer_spec.origin,
                 "source": layer_spec.source,
                 "src_root": str(layer_spec.src_root),
+                "source_contract": layer_spec.source_contract,
             }
         )
     entries.sort(key=lambda e: str(e.get("name") or ""))
@@ -115,6 +116,7 @@ def _write_authority_receipt_if_possible(
     layers,
     result: dict | None = None,
     error: RocsCliError | None = None,
+    source_contract_conformance: dict | None = None,
 ) -> dict[str, Path] | None:
     if not can_write_authority_receipt(repo):
         return None
@@ -128,6 +130,7 @@ def _write_authority_receipt_if_possible(
         layers=list(layers),
         result=result,
         error=error,
+        source_contract_conformance=source_contract_conformance,
     )
     return write_authority_receipt(repo, payload)
 
