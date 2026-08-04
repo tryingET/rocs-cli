@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from rich.console import Console
 
@@ -25,6 +26,7 @@ from rocs_cli.intelligence import (
 from rocs_cli.layers import resolve_layers
 from rocs_cli.repo_view import load_repo_view
 from rocs_cli.semantic_snapshot import SnapshotError, capture_corpus
+from rocs_cli.wave1 import _source_commit
 from rocs_cli.source_contract import (
     SOURCE_CONTRACT_V1,
     SourceContractError,
@@ -226,6 +228,35 @@ class SourceContractDispatchTests(unittest.TestCase):
             corpus = capture_corpus(layers, profile="kernel-v1", limits=dict(DEFAULT_LIMITS))
             self.assertEqual({doc.ont_id for doc in corpus.documents}, {"core.Actor", "core.rel.is_a"})
             self.assertTrue(all(doc.source_contract == SOURCE_CONTRACT_V1 for doc in corpus.documents))
+
+    def test_file_backed_loader_prechecks_and_bounds_document_reads(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _make_repo(Path(td))
+            path = repo / "src/reference/concepts/core.Actor.md"
+            path.write_bytes(b"x" * 1_048_577)
+            with patch("rocs_cli.model.os.read") as read, self.assertRaises(RocsCliError) as oversized:
+                load_repo_view(repo, profile="kernel-v1", resolve_refs=False)
+            read.assert_not_called()
+            self.assertEqual(oversized.exception.details.get("phase"), "resource")
+
+            path.write_text(_concept(), "utf-8")
+            total = 0
+            requested: list[int] = []
+
+            def growing_read(_fd: int, size: int) -> bytes:
+                nonlocal total
+                requested.append(size)
+                if total >= 1_048_577:
+                    return b""
+                chunk = b"x" * min(size, 1_048_577 - total)
+                total += len(chunk)
+                return chunk
+
+            with patch("rocs_cli.model.os.read", side_effect=growing_read), self.assertRaises(RocsCliError) as grew:
+                load_repo_view(repo, profile="kernel-v1", resolve_refs=False)
+            self.assertEqual(grew.exception.details.get("phase"), "resource")
+            self.assertEqual(total, 1_048_577)
+            self.assertLessEqual(max(requested), 65_536)
 
     def test_selector_off_preserves_legacy_path_and_shape_behavior(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -530,6 +561,37 @@ class SchemaThreeMaterializationTests(unittest.TestCase):
             self.assertIn("extra.bin", receipt["files"])
             self.assertEqual(receipt["bundle_manifest_digest"], bundle_manifest_digest(receipt))
             self.assertTrue(verify_vendored_hashes(bundle)[0])
+
+    def test_source_commit_inheritance_requires_verified_schema_three(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            original = self._bundle(root)
+            self.assertEqual(_source_commit(original, required=False), "a" * 40)
+
+            tampered_file = root / "tampered-file"
+            shutil.copytree(original, tampered_file)
+            (tampered_file / "extra.bin").write_bytes(b"changed")
+            self.assertIsNone(_source_commit(tampered_file, required=False))
+
+            tampered_digest = root / "tampered-digest"
+            shutil.copytree(original, tampered_digest)
+            receipt_path = tampered_digest / "VENDORED_HASHES.json"
+            receipt = json.loads(receipt_path.read_text("utf-8"))
+            receipt["bundle_manifest_digest"] = "sha256:" + "0" * 64
+            receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", "utf-8")
+            self.assertIsNone(_source_commit(tampered_digest, required=False))
+
+            fake_schema_two = root / "fake-schema-two"
+            shutil.copytree(original, fake_schema_two)
+            receipt_path = fake_schema_two / "VENDORED_HASHES.json"
+            receipt = json.loads(receipt_path.read_text("utf-8"))
+            receipt["schema_version"] = 2
+            receipt.pop("uv_lock_sha256")
+            receipt.pop("bundle_manifest_digest")
+            receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", "utf-8")
+            self.assertIsNone(_source_commit(fake_schema_two, required=False))
+            with self.assertRaises(RuntimeError):
+                _source_commit(fake_schema_two)
 
     def test_schema_three_rejects_mutations_missing_extra_symlink_lock_and_digest(self) -> None:
         with tempfile.TemporaryDirectory() as td:

@@ -206,9 +206,21 @@ def _source_commit(project: Path, *, required: bool = True) -> str | None:
         receipt_path = project / "VENDORED_HASHES.json"
         if receipt_path.is_file() and not receipt_path.is_symlink():
             try:
-                inherited = read_vendored_hashes(project).get("source_commit")
+                receipt_before = receipt_path.read_bytes()
+                verified, _errors = verify_vendored_hashes(project)
+                receipt_after = receipt_path.read_bytes()
+                receipt = read_vendored_hashes(project)
             except (OSError, ValueError, json.JSONDecodeError):
-                inherited = None
+                receipt = {}
+                verified = False
+                receipt_before = b""
+                receipt_after = b"different"
+            inherited = receipt.get("source_commit") if (
+                verified
+                and receipt_before == receipt_after
+                and receipt.get("schema_version") == 3
+                and receipt.get("artifact") == "rocs-cli-self-contained"
+            ) else None
             commit = inherited if isinstance(inherited, str) else None
     if commit is None or re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         if required:

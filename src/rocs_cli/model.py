@@ -8,6 +8,7 @@ from pathlib import Path
 from rocs_cli.frontmatter import split_frontmatter
 from rocs_cli.layers import LayerSpec
 from rocs_cli.source_contract import (
+    MAX_DOCUMENT_BYTES,
     SOURCE_CONTRACT_V1,
     ParsedSourceDocument,
     SourceContractError,
@@ -91,6 +92,13 @@ def _legacy_document(raw: bytes, logical_path: str) -> tuple[dict, str]:
     return fm, body
 
 
+def _file_identity(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
+    return (
+        value.st_dev, value.st_ino, value.st_mode, value.st_size,
+        value.st_mtime_ns, value.st_ctime_ns,
+    )
+
+
 def _read_v1(path: Path, logical_path: str) -> bytes:
     before = os.lstat(path)
     if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
@@ -99,14 +107,31 @@ def _read_v1(path: Path, logical_path: str) -> bytes:
     fd = os.open(path, flags)
     try:
         opened = os.fstat(fd)
-        if (before.st_dev, before.st_ino, before.st_mode, before.st_size) != (
-            opened.st_dev, opened.st_ino, opened.st_mode, opened.st_size
-        ):
+        if _file_identity(before) != _file_identity(opened):
             raise SourceContractError("identity", "v1 document changed during admission", path=logical_path)
+        if opened.st_size > MAX_DOCUMENT_BYTES:
+            raise SourceContractError(
+                "resource", "ontology document exceeds 1 MiB", path=logical_path,
+                kind="resource_exhausted",
+            )
         chunks: list[bytes] = []
-        while chunk := os.read(fd, 65_536):
+        remaining = MAX_DOCUMENT_BYTES + 1
+        while remaining:
+            chunk = os.read(fd, min(65_536, remaining))
+            if not chunk:
+                break
             chunks.append(chunk)
-        return b"".join(chunks)
+            remaining -= len(chunk)
+        raw = b"".join(chunks)
+        if len(raw) > MAX_DOCUMENT_BYTES:
+            raise SourceContractError(
+                "resource", "ontology document exceeds 1 MiB", path=logical_path,
+                kind="resource_exhausted",
+            )
+        after = os.fstat(fd)
+        if _file_identity(opened) != _file_identity(after) or len(raw) != after.st_size:
+            raise SourceContractError("identity", "v1 document changed during admission", path=logical_path)
+        return raw
     finally:
         os.close(fd)
 

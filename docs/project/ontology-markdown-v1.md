@@ -57,10 +57,13 @@ Within `reference/concepts/` and `reference/relations/`, only direct regular
 excluded. Subdirectories, symlinks, special entries, and other regular files fail
 closed.
 
-Error precedence is resource, envelope, YAML, schema, identity/path/uniqueness,
-lifecycle/reference, then placeholder. Semantic-discovery caller limits may be
-lower than the grammar maxima; exhausting those limits returns
-`resource_exhausted` and does not reclassify the source as valid or invalid.
+Within one document, error precedence is resource, envelope, YAML, schema,
+identity/path/uniqueness, lifecycle/reference, then placeholder. Across a corpus,
+documents are admitted in deterministic logical-path order; this contract makes
+no corpus-wide precedence claim across errors in different documents.
+Semantic-discovery caller limits may be lower than the grammar maxima;
+exhausting those limits returns `resource_exhausted` and does not reclassify the
+source as valid or invalid.
 
 ## Interpreting operations
 
@@ -114,11 +117,13 @@ equal bundled `uv.lock`. `bundle_manifest_digest` is plain SHA-256 over RFC 8785
 JCS bytes of the exact receipt object with that digest field omitted.
 
 Generation obtains `source_commit` from the repository's current Git SHA-1
-commit, or inherits it while re-vendoring an already verified schema-3 bundle.
-A non-Git installation without provenance cannot mint a schema-3 receipt. The
-receipt identifies one bundle; it does not claim reproducibility across builders.
-Schema 1 and 2 remain verifier-only compatibility inputs and are no longer
-emitted.
+commit, or inherits it only after exact schema-3 verification succeeds for the
+complete source bundle. A non-Git installation without that provenance cannot
+mint a schema-3 receipt. Installed legacy wheels retain a schema-2 bootstrap
+fallback rather than inventing a Git identity; source checkout and verified
+schema-3 re-vendoring paths emit schema 3. The receipt identifies one bundle; it
+does not claim reproducibility across builders. Schema 1 and 2 remain verifier
+compatibility inputs, and schema 2 remains the bounded installed-wheel fallback.
 
 ## Validation
 
