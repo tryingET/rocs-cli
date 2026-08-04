@@ -593,6 +593,24 @@ class SchemaThreeMaterializationTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 _source_commit(fake_schema_two)
 
+    def test_source_commit_inheritance_consumes_the_exact_verified_receipt(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            bundle = self._bundle(Path(td))
+            receipt_path = bundle / "VENDORED_HASHES.json"
+
+            def swap_receipt(_root: Path, *, expected_receipt_bytes: bytes | None = None):
+                self.assertEqual(expected_receipt_bytes, receipt_path.read_bytes())
+                replacement = json.loads(receipt_path.read_text("utf-8"))
+                replacement["source_commit"] = "b" * 40
+                replacement["bundle_manifest_digest"] = bundle_manifest_digest(replacement)
+                receipt_path.write_text(
+                    json.dumps(replacement, indent=2, sort_keys=True) + "\n", "utf-8"
+                )
+                return True, []
+
+            with patch("rocs_cli.wave1.verify_vendored_hashes", side_effect=swap_receipt):
+                self.assertIsNone(_source_commit(bundle, required=False))
+
     def test_schema_three_rejects_mutations_missing_extra_symlink_lock_and_digest(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             original = self._bundle(Path(td))

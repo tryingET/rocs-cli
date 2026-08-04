@@ -26,7 +26,7 @@ from rocs_cli import __version__
 from rocs_cli.capabilities import class_policy
 from rocs_cli.vendored import (
     compute_expected_hashes,
-    read_vendored_hashes,
+    parse_vendored_hashes_bytes,
     validate_vendor_source_layout,
     validate_vendor_target,
     verify_vendored_hashes,
@@ -207,10 +207,12 @@ def _source_commit(project: Path, *, required: bool = True) -> str | None:
         if receipt_path.is_file() and not receipt_path.is_symlink():
             try:
                 receipt_before = receipt_path.read_bytes()
-                verified, _errors = verify_vendored_hashes(project)
+                verified, _errors = verify_vendored_hashes(
+                    project, expected_receipt_bytes=receipt_before
+                )
                 receipt_after = receipt_path.read_bytes()
-                receipt = read_vendored_hashes(project)
-            except (OSError, ValueError, json.JSONDecodeError):
+                receipt = parse_vendored_hashes_bytes(receipt_before)
+            except (OSError, UnicodeDecodeError, ValueError, json.JSONDecodeError):
                 receipt = {}
                 verified = False
                 receipt_before = b""

@@ -171,19 +171,30 @@ def _strict_json(raw: str) -> Any:
     return json.loads(raw, object_pairs_hook=pairs)
 
 
-def read_vendored_hashes(vendored_dir: Path) -> dict:
-    path = vendored_dir / _RECEIPT
-    if not path.exists():
-        raise FileNotFoundError(str(path))
-    value = _strict_json(path.read_text("utf-8"))
+def parse_vendored_hashes_bytes(raw: bytes) -> dict[str, Any]:
+    value = _strict_json(raw.decode("utf-8", "strict"))
     if type(value) is not dict:
         raise ValueError("root must be an object")
     return value
 
 
-def verify_vendored_hashes(vendored_dir: Path) -> tuple[bool, list[str]]:
+def read_vendored_hashes(vendored_dir: Path) -> dict:
+    path = vendored_dir / _RECEIPT
+    if not path.exists():
+        raise FileNotFoundError(str(path))
+    return parse_vendored_hashes_bytes(path.read_bytes())
+
+
+def verify_vendored_hashes(
+    vendored_dir: Path, *, expected_receipt_bytes: bytes | None = None
+) -> tuple[bool, list[str]]:
+    receipt_path = vendored_dir / _RECEIPT
     try:
-        data = read_vendored_hashes(vendored_dir)
+        current_receipt = receipt_path.read_bytes()
+        if expected_receipt_bytes is not None and current_receipt != expected_receipt_bytes:
+            return False, [f"invalid {_RECEIPT}: receipt changed before verification"]
+        verified_receipt = current_receipt if expected_receipt_bytes is None else expected_receipt_bytes
+        data = parse_vendored_hashes_bytes(verified_receipt)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         return False, [f"invalid {_RECEIPT}: {exc}"]
     schema = data.get("schema_version")
@@ -279,4 +290,12 @@ def verify_vendored_hashes(vendored_dir: Path) -> tuple[bool, list[str]]:
         got = sha256_file(path)
         if got != normalized[rel]:
             lines.append(f"mismatch: {rel} expected={normalized[rel]} got={got}")
+    if expected_receipt_bytes is not None:
+        try:
+            receipt_after = receipt_path.read_bytes()
+        except OSError as exc:
+            lines.append(f"unreadable: {_RECEIPT} ({exc})")
+        else:
+            if receipt_after != expected_receipt_bytes:
+                lines.append(f"invalid {_RECEIPT}: receipt changed during verification")
     return not lines, lines or [f"ok: {rel} {normalized[rel]}" for rel in sorted(normalized)]
