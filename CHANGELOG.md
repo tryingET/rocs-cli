@@ -8,6 +8,12 @@ read_when:
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-31
+
+### Fixed
+- Generated consumer gates now descriptor-capture the anchored receipt and every listed regular, singly linked bundle file before execution, materialize and rehash a sealed anonymous ZIP runtime (plus sealed native-extension memfds), and fork cleanup/validate/build without exec or filesystem-path reopen. Consumer-tree renames, replacements, hardlinks, symlinks, FIFOs, verify-to-exec swaps, and later same-credential pathname mutation can no longer redirect imports or native/resource loads.
+- Vendored bundle verification now opens files without following final symlinks, rejects multiply linked files, and detects mutation during reads.
+
 ## [0.4.0] - 2026-08-31
 
 ### Added

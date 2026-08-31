@@ -122,7 +122,7 @@ CI profile wrapper (template-side policy contract):
   - `main-strict`: requires `--resolve-refs` and defaults workspace matching to `strict` (authoritative fail-closed gate)
 - `ROCS_WORKSPACE_REF_MODE` remains an explicit override when a caller intentionally needs different behavior.
 - This same wrapper is the recommended local hook/Pi entrypoint for pre-push or pre-merge checks.
-- Bootstrapped consumers run the checked-in `tools/rocs-cli` bundle with isolated system `python3 -I -S -B`; the generated wrapper verifies an embedded digest of `VENDORED_HASHES.json` and then every bundled file before import. It does not require `uv`, a source checkout, network access, or ambient `PYTHONPATH`. Explicit `rocs vendor TARGET` is source-project based; schema-3 generation requires a provenance-bearing Git SHA-1 checkout (or an already verified schema-3 bundle for re-vendoring). Installed legacy wheels without commit provenance retain the verified schema-2 bootstrap fallback rather than inventing a Git identity.
+- Bootstrapped consumers run the checked-in `tools/rocs-cli` bundle with isolated system `python3 -I -S -B`. The generated stdlib-only launcher binds an embedded digest to `VENDORED_HASHES.json`, descriptor-captures every listed regular, singly linked file without following final symlinks, and writes only those verified bytes to a fresh anonymous ZIP memfd. It rereads the archive after applying Linux write/grow/shrink/seal locks; Python and resource imports resolve through that sealed descriptor, while ABI-compatible native extensions use separately sealed and rehashed memfds. Cleanup, validate, and build fork from the one custody process without an exec or consumer/private filesystem-path reopen, so later consumer-tree renames, hardlink writes, or import replacements cannot redirect execution. The gate does not require `uv`, a source checkout, network access, ambient `PYTHONPATH`, or temporary runtime cleanup. Explicit `rocs vendor TARGET` is source-project based; schema-3 generation requires a provenance-bearing Git SHA-1 checkout (or an already verified schema-3 bundle for re-vendoring). Installed legacy wheels without commit provenance retain the verified schema-2 bootstrap fallback rather than inventing a Git identity.
 - Bootstrap serializes publication with a persistent external sibling lock named `.<repo>.rocs-bootstrap.lock`; it preflights and reports that coordination path separately, never exchanges or unlinks its inode, and creates no undeclared lock inside the consumer tree.
 - `ontology_repo` consumers use root `manifest.yaml` and `src/`; required/optional consumers retain the nested `ontology/` layout. Generated hooks resolve the repository from their installed path, matching Git's real hook invocation contract.
 - See `docs/ref-resolution-ci-strategy.md` for the architecture/policy rationale and migration guidance.
@@ -198,7 +198,11 @@ filesystem-effect and required-authority-artifact rules. See
 A consumer is pinned by `VENDORED_HASHES.json` schema 3. `rocs vendor TARGET`
 publishes one exact package materialization; `rocs verify TARGET` checks the
 Git-SHA-1-shaped source commit, bundled lock digest, complete path/hash set, and
-RFC 8785/JCS receipt digest. This proves exact local bundle identity and
-provenance only—not canonical cross-builder bytes, package publication, semantic
-correctness, or consumer adoption/currentness. Verification does not depend on a
-sibling checkout or workspace PATH.
+RFC 8785/JCS receipt digest. Verification rejects symlinked, non-regular, or
+multiply linked files and mutation observed during a file read. The generated
+gate additionally executes only from sealed anonymous descriptors materialized
+from bytes captured through no-follow descriptors, closing both the
+verification-to-import path race and later same-credential pathname mutation. These checks prove exact local bundle identity and provenance only—not
+canonical cross-builder bytes, package publication, semantic correctness, or
+consumer adoption/currentness. Verification does not depend on a sibling
+checkout or workspace PATH.

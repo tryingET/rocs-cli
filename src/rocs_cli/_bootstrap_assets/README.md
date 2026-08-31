@@ -16,5 +16,14 @@ artifact does not discover a source checkout, use ambient `PYTHONPATH`, require
 `uv`, fetch dependencies, or contact a remote service.
 
 The generated `scripts/ci/full.sh` embeds the expected digest of
-`VENDORED_HASHES.json` and verifies the complete artifact before importing ROCS.
-It preserves an optional `ROCS_OUTPUT_ROOT` environment binding so a parent repository can route every managed artifact and cleanup operation to one marked, source-disjoint directory without changing `ROCS_REPO` identity.
+`VENDORED_HASHES.json`. Its stdlib-only launcher descriptor-captures every listed
+regular, singly linked file without following final symlinks and writes only the
+verified bytes to an anonymous ZIP memfd. After the archive is reread and sealed
+against writes/growth/shrinkage, Python and resource imports resolve through that
+descriptor; ABI-compatible native extensions use separately sealed and rehashed
+memfds. ROCS commands fork without exec from the custody process, so no consumer
+or temporary filesystem path is reopened and replacements after capture cannot
+redirect imports. The wrapper preserves an optional
+`ROCS_OUTPUT_ROOT` environment binding so a parent repository can route every
+managed artifact and cleanup operation to one marked, source-disjoint directory
+without changing `ROCS_REPO` identity.

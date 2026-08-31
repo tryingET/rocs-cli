@@ -23,12 +23,55 @@ _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 _COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+def _read_private_regular(path: Path, *, return_bytes: bool) -> bytes | str:
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
+    fd = os.open(path, flags)
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError(f"not a regular file: {path}")
+        if before.st_nlink != 1:
+            raise ValueError(f"multiply linked file: {path}")
+        digest = hashlib.sha256()
+        chunks: list[bytes] = []
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
             digest.update(chunk)
-    return digest.hexdigest()
+            if return_bytes:
+                chunks.append(chunk)
+        after = os.fstat(fd)
+        identity_before = (
+            before.st_dev, before.st_ino, before.st_mode, before.st_nlink,
+            before.st_size, before.st_mtime_ns, before.st_ctime_ns,
+        )
+        identity_after = (
+            after.st_dev, after.st_ino, after.st_mode, after.st_nlink,
+            after.st_size, after.st_mtime_ns, after.st_ctime_ns,
+        )
+        if identity_before != identity_after:
+            raise ValueError(f"file changed during read: {path}")
+        if return_bytes:
+            data = b"".join(chunks)
+            if len(data) != before.st_size:
+                raise ValueError(f"short read: {path}")
+            return data
+        return digest.hexdigest()
+    finally:
+        os.close(fd)
+
+
+def sha256_file(path: Path) -> str:
+    result = _read_private_regular(path, return_bytes=False)
+    assert isinstance(result, str)
+    return result
+
+
+def _read_private_bytes(path: Path) -> bytes:
+    result = _read_private_regular(path, return_bytes=True)
+    assert isinstance(result, bytes)
+    return result
 
 
 def validate_vendor_source_layout(repo_root: Path) -> tuple[Path, Path, Path]:
@@ -94,11 +137,14 @@ def _complete_regular_files(root: Path) -> list[Path]:
     files: list[Path] = []
     for path in sorted(root.rglob("*"), key=lambda item: os.fsencode(item.relative_to(root).as_posix())):
         rel = path.relative_to(root).as_posix()
-        mode = os.lstat(path).st_mode
+        opened = os.lstat(path)
+        mode = opened.st_mode
         if stat.S_ISDIR(mode):
             continue
         if stat.S_ISLNK(mode) or not stat.S_ISREG(mode):
             raise ValueError(f"invalid bundle file type: {rel}")
+        if opened.st_nlink != 1:
+            raise ValueError(f"multiply linked bundle file: {rel}")
         if rel != _RECEIPT:
             if _safe_manifest_path(rel, legacy=False) is None:
                 raise ValueError(f"unsafe bundle path: {rel!r}")
@@ -182,7 +228,7 @@ def read_vendored_hashes(vendored_dir: Path) -> dict:
     path = vendored_dir / _RECEIPT
     if not path.exists():
         raise FileNotFoundError(str(path))
-    return parse_vendored_hashes_bytes(path.read_bytes())
+    return parse_vendored_hashes_bytes(_read_private_bytes(path))
 
 
 def verify_vendored_hashes(
@@ -190,7 +236,7 @@ def verify_vendored_hashes(
 ) -> tuple[bool, list[str]]:
     receipt_path = vendored_dir / _RECEIPT
     try:
-        current_receipt = receipt_path.read_bytes()
+        current_receipt = _read_private_bytes(receipt_path)
         if expected_receipt_bytes is not None and current_receipt != expected_receipt_bytes:
             return False, [f"invalid {_RECEIPT}: receipt changed before verification"]
         verified_receipt = current_receipt if expected_receipt_bytes is None else expected_receipt_bytes
@@ -249,15 +295,20 @@ def verify_vendored_hashes(
                     lines.append(f"bundle manifest digest mismatch: expected={manifest_digest} got={actual_manifest_digest}")
         lock_path = vendored_dir / "uv.lock"
         if lock_path.is_file() and not lock_path.is_symlink() and type(lock_digest) is str:
-            actual_lock = sha256_file(lock_path)
-            if actual_lock != lock_digest:
-                lines.append(f"uv.lock digest mismatch: expected={lock_digest} got={actual_lock}")
+            try:
+                actual_lock = sha256_file(lock_path)
+            except (OSError, ValueError) as exc:
+                lines.append(f"unreadable: uv.lock ({exc})")
+            else:
+                if actual_lock != lock_digest:
+                    lines.append(f"uv.lock digest mismatch: expected={lock_digest} got={actual_lock}")
 
     actual_paths: set[str] = set()
     for path in sorted(vendored_dir.rglob("*")):
         rel = path.relative_to(vendored_dir).as_posix()
         try:
-            mode = os.lstat(path).st_mode
+            opened = os.lstat(path)
+            mode = opened.st_mode
         except OSError as exc:
             lines.append(f"unreadable: {rel} ({exc})")
             continue
@@ -267,6 +318,9 @@ def verify_vendored_hashes(
             continue
         if not stat.S_ISREG(mode) or stat.S_ISLNK(mode):
             lines.append(f"invalid file type: {rel}")
+            continue
+        if opened.st_nlink != 1:
+            lines.append(f"multiply linked file: {rel}")
             continue
         if schema in (1, 2) and _safe_manifest_path(rel, legacy=True) is None:
             lines.append(f"unexpected: {rel}")
@@ -287,13 +341,17 @@ def verify_vendored_hashes(
         lines.append(f"missing: {rel}")
     for rel in sorted(actual_paths & set(normalized)):
         path = vendored_dir / rel
-        got = sha256_file(path)
+        try:
+            got = sha256_file(path)
+        except (OSError, ValueError) as exc:
+            lines.append(f"unreadable: {rel} ({exc})")
+            continue
         if got != normalized[rel]:
             lines.append(f"mismatch: {rel} expected={normalized[rel]} got={got}")
     if expected_receipt_bytes is not None:
         try:
-            receipt_after = receipt_path.read_bytes()
-        except OSError as exc:
+            receipt_after = _read_private_bytes(receipt_path)
+        except (OSError, ValueError) as exc:
             lines.append(f"unreadable: {_RECEIPT} ({exc})")
         else:
             if receipt_after != expected_receipt_bytes:

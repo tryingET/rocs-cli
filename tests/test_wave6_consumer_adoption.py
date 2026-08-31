@@ -1,17 +1,23 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import json
 import os
+import signal
 import shutil
 import subprocess
 import threading
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from rocs_cli.wave1 import bootstrap
+from rocs_cli.vendored import verify_vendored_hashes, write_materialization_receipt
+from rocs_cli.verified_runtime import render_ci_wrapper
+from rocs_cli import __version__
 from tests.test_workspace_resolution import _init_workspace_repo
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,8 +30,8 @@ def fingerprint(root: Path) -> dict[str, str]:
 
 
 class Wave6ConsumerAdoptionTests(unittest.TestCase):
-    def _run(self, repo: Path, command: str, profile: str, *, cwd: Path | None = None,
-             workspace: Path | None = None, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    def _environment(self, repo: Path, profile: str, *, workspace: Path | None = None,
+                     extra_env: dict[str, str] | None = None) -> dict[str, str]:
         env = {
             "PATH": "/must/not/be/executed", "HOME": str(repo.parent / "empty-home"),
             "PYTHONPATH": "/must/not/be/imported", "PYTHONDONTWRITEBYTECODE": "1",
@@ -36,6 +42,11 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
             env["ROCS_WORKSPACE_ROOT"] = str(workspace)
         if extra_env is not None:
             env.update(extra_env)
+        return env
+
+    def _run(self, repo: Path, command: str, profile: str, *, cwd: Path | None = None,
+             workspace: Path | None = None, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+        env = self._environment(repo, profile, workspace=workspace, extra_env=extra_env)
         return subprocess.run(["/bin/bash", str(repo / command)], cwd=cwd or repo, env=env,
                               text=True, capture_output=True)
 
@@ -178,6 +189,19 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
             actual = {p.relative_to(artifact).as_posix() for p in artifact.rglob("*")
                       if p.is_file() and p.name != "VENDORED_HASHES.json"}
             self.assertEqual(actual, declared)
+            self.assertTrue(any(path.endswith(".py") for path in declared))
+            self.assertTrue(any(path.endswith(".so") for path in declared))
+            self.assertTrue(any(path.endswith(".typed") for path in declared))
+            receipt = json.loads((artifact / "VENDORED_HASHES.json").read_text("utf-8"))
+            self.assertEqual(receipt["upstream_version"], __version__)
+            self.assertEqual(
+                receipt["uv_lock_sha256"], hashlib.sha256((artifact / "uv.lock").read_bytes()).hexdigest()
+            )
+            self.assertIn(f'version = "{__version__}"', (artifact / "pyproject.toml").read_text("utf-8"))
+            self.assertIn(
+                f'name = "rocs-cli"\nversion = "{__version__}"',
+                (artifact / "uv.lock").read_text("utf-8"),
+            )
 
     def test_generated_profiles_enforce_path_only_and_strict_local_refs(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -224,6 +248,205 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
             result = self._run(repo, "scripts/ci/full.sh", "local-dev")
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("trust anchor", result.stderr)
+
+    def test_generated_gate_runs_only_captured_private_bytes_after_consumer_rename(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            for relative in ("rocs.py", "src/rocs_cli/__main__.py"):
+                with self.subTest(relative=relative):
+                    repo = Path(td) / relative.replace("/", "-")
+                    shutil.copytree(FIXTURE, repo)
+                    bootstrap(repo, "required")
+                    sentinel = repo.parent / f"executed-{repo.name}"
+                    env = self._environment(repo, "local-dev")
+                    process = subprocess.Popen(
+                        ["/bin/bash", str(repo / "scripts/ci/full.sh")],
+                        cwd=repo, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    )
+                    deadline = time.monotonic() + 30
+                    private_archive: Path | None = None
+                    descriptor_root = Path(f"/proc/{process.pid}/fd")
+                    while time.monotonic() < deadline:
+                        try:
+                            descriptors = list(descriptor_root.iterdir())
+                        except FileNotFoundError:
+                            descriptors = []
+                        for descriptor in descriptors:
+                            try:
+                                target_name = os.readlink(descriptor)
+                            except FileNotFoundError:
+                                continue
+                            if "memfd:rocs-verified-archive" in target_name:
+                                try:
+                                    probe_fd = os.open(descriptor, os.O_RDONLY)
+                                    seals = fcntl.fcntl(probe_fd, 1034)  # Linux F_GET_SEALS
+                                except OSError:
+                                    continue
+                                finally:
+                                    if "probe_fd" in locals():
+                                        os.close(probe_fd)
+                                        del probe_fd
+                                if seals & 15 == 15:  # SEAL, SHRINK, GROW, WRITE
+                                    private_archive = descriptor
+                                    break
+                        if private_archive is not None or process.poll() is not None:
+                            break
+                        time.sleep(0.001)
+                    if private_archive is None:
+                        process.kill()
+                        stdout, stderr = process.communicate()
+                        self.fail(f"sealed private runtime barrier not observed: {stdout}{stderr}")
+                    private_fd = os.open(private_archive, os.O_RDWR)
+                    try:
+                        with self.assertRaises(OSError):
+                            os.write(private_fd, b"UNVERIFIED")
+                    finally:
+                        os.close(private_fd)
+                    target = repo / "tools/rocs-cli" / relative
+                    target.rename(target.with_name(target.name + ".captured-original"))
+                    target.write_text(
+                        "from pathlib import Path\n"
+                        f"Path({str(sentinel)!r}).write_text('UNVERIFIED', encoding='utf-8')\n"
+                        "raise SystemExit(91)\n",
+                        "utf-8",
+                    )
+                    stdout, stderr = process.communicate(timeout=60)
+                    self.assertEqual(process.returncode, 0, stdout + stderr)
+                    self.assertFalse(sentinel.exists())
+                    self.assertTrue((repo / "ontology/dist/summary.json").is_file())
+                    self.assertFalse(descriptor_root.exists())
+
+    def test_generated_gate_loads_resource_and_native_package_from_sealed_descriptors(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            shutil.copytree(FIXTURE, repo)
+            bootstrap(repo, "required")
+            artifact = repo / "tools/rocs-cli"
+            receipt_path = artifact / "VENDORED_HASHES.json"
+            original_receipt = json.loads(receipt_path.read_text("utf-8"))
+
+            python_bin = shutil.which("python3", path="/usr/local/bin:/usr/bin:/bin")
+            self.assertIsNotNone(python_bin)
+            native_result = subprocess.run(
+                [python_bin, "-I", "-S", "-B", "-c", "import _bisect; print(_bisect.__file__)"],
+                text=True, capture_output=True, check=True,
+            )
+            native_origin = Path(native_result.stdout.strip())
+            self.assertTrue(native_origin.name.startswith("_bisect"))
+            native_package = artifact / "runtime/_bisect"
+            native_package.mkdir()
+            native_suffix = native_origin.name.removeprefix("_bisect")
+            shutil.copy2(native_origin, native_package / f"__init__{native_suffix}")
+
+            resource_text = "SEALED RESOURCE\n"
+            (artifact / "src/rocs_cli/_sealed_probe.txt").write_text(resource_text, "utf-8")
+            main_path = artifact / "src/rocs_cli/__main__.py"
+            probe_path = repo.parent / "sealed-proof.txt"
+            probe_source = (
+                "import importlib.resources as _sealed_resources\n"
+                "import os as _sealed_os\n"
+                "from pathlib import Path as _SealedPath\n"
+                "import _bisect as _sealed_native\n"
+                "_sealed_data = _sealed_resources.files('rocs_cli').joinpath('_sealed_probe.txt').read_text(encoding='utf-8')\n"
+                "_SealedPath(_sealed_os.environ['ROCS_SEALED_PROBE']).write_text(\n"
+                "    _sealed_data + _sealed_native.__file__ + '\\n' + str(hasattr(_sealed_native, '__path__')) + '\\n',\n"
+                "    encoding='utf-8',\n"
+                ")\n"
+            )
+            main_text = main_path.read_text("utf-8")
+            main_path.write_text(
+                main_text.replace(
+                    "from __future__ import annotations\n",
+                    "from __future__ import annotations\n\n" + probe_source,
+                    1,
+                ),
+                "utf-8",
+            )
+            write_materialization_receipt(
+                artifact,
+                upstream_version=original_receipt["upstream_version"],
+                source_commit=original_receipt["source_commit"],
+            )
+            ok, errors = verify_vendored_hashes(artifact)
+            self.assertTrue(ok, errors)
+            receipt_digest = hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+            (repo / "scripts/ci/full.sh").write_text(
+                render_ci_wrapper(receipt_digest), "utf-8"
+            )
+            result = self._run(
+                repo, "scripts/ci/full.sh", "local-dev",
+                extra_env={"ROCS_SEALED_PROBE": str(probe_path)},
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            proof = probe_path.read_text("utf-8").splitlines()
+            self.assertEqual(proof[0], resource_text.strip())
+            self.assertRegex(proof[1], r"^/proc/self/fd/[0-9]+$")
+            self.assertEqual(proof[2], "True")
+
+    def test_generated_and_library_verifiers_reject_hardlinked_bundle_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            for relative in ("VENDORED_HASHES.json", "rocs.py", "src/rocs_cli/__main__.py"):
+                with self.subTest(relative=relative):
+                    repo = Path(td) / relative.replace("/", "-")
+                    shutil.copytree(FIXTURE, repo)
+                    bootstrap(repo, "required")
+                    artifact = repo / "tools/rocs-cli"
+                    target = artifact / relative
+                    alias = repo.parent / f"alias-{repo.name}"
+                    os.link(target, alias)
+                    self.assertEqual(target.stat().st_nlink, 2)
+                    ok, errors = verify_vendored_hashes(artifact)
+                    self.assertFalse(ok)
+                    self.assertTrue(any("multiply linked" in error for error in errors), errors)
+                    result = self._run(repo, "scripts/ci/full.sh", "local-dev")
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("multiply linked file", result.stderr)
+                    self.assertFalse((repo / "ontology/dist").exists())
+
+    def test_generated_gate_signal_exit_leaves_no_private_runtime_path(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            shutil.copytree(FIXTURE, repo)
+            bootstrap(repo, "required")
+            process = subprocess.Popen(
+                ["/bin/bash", str(repo / "scripts/ci/full.sh")],
+                cwd=repo, env=self._environment(repo, "local-dev"),
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            descriptor_root = Path(f"/proc/{process.pid}/fd")
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline:
+                try:
+                    names = [os.readlink(path) for path in descriptor_root.iterdir()]
+                except (FileNotFoundError, OSError):
+                    names = []
+                if any("memfd:rocs-verified-archive" in name for name in names):
+                    break
+                if process.poll() is not None:
+                    self.fail("gate exited before sealed runtime was observable")
+                time.sleep(0.001)
+            else:
+                process.kill()
+                process.communicate()
+                self.fail("sealed private runtime barrier not observed")
+            children_path = Path(f"/proc/{process.pid}/task/{process.pid}/children")
+            active_children: list[int] = []
+            deadline = time.monotonic() + 30
+            while time.monotonic() < deadline:
+                try:
+                    active_children = [int(value) for value in children_path.read_text().split()]
+                except FileNotFoundError:
+                    active_children = []
+                if active_children:
+                    break
+                if process.poll() is not None:
+                    self.fail("gate exited before an active command child was observable")
+                time.sleep(0.001)
+            self.assertTrue(active_children)
+            process.send_signal(signal.SIGTERM)
+            process.communicate(timeout=30)
+            self.assertEqual(process.returncode, 128 + signal.SIGTERM)
+            self.assertFalse(descriptor_root.exists())
+            self.assertTrue(all(not Path(f"/proc/{child}").exists() for child in active_children))
 
 
 if __name__ == "__main__":

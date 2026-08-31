@@ -26,6 +26,7 @@ from rocs_cli import __version__
 from rocs_cli.capabilities import class_policy
 from rocs_cli.layers import dist_dir, ontology_root
 from rocs_cli.managed_surface import clear_managed_output_root, configured_output_root
+from rocs_cli.verified_runtime import render_ci_wrapper
 from rocs_cli.vendored import (
     compute_expected_hashes,
     parse_vendored_hashes_bytes,
@@ -288,62 +289,6 @@ def _preflight_managed_path(root: Path, rel: str, *, directory: bool = False) ->
                 raise ValueError(f"managed path is not a {kind}: {rel}")
 
 
-_VENDORED_LOCK_DIGEST_TOKEN = "__ROCS_VENDORED_LOCK_SHA256__"
-
-_CI_WRAPPER = r'''#!/usr/bin/env bash
-set -euo pipefail
-# Sanitize lookup before invoking even basic helper commands.
-export PATH="/usr/local/bin:/usr/bin:/bin"
-unset PYTHONPATH
-script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo="${ROCS_REPO:-$(cd -- "$script_dir/../.." && pwd)}"
-artifact="$repo/tools/rocs-cli"
-python_bin="python3"
-export ROCS_WORKSPACE_ROOT="${ROCS_WORKSPACE_ROOT:-$repo}"
-if [[ -n "${ROCS_OUTPUT_ROOT:-}" ]]; then
-  export ROCS_AUTHORITY_AGGREGATE=1
-fi
-export PYTHONDONTWRITEBYTECODE=1
-
-# Verify with the standard library before importing or executing any bundled byte.
-"$python_bin" -I -S -B - "$artifact" <<'PY'
-import hashlib, json, os, stat, sys
-from pathlib import Path
-root = Path(sys.argv[1]).resolve(strict=True)
-lock = root / "VENDORED_HASHES.json"
-trusted_lock_digest = "__ROCS_VENDORED_LOCK_SHA256__"
-try:
-    lock_bytes = lock.read_bytes()
-    if hashlib.sha256(lock_bytes).hexdigest() != trusted_lock_digest:
-        raise ValueError("lock digest does not match generated trust anchor")
-    payload = json.loads(lock_bytes)
-    expected = payload["files"]
-except Exception as exc:
-    raise SystemExit(f"ROCS bundled runtime lock invalid: {exc}")
-actual = {}
-for path in sorted(root.rglob("*")):
-    if path == lock:
-        continue
-    mode = path.lstat().st_mode
-    if stat.S_ISLNK(mode) or (not stat.S_ISREG(mode) and not stat.S_ISDIR(mode)):
-        raise SystemExit(f"ROCS bundled runtime has invalid file type: {path.relative_to(root)}")
-    if stat.S_ISREG(mode):
-        actual[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
-if actual != expected:
-    raise SystemExit("ROCS bundled runtime verification failed closed")
-PY
-rocs=("$python_bin" -I -S -B "$artifact/rocs.py")
-profile="${ROCS_CI_PROFILE:-local-dev}"
-case "$profile" in
-  local-dev) resolve=(--only path) ;;
-  main-strict|branch-ci) resolve=(--resolve-refs --workspace-ref-mode strict) ;;
-  *) echo "unknown ROCS_CI_PROFILE: $profile" >&2; exit 2 ;;
-esac
-"${rocs[@]}" cleanup --repo "$repo"
-"${rocs[@]}" validate --repo "$repo" --json "${resolve[@]}"
-"${rocs[@]}" build --repo "$repo" --json "${resolve[@]}"
-'''
-
 
 def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge: bool = False) -> dict[str, Any]:
     """Converge a repository transactionally, publishing one verified sibling stage."""
@@ -420,7 +365,7 @@ def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge:
                 ci = stage / "scripts/ci/full.sh"
                 ci.parent.mkdir(parents=True, exist_ok=True)
                 lock_digest = hashlib.sha256((stage / "tools/rocs-cli/VENDORED_HASHES.json").read_bytes()).hexdigest()
-                ci.write_text(_CI_WRAPPER.replace(_VENDORED_LOCK_DIGEST_TOKEN, lock_digest), "utf-8")
+                ci.write_text(render_ci_wrapper(lock_digest), "utf-8")
                 ci.chmod(0o755)
                 hook = stage / ".githooks/pre-push"
                 hook.parent.mkdir(parents=True, exist_ok=True)
