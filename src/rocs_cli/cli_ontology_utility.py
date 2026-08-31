@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import tempfile
 from pathlib import Path
 
 from rocs_cli import __version__
@@ -20,7 +22,7 @@ from rocs_cli.graph import build_edges, collapse_nodes, compute_layout, write_gr
 from rocs_cli.inverses import check_inverses
 from rocs_cli.layers import parse_ref_locator, repo_root as _repo_root, resolve_layers, resolve_ref_repo_root
 from rocs_cli.lint import lint_docs
-from rocs_cli.managed_surface import ensure_managed_output_file
+from rocs_cli.managed_surface import ensure_managed_output_file, write_managed_output_text
 from rocs_cli.model import collect_docs
 from rocs_cli.normalize import normalize_tree
 from rocs_cli.pack import build_pack, pack_config_from_profile
@@ -195,7 +197,13 @@ def cmd_graph(args: argparse.Namespace) -> int:
             out = ensure_managed_output_file(view.repo, dist / "graph.excalidraw.json", label="graph artifact")
     direction = "LR" if args.layout == "dag" else "TB"
     fmt = "json" if args.json else args.format
-    write_graph(out, fmt=fmt, nodes=nodes, edges=edges, layout=layout, direction=direction)
+    if args.out or not (os.environ.get("ROCS_OUTPUT_ROOT") or "").strip():
+        write_graph(out, fmt=fmt, nodes=nodes, edges=edges, layout=layout, direction=direction)
+    else:
+        with tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR")) as temporary:
+            staged = Path(temporary) / out.name
+            write_graph(staged, fmt=fmt, nodes=nodes, edges=edges, layout=layout, direction=direction)
+            write_managed_output_text(view.repo, out, staged.read_text("utf-8"))
     if args.json:
         payload: dict[str, object] = {"ok": True, "out": str(out), "format": fmt}
         conformance = view.source_conformance("graph", complete_success=True)
@@ -325,7 +333,7 @@ def cmd_diff(args: argparse.Namespace) -> int:
 
     dist = _ensure_dist_dir(repo, label="diff output dir")
     out = ensure_managed_output_file(repo, dist / "diff.json", label="diff artifact")
-    out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
+    write_managed_output_text(repo, out, json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
     if args.json:
         get_console().print_json(json.dumps(payload))

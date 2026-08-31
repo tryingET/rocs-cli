@@ -14,6 +14,8 @@ Artifacts written by rocs-cli are **offline-first** and should be:
 
 Notes:
 - Some fields are absolute paths (e.g. `repo`, `src_root`, `baseline_repo`) and are not intended to be stable across machines.
+- When `ROCS_OUTPUT_ROOT` is unset, managed files retain the existing `ontology/dist/` or root-layout `dist/` location and bytes. When set, its value is the direct output directory anchored to `--repo`; every managed writer and cleanup operation uses it, while ontology source remains unchanged. The external directory carries a persistent `.rocs-output-root.json` (`rocs-managed-output-root/1`) and must be absent, empty, or already marked for the same repo-relative path. Cleanup removes only owned artifact files and retains this marker directory so it never performs an inode-ambiguous pathname deletion.
+- External output roots must stay strictly inside the repository, remain disjoint from the ontology source tree, avoid reserved/symlink paths, and cannot adopt nonempty unmarked directories.
 
 ## Compatibility policy
 - Each artifact includes `schema_version` (int).
@@ -75,6 +77,7 @@ Top-level keys (v3):
 - `last_command` (`build|validate`)
 - `command_files` (object mapping command → `authority-receipt.<command>.json`)
 - `commands` (object mapping command → per-command receipt payload)
+- `output_root` (string, optional; repo-relative managed output directory when `ROCS_OUTPUT_ROOT` is active)
 
 ### `authority-receipt.<command>.json` (`schema_version: 3`)
 Per-command authority/provenance artifact for `build` / `validate`.
@@ -96,6 +99,7 @@ Top-level keys (v3):
 - `loose_workspace_ref_layers_used` (int)
 - `layer_sources` (list of `{name, kind, locator_kind, origin, source}`)
 - `locator_kinds_present` (sorted list)
+- `output_root` (string, optional; repo-relative managed output directory when `ROCS_OUTPUT_ROOT` is active)
 - `result` (object, optional; currently validation finding counts)
 - `error` (object, optional; normalized `kind`/`message`/`details` when artifact was emitted on handled command failure)
 

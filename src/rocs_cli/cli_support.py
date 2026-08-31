@@ -9,7 +9,12 @@ from rocs_cli import __version__
 from rocs_cli.authority import authority_receipt_payload, can_write_authority_receipt, write_authority_receipt
 from rocs_cli.errors import RocsCliError
 from rocs_cli.layers import dist_dir, repo_root as _repo_root
-from rocs_cli.managed_surface import ensure_managed_output_dir, ensure_managed_output_file
+from rocs_cli.managed_surface import (
+    ensure_managed_output_dir,
+    ensure_managed_output_file,
+    unlink_managed_output,
+    write_managed_output_text,
+)
 from rocs_cli.repo_view import RepoView, load_repo_view
 from rocs_cli.rules import Finding
 
@@ -97,13 +102,13 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
         "layers": entries,
     }
     out = ensure_managed_output_file(repo, dist / "resolve.json", label="resolve artifact")
-    out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
+    write_managed_output_text(repo, out, json.dumps(payload, indent=2, sort_keys=True) + "\n")
     return out
 
 def _clear_build_artifacts(repo: Path) -> None:
     dist = dist_dir(repo)
     for name in ("resolve.json", "summary.json", "id_index.json"):
-        (dist / name).unlink(missing_ok=True)
+        unlink_managed_output(repo, dist / name)
 
 def _write_authority_receipt_if_possible(
     repo: Path,

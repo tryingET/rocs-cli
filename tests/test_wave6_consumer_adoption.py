@@ -25,7 +25,7 @@ def fingerprint(root: Path) -> dict[str, str]:
 
 class Wave6ConsumerAdoptionTests(unittest.TestCase):
     def _run(self, repo: Path, command: str, profile: str, *, cwd: Path | None = None,
-             workspace: Path | None = None) -> subprocess.CompletedProcess[str]:
+             workspace: Path | None = None, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
         env = {
             "PATH": "/must/not/be/executed", "HOME": str(repo.parent / "empty-home"),
             "PYTHONPATH": "/must/not/be/imported", "PYTHONDONTWRITEBYTECODE": "1",
@@ -34,6 +34,8 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
         }
         if workspace is not None:
             env["ROCS_WORKSPACE_ROOT"] = str(workspace)
+        if extra_env is not None:
+            env.update(extra_env)
         return subprocess.run(["/bin/bash", str(repo / command)], cwd=cwd or repo, env=env,
                               text=True, capture_output=True)
 
@@ -59,6 +61,59 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
                     self.assertEqual(self._run(repo, "scripts/ci/full.sh", profile).returncode, 0)
                     self.assertEqual(self._run(repo, ".githooks/pre-push", profile,
                                                cwd=repo.parent).returncode, 0)
+
+    def test_generated_gate_routes_all_outputs_to_marked_external_root(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            shutil.copytree(FIXTURE, repo)
+            bootstrap(repo, "required")
+            result = self._run(
+                repo,
+                "scripts/ci/full.sh",
+                "local-dev",
+                extra_env={"ROCS_OUTPUT_ROOT": "governance/ontology-dist"},
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            output = repo / "governance/ontology-dist"
+            self.assertTrue((output / ".rocs-output-root.json").is_file())
+            aggregate = json.loads((output / "authority-receipt.json").read_text("utf-8"))
+            self.assertEqual(sorted(aggregate["commands"]), ["build", "validate"])
+            self.assertEqual(aggregate["repo"], str(repo.resolve()))
+            self.assertEqual(aggregate["output_root"], "governance/ontology-dist")
+            self.assertFalse((repo / "ontology/dist").exists())
+
+    def test_generated_root_layout_gate_routes_externally(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "ontology"
+            repo.mkdir()
+            (repo / "manifest.yaml").write_text(
+                "rocs:\n  layers:\n    - name: repo\n      path: src\n", "utf-8"
+            )
+            (repo / "src").mkdir()
+            (repo / "src/system4d.yaml").write_text("system4d: {}\n", "utf-8")
+            bootstrap(repo, "ontology_repo")
+            result = self._run(
+                repo,
+                "scripts/ci/full.sh",
+                "local-dev",
+                extra_env={"ROCS_OUTPUT_ROOT": "governance/ontology-dist"},
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue((repo / "governance/ontology-dist/summary.json").is_file())
+            self.assertFalse((repo / "dist").exists())
+
+    def test_generated_gate_keeps_default_standalone_receipt_behavior(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            shutil.copytree(FIXTURE, repo)
+            bootstrap(repo, "required")
+            result = self._run(repo, "scripts/ci/full.sh", "local-dev")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            output = repo / "ontology/dist"
+            aggregate = json.loads((output / "authority-receipt.json").read_text("utf-8"))
+            self.assertEqual(sorted(aggregate["commands"]), ["build"])
+            self.assertFalse((output / "authority-receipt.validate.json").exists())
+            self.assertFalse((output / ".rocs-output-root.json").exists())
 
     def test_persistent_lock_is_reported_preflighted_and_keeps_inode(self) -> None:
         with tempfile.TemporaryDirectory() as td:

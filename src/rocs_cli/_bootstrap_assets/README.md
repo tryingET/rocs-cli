@@ -17,3 +17,4 @@ artifact does not discover a source checkout, use ambient `PYTHONPATH`, require
 
 The generated `scripts/ci/full.sh` embeds the expected digest of
 `VENDORED_HASHES.json` and verifies the complete artifact before importing ROCS.
+It preserves an optional `ROCS_OUTPUT_ROOT` environment binding so a parent repository can route every managed artifact and cleanup operation to one marked, source-disjoint directory without changing `ROCS_REPO` identity.

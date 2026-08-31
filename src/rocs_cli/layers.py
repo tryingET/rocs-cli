@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 from rocs_cli.errors import RocsCliError
+from rocs_cli.managed_surface import configured_output_root
 from rocs_cli.source_contract import SourceContractSelectorError, source_contract_for_src_root
 from rocs_cli.workspace import (
     git_head_sha,
@@ -77,7 +78,9 @@ def manifest_path(repo_root: Path) -> Path:
 
 
 def dist_dir(repo_root: Path) -> Path:
-    return ontology_root(repo_root) / "dist"
+    root = repo_root.expanduser().resolve()
+    ontology = ontology_root(root)
+    return configured_output_root(root, ontology) or ontology / "dist"
 
 
 def default_repo_src_path(repo_root: Path) -> str:

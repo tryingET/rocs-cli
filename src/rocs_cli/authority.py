@@ -9,7 +9,15 @@ from typing import TYPE_CHECKING, Any, cast
 from rocs_cli import __version__
 from rocs_cli.errors import RocsCliError
 from rocs_cli.layers import dist_dir, manifest_path, parse_ref_locator
-from rocs_cli.managed_surface import ensure_managed_output_dir, ensure_managed_output_file
+from rocs_cli.managed_surface import (
+    ensure_managed_output_dir,
+    ensure_managed_output_file,
+    list_managed_output_names,
+    open_managed_output,
+    read_managed_output_text,
+    unlink_managed_output,
+    write_managed_output_text,
+)
 from rocs_cli.workspace import workspace_ref_mode_from_env
 
 if TYPE_CHECKING:
@@ -21,51 +29,49 @@ _COMMAND_RECEIPT_FMT = "authority-receipt.{command}.json"
 
 
 @contextlib.contextmanager
-def _receipt_lock(lock_path: Path):
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with lock_path.open("a+", encoding="utf-8") as f:
+def _receipt_lock(f):
+    f.seek(0)
+    if f.read(1) == "":
         f.seek(0)
-        if f.read(1) == "":
-            f.seek(0)
-            f.write("\0")
-            f.flush()
-        f.seek(0)
-        locked = False
-        try:
-            if os.name == "nt":
-                import msvcrt  # noqa: PLC0415
+        f.write("\0")
+        f.flush()
+    f.seek(0)
+    locked = False
+    try:
+        if os.name == "nt":
+            import msvcrt  # noqa: PLC0415
 
-                win_lock = getattr(cast(Any, msvcrt), "locking", None)
-                lock_flag = getattr(cast(Any, msvcrt), "LK_LOCK", None)
-                if callable(win_lock) and lock_flag is not None:
-                    win_lock(f.fileno(), lock_flag, 1)
-                    locked = True
-            else:
-                import fcntl  # noqa: PLC0415
-
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            win_lock = getattr(cast(Any, msvcrt), "locking", None)
+            lock_flag = getattr(cast(Any, msvcrt), "LK_LOCK", None)
+            if callable(win_lock) and lock_flag is not None:
+                win_lock(f.fileno(), lock_flag, 1)
                 locked = True
-        except Exception:
-            locked = False
-        try:
-            yield
-        finally:
-            if locked:
-                try:
-                    f.seek(0)
-                    if os.name == "nt":
-                        import msvcrt  # noqa: PLC0415
+        else:
+            import fcntl  # noqa: PLC0415
 
-                        win_lock = getattr(cast(Any, msvcrt), "locking", None)
-                        unlock_flag = getattr(cast(Any, msvcrt), "LK_UNLCK", None)
-                        if callable(win_lock) and unlock_flag is not None:
-                            win_lock(f.fileno(), unlock_flag, 1)
-                    else:
-                        import fcntl  # noqa: PLC0415
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            locked = True
+    except Exception:
+        locked = False
+    try:
+        yield
+    finally:
+        if locked:
+            try:
+                f.seek(0)
+                if os.name == "nt":
+                    import msvcrt  # noqa: PLC0415
 
-                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-                except Exception:
-                    pass
+                    win_lock = getattr(cast(Any, msvcrt), "locking", None)
+                    unlock_flag = getattr(cast(Any, msvcrt), "LK_UNLCK", None)
+                    if callable(win_lock) and unlock_flag is not None:
+                        win_lock(f.fileno(), unlock_flag, 1)
+                else:
+                    import fcntl  # noqa: PLC0415
+
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
 
 
 def effective_workspace_ref_mode(explicit_mode: str | None) -> str:
@@ -203,6 +209,8 @@ def authority_receipt_payload(
         "layer_sources": layer_sources,
         "locator_kinds_present": sorted(locator_kinds),
     }
+    if (os.environ.get("ROCS_OUTPUT_ROOT") or "").strip():
+        payload["output_root"] = dist_dir(repo_root).relative_to(repo_root).as_posix()
     if source_contract_conformance is not None:
         if not ok or error is not None:
             raise ValueError("source-contract conformance requires complete successful operation")
@@ -234,40 +242,45 @@ def write_authority_receipt(repo_root: Path, payload: dict) -> dict[str, Path]:
     )
     lock_path = ensure_managed_output_file(repo_root, dist / ".authority-receipt.lock", label="authority receipt lock")
 
-    with _receipt_lock(lock_path):
-        command_out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
+    with open_managed_output(repo_root, lock_path, "a+") as lock_file:
+        with _receipt_lock(lock_file):
+            write_managed_output_text(
+                repo_root, command_out, json.dumps(payload, indent=2, sort_keys=True) + "\n"
+            )
+            aggregate_across_commands = (os.environ.get("ROCS_AUTHORITY_AGGREGATE") or "").strip() == "1"
+            existing_commands: dict[str, object] = {}
+            existing_files: dict[str, str] = {}
+            if aggregate_across_commands:
+                try:
+                    existing_text = read_managed_output_text(repo_root, aggregate_out)
+                    existing = json.loads(existing_text) if existing_text is not None else None
+                except (UnicodeError, json.JSONDecodeError):
+                    existing = None
+                if isinstance(existing, dict) and existing.get("schema_version") == 3:
+                    cmds = existing.get("commands")
+                    if isinstance(cmds, dict):
+                        existing_commands = {str(k): v for k, v in cmds.items()}
+                    files = existing.get("command_files")
+                    if isinstance(files, dict):
+                        existing_files = {str(k): str(v) for k, v in files.items()}
+            else:
+                for name in list_managed_output_names(repo_root, dist):
+                    if name.startswith("authority-receipt.") and name.endswith(".json") and name != command_out.name:
+                        unlink_managed_output(repo_root, dist / name)
 
-        aggregate_across_commands = (os.environ.get("ROCS_AUTHORITY_AGGREGATE") or "").strip() == "1"
-        existing_commands: dict[str, object] = {}
-        existing_files: dict[str, str] = {}
-        if aggregate_across_commands and aggregate_out.exists():
-            try:
-                existing = json.loads(aggregate_out.read_text("utf-8"))
-            except Exception:
-                existing = None
-            if isinstance(existing, dict) and existing.get("schema_version") == 3:
-                cmds = existing.get("commands")
-                if isinstance(cmds, dict):
-                    existing_commands = {str(k): v for k, v in cmds.items()}
-                files = existing.get("command_files")
-                if isinstance(files, dict):
-                    existing_files = {str(k): str(v) for k, v in files.items()}
-        else:
-            for stale in dist.glob("authority-receipt.*.json"):
-                if stale.name == command_out.name:
-                    continue
-                stale.unlink(missing_ok=True)
-
-        existing_commands[command] = payload
-        existing_files[command] = command_out.name
-
-        aggregate_payload = {
-            "schema_version": 3,
-            "version": __version__,
-            "repo": str(repo_root),
-            "last_command": command,
-            "command_files": {k: existing_files[k] for k in sorted(existing_files)},
-            "commands": {k: existing_commands[k] for k in sorted(existing_commands)},
-        }
-        aggregate_out.write_text(json.dumps(aggregate_payload, indent=2, sort_keys=True) + "\n", "utf-8")
+            existing_commands[command] = payload
+            existing_files[command] = command_out.name
+            aggregate_payload = {
+                "schema_version": 3,
+                "version": __version__,
+                "repo": str(repo_root),
+                "last_command": command,
+                "command_files": {k: existing_files[k] for k in sorted(existing_files)},
+                "commands": {k: existing_commands[k] for k in sorted(existing_commands)},
+            }
+            if (os.environ.get("ROCS_OUTPUT_ROOT") or "").strip():
+                aggregate_payload["output_root"] = dist.relative_to(repo_root).as_posix()
+            write_managed_output_text(
+                repo_root, aggregate_out, json.dumps(aggregate_payload, indent=2, sort_keys=True) + "\n"
+            )
     return {"aggregate": aggregate_out, "command": command_out}

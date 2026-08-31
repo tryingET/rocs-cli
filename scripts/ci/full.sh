@@ -56,6 +56,10 @@ run_rocs() {
 }
 
 clean_dist() {
+  if [[ -n "${ROCS_OUTPUT_ROOT:-}" ]]; then
+    run_rocs cleanup --repo "$ROCS_REPO" >/dev/null
+    return
+  fi
   python3 - "$ROCS_REPO" <<'PY'
 import os
 import shutil
@@ -78,9 +82,6 @@ if not has_manifest and not is_rocs_source:
     raise SystemExit(f"refusing cleanup: ROCS_REPO is neither an ontology repo nor the rocs-cli source repo: {root}")
 targets = []
 for lexical in (root / "ontology/dist", root / "dist"):
-    # Resolve every target before deleting any, so rejection is preflight-atomic.
-    # Resolve the target itself when present, exposing a symlink escape.  For an
-    # absent target, resolve its existing parents and retain the final name.
     resolved = lexical.resolve(strict=False)
     try:
         rel = resolved.relative_to(root)

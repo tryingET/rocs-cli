@@ -8,6 +8,15 @@ read_when:
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-31
+
+### Added
+- Safe parent-owned managed output routing through `ROCS_OUTPUT_ROOT`, covering resolve/build/diff/default graph artifacts, authority receipts and lock files, cleanup, source gates, and generated vendored gates while preserving canonical repository identity.
+- Schema-1 `.rocs-output-root.json` ownership markers and fail-closed path/disjointness checks prevent destructive adoption or cleanup of arbitrary, symlinked, source-overlapping, or nonempty unmarked directories.
+
+### Changed
+- Generated multi-command gates now retain validate and build receipts under aggregate mode when an external output root is selected; default output paths and bytes remain compatible when the override is unset.
+
 ## [0.2.1] - 2026-07-16
 
 ### Fixed

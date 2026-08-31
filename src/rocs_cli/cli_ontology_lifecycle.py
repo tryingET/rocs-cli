@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 from typing import cast
 
 from rocs_cli import __version__
@@ -21,7 +20,11 @@ from rocs_cli.cli_support import (
 from rocs_cli.errors import RocsCliError
 from rocs_cli.id_index import build_id_index
 from rocs_cli.layers import dist_dir, repo_root as _repo_root
-from rocs_cli.managed_surface import ensure_managed_output_file
+from rocs_cli.managed_surface import (
+    clear_managed_output_root,
+    ensure_managed_output_file,
+    write_managed_output_text,
+)
 from rocs_cli.rules import Finding
 from rocs_cli.rulesets import behavior_for_ruleset, effective_ruleset
 from rocs_cli.validate import validate_repo_structure
@@ -228,8 +231,8 @@ def cmd_build(args: argparse.Namespace) -> int:
     ws_mode = effective_workspace_ref_mode(getattr(args, "workspace_ref_mode", None))
     dist = dist_dir(repo)
     _ensure_dist_dir(repo, label="build output dir")
-    if args.clean and dist.exists():
-        shutil.rmtree(dist)
+    if args.clean:
+        clear_managed_output_root(repo, dist, remove_root=True)
     _ensure_dist_dir(repo, label="build output dir")
     _clear_build_artifacts(repo)
     try:
@@ -287,11 +290,12 @@ def cmd_build(args: argparse.Namespace) -> int:
         "relation_ids": sorted(view.relations.keys()),
     }
     summary_out = ensure_managed_output_file(repo, dist / "summary.json", label="build summary artifact")
-    summary_out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", "utf-8")
+    write_managed_output_text(repo, summary_out, json.dumps(payload, indent=2, sort_keys=True) + "\n")
     id_index_out = ensure_managed_output_file(repo, dist / "id_index.json", label="build id-index artifact")
-    id_index_out.write_text(
+    write_managed_output_text(
+        repo,
+        id_index_out,
         json.dumps(build_id_index(concepts=view.concepts, relations=view.relations), indent=2, sort_keys=True) + "\n",
-        "utf-8",
     )
     conformance = view.source_conformance("build", complete_success=True)
     authority_receipt_out = _write_authority_receipt_if_possible(

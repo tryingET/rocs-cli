@@ -130,6 +130,7 @@ CI profile wrapper (template-side policy contract):
   - `ROCS_CMD` (default: `uv run --frozen python -m rocs_cli`)
   - `ROCS_REPO` (default: `.`)
   - `ROCS_PROFILE` (optional manifest profile)
+  - `ROCS_OUTPUT_ROOT` (optional parent-owned managed output directory, relative to `ROCS_REPO`; all dist writers and cleanup move together, and a ROCS ownership marker is required)
 
 Constitutional foundry (proposal-only, offline):
 - Schema-1 candidate packets bind owner/adoption scope, rationale, an allowlisted closed predicate AST, positive/negative fixtures, adversarial counterexamples, severity and suppression policy, false-positive challenges, evidence digests, and a canonical candidate digest.

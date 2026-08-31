@@ -24,6 +24,8 @@ from typing import Any
 
 from rocs_cli import __version__
 from rocs_cli.capabilities import class_policy
+from rocs_cli.layers import dist_dir, ontology_root
+from rocs_cli.managed_surface import clear_managed_output_root, configured_output_root
 from rocs_cli.vendored import (
     compute_expected_hashes,
     parse_vendored_hashes_bytes,
@@ -298,6 +300,9 @@ repo="${ROCS_REPO:-$(cd -- "$script_dir/../.." && pwd)}"
 artifact="$repo/tools/rocs-cli"
 python_bin="python3"
 export ROCS_WORKSPACE_ROOT="${ROCS_WORKSPACE_ROOT:-$repo}"
+if [[ -n "${ROCS_OUTPUT_ROOT:-}" ]]; then
+  export ROCS_AUTHORITY_AGGREGATE=1
+fi
 export PYTHONDONTWRITEBYTECODE=1
 
 # Verify with the standard library before importing or executing any bundled byte.
@@ -499,6 +504,13 @@ def cleanup(repo: Path, *, dry_run: bool = False) -> dict[str, Any]:
     is_source = pyproject.is_file() and not pyproject.is_symlink() and 'name = "rocs-cli"' in pyproject.read_text("utf-8")
     if not any(path.is_file() and not path.is_symlink() for path in manifests) and not is_source:
         raise ValueError("repository identity is not verifiable")
+    override = configured_output_root(root, ontology_root(root))
+    if override is not None:
+        present = override.exists()
+        removed = [str(override.relative_to(root))] if present else []
+        if present and not dry_run:
+            clear_managed_output_root(root, dist_dir(root), remove_root=True)
+        return {"schema_version": 1, "repo": str(root), "dry_run": dry_run, "removed": removed}
     targets = [root / "ontology/dist", root / "dist"]
     removed: list[str] = []
     for target in targets:
