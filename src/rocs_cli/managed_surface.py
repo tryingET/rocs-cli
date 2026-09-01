@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import ctypes
 import shutil
 import json
 import os
@@ -19,6 +20,13 @@ KNOWN_COMPANIES: tuple[str, ...] = ("holdingco", "softwareco", "healthco")
 ROCS_OUTPUT_ROOT_ENV = "ROCS_OUTPUT_ROOT"
 ROCS_OUTPUT_MARKER = ".rocs-output-root.json"
 ROCS_OUTPUT_MARKER_SCHEMA = "rocs-managed-output-root/1"
+MANAGED_OUTPUT_FILES = frozenset({
+    "authority-receipt.json", "authority-receipt.validate.json",
+    "authority-receipt.build.json", "resolve.json", "summary.json",
+    "id_index.json", "graph.json", "graph.dot", "graph.excalidraw-cli.json",
+    "graph.excalidraw.json", "diff.json",
+})
+MANAGED_OUTPUT_LOCK = ".authority-receipt.lock"
 
 
 def _root_layout_source_surfaces(root: Path) -> tuple[Path, ...]:
@@ -97,11 +105,57 @@ def _is_within(path: Path, parent: Path) -> bool:
     return path.is_relative_to(parent)
 
 
+def _is_managed_transient(name: str) -> bool:
+    for base in MANAGED_OUTPUT_FILES:
+        prefix = f".{base}.rocs-"
+        if name.startswith(prefix):
+            pid, separator, token = name[len(prefix):].partition("-")
+            return bool(separator and pid.isascii() and pid.isdigit() and not pid.startswith("0")
+                        and len(token) == 12 and all(ch in "0123456789abcdef" for ch in token))
+    return False
+
+
+def _cleanup_quarantine_identity(name: str) -> tuple[int, int] | None:
+    prefix = ".rocs-cleanup-quarantine-"
+    parts = name[len(prefix):].split("-") if name.startswith(prefix) else []
+    if len(parts) != 4:
+        return None
+    device, inode, pid, token = parts
+    if not (device and inode and all(ch in "0123456789abcdef" for ch in device + inode)
+            and pid.isascii() and pid.isdigit() and not pid.startswith("0")
+            and len(token) == 24 and all(ch in "0123456789abcdef" for ch in token)):
+        return None
+    return int(device, 16), int(inode, 16)
+
+
+def _require_managed_output_file(path: Path, configured: Path) -> str:
+    try:
+        relative = path.expanduser().absolute().relative_to(configured)
+    except ValueError as exc:
+        raise RocsCliError(kind="config", message="managed output file escapes configured root") from exc
+    if len(relative.parts) != 1 or relative.name not in MANAGED_OUTPUT_FILES | {MANAGED_OUTPUT_LOCK}:
+        raise RocsCliError(kind="config", message=f"unknown managed output filename: {relative.as_posix()}")
+    return relative.name
+
+
 def _output_marker_payload(root: Path, output: Path) -> dict[str, object]:
     return {"schema": ROCS_OUTPUT_MARKER_SCHEMA, "purpose": "rocs-managed-output", "path": output.relative_to(root).as_posix()}
 
 
 _DIRECTORY_FLAGS = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+
+
+def _listdir_at(descriptor: int) -> list[str]:
+    scan = os.open(".", _DIRECTORY_FLAGS, dir_fd=descriptor)
+    try:
+        return sorted(os.listdir(scan))
+    finally:
+        os.close(scan)
+
+
+def _stat_identity(value: os.stat_result) -> tuple[int, ...]:
+    return (value.st_dev, value.st_ino, value.st_mode, value.st_nlink,
+            value.st_size, value.st_mtime_ns, value.st_ctime_ns)
 
 
 @contextlib.contextmanager
@@ -135,7 +189,9 @@ def _external_output_fds(root: Path, output: Path, *, create: bool):
             os.close(descriptor)
 
 
-def _read_marker_at(root: Path, output: Path, descriptor: int) -> dict[str, object]:
+def _read_marker_at(
+    root: Path, output: Path, descriptor: int
+) -> tuple[dict[str, object], tuple[int, ...]]:
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
     try:
         marker_fd = os.open(ROCS_OUTPUT_MARKER, flags, dir_fd=descriptor)
@@ -151,6 +207,9 @@ def _read_marker_at(root: Path, output: Path, descriptor: int) -> dict[str, obje
         if len(data) > 16384:
             raise RocsCliError(kind="config", message="external ROCS output marker is too large")
         payload = json.loads(data.decode("utf-8"))
+        marker_after = os.fstat(marker_fd)
+        if _stat_identity(marker_stat) != _stat_identity(marker_after):
+            raise RocsCliError(kind="config", message="external ROCS output marker changed during read")
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise RocsCliError(kind="config", message="external ROCS output marker is invalid") from exc
     finally:
@@ -158,11 +217,11 @@ def _read_marker_at(root: Path, output: Path, descriptor: int) -> dict[str, obje
     expected = _output_marker_payload(root, output)
     if payload != expected:
         raise RocsCliError(kind="config", message="external ROCS output marker identity mismatch")
-    return payload
+    return payload, _stat_identity(marker_after)
 
 
 def _ensure_marker_at(root: Path, output: Path, descriptor: int) -> None:
-    names = os.listdir(descriptor)
+    names = _listdir_at(descriptor)
     if ROCS_OUTPUT_MARKER in names:
         _read_marker_at(root, output, descriptor)
         return
@@ -203,24 +262,104 @@ def ensure_external_output_root(root: Path, output: Path) -> Path:
     return output
 
 
-def clear_managed_output_root(root: Path, output: Path, *, remove_root: bool) -> None:
+def _cleanup_inventory(descriptor: int) -> tuple[dict[str, tuple[int, ...]], set[str]]:
+    identities: dict[str, tuple[int, ...]] = {}
+    deletable: set[str] = set()
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    for entry in _listdir_at(descriptor):
+        quarantine_identity = _cleanup_quarantine_identity(entry)
+        delete = entry in MANAGED_OUTPUT_FILES or _is_managed_transient(entry) or quarantine_identity is not None
+        if not delete and entry not in {ROCS_OUTPUT_MARKER, MANAGED_OUTPUT_LOCK}:
+            raise RocsCliError(kind="config", message=f"external ROCS output contains unknown file: {entry}")
+        try:
+            file_fd = os.open(entry, flags, dir_fd=descriptor)
+        except OSError as exc:
+            raise RocsCliError(kind="config", message=f"external ROCS output entry is unsafe: {entry}") from exc
+        try:
+            opened = os.fstat(file_fd)
+            if not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1:
+                raise RocsCliError(kind="config", message=f"external ROCS output entry is not private: {entry}")
+            identities[entry] = _stat_identity(opened)
+            if quarantine_identity is not None and (opened.st_dev, opened.st_ino) != quarantine_identity:
+                raise RocsCliError(kind="config", message=f"cleanup quarantine identity mismatch: {entry}")
+            if delete:
+                deletable.add(entry)
+        finally:
+            os.close(file_fd)
+    return identities, deletable
+
+
+def _rename_noreplace(descriptor: int, source: str, target: str) -> None:
+    renameat2 = getattr(ctypes.CDLL(None, use_errno=True), "renameat2", None)
+    if renameat2 is None:
+        raise RocsCliError(kind="config", message="atomic cleanup quarantine is unsupported")
+    if renameat2(descriptor, os.fsencode(source), descriptor, os.fsencode(target), 1) != 0:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error), target)
+
+
+def _quarantine_unlink(
+    descriptor: int, entry: str, file_fd: int, identity: tuple[int, ...]
+) -> None:
+    quarantine = (f".rocs-cleanup-quarantine-{identity[0]:x}-{identity[1]:x}-"
+                  f"{os.getpid()}-{secrets.token_hex(12)}")
+    _rename_noreplace(descriptor, entry, quarantine)
+    moved = os.stat(quarantine, dir_fd=descriptor, follow_symlinks=False)
+    pinned = os.fstat(file_fd)
+    pinned_identity = (pinned.st_dev, pinned.st_ino, pinned.st_mode,
+                       pinned.st_nlink, pinned.st_size, pinned.st_mtime_ns)
+    if ((moved.st_dev, moved.st_ino) != (pinned.st_dev, pinned.st_ino)
+            or pinned_identity != identity[:-1]):
+        raise RocsCliError(kind="config", message=f"external ROCS output changed: {entry}")
+    os.unlink(quarantine, dir_fd=descriptor)
+
+
+def clear_managed_output_root(
+    root: Path, output: Path, *, remove_root: bool, dry_run: bool = False
+) -> None:
     root = root.expanduser().resolve()
     configured = _configured_root(root)
     if configured is None or output.expanduser().absolute() != configured:
-        if output.exists():
+        if not dry_run and output.exists():
             shutil.rmtree(output) if output.is_dir() else output.unlink()
         return
-    _ = remove_root  # External marker directories persist; only their owned files are cleared.
+    _ = remove_root  # External marker directories and the stable lock persist.
     with _external_output_fds(root, configured, create=False) as (descriptor, _parent, _name):
-        _read_marker_at(root, configured, descriptor)
+        _marker, marker_identity = _read_marker_at(root, configured, descriptor)
         before = os.fstat(descriptor)
-        for entry in os.listdir(descriptor):
-            if entry == ROCS_OUTPUT_MARKER:
-                continue
-            mode = os.stat(entry, dir_fd=descriptor, follow_symlinks=False).st_mode
-            if not stat.S_ISREG(mode):
-                raise RocsCliError(kind="config", message=f"external ROCS output contains non-file: {entry}")
-            os.unlink(entry, dir_fd=descriptor)
+        first, first_deletable = _cleanup_inventory(descriptor)
+        if first.get(ROCS_OUTPUT_MARKER) != marker_identity:
+            raise RocsCliError(kind="config", message="external ROCS output marker changed after validation")
+        second, deletable = _cleanup_inventory(descriptor)
+        if first != second or first_deletable != deletable:
+            raise RocsCliError(kind="config", message="external ROCS output changed during cleanup preflight")
+        _verify_external_binding(root, configured, before)
+        if dry_run:
+            return
+        opened: dict[str, int] = {}
+        try:
+            for entry in sorted(deletable):
+                fd = os.open(entry, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=descriptor)
+                current = os.fstat(fd)
+                current_identity = (current.st_dev, current.st_ino, current.st_mode,
+                                    current.st_nlink, current.st_size,
+                                    current.st_mtime_ns, current.st_ctime_ns)
+                if current_identity != second[entry] or current.st_nlink != 1:
+                    os.close(fd)
+                    raise RocsCliError(kind="config", message=f"external ROCS output changed: {entry}")
+                opened[entry] = fd
+            current, current_deletable = _cleanup_inventory(descriptor)
+            if current != second or current_deletable != deletable:
+                raise RocsCliError(kind="config", message="external ROCS output changed before cleanup")
+            for entry, fd in opened.items():
+                _quarantine_unlink(descriptor, entry, fd, second[entry])
+        finally:
+            for fd in opened.values():
+                os.close(fd)
+        retained = {name: identity for name, identity in first.items() if name not in deletable}
+        final, final_deletable = _cleanup_inventory(descriptor)
+        if final != retained or final_deletable:
+            raise RocsCliError(kind="config", message="external ROCS output changed during cleanup")
         os.fsync(descriptor)
         _verify_external_binding(root, configured, before)
 
@@ -229,11 +368,12 @@ def clear_managed_output_root(root: Path, output: Path, *, remove_root: bool) ->
 def open_managed_output(root: Path, path: Path, mode: str):
     root = root.expanduser().resolve()
     configured = _configured_root(root)
-    if configured is None or path.parent.expanduser().absolute() != configured:
+    if configured is None or not _is_within(path.expanduser().absolute(), configured):
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open(mode, encoding="utf-8") as stream:
             yield stream
         return
+    name = _require_managed_output_file(path, configured)
     flags_by_mode = {"r": os.O_RDONLY, "a+": os.O_RDWR | os.O_CREAT | os.O_APPEND}
     if mode not in flags_by_mode:
         raise ValueError(f"unsupported managed output mode: {mode}")
@@ -247,15 +387,15 @@ def open_managed_output(root: Path, path: Path, mode: str):
             | getattr(os, "O_NONBLOCK", 0)
         )
         try:
-            file_fd = os.open(path.name, flags, 0o644, dir_fd=descriptor)
+            file_fd = os.open(name, flags, 0o644, dir_fd=descriptor)
         except FileNotFoundError:
             raise
         except OSError as exc:
-            raise RocsCliError(kind="config", message=f"managed output path is unsafe: {path.name}") from exc
+            raise RocsCliError(kind="config", message=f"managed output path is unsafe: {name}") from exc
         file_stat = os.fstat(file_fd)
         if not stat.S_ISREG(file_stat.st_mode) or file_stat.st_nlink != 1:
             os.close(file_fd)
-            raise RocsCliError(kind="config", message=f"managed output is not a private regular file: {path.name}")
+            raise RocsCliError(kind="config", message=f"managed output is not a private regular file: {name}")
         with os.fdopen(file_fd, mode, encoding="utf-8") as stream:
             yield stream
             if mode != "r":
@@ -275,13 +415,14 @@ def read_managed_output_text(root: Path, path: Path) -> str | None:
 def write_managed_output_text(root: Path, path: Path, text: str) -> None:
     root = root.expanduser().resolve()
     configured = _configured_root(root)
-    if configured is None or path.parent.expanduser().absolute() != configured:
+    if configured is None or not _is_within(path.expanduser().absolute(), configured):
         path.write_text(text, "utf-8")
         return
+    name = _require_managed_output_file(path, configured)
     with _external_output_fds(root, configured, create=True) as (descriptor, _parent, _name):
         _ensure_marker_at(root, configured, descriptor)
         before = os.fstat(descriptor)
-        temporary = f".{path.name}.rocs-{os.getpid()}-{secrets.token_hex(6)}"
+        temporary = f".{name}.rocs-{os.getpid()}-{secrets.token_hex(6)}"
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
         file_fd = os.open(temporary, flags, 0o644, dir_fd=descriptor)
         try:
@@ -289,7 +430,7 @@ def write_managed_output_text(root: Path, path: Path, text: str) -> None:
                 stream.write(text)
                 stream.flush()
                 os.fsync(stream.fileno())
-            os.replace(temporary, path.name, src_dir_fd=descriptor, dst_dir_fd=descriptor)
+            os.replace(temporary, name, src_dir_fd=descriptor, dst_dir_fd=descriptor)
         except BaseException:
             with contextlib.suppress(FileNotFoundError):
                 os.unlink(temporary, dir_fd=descriptor)
@@ -300,18 +441,25 @@ def write_managed_output_text(root: Path, path: Path, text: str) -> None:
 
 def unlink_managed_output(root: Path, path: Path) -> None:
     configured = _configured_root(root.expanduser().resolve())
-    if configured is None or path.parent.expanduser().absolute() != configured:
+    if configured is None or not _is_within(path.expanduser().absolute(), configured):
         path.unlink(missing_ok=True)
         return
+    name = _require_managed_output_file(path, configured)
     with _external_output_fds(root.expanduser().resolve(), configured, create=True) as (descriptor, _p, _n):
         _ensure_marker_at(root.expanduser().resolve(), configured, descriptor)
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
         try:
-            mode = os.stat(path.name, dir_fd=descriptor, follow_symlinks=False).st_mode
+            file_fd = os.open(name, flags, dir_fd=descriptor)
         except FileNotFoundError:
             return
-        if not stat.S_ISREG(mode):
-            raise RocsCliError(kind="config", message=f"managed output is not regular: {path.name}")
-        os.unlink(path.name, dir_fd=descriptor)
+        try:
+            opened = os.fstat(file_fd)
+            if not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1:
+                raise RocsCliError(kind="config", message=f"managed output is not private regular: {name}")
+            _quarantine_unlink(descriptor, name, file_fd, _stat_identity(opened))
+        finally:
+            os.close(file_fd)
+        os.fsync(descriptor)
 
 
 def list_managed_output_names(root: Path, output: Path) -> list[str]:
@@ -320,7 +468,7 @@ def list_managed_output_names(root: Path, output: Path) -> list[str]:
         return sorted(path.name for path in output.iterdir()) if output.exists() else []
     with _external_output_fds(root.expanduser().resolve(), configured, create=True) as (descriptor, _p, _n):
         _ensure_marker_at(root.expanduser().resolve(), configured, descriptor)
-        return sorted(os.listdir(descriptor))
+        return _listdir_at(descriptor)
 
 
 def _configured_root(root: Path) -> Path | None:
@@ -430,6 +578,7 @@ def ensure_managed_output_file(root: Path, path: Path, *, label: str) -> Path:
     path = path.expanduser()
     configured = _configured_root(root)
     if configured is not None and _is_within(path.absolute(), configured):
+        _require_managed_output_file(path, configured)
         ensure_external_output_root(root, configured)
     blocker = managed_path_blocker(root, path)
     if blocker is not None:

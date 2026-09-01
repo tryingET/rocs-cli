@@ -8,6 +8,15 @@ read_when:
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-08-31
+
+### Added
+- Bootstrap now generates a distinct owner-bound `scripts/rocs.sh` sealed launcher that forwards arbitrary ROCS arguments, stdin, stdout, stderr, and exit status without weakening the fixed cleanup→validate→build contract of `scripts/ci/full.sh`.
+
+### Fixed
+- Marked external-output cleanup now admits only the closed ROCS artifact registry and exact orphan-temporary grammar, retains the stable authority lock, preflights private regular inodes through the pinned directory, and fails closed on unknown, hardlinked, nested, substituted, or concurrently inserted entries.
+- External managed writers, readers, and pruners reject unknown or nested filenames instead of falling back to ordinary pathname writes or broad receipt-name deletion.
+
 ## [0.4.1] - 2026-08-31
 
 ### Fixed

@@ -9,7 +9,11 @@ from _cli_support import _mk_repo, _run
 import rocs_cli.managed_surface as managed_surface
 from rocs_cli.errors import RocsCliError
 from rocs_cli.layers import dist_dir
-from rocs_cli.managed_surface import ROCS_OUTPUT_MARKER, ensure_managed_output_file
+from rocs_cli.managed_surface import (
+    MANAGED_OUTPUT_LOCK,
+    ROCS_OUTPUT_MARKER,
+    ensure_managed_output_file,
+)
 
 
 class TestOutputRouting(unittest.TestCase):
@@ -77,8 +81,275 @@ class TestOutputRouting(unittest.TestCase):
                 self.assertFalse((output / "authority-receipt.validate.json").exists())
                 self.assertFalse((output / "graph.json").exists())
                 self.assertEqual(_run(["cleanup", "--repo", str(repo)]), 0)
-                self.assertEqual({path.name for path in output.iterdir()}, {ROCS_OUTPUT_MARKER})
+                self.assertEqual(
+                    {path.name for path in output.iterdir()},
+                    {ROCS_OUTPUT_MARKER, MANAGED_OUTPUT_LOCK},
+                )
                 self.assertEqual(source_before, self._fingerprint(ontology))
+
+    def test_cleanup_uses_closed_allowlist_and_detects_race_insertions(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            with mock.patch.dict(os.environ, self._external_env(), clear=False):
+                self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                output = repo / "governance/ontology-dist"
+                known_before = self._fingerprint(output)
+
+                unknown = output / "operator-owned.txt"
+                unknown.write_text("KEEP\n", "utf-8")
+                self.assertEqual(_run(["cleanup", "--repo", str(repo)]), 1)
+                self.assertEqual(unknown.read_text("utf-8"), "KEEP\n")
+                self.assertEqual(
+                    known_before,
+                    {key: value for key, value in self._fingerprint(output).items()
+                     if key != "operator-owned.txt"},
+                )
+                self.assertEqual(_run(["cleanup", "--repo", str(repo), "--dry-run"]), 1)
+                unknown.unlink()
+
+                for malformed_name in (
+                    ".summary.json.rocs-0-0123456789ab",
+                    ".summary.json.rocs-١-0123456789ab",
+                ):
+                    malformed = output / malformed_name
+                    malformed.write_text("KEEP\n", "utf-8")
+                    self.assertEqual(_run(["cleanup", "--repo", str(repo)]), 1)
+                    self.assertTrue(malformed.is_file())
+                    malformed.unlink()
+                orphan = output / ".summary.json.rocs-123-0123456789ab"
+                orphan.write_text("owned transient\n", "utf-8")
+                self.assertEqual(_run(["cleanup", "--repo", str(repo)]), 0)
+                self.assertFalse(orphan.exists())
+                self.assertEqual(
+                    {path.name for path in output.iterdir()},
+                    {ROCS_OUTPUT_MARKER, MANAGED_OUTPUT_LOCK},
+                )
+
+                self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
+                before_race = self._fingerprint(output)
+                real_listdir = managed_surface.os.listdir
+                calls = 0
+
+                def insert_during_preflight(descriptor: int) -> list[str]:
+                    nonlocal calls
+                    names = real_listdir(descriptor)
+                    calls += 1
+                    if calls == 1:
+                        (output / "race-unknown.txt").write_text("KEEP\n", "utf-8")
+                    return names
+
+                with mock.patch.object(
+                    managed_surface.os, "listdir", side_effect=insert_during_preflight
+                ):
+                    with self.assertRaisesRegex(RocsCliError, "unknown|changed"):
+                        managed_surface.clear_managed_output_root(
+                            repo, dist_dir(repo), remove_root=True
+                        )
+                self.assertTrue((output / "race-unknown.txt").is_file())
+                self.assertEqual(
+                    before_race,
+                    {key: value for key, value in self._fingerprint(output).items()
+                     if key != "race-unknown.txt"},
+                )
+
+    def test_cleanup_rejects_unknown_receipts_hardlinks_and_late_races(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            with mock.patch.dict(os.environ, self._external_env(), clear=False):
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                output = repo / "governance/ontology-dist"
+                with self.assertRaisesRegex(RocsCliError, "unknown managed output"):
+                    ensure_managed_output_file(
+                        repo, output / "authority-receipt.operator.json", label="probe"
+                    )
+                with self.assertRaisesRegex(RocsCliError, "unknown managed output"):
+                    ensure_managed_output_file(
+                        repo, output / "nested/summary.json", label="probe"
+                    )
+
+                unknown_receipt = output / "authority-receipt.operator.json"
+                unknown_receipt.write_text("KEEP\n", "utf-8")
+                with mock.patch.dict(
+                    os.environ, {"ROCS_AUTHORITY_AGGREGATE": ""}, clear=False
+                ):
+                    self.assertEqual(_run(["validate", "--repo", str(repo)]), 1)
+                self.assertEqual(unknown_receipt.read_text("utf-8"), "KEEP\n")
+                unknown_receipt.unlink()
+
+                victim = repo / "ontology/src/cleanup-victim.txt"
+                victim.write_text("SAFE\n", "utf-8")
+                summary = output / "summary.json"
+                summary.unlink()
+                os.link(victim, summary)
+                before = self._fingerprint(output)
+                self.assertEqual(_run(["cleanup", "--repo", str(repo)]), 1)
+                self.assertEqual(victim.read_text("utf-8"), "SAFE\n")
+                self.assertEqual(before, self._fingerprint(output))
+                summary.unlink()
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+
+                real_unlink = managed_surface.os.unlink
+                inserted = False
+
+                def insert_after_delete(name: str, *args, **kwargs) -> None:
+                    nonlocal inserted
+                    real_unlink(name, *args, **kwargs)
+                    if not inserted:
+                        inserted = True
+                        (output / "late-race.txt").write_text("KEEP\n", "utf-8")
+
+                with mock.patch.object(
+                    managed_surface.os, "unlink", side_effect=insert_after_delete
+                ):
+                    with self.assertRaisesRegex(RocsCliError, "unknown|changed"):
+                        managed_surface.clear_managed_output_root(
+                            repo, dist_dir(repo), remove_root=True
+                        )
+                self.assertTrue((output / "late-race.txt").is_file())
+                self.assertEqual((output / "late-race.txt").read_text("utf-8"), "KEEP\n")
+
+    def test_cleanup_preserves_same_name_substitutions_and_retained_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            with mock.patch.dict(os.environ, self._external_env(), clear=False):
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                output = repo / "governance/ontology-dist"
+                summary = output / "summary.json"
+                original = repo / "summary.original"
+                real_inventory = managed_surface._cleanup_inventory
+                calls = 0
+
+                def substitute_after_first(descriptor: int):
+                    nonlocal calls
+                    result = real_inventory(descriptor)
+                    calls += 1
+                    if calls == 1:
+                        summary.rename(original)
+                        summary.write_text("OPERATOR UNKNOWN\n", "utf-8")
+                    return result
+
+                with mock.patch.object(
+                    managed_surface, "_cleanup_inventory", side_effect=substitute_after_first
+                ):
+                    with self.assertRaisesRegex(RocsCliError, "changed"):
+                        managed_surface.clear_managed_output_root(
+                            repo, dist_dir(repo), remove_root=True
+                        )
+                self.assertEqual(summary.read_text("utf-8"), "OPERATOR UNKNOWN\n")
+                self.assertTrue(original.is_file())
+                summary.unlink()
+                original.rename(summary)
+
+                real_rename = managed_surface._rename_noreplace
+                inserted = False
+
+                def insert_same_name(descriptor: int, source: str, target: str) -> None:
+                    nonlocal inserted
+                    real_rename(descriptor, source, target)
+                    if not inserted:
+                        inserted = True
+                        (output / source).write_text("LATE UNKNOWN\n", "utf-8")
+
+                with mock.patch.object(
+                    managed_surface, "_rename_noreplace", side_effect=insert_same_name
+                ):
+                    with self.assertRaisesRegex(RocsCliError, "changed|private"):
+                        managed_surface.clear_managed_output_root(
+                            repo, dist_dir(repo), remove_root=True
+                        )
+                self.assertTrue(any(
+                    path.read_text("utf-8") == "LATE UNKNOWN\n"
+                    for path in output.iterdir() if path.is_file()
+                ))
+
+    def test_cleanup_binds_validated_marker_and_recovers_owned_quarantine(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            with mock.patch.dict(os.environ, self._external_env(), clear=False):
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                output = repo / "governance/ontology-dist"
+                marker = output / ROCS_OUTPUT_MARKER
+                valid_marker = repo / "valid-marker.json"
+                before = self._fingerprint(output)
+                real_read_marker = managed_surface._read_marker_at
+
+                def replace_after_validation(root: Path, configured: Path, descriptor: int):
+                    result = real_read_marker(root, configured, descriptor)
+                    marker.rename(valid_marker)
+                    marker.write_text("NOT A ROCS MARKER\n", "utf-8")
+                    return result
+
+                with mock.patch.object(
+                    managed_surface, "_read_marker_at", side_effect=replace_after_validation
+                ):
+                    with self.assertRaisesRegex(RocsCliError, "marker changed"):
+                        managed_surface.clear_managed_output_root(
+                            repo, dist_dir(repo), remove_root=True
+                        )
+                self.assertEqual(
+                    {key: value for key, value in before.items() if key != ROCS_OUTPUT_MARKER},
+                    {key: value for key, value in self._fingerprint(output).items()
+                     if key != ROCS_OUTPUT_MARKER},
+                )
+                marker.unlink()
+                valid_marker.rename(marker)
+
+                real_rename = managed_surface._rename_noreplace
+                interrupted = False
+
+                def interrupt_after_quarantine(descriptor: int, source: str, target: str) -> None:
+                    nonlocal interrupted
+                    real_rename(descriptor, source, target)
+                    if not interrupted:
+                        interrupted = True
+                        raise KeyboardInterrupt("injected cleanup interruption")
+
+                with mock.patch.object(
+                    managed_surface, "_rename_noreplace", side_effect=interrupt_after_quarantine
+                ):
+                    with self.assertRaisesRegex(KeyboardInterrupt, "injected"):
+                        managed_surface.clear_managed_output_root(
+                            repo, dist_dir(repo), remove_root=True
+                        )
+                quarantines = list(output.glob(".rocs-cleanup-quarantine-*"))
+                self.assertEqual(len(quarantines), 1)
+                self.assertEqual(_run(["cleanup", "--repo", str(repo)]), 0)
+                self.assertFalse(quarantines[0].exists())
+                self.assertEqual(
+                    {path.name for path in output.iterdir()},
+                    {ROCS_OUTPUT_MARKER, MANAGED_OUTPUT_LOCK},
+                )
+
+    def test_external_pruner_preserves_same_name_substitution(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = _mk_repo(Path(td))
+            with mock.patch.dict(os.environ, self._external_env(), clear=False):
+                self.assertEqual(_run(["build", "--repo", str(repo)]), 0)
+                output = repo / "governance/ontology-dist"
+                summary = output / "summary.json"
+                original = repo / "pruned-summary.original"
+                real_rename = managed_surface._rename_noreplace
+                substituted = False
+
+                def substitute_before_move(descriptor: int, source: str, target: str) -> None:
+                    nonlocal substituted
+                    if not substituted:
+                        substituted = True
+                        summary.rename(original)
+                        summary.write_text("PRUNER UNKNOWN\n", "utf-8")
+                    real_rename(descriptor, source, target)
+
+                with mock.patch.object(
+                    managed_surface, "_rename_noreplace", side_effect=substitute_before_move
+                ):
+                    with self.assertRaisesRegex(RocsCliError, "changed"):
+                        managed_surface.unlink_managed_output(repo, summary)
+                self.assertTrue(original.is_file())
+                self.assertTrue(any(
+                    path.read_text("utf-8") == "PRUNER UNKNOWN\n"
+                    for path in output.glob(".rocs-cleanup-quarantine-*")
+                ))
 
     def test_default_output_is_byte_compatible_and_unmarked(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -256,7 +527,10 @@ class TestOutputRouting(unittest.TestCase):
             ):
                 self.assertEqual(_run(["validate", "--repo", str(repo)]), 0)
                 self.assertEqual(_run(["cleanup", "--repo", str(repo)]), 0)
-            self.assertEqual({path.name for path in absolute.iterdir()}, {ROCS_OUTPUT_MARKER})
+            self.assertEqual(
+                {path.name for path in absolute.iterdir()},
+                {ROCS_OUTPUT_MARKER, MANAGED_OUTPUT_LOCK},
+            )
 
             file_target = repo / "governance/output-file"
             file_target.parent.mkdir(exist_ok=True)

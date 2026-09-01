@@ -26,7 +26,7 @@ from rocs_cli import __version__
 from rocs_cli.capabilities import class_policy
 from rocs_cli.layers import dist_dir, ontology_root
 from rocs_cli.managed_surface import clear_managed_output_root, configured_output_root
-from rocs_cli.verified_runtime import render_ci_wrapper
+from rocs_cli.verified_runtime import render_ci_wrapper, render_cli_wrapper
 from rocs_cli.vendored import (
     compute_expected_hashes,
     parse_vendored_hashes_bytes,
@@ -299,7 +299,7 @@ def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge:
     ontology_root = "" if repo_class == "ontology_repo" else "ontology/"
     managed = [
         "tools/rocs-cli", f"{ontology_root}manifest.yaml", f"{ontology_root}src/system4d.yaml",
-        "scripts/ci/full.sh", ".githooks/pre-push", ".githooks/README.md",
+        "scripts/rocs.sh", "scripts/ci/full.sh", ".githooks/pre-push", ".githooks/README.md",
     ]
     legacy = [
         "scripts/audit-fleet.py", "scripts/bootstrap-repo.sh", "scripts/vendor-to.sh",
@@ -367,6 +367,9 @@ def bootstrap(target: Path, repo_class: str, *, dry_run: bool = False, converge:
                 lock_digest = hashlib.sha256((stage / "tools/rocs-cli/VENDORED_HASHES.json").read_bytes()).hexdigest()
                 ci.write_text(render_ci_wrapper(lock_digest), "utf-8")
                 ci.chmod(0o755)
+                launcher = stage / "scripts/rocs.sh"
+                launcher.write_text(render_cli_wrapper(lock_digest), "utf-8")
+                launcher.chmod(0o755)
                 hook = stage / ".githooks/pre-push"
                 hook.parent.mkdir(parents=True, exist_ok=True)
                 profile = "main-strict" if policy["gate_mode"] == "strict" else "local-dev"
@@ -453,8 +456,8 @@ def cleanup(repo: Path, *, dry_run: bool = False) -> dict[str, Any]:
     if override is not None:
         present = override.exists()
         removed = [str(override.relative_to(root))] if present else []
-        if present and not dry_run:
-            clear_managed_output_root(root, dist_dir(root), remove_root=True)
+        if present:
+            clear_managed_output_root(root, dist_dir(root), remove_root=True, dry_run=dry_run)
         return {"schema_version": 1, "repo": str(root), "dry_run": dry_run, "removed": removed}
     targets = [root / "ontology/dist", root / "dist"]
     removed: list[str] = []

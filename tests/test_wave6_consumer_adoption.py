@@ -16,7 +16,7 @@ from unittest import mock
 
 from rocs_cli.wave1 import bootstrap
 from rocs_cli.vendored import verify_vendored_hashes, write_materialization_receipt
-from rocs_cli.verified_runtime import render_ci_wrapper
+from rocs_cli.verified_runtime import render_ci_wrapper, render_cli_wrapper
 from rocs_cli import __version__
 from tests.test_workspace_resolution import _init_workspace_repo
 
@@ -45,10 +45,12 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
         return env
 
     def _run(self, repo: Path, command: str, profile: str, *, cwd: Path | None = None,
-             workspace: Path | None = None, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+             workspace: Path | None = None, extra_env: dict[str, str] | None = None,
+             arguments: list[str] | None = None, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
         env = self._environment(repo, profile, workspace=workspace, extra_env=extra_env)
-        return subprocess.run(["/bin/bash", str(repo / command)], cwd=cwd or repo, env=env,
-                              text=True, capture_output=True)
+        return subprocess.run(["/bin/bash", str(repo / command), *(arguments or [])],
+                              cwd=cwd or repo, env=env, text=True, capture_output=True,
+                              input=input_text)
 
     def test_generated_gate_and_hook_execute_hermetically_for_required_and_root_layout(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -72,6 +74,78 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
                     self.assertEqual(self._run(repo, "scripts/ci/full.sh", profile).returncode, 0)
                     self.assertEqual(self._run(repo, ".githooks/pre-push", profile,
                                                cwd=repo.parent).returncode, 0)
+
+    def test_generated_generic_launcher_preserves_cli_and_fixed_gate_separation(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            shutil.copytree(FIXTURE, repo)
+            bootstrap(repo, "required")
+            launcher = repo / "scripts/rocs.sh"
+            self.assertTrue(launcher.stat().st_mode & 0o111)
+            version = self._run(repo, "scripts/rocs.sh", "local-dev", arguments=["version"])
+            self.assertEqual((version.returncode, version.stdout, version.stderr),
+                             (0, f"rocs-cli {__version__}\n", ""))
+            version_flag = self._run(repo, "scripts/rocs.sh", "local-dev", arguments=["--version"])
+            self.assertEqual((version_flag.returncode, version_flag.stdout, version_flag.stderr),
+                             (0, f"rocs-cli {__version__}\n", ""))
+            contracts = self._run(repo, "scripts/rocs.sh", "local-dev", arguments=["contracts"])
+            self.assertEqual(contracts.returncode, 0, contracts.stderr)
+            self.assertEqual(json.loads(contracts.stdout)["tool"]["version"], __version__)
+            doctor = self._run(
+                repo, "scripts/rocs.sh", "local-dev",
+                arguments=["doctor", "--repo", str(repo)],
+            )
+            self.assertEqual(doctor.returncode, 0, doctor.stdout + doctor.stderr)
+            for arguments in ([], ["--which"], ["--doctor"]):
+                with self.subTest(arguments=arguments):
+                    result = self._run(
+                        repo, "scripts/rocs.sh", "local-dev", arguments=arguments
+                    )
+                    self.assertEqual(result.returncode, 2)
+                    self.assertIn("usage:", result.stderr)
+            fixed = self._run(
+                repo, "scripts/ci/full.sh", "local-dev", arguments=["version"]
+            )
+            self.assertEqual(fixed.returncode, 0, fixed.stdout + fixed.stderr)
+            self.assertNotIn(f"rocs-cli {__version__}", fixed.stdout)
+            self.assertTrue((repo / "ontology/dist/summary.json").is_file())
+
+    def test_generated_generic_launcher_preserves_exact_argv_stdin_and_exit(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            shutil.copytree(FIXTURE, repo)
+            bootstrap(repo, "required")
+            artifact = repo / "tools/rocs-cli"
+            receipt_path = artifact / "VENDORED_HASHES.json"
+            receipt = json.loads(receipt_path.read_text("utf-8"))
+            probe = (
+                "from __future__ import annotations\n"
+                "import hashlib, json, sys\n"
+                "def main():\n"
+                "    data = sys.stdin.buffer.read()\n"
+                "    print(json.dumps(sys.argv[1:], ensure_ascii=False))\n"
+                "    print(hashlib.sha256(data).hexdigest(), file=sys.stderr)\n"
+                "    raise SystemExit(37)\n"
+            )
+            (artifact / "src/rocs_cli/__main__.py").write_text(probe, "utf-8")
+            write_materialization_receipt(
+                artifact,
+                upstream_version=receipt["upstream_version"],
+                source_commit=receipt["source_commit"],
+            )
+            digest = hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+            (repo / "scripts/rocs.sh").write_text(render_cli_wrapper(digest), "utf-8")
+            arguments = ["", "two words", "*?[x]", "--", "-n", "line1\nline2", "λ"]
+            input_text = "stdin\x00payload\n"
+            result = self._run(
+                repo, "scripts/rocs.sh", "local-dev",
+                arguments=arguments, input_text=input_text,
+            )
+            self.assertEqual(result.returncode, 37)
+            self.assertEqual(json.loads(result.stdout), arguments)
+            self.assertEqual(
+                result.stderr.strip(), hashlib.sha256(input_text.encode()).hexdigest()
+            )
 
     def test_generated_gate_routes_all_outputs_to_marked_external_root(self) -> None:
         with tempfile.TemporaryDirectory() as td:

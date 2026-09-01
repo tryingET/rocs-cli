@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 
 _LOCK_DIGEST_TOKEN = "__ROCS_VENDORED_LOCK_SHA256__"
+_OWNER_REL_TOKEN = "__ROCS_OWNER_REL__"
+_DISPATCH_TOKEN = "__ROCS_DISPATCH__"
 _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 
 _WRAPPER = r'''#!/usr/bin/env bash
@@ -12,11 +14,13 @@ set -euo pipefail
 export PATH="/usr/local/bin:/usr/bin:/bin"
 unset PYTHONPATH PYTHONHOME LD_PRELOAD LD_LIBRARY_PATH
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-repo="${ROCS_REPO:-$(cd -- "$script_dir/../.." && pwd)}"
-artifact="$repo/tools/rocs-cli"
+owner_repo="$(cd -- "$script_dir/__ROCS_OWNER_REL__" && pwd)"
+repo="${ROCS_REPO:-$owner_repo}"
+artifact="$owner_repo/tools/rocs-cli"
+export ROCS_REPO="$repo"
 export ROCS_WORKSPACE_ROOT="${ROCS_WORKSPACE_ROOT:-$repo}"
 export PYTHONDONTWRITEBYTECODE=1
-exec python3 -I -S -B - "$repo" "$artifact" <<'PY'
+exec python3 -I -S -B -c 'import os; f=os.fdopen(3, "r", encoding="utf-8"); s=f.read(); f.close(); exec(compile(s, "<rocs-sealed-launcher>", "exec"))' "$repo" "$artifact" "$@" 3<<'PY'
 from __future__ import annotations
 
 import fcntl
@@ -236,7 +240,7 @@ def _exit_code(value: object) -> int:
     return 1
 
 
-def _run_captured_command(command: str, repo: str, suffix: list[str]) -> int:
+def _run_captured_argv(arguments: list[str]) -> int:
     global _ACTIVE_CHILD, _PENDING_SIGNAL
     sys.stdout.flush()
     sys.stderr.flush()
@@ -250,7 +254,7 @@ def _run_captured_command(command: str, repo: str, suffix: list[str]) -> int:
         signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
         status = 1
         try:
-            sys.argv = ["rocs", command, "--repo", repo, *suffix]
+            sys.argv = ["rocs", *arguments]
             from rocs_cli.__main__ import main
             main()
             status = 0
@@ -370,27 +374,9 @@ def _main() -> int:
         sys.meta_path.insert(0, _SealedExtensionFinder(extension_paths))
         sys.path[:0] = [f"/proc/self/fd/{archive_fd}/runtime", f"/proc/self/fd/{archive_fd}/src"]
 
-        profile = os.environ.get("ROCS_CI_PROFILE", "local-dev")
-        if profile == "local-dev":
-            resolve = ["--only", "path"]
-        elif profile in ("main-strict", "branch-ci"):
-            resolve = ["--resolve-refs", "--workspace-ref-mode", "strict"]
-        else:
-            print(f"unknown ROCS_CI_PROFILE: {profile}", file=sys.stderr)
-            return 2
-        if os.environ.get("ROCS_OUTPUT_ROOT"):
-            os.environ["ROCS_AUTHORITY_AGGREGATE"] = "1"
         if ("rocs.py",) not in captured:
             raise ValueError("receipt is missing rocs.py")
-        for command, suffix in (
-            ("cleanup", []),
-            ("validate", ["--json", *resolve]),
-            ("build", ["--json", *resolve]),
-        ):
-            status = _run_captured_command(command, repo, suffix)
-            if status:
-                return status
-        return 0
+        __ROCS_DISPATCH__
     finally:
         for fd in extension_fds:
             os.close(fd)
@@ -408,8 +394,40 @@ PY
 '''
 
 
-def render_ci_wrapper(receipt_sha256: str) -> str:
-    """Bind one generated gate to an exact vendored receipt."""
+_FIXED_DISPATCH = '''profile = os.environ.get("ROCS_CI_PROFILE", "local-dev")
+        if profile == "local-dev":
+            resolve = ["--only", "path"]
+        elif profile in ("main-strict", "branch-ci"):
+            resolve = ["--resolve-refs", "--workspace-ref-mode", "strict"]
+        else:
+            print(f"unknown ROCS_CI_PROFILE: {profile}", file=sys.stderr)
+            return 2
+        if os.environ.get("ROCS_OUTPUT_ROOT"):
+            os.environ["ROCS_AUTHORITY_AGGREGATE"] = "1"
+        for arguments in (
+            ["cleanup", "--repo", repo],
+            ["validate", "--repo", repo, "--json", *resolve],
+            ["build", "--repo", repo, "--json", *resolve],
+        ):
+            status = _run_captured_argv(arguments)
+            if status:
+                return status
+        return 0'''
+_GENERIC_DISPATCH = "return _run_captured_argv(sys.argv[3:])"
+
+
+def _render_wrapper(receipt_sha256: str, *, owner_relative: str, dispatch: str) -> str:
     if _HEX64_RE.fullmatch(receipt_sha256) is None:
         raise ValueError("receipt_sha256 must be lowercase SHA-256 hex")
-    return _WRAPPER.replace(_LOCK_DIGEST_TOKEN, receipt_sha256)
+    return (_WRAPPER.replace(_LOCK_DIGEST_TOKEN, receipt_sha256)
+            .replace(_OWNER_REL_TOKEN, owner_relative).replace(_DISPATCH_TOKEN, dispatch))
+
+
+def render_ci_wrapper(receipt_sha256: str) -> str:
+    """Bind one generated fixed gate to an exact vendored receipt."""
+    return _render_wrapper(receipt_sha256, owner_relative="../..", dispatch=_FIXED_DISPATCH)
+
+
+def render_cli_wrapper(receipt_sha256: str) -> str:
+    """Bind one generic argv-preserving launcher to an exact vendored receipt."""
+    return _render_wrapper(receipt_sha256, owner_relative="..", dispatch=_GENERIC_DISPATCH)
