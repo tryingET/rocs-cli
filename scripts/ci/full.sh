@@ -15,7 +15,9 @@ workspace_root="${ROCS_WORKSPACE_ROOT:-$HOME/ai-society}"
 workspace_ref_mode="${ROCS_WORKSPACE_REF_MODE:-}"
 
 if [[ -f "$ROCS_REPO/pyproject.toml" ]] && grep -q '^name = "rocs-cli"$' "$ROCS_REPO/pyproject.toml"; then
-  uv run --frozen --project "$ROCS_REPO" python -m unittest discover -s "$ROCS_REPO/tests" -p 'test_*.py' -q
+  # Run the suite under the pinned Node (scripts/tool_versions.json), never the system one.
+  node_root="$("$ROCS_REPO/scripts/ensure-node.sh")"
+  PATH="$node_root/bin:$PATH" uv run --frozen --project "$ROCS_REPO" python -m unittest discover -s "$ROCS_REPO/tests" -p 'test_*.py' -q
   exit 0
 fi
 

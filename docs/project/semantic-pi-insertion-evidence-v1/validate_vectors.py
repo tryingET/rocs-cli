@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -140,7 +141,7 @@ def main() -> int:
     require(vector_hash == VECTOR_SHA256, "frozen vector SHA-256 mismatch")
     require(frozen_hash == FROZEN_AGGREGATE, "frozen five-file aggregate mismatch")
     tools = strict_json_loads((repo / "scripts/tool_versions.json").read_bytes(), "tool_versions.json")
-    require(isinstance(tools, dict) and tools.get("node") == "26.9.0", "Node validator pin must be exactly 26.9.0")
+    require(isinstance(tools, dict) and isinstance(tools.get("node"), str) and re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", tools["node"]) is not None, "Node validator pin must be one exact X.Y.Z version")
     report = {
         "accepted_cases": len(accepted),
         "accepted_object_aggregate_sha256": accepted_hash,

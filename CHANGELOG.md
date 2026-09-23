@@ -8,6 +8,10 @@ read_when:
 
 ## [Unreleased]
 
+### Changed
+- `scripts/ci/full.sh` runs the test suite under the exact Node pinned in `scripts/tool_versions.json`, provisioned by the new `scripts/ensure-node.sh` (official nodejs.org tarball, verified against `SHASUMS256.txt`, cached under `~/.cache/rocs/node`). System Node upgrades no longer break the Decision 85 conformance gate.
+- The Decision 85 validators and conformance test read the Node pin only from `scripts/tool_versions.json` (it must be one exact `X.Y.Z`), so a deliberate runtime move is a one-line change followed by a gate run.
+
 ## [0.4.3] - 2026-09-23
 
 ### Added

@@ -86,7 +86,7 @@ function main() {
   requireCondition(acceptedHash === vectors.accepted_object_aggregate_sha256 && acceptedHash === ACCEPTED_AGGREGATE, "accepted-object aggregate mismatch");
   requireCondition(vectorHash === VECTOR_SHA256, "frozen vector SHA-256 mismatch"); requireCondition(frozenHash === FROZEN_AGGREGATE, "frozen five-file aggregate mismatch");
   const tools = strictJSONLoads(readFileSync(resolve(repo, "scripts/tool_versions.json")), "tool_versions.json");
-  requireCondition(tools.node === "26.9.0", "Node validator pin must be exactly 26.9.0");
+  requireCondition(typeof tools.node === "string" && /^[0-9]+\.[0-9]+\.[0-9]+$/.test(tools.node), "Node validator pin must be one exact X.Y.Z version");
   requireCondition(process.versions.node === tools.node, `Node runtime ${process.versions.node} does not match exact pin ${tools.node}`);
   console.log(JSON.stringify({ accepted_cases: accepted.length, accepted_object_aggregate_sha256: acceptedHash, cases: caseRuns.length, digest_domains: DOMAINS.length, frozen_aggregate_sha256: frozenHash, host_fixtures: fixtureRuns.length, implementation: "node-stdlib-independent", node_pin: tools.node, schema_count: SCHEMA_NAMES.length, unused_events: 0, vector_sha256: vectorHash }));
 }
