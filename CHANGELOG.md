@@ -8,6 +8,9 @@ read_when:
 
 ## [Unreleased]
 
+### Fixed
+- Pin the development interpreter to Python 3.12 via `.python-version` so fresh clones do not resolve a newer Python that semantic discovery rejects as incompatible.
+
 ## [0.4.2] - 2026-08-31
 
 ### Added
