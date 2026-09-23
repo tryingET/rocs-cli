@@ -50,6 +50,7 @@ from rocs_cli.cli_support import (
 )
 from rocs_cli.errors import RocsCliError
 from rocs_cli.validation_service import _schema_validation_result
+from rocs_cli.workspace import resolve_refs_default_from_env
 
 console = Console()
 
@@ -442,6 +443,9 @@ def main(argv: list[str] | None = None) -> None:
         args = parse_route_args(parser, effective_argv)
     else:
         args = parser.parse_args(effective_argv)
+        if (getattr(args, "resolve_refs", None) is False and getattr(args, "only", None) != "path"
+                and resolve_refs_default_from_env()):
+            args.resolve_refs = True
     debug = bool(getattr(args, "debug", False))
     if bool(getattr(args, "no_index_cache", False)):
         os.environ["ROCS_INDEX_CACHE"] = "0"

@@ -7,6 +7,7 @@ import re
 _LOCK_DIGEST_TOKEN = "__ROCS_VENDORED_LOCK_SHA256__"
 _OWNER_REL_TOKEN = "__ROCS_OWNER_REL__"
 _DISPATCH_TOKEN = "__ROCS_DISPATCH__"
+_WORKSPACE_DEFAULT_TOKEN = "__ROCS_WORKSPACE_DEFAULT__"
 _HEX64_RE = re.compile(r"^[0-9a-f]{64}$")
 
 _WRAPPER = r'''#!/usr/bin/env bash
@@ -18,7 +19,7 @@ owner_repo="$(cd -- "$script_dir/__ROCS_OWNER_REL__" && pwd)"
 repo="${ROCS_REPO:-$owner_repo}"
 artifact="$owner_repo/tools/rocs-cli"
 export ROCS_REPO="$repo"
-export ROCS_WORKSPACE_ROOT="${ROCS_WORKSPACE_ROOT:-$repo}"
+__ROCS_WORKSPACE_DEFAULT__
 export PYTHONDONTWRITEBYTECODE=1
 exec python3 -I -S -B -c 'import os; f=os.fdopen(3, "r", encoding="utf-8"); s=f.read(); f.close(); exec(compile(s, "<rocs-sealed-launcher>", "exec"))' "$repo" "$artifact" "$@" 3<<'PY'
 from __future__ import annotations
@@ -413,21 +414,47 @@ _FIXED_DISPATCH = '''profile = os.environ.get("ROCS_CI_PROFILE", "local-dev")
             if status:
                 return status
         return 0'''
+_FIXED_WORKSPACE_DEFAULT = 'export ROCS_WORKSPACE_ROOT="${ROCS_WORKSPACE_ROOT:-$repo}"'
+# The generic launcher is the interactive entrypoint: default the workspace to the nearest
+# ancestor holding every <repo:...@ref> layer the manifest names, and resolve refs unless the
+# caller opts out with ROCS_RESOLVE_REFS=0. The fixed gate keeps its explicit profile contract.
+_GENERIC_WORKSPACE_DEFAULT = r"""if [[ -z "${ROCS_WORKSPACE_ROOT:-}" ]]; then
+  ROCS_WORKSPACE_ROOT="$repo"
+  refs="$(sed -n 's/.*<repo:\([^@>]*\)@.*/\1/p' "$repo/ontology/manifest.yaml" "$repo/manifest.yaml" 2>/dev/null || true)"
+  if [[ -n "$refs" ]]; then
+    ws="$(dirname -- "$repo")"
+    while :; do
+      found=1
+      for ref in $refs; do
+        [[ -d "$ws/$ref" || -d "$ws/${ref#*/}" ]] || { found=0; break; }
+      done
+      if [[ "$found" == 1 ]]; then ROCS_WORKSPACE_ROOT="$ws"; break; fi
+      [[ "$ws" == / ]] && break
+      ws="$(dirname -- "$ws")"
+    done
+  fi
+fi
+export ROCS_WORKSPACE_ROOT
+export ROCS_RESOLVE_REFS="${ROCS_RESOLVE_REFS:-1}"
+""".rstrip("\n")
 _GENERIC_DISPATCH = "return _run_captured_argv(sys.argv[3:])"
 
 
-def _render_wrapper(receipt_sha256: str, *, owner_relative: str, dispatch: str) -> str:
+def _render_wrapper(receipt_sha256: str, *, owner_relative: str, dispatch: str, workspace_default: str) -> str:
     if _HEX64_RE.fullmatch(receipt_sha256) is None:
         raise ValueError("receipt_sha256 must be lowercase SHA-256 hex")
     return (_WRAPPER.replace(_LOCK_DIGEST_TOKEN, receipt_sha256)
-            .replace(_OWNER_REL_TOKEN, owner_relative).replace(_DISPATCH_TOKEN, dispatch))
+            .replace(_OWNER_REL_TOKEN, owner_relative).replace(_WORKSPACE_DEFAULT_TOKEN, workspace_default)
+            .replace(_DISPATCH_TOKEN, dispatch))
 
 
 def render_ci_wrapper(receipt_sha256: str) -> str:
     """Bind one generated fixed gate to an exact vendored receipt."""
-    return _render_wrapper(receipt_sha256, owner_relative="../..", dispatch=_FIXED_DISPATCH)
+    return _render_wrapper(receipt_sha256, owner_relative="../..", dispatch=_FIXED_DISPATCH,
+                           workspace_default=_FIXED_WORKSPACE_DEFAULT)
 
 
 def render_cli_wrapper(receipt_sha256: str) -> str:
     """Bind one generic argv-preserving launcher to an exact vendored receipt."""
-    return _render_wrapper(receipt_sha256, owner_relative="..", dispatch=_GENERIC_DISPATCH)
+    return _render_wrapper(receipt_sha256, owner_relative="..", dispatch=_GENERIC_DISPATCH,
+                           workspace_default=_GENERIC_WORKSPACE_DEFAULT)

@@ -147,6 +147,35 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
                 result.stderr.strip(), hashlib.sha256(input_text.encode()).hexdigest()
             )
 
+    def test_generated_generic_launcher_discovers_enclosing_workspace_for_refs(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td) / "workspace"
+            _init_workspace_repo(workspace / "core/dep", project_path="core/dep",
+                                 tag="v1", make_mismatch=False)
+            manifest = ("rocs:\n  layers:\n    - name: dep\n      ref: '<repo:core/dep@v1>'\n"
+                        "    - name: core\n      path: ontology/src\n")
+            inside = workspace / "team/repo"
+            outside = Path(td) / "outside/repo"
+            for repo in (inside, outside):
+                shutil.copytree(FIXTURE, repo)
+                (repo / "ontology/manifest.yaml").write_text(manifest, "utf-8")
+                bootstrap(repo, "required")
+            resolved = self._run(inside, "scripts/rocs.sh", "local-dev",
+                                 arguments=["validate", "--repo", str(inside)])
+            self.assertEqual(resolved.returncode, 0, resolved.stdout + resolved.stderr)
+            opted_out = self._run(inside, "scripts/rocs.sh", "local-dev",
+                                  arguments=["validate", "--repo", str(inside)],
+                                  extra_env={"ROCS_RESOLVE_REFS": "0"})
+            self.assertNotEqual(opted_out.returncode, 0)
+            self.assertIn("--resolve-refs", opted_out.stdout + opted_out.stderr)
+            path_only = self._run(outside, "scripts/rocs.sh", "local-dev",
+                                  arguments=["validate", "--repo", str(outside), "--only", "path"])
+            self.assertEqual(path_only.returncode, 0, path_only.stdout + path_only.stderr)
+            missing = self._run(outside, "scripts/rocs.sh", "local-dev",
+                                arguments=["validate", "--repo", str(outside)])
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("local ref not available", missing.stdout + missing.stderr)
+
     def test_generated_gate_routes_all_outputs_to_marked_external_root(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td) / "repo"

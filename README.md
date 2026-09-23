@@ -73,6 +73,7 @@ Layer refs (optional):
   - example: `<repo:softwareco/ontology@main>`
 - Legacy `<gitlab:...>` locators are no longer supported.
 - `--resolve-refs` enables resolving ref layers from the local workspace.
+  - `ROCS_RESOLVE_REFS=1` makes it the default for lifecycle commands (explicit `--only path` still wins); the generated `scripts/rocs.sh` sets it unless overridden.
 - Resolution source:
   1) workspace clone (offline)
 - Workspace config:
@@ -115,6 +116,7 @@ Tests:
 
 Generated consumer wrappers:
 - `scripts/rocs.sh` forwards arbitrary ROCS arguments and stdin through the sealed runtime without interpreting them.
+  - When `ROCS_WORKSPACE_ROOT` is unset it defaults to the nearest ancestor containing every `<repo:...@ref>` layer the manifest names (else the repo root), and it exports `ROCS_RESOLVE_REFS=1` unless the caller sets `ROCS_RESOLVE_REFS=0`, so plain `./scripts/rocs.sh validate` checks every layer.
 - `scripts/ci/full.sh` is the separate fixed CI profile contract; caller arguments cannot change its cleanup → validate → build sequence.
 - Layout note: ontology repos may live either at `ontology/` inside a normal repo or directly at repo root when the repo itself is the ontology container.
 - Profiles via `ROCS_CI_PROFILE=local-dev|branch-ci|main-strict`

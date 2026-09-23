@@ -8,6 +8,12 @@ read_when:
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-23
+
+### Added
+- `ROCS_RESOLVE_REFS=1` makes `--resolve-refs` the default for ontology lifecycle commands (resolve/summary/validate/diff/lint/check-inverses/graph/build/normalize/pack). Explicit `--only path` still selects path layers only; `discover` and `route` keep their closed argument contracts.
+- The generic sealed `scripts/rocs.sh` launcher now defaults `ROCS_WORKSPACE_ROOT` to the nearest ancestor containing every `<repo:...@ref>` layer named by the manifest (falling back to the repo root as before) and sets `ROCS_RESOLVE_REFS=1` unless the caller overrides it, so a plain `./scripts/rocs.sh validate` checks all layers. The fixed `scripts/ci/full.sh` gate and its profiles are unchanged.
+
 ### Fixed
 - Pin the development interpreter to Python 3.12 via `.python-version` so fresh clones do not resolve a newer Python that semantic discovery rejects as incompatible.
 

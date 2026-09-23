@@ -40,6 +40,11 @@ def workspace_root_from_env() -> Path | None:
     return Path(raw).expanduser().resolve()
 
 
+def resolve_refs_default_from_env() -> bool:
+    """`ROCS_RESOLVE_REFS=1` makes `--resolve-refs` the default; explicit selectors still win."""
+    return (os.environ.get("ROCS_RESOLVE_REFS") or "").strip() == "1"
+
+
 def workspace_ref_mode_from_env() -> str | None:
     raw = (os.environ.get("ROCS_WORKSPACE_REF_MODE") or "").strip().lower()
     if raw in ("strict", "loose"):
