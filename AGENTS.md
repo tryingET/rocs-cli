@@ -19,7 +19,9 @@ Remote workflow:
 
 Local dev:
 - `uv run --frozen python -m rocs_cli --help`
-- `uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q` (includes README↔CLI wiring check)
+- `./scripts/ci/full.sh`: the acceptance gate (full test suite under the pinned runtimes, including the README↔CLI wiring check)
+- `uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q`: quick run with the system Node
+- Runtime pins: Python 3.12 is pinned by `.python-version`; the exact Node the Decision 85 conformance tests require is pinned in `scripts/tool_versions.json`. `scripts/ci/full.sh` provisions that Node itself via `scripts/ensure-node.sh` (verified nodejs.org download, cached under `~/.cache/rocs/node`), so it passes regardless of the system Node. A bare `unittest` run uses the system Node, and the conformance tests fail if it differs from the pin. To move Node on purpose, change the pin and run the gate.
 - Optional YAML CLI tooling (`yq`): `uv sync --extra tooling && uv run --frozen --extra tooling yq --version`
 - Release version (SemVer): `uv run --frozen python -m rocs_cli release plan|apply --version <version>`
 

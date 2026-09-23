@@ -37,7 +37,7 @@ AK is the live direction, task, decision, and evidence authority. This handoff i
 ## Validation
 
 ```bash
-uv run python -m unittest discover -s tests -p 'test_*.py' -q
+./scripts/ci/full.sh   # full suite under pinned Python 3.12 + pinned Node (scripts/ensure-node.sh)
 node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict
 ak direction check --repo . --machine
 git diff --check

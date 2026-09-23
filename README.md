@@ -112,7 +112,9 @@ Graph export:
 - For `excalidraw-cli` (external): use `--format excalidraw-cli-json`, then run `excalidraw-cli create <file> -o graph.excalidraw`.
 
 Tests:
-- `uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q`
+- Acceptance gate: `./scripts/ci/full.sh`
+- Quick run with the system Node: `uv run --frozen python -m unittest discover -s tests -p 'test_*.py' -q`
+- Python 3.12 is pinned by `.python-version`; the exact Node the Decision 85 conformance tests require is pinned in `scripts/tool_versions.json`. `scripts/ci/full.sh` provisions that Node itself via `scripts/ensure-node.sh` (verified nodejs.org download, cached under `~/.cache/rocs/node`), so it passes regardless of the system Node. A bare `unittest` run uses the system Node, and the conformance tests fail if it differs from the pin. To move Node on purpose, change the pin and run the gate.
 
 Generated consumer wrappers:
 - `scripts/rocs.sh` forwards arbitrary ROCS arguments and stdin through the sealed runtime without interpreting them.
