@@ -135,9 +135,9 @@ class SemanticPiInsertionConformanceTests(unittest.TestCase):
         self.assertEqual(sum(case["expected"]["accepted"] for case in vectors["cases"]), 3)
         self.assertEqual(vectors["accepted_object_aggregate_sha256"], ACCEPTED_AGGREGATE)
         tools = json.loads((ROOT / "scripts" / "tool_versions.json").read_text("utf-8"))
-        self.assertEqual(tools["node"], "26.1.0")
+        self.assertEqual(tools["node"], "26.9.0")
         runtime = subprocess.run(["node", "--version"], text=True, capture_output=True, check=True).stdout.strip()
-        self.assertEqual(runtime, "v26.1.0")
+        self.assertEqual(runtime, "v26.9.0")
 
     def test_bundle_has_exactly_six_closed_local_ref_schemas_and_eight_domains(self) -> None:
         schema = json.loads((PACKET / "protocol.schema.json").read_text("utf-8"))

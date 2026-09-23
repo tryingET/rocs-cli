@@ -33,6 +33,7 @@ Planning observed dirty shared bases `pi-mono@5be4473cc156eb03d0069cc6770f1b95ea
 
 - Draft 2020-12 bundle has exactly six named top-level schemas and local references only.
 - Python and Node `26.1.0` separately parse frozen sources and execute all 16 cases and 13 fixtures.
+  - Amended 2026-09-23 by operator decision: the exact Node pin moved to `26.9.0` after the workstation runtime upgrade. Both validators re-ran under 26.9.0 against the unchanged frozen vectors and aggregates (all 9 conformance tests pass). The frozen sources were not modified.
 - Each owns its strict parser, NFC/JCS, eight digest domains, raw-byte hashing, event scheduler, and state machine.
 - Neither validator nor host/component/integration implementation imports behavioral output from another implementation, generated file, expected field, or case ID.
 - Every implementation executes from inputs/events first and reads `expected` only afterward for comparison/reporting.

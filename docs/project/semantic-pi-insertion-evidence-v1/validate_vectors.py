@@ -140,7 +140,7 @@ def main() -> int:
     require(vector_hash == VECTOR_SHA256, "frozen vector SHA-256 mismatch")
     require(frozen_hash == FROZEN_AGGREGATE, "frozen five-file aggregate mismatch")
     tools = strict_json_loads((repo / "scripts/tool_versions.json").read_bytes(), "tool_versions.json")
-    require(isinstance(tools, dict) and tools.get("node") == "26.1.0", "Node validator pin must be exactly 26.1.0")
+    require(isinstance(tools, dict) and tools.get("node") == "26.9.0", "Node validator pin must be exactly 26.9.0")
     report = {
         "accepted_cases": len(accepted),
         "accepted_object_aggregate_sha256": accepted_hash,
