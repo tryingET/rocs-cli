@@ -25,7 +25,13 @@ from typing import Any
 from rocs_cli import __version__
 from rocs_cli.capabilities import class_policy
 from rocs_cli.layers import dist_dir, ontology_root
-from rocs_cli.managed_surface import clear_managed_output_root, configured_output_root
+from rocs_cli.managed_surface import (
+    MANAGED_OUTPUT_FILES,
+    MANAGED_OUTPUT_LOCK,
+    _is_managed_transient,
+    clear_managed_output_root,
+    configured_output_root,
+)
 from rocs_cli.verified_runtime import render_ci_wrapper, render_cli_wrapper
 from rocs_cli.vendored import (
     compute_expected_hashes,
@@ -459,19 +465,30 @@ def cleanup(repo: Path, *, dry_run: bool = False) -> dict[str, Any]:
         if present:
             clear_managed_output_root(root, dist_dir(root), remove_root=True, dry_run=dry_run)
         return {"schema_version": 1, "repo": str(root), "dry_run": dry_run, "removed": removed}
-    targets = [root / "ontology/dist", root / "dist"]
+    # Only the layout's own output directory, and only names ROCS writes there: a nested
+    # `ontology/` consumer's root `dist/` belongs to the project's own build, never to ROCS.
+    has_manifest = any(path.is_file() and not path.is_symlink() for path in manifests)
+    target = (ontology_root(root) if has_manifest else root) / "dist"
+    target.resolve(strict=False).relative_to(root)
+    if target.is_symlink():
+        raise ValueError(f"refusing symlink cleanup target: {target}")
     removed: list[str] = []
-    for target in targets:
-        resolved = target.resolve(strict=False)
-        resolved.relative_to(root)
-        if target.is_symlink():
-            raise ValueError(f"refusing symlink cleanup target: {target}")
-    for target in targets:
-        if target.exists():
-            removed.append(str(target.relative_to(root)))
+    retained: list[str] = []
+    if target.is_dir():
+        for entry in sorted(target.iterdir(), key=lambda item: item.name):
+            name = entry.name
+            managed = name in MANAGED_OUTPUT_FILES or name == MANAGED_OUTPUT_LOCK or _is_managed_transient(name)
+            if not managed or entry.is_symlink() or not entry.is_file():
+                retained.append(str(entry.relative_to(root)))
+                continue
+            removed.append(str(entry.relative_to(root)))
             if not dry_run:
-                shutil.rmtree(target) if target.is_dir() else target.unlink()
-    return {"schema_version": 1, "repo": str(root), "dry_run": dry_run, "removed": removed}
+                entry.unlink()
+        if not dry_run and not retained:
+            target.rmdir()
+    elif target.exists():
+        raise ValueError(f"refusing non-directory cleanup target: {target}")
+    return {"schema_version": 1, "repo": str(root), "dry_run": dry_run, "removed": removed, "retained": retained}
 
 
 def doctor(repo: Path) -> tuple[dict[str, Any], int]:

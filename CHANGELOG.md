@@ -8,6 +8,11 @@ read_when:
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-09-25
+
+### Fixed
+- `rocs cleanup` without `ROCS_OUTPUT_ROOT` no longer `rmtree`s both `ontology/dist` and the repo-root `dist/`. It now cleans only the layout's own output directory (`ontology/dist` for nested consumers, `dist/` for root-layout ontology repos), removes only the managed ROCS artifacts, the authority lock and orphan temporaries, retains and reports any other entry, and removes the directory only when it ends empty. Nested consumers' project build output in root `dist/` is never touched.
+
 ### Changed
 - `scripts/ci/full.sh` runs the test suite under the exact Node pinned in `scripts/tool_versions.json`, provisioned by the new `scripts/ensure-node.sh` (official nodejs.org tarball, verified against `SHASUMS256.txt`, cached under `~/.cache/rocs/node`). System Node upgrades no longer break the Decision 85 conformance gate.
 - The Decision 85 validators and conformance test read the Node pin only from `scripts/tool_versions.json` (it must be one exact `X.Y.Z`), so a deliberate runtime move is a one-line change followed by a gate run.
