@@ -47,3 +47,9 @@ ignore = ["E501"]
 
 [tool.ty.environment]
 python-version = "3.11"
+
+[tool.uv]
+# Project-level quarantine: uv.lock records its resolution options, so declaring the
+# quarantine here keeps the lock identical with or without a user-level
+# ~/.config/uv/uv.toml (engineering-core AK5775/AK5998).
+exclude-newer = "7 days"
