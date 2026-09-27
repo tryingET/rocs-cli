@@ -93,6 +93,19 @@ def _init_workspace_repo(
         _git(repo, ["commit", "-m", "mismatch"])
 
 
+def _git_out(repo: Path, args: list[str]) -> str:
+    return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout.strip()
+
+
+def _validate_receipt(repo: Path) -> dict:
+    """The validate authority receipt, whether written standalone or aggregated by command."""
+    payload = json.loads((repo / "ontology" / "dist" / "authority-receipt.json").read_text("utf-8"))
+    if "commands" not in payload:
+        return payload
+    commands = payload["commands"]
+    return commands["validate"] if "validate" in commands else commands["build"]
+
+
 def _mk_rocs_repo(tmp: Path, *, locator: str) -> Path:
     repo = tmp / "repo"
     _write(
@@ -292,9 +305,76 @@ class TestWorkspaceResolution(unittest.TestCase):
             self.assertEqual(payload.get("ok"), False)
             self.assertIn("local ref not available", payload.get("error", {}).get("message", ""))
 
-    def test_strict_mismatch_fails_cleanly(self) -> None:
+    def test_strict_mismatch_resolves_the_exact_ref_from_a_snapshot(self) -> None:
         project_path = "core/dep"
         locator = f"<repo:{project_path}@v1>"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            dep = ws / "core" / "dep"
+            _init_workspace_repo(dep, project_path=project_path, tag="v1", make_mismatch=True)
+            # The checkout moves past the pinned tag and changes ontology content there.
+            _write(dep / "ontology" / "src" / "system4d.yaml", "system4d: {moved: true}\n")
+            _git(dep, ["commit", "-qam", "moved past v1"])
+            repo = _mk_rocs_repo(td_path, locator=locator)
+
+            with _Env(ROCS_CACHE_DIR=str(td_path / "cache")):
+                code, out = _run_capture(
+                    [
+                        "resolve",
+                        "--repo",
+                        str(repo),
+                        "--resolve-refs",
+                        "--workspace-root",
+                        str(ws),
+                        "--workspace-ref-mode",
+                        "strict",
+                        "--json",
+                    ]
+                )
+            self.assertEqual(code, 0, out)
+            payload = _parse_json(out)
+            dep_layer = next(layer for layer in payload["layers"] if layer["name"] == "dep")
+            self.assertEqual(dep_layer["source"], "workspace_ref_snapshot")
+            src = Path(dep_layer["src_root"])
+            self.assertTrue(src.is_relative_to(td_path / "cache" / "workspace-ref-snapshots"))
+            # Strict binds the tag's bytes, not the moved checkout's.
+            self.assertEqual((src / "system4d.yaml").read_text("utf-8"), "system4d: {}\n")
+            self.assertEqual(_git_out(dep, ["status", "--porcelain"]), "")
+
+    def _strict_resolve(self, td_path: Path, ws: Path, locator: str) -> dict:
+        repo = _mk_rocs_repo(td_path, locator=locator)
+        with _Env(ROCS_CACHE_DIR=str(td_path / "cache")):
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--resolve-refs", "--workspace-root",
+                                      str(ws), "--workspace-ref-mode", "strict", "--json"])
+        self.assertEqual(code, 0, out)
+        return next(layer for layer in _parse_json(out)["layers"] if layer["name"] == "dep")
+
+    def test_strict_uses_checkout_in_place_when_only_non_ontology_files_moved(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            # make_mismatch commits README.md after the tag: HEAD differs, the ontology tree does not.
+            _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=True)
+            dep_layer = self._strict_resolve(td_path, ws, "<repo:core/dep@v1>")
+            self.assertEqual(dep_layer["source"], "workspace")
+            self.assertEqual(Path(dep_layer["src_root"]), (ws / "core" / "dep" / "ontology" / "src").resolve())
+            self.assertFalse((td_path / "cache" / "workspace-ref-snapshots").exists())
+
+    def test_strict_ignores_uncommitted_ontology_edits_at_the_pinned_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            dep = ws / "core" / "dep"
+            _init_workspace_repo(dep, project_path="core/dep", tag="v1", make_mismatch=False)
+            _write(dep / "ontology" / "src" / "system4d.yaml", "system4d: {uncommitted: true}\n")
+            dep_layer = self._strict_resolve(td_path, ws, "<repo:core/dep@v1>")
+            self.assertEqual(dep_layer["source"], "workspace_ref_snapshot")
+            self.assertEqual((Path(dep_layer["src_root"]) / "system4d.yaml").read_text("utf-8"), "system4d: {}\n")
+
+    def test_strict_missing_ref_fails_cleanly(self) -> None:
+        project_path = "core/dep"
+        locator = f"<repo:{project_path}@v2>"
         with tempfile.TemporaryDirectory() as td:
             td_path = Path(td)
             ws = td_path / "ws"
@@ -318,6 +398,7 @@ class TestWorkspaceResolution(unittest.TestCase):
             payload = _parse_json(out)
             self.assertEqual(payload.get("ok"), False)
             self.assertIn("workspace ref mismatch", payload.get("error", {}).get("message", ""))
+            self.assertIn("fetch --tags", payload.get("error", {}).get("message", ""))
 
     def test_missing_workspace_never_mentions_gitlab_config(self) -> None:
         locator = "<repo:core/dep@v1>"
@@ -563,12 +644,17 @@ class TestWorkspaceResolution(unittest.TestCase):
             repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
             ws = td_path / "ws"
             _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=True)
+            # Strict is observable: once ontology content moved past v1, the tag's bytes resolve
+            # from a snapshot, not the checkout.
+            _write(ws / "core" / "dep" / "ontology" / "src" / "system4d.yaml", "system4d: {moved: true}\n")
+            _git(ws / "core" / "dep", ["commit", "-qam", "moved past v1"])
 
             with _Env(
                 ROCS_CI_PROFILE="branch-ci",
                 ROCS_REPO=str(repo),
                 ROCS_WORKSPACE_ROOT=str(ws),
                 ROCS_CMD="uv run --frozen python -m rocs_cli",
+                ROCS_CACHE_DIR=str(td_path / "cache"),
             ):
                 proc = subprocess.run(
                     ["bash", "scripts/ci/full.sh"],
@@ -576,9 +662,14 @@ class TestWorkspaceResolution(unittest.TestCase):
                     capture_output=True,
                     text=True,
                 )
-            self.assertNotEqual(proc.returncode, 0)
-            combined = (proc.stdout + proc.stderr).replace("\n", " ")
-            self.assertIn("mismatch in strict mode", combined)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            receipt = _validate_receipt(repo)
+            self.assertEqual(receipt["workspace_ref_mode"], "strict")
+            dep = [layer for layer in receipt["layer_sources"] if layer["name"] == "dep"]
+            self.assertEqual([layer["source"] for layer in dep], ["workspace_ref_snapshot"])
+            tagged = _git_out(ws / "core" / "dep", ["rev-parse", "v1^{commit}"])
+            tree = _git_out(ws / "core" / "dep", ["rev-parse", "v1:ontology"])
+            self.assertEqual(dep[0]["binding"], {"ontology_tree": tree, "requested_ref": "v1", "resolved_commit": tagged})
 
     def test_ci_wrapper_local_dev_defaults_to_path_layers_only(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -610,6 +701,10 @@ class TestWorkspaceResolution(unittest.TestCase):
             repo = _mk_rocs_repo(td_path, locator="<repo:core/dep@v1>")
             ws = td_path / "ws"
             _init_workspace_repo(ws / "core" / "dep", project_path="core/dep", tag="v1", make_mismatch=True)
+            # Strict is observable: once ontology content moved past v1, the tag's bytes resolve
+            # from a snapshot, not the checkout.
+            _write(ws / "core" / "dep" / "ontology" / "src" / "system4d.yaml", "system4d: {moved: true}\n")
+            _git(ws / "core" / "dep", ["commit", "-qam", "moved past v1"])
 
             with _Env(
                 ROCS_CI_PROFILE="local-dev",
@@ -617,6 +712,7 @@ class TestWorkspaceResolution(unittest.TestCase):
                 ROCS_REPO=str(repo),
                 ROCS_WORKSPACE_ROOT=str(ws),
                 ROCS_CMD="uv run --frozen python -m rocs_cli",
+                ROCS_CACHE_DIR=str(td_path / "cache"),
             ):
                 proc = subprocess.run(
                     ["bash", "scripts/ci/full.sh"],
@@ -624,9 +720,14 @@ class TestWorkspaceResolution(unittest.TestCase):
                     capture_output=True,
                     text=True,
                 )
-            self.assertNotEqual(proc.returncode, 0)
-            combined = (proc.stdout + proc.stderr).replace("\n", " ")
-            self.assertIn("mismatch in strict mode", combined)
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            receipt = _validate_receipt(repo)
+            self.assertEqual(receipt["workspace_ref_mode"], "strict")
+            dep = [layer for layer in receipt["layer_sources"] if layer["name"] == "dep"]
+            self.assertEqual([layer["source"] for layer in dep], ["workspace_ref_snapshot"])
+            tagged = _git_out(ws / "core" / "dep", ["rev-parse", "v1^{commit}"])
+            tree = _git_out(ws / "core" / "dep", ["rev-parse", "v1:ontology"])
+            self.assertEqual(dep[0]["binding"], {"ontology_tree": tree, "requested_ref": "v1", "resolved_commit": tagged})
 
 
 if __name__ == "__main__":

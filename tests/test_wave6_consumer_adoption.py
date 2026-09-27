@@ -18,7 +18,7 @@ from rocs_cli.wave1 import bootstrap
 from rocs_cli.vendored import verify_vendored_hashes, write_materialization_receipt
 from rocs_cli.verified_runtime import render_ci_wrapper, render_cli_wrapper
 from rocs_cli import __version__
-from tests.test_workspace_resolution import _init_workspace_repo
+from tests.test_workspace_resolution import _init_workspace_repo, _validate_receipt
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/standalone-consumer"
@@ -320,8 +320,21 @@ class Wave6ConsumerAdoptionTests(unittest.TestCase):
             workspace = base / "workspace"
             _init_workspace_repo(workspace / "core/dep", project_path="core/dep",
                                  tag="v1", make_mismatch=True)
+            (workspace / "core/dep/ontology/src/system4d.yaml").write_text("system4d: {moved: true}\n", "utf-8")
+            subprocess.run(["git", "-C", str(workspace / "core/dep"), "commit", "-qam", "moved past v1"], check=True)
             for profile in ("main-strict", "branch-ci"):
+                # A checkout whose ontology moved past the pinned tag resolves the tag's exact bytes.
                 strict = self._run(repo, "scripts/ci/full.sh", profile, workspace=workspace)
+                self.assertEqual(strict.returncode, 0, strict.stdout + strict.stderr)
+                receipt = _validate_receipt(repo)
+                self.assertEqual([layer["source"] for layer in receipt["layer_sources"] if layer["name"] == "dep"],
+                                 ["workspace_ref_snapshot"])
+            missing = base / "workspace-without-tag"
+            _init_workspace_repo(missing / "core/dep", project_path="core/dep",
+                                 tag="v0", make_mismatch=True)
+            for profile in ("main-strict", "branch-ci"):
+                # A workspace that lacks the pinned ref still fails closed.
+                strict = self._run(repo, "scripts/ci/full.sh", profile, workspace=missing)
                 self.assertNotEqual(strict.returncode, 0)
                 self.assertIn("mismatch in strict mode", strict.stdout + strict.stderr)
 

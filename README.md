@@ -79,7 +79,7 @@ Layer refs (optional):
 - Workspace config:
   - `--workspace-root <path>` (or `ROCS_WORKSPACE_ROOT`): workspace root containing local clones (recommended: `~/ai-society`).
   - `--workspace-ref-mode strict|loose` (or `ROCS_WORKSPACE_REF_MODE`):
-    - `strict` (default): use workspace only if `HEAD` matches the requested ref
+    - `strict` (default): bind the layer to the exact ontology tree of the requested ref: the checkout is used in place when its committed ontology tree equals it and has no uncommitted changes, otherwise the tree is read from the clone's object store into an immutable tree-keyed snapshot (`source=workspace_ref_snapshot`, under `$ROCS_CACHE_DIR/workspace-ref-snapshots/`); a ref missing from the clone fails closed. Receipts record `requested_ref`, `resolved_commit` and `ontology_tree` per ref layer.
     - `loose`: use workspace checkout even if it doesn’t match the requested ref
   - `repo:` locators bind by workspace layout, not remote origin URL.
 - Diagnostics:

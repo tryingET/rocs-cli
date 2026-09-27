@@ -172,16 +172,17 @@ def authority_receipt_payload(
             if layer_spec.source == "workspace" and workspace_ref_mode == "loose":
                 loose_workspace_ref_layers_used += 1
         locator_kinds.add(locator_kind)
-        layer_sources.append(
-            {
-                "name": layer_spec.name,
-                "kind": layer_spec.kind,
-                "locator_kind": locator_kind,
-                "origin": layer_spec.origin,
-                "source": layer_spec.source,
-                "source_contract": layer_spec.source_contract or "legacy",
-            }
-        )
+        entry = {
+            "name": layer_spec.name,
+            "kind": layer_spec.kind,
+            "locator_kind": locator_kind,
+            "origin": layer_spec.origin,
+            "source": layer_spec.source,
+            "source_contract": layer_spec.source_contract or "legacy",
+        }
+        if layer_spec.binding:
+            entry["binding"] = dict(layer_spec.binding)
+        layer_sources.append(entry)
 
     authority_mode = _authority_mode(
         ok=ok,

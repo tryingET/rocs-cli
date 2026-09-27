@@ -8,6 +8,15 @@ read_when:
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-09-27
+
+### Changed
+- Strict workspace ref resolution binds a `<repo:...@ref>` layer to the exact ontology tree of `ref` instead of requiring the clone's checkout to sit on `ref`. When the checkout's committed ontology tree equals `ref`'s and has no uncommitted changes, the checkout is used in place (`source: workspace`); otherwise the tree is exported from the clone's object store with `git archive` into an immutable, tree-keyed snapshot under `$ROCS_CACHE_DIR/workspace-ref-snapshots/` (`source: workspace_ref_snapshot`). The clone is never modified. Unrelated commits on a dependency's main (e.g. engineering-core pins past a kernel tag) no longer fail pinned consumers.
+
+### Fixed
+- Strict mode no longer accepts uncommitted edits inside a dependency's ontology when its HEAD happens to be the pinned commit; such a layer now resolves from the pinned tree.
+- A ref the clone does not have still fails closed with the workspace ref mismatch error.
+
 ## [0.4.4] - 2026-09-25
 
 ### Fixed

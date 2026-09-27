@@ -197,6 +197,83 @@ def _git(repo_root: Path, args: list[str]) -> str | None:
     return (r.stdout or "").strip()
 
 
+_HEX40 = re.compile(r"^[0-9a-f]{40}$")
+_SNAPSHOT_MARKER = ".rocs-workspace-ref-snapshot"
+
+
+def _tree_spec(rev: str, subpath: str) -> str:
+    return f"{rev}:{subpath}" if subpath else f"{rev}^{{tree}}"
+
+
+def workspace_ref_binding(repo_root: Path, commit: str, subpath: str) -> dict | None:
+    """Where the exact ontology tree of `commit` can be read, or None if the clone lacks it.
+
+    `in_place` is true when the checkout's committed ontology tree equals it and the ontology
+    path has no uncommitted changes, so the working files are exactly those bytes.
+    """
+    tree = _git(repo_root, ["rev-parse", "--verify", "-q", _tree_spec(commit, subpath)])
+    if not tree or not _HEX40.fullmatch(tree):
+        return None
+    head_tree = _git(repo_root, ["rev-parse", "--verify", "-q", _tree_spec("HEAD", subpath)])
+    status = _git(repo_root, ["status", "--porcelain", "--untracked-files=all", "--", subpath or "."])
+    return {"tree": tree, "head_tree": head_tree, "in_place": head_tree == tree and status == ""}
+
+
+def workspace_ref_snapshot(repo_root: Path, commit: str, subpath: str, tree: str) -> Path:
+    """Export the ontology tree of `commit` from a workspace clone into an immutable snapshot.
+
+    Keyed by the tree hash, written once into rocs's local cache, never touching the clone.
+    The snapshot keeps the repo layout (`ontology/...` or root) so layer paths resolve as usual.
+    """
+    import io
+    import shutil
+    import tarfile
+    import tempfile
+
+    from rocs_cli.cache import cache_dir
+
+    if not _HEX40.fullmatch(commit) or not _HEX40.fullmatch(tree):
+        raise RocsCliError(kind="config", message="workspace ref snapshot needs full commit and tree ids")
+    root = cache_dir() / "workspace-ref-snapshots"
+    dest = root / tree
+    marker = dest / _SNAPSHOT_MARKER
+    if marker.is_file() and marker.read_text("utf-8").strip() == tree:
+        return dest
+    env = os.environ.copy()
+    for name in _GIT_REPOSITORY_LOCAL_ENV_VARS:
+        env.pop(name, None)
+    args = ["git", "-C", str(repo_root), "archive", "--format=tar", commit]
+    if subpath:
+        args += ["--", subpath]
+    try:
+        archive = subprocess.run(args, check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    except FileNotFoundError as e:
+        raise RocsCliError(kind="config", message="git is required for workspace ref snapshots but was not found") from e
+    if archive.returncode != 0:
+        raise RocsCliError(
+            kind="not_found",
+            message=f"cannot export workspace ref {commit} from {repo_root}",
+            details={"stderr": archive.stderr.decode("utf-8", "replace").strip()},
+        )
+    root.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix=f".{tree}.", dir=root))
+    try:
+        with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as tar:
+            tar.extractall(stage, filter="data")
+        (stage / _SNAPSHOT_MARKER).write_text(tree + "\n", "utf-8")
+        try:
+            os.rename(stage, dest)
+        except OSError:
+            # A concurrent run published the same immutable snapshot first.
+            if not (marker.is_file() and marker.read_text("utf-8").strip() == tree):
+                raise
+            shutil.rmtree(stage, ignore_errors=True)
+    except BaseException:
+        shutil.rmtree(stage, ignore_errors=True)
+        raise
+    return dest
+
+
 def git_head_sha(repo_root: Path) -> str | None:
     return _git(repo_root, ["rev-parse", "--verify", "HEAD^{commit}"])
 

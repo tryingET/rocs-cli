@@ -16,6 +16,8 @@ from rocs_cli.workspace import (
     pick_workspace_repo_root,
     workspace_ref_mode_from_env,
     workspace_root_from_env,
+    workspace_ref_binding,
+    workspace_ref_snapshot,
 )
 
 
@@ -28,8 +30,10 @@ class LayerSpec:
     src_root: Path
     origin: str  # path or ref locator
     kind: str  # path|ref
-    source: str  # path|workspace
+    source: str  # path|workspace|workspace_ref_snapshot
     source_contract: str | None = None
+    # Strict workspace ref binding: requested_ref, resolved_commit, ontology_tree.
+    binding: tuple[tuple[str, str], ...] | None = None
 
 
 def repo_root(repo: str) -> Path:
@@ -200,9 +204,21 @@ def _repo_root_for_ref(
                     "requested_sha": want,
                 }
             )
-            if head is not None and want is not None and head == want:
-                notes["workspace"]["used"] = True
-                return ws_repo_root, locator, "workspace", notes
+            if want is not None:
+                # Strict binds the layer to the exact ontology bytes of `ref`, which is a tree
+                # property, not a checkout property. Use the checkout in place when its ontology
+                # tree is that tree and clean; otherwise read the tree from the clone's object
+                # store into an immutable snapshot. Either way the bytes are exactly `ref`'s.
+                subpath = "" if ontology_root(ws_repo_root) == ws_repo_root else "ontology"
+                binding = workspace_ref_binding(ws_repo_root, want, subpath)
+                if binding is not None:
+                    notes["workspace"]["binding"] = {"requested_ref": ref, "resolved_commit": want, **binding}
+                    notes["workspace"]["used"] = True
+                    if binding["in_place"]:
+                        return ws_repo_root, locator, "workspace", notes
+                    snapshot = workspace_ref_snapshot(ws_repo_root, want, subpath, binding["tree"])
+                    notes["workspace"]["binding"]["snapshot"] = str(snapshot)
+                    return snapshot, locator, "workspace_ref_snapshot", notes
             if workspace_ref_mode == "strict":
                 notes["workspace"]["reason"] = "ref_mismatch"
         elif notes["workspace"]["present"]:
@@ -222,7 +238,8 @@ def _repo_root_for_ref(
         details["workspace_ref_mismatch"] = mismatch_details
         message = (
             f"local ref not available in workspace: {locator} "
-            f"(workspace ref mismatch in strict mode; checkout {ref!r} or use --workspace-ref-mode loose)"
+            f"(workspace ref mismatch in strict mode: {ref!r} is not in the local clone; "
+            f"fetch it, e.g. `git -C <clone> fetch --tags`, or use --workspace-ref-mode loose)"
         )
     raise RocsCliError(kind="not_found", message=message, details=details)
 
@@ -252,6 +269,17 @@ def resolve_ref_repo_root(
         workspace_ref_mode=ws_mode,
     )
     return repo, source, notes
+
+
+def _strict_binding(notes: dict) -> tuple[tuple[str, str], ...] | None:
+    binding = (notes.get("workspace") or {}).get("binding")
+    if not isinstance(binding, dict):
+        return None
+    return (
+        ("ontology_tree", str(binding["tree"])),
+        ("requested_ref", str(binding["requested_ref"])),
+        ("resolved_commit", str(binding["resolved_commit"])),
+    )
 
 
 def _layer_source_contract(src_root: Path, *, layer_name: str) -> str | None:
@@ -391,6 +419,7 @@ def resolve_layers(
                     kind="ref",
                     source=source,
                     source_contract=_layer_source_contract(src_root, layer_name=name),
+                    binding=_strict_binding(notes),
                 )
             )
             resolution_notes[name] = notes
