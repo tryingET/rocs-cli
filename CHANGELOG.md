@@ -8,6 +8,9 @@ read_when:
 
 ## [Unreleased]
 
+### Added
+- `rocs lint` carries a warn-only hollow-layer report (ADR-0008 §10, AK 6134) over the repo's own path layers. `HOLLOW001` lists whole-value `<...>` template placeholders, with line numbers, in any YAML under the layer's src root, `system4d.yaml` included (harnessed LLMs read it as context; `PLACE010` still scans only markdown and only under strict). Prose tokens such as `--repo <repo>` and `<repo:...@...>` locators are not flagged. `HOLLOW002` reports YAML that does not parse instead of skipping it silently. `HOLLOW010` flags a layer that adds no concepts, relations or `bridge/mapping.yaml` entries. `HOLLOW020` flags a `system4d.yaml` byte-identical to the project template (one warning instead of its 33 placeholders). The findings are warnings under the default `dev` ruleset and fail only with `--ruleset strict` or `--fail-on-warn`. `validate`, `build` and their authority receipts are unchanged.
+
 ## [0.4.5] - 2026-09-27
 
 ### Changed

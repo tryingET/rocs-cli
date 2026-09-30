@@ -85,6 +85,11 @@ register_rule("LINT110", default_severity="warn", summary="relation missing Defi
 register_rule("LINT111", default_severity="warn", summary="empty markdown heading")
 register_rule("LINT112", default_severity="warn", summary="placeholder token in body under strict lint mode")
 
+register_rule("HOLLOW001", default_severity="warn", summary="template placeholder in layer YAML (system4d.yaml included)")
+register_rule("HOLLOW002", default_severity="warn", summary="layer YAML does not parse; placeholder scan skipped")
+register_rule("HOLLOW010", default_severity="warn", summary="repo layer contributes no documents or bridge mappings")
+register_rule("HOLLOW020", default_severity="warn", summary="system4d.yaml byte-identical to the project template")
+
 register_rule("INV001", default_severity="error", summary="inverse label not found")
 register_rule("INV002", default_severity="error", summary="inverse label ambiguous")
 register_rule("INV003", default_severity="error", summary="inverse target missing doc")

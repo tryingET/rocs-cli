@@ -43,6 +43,7 @@ Commands:
 - `rocs validate --repo . --only path|ref --layer <name>`
 - `rocs diff --repo . --baseline <repo:...@ref> --resolve-refs [--profile <name>]`
 - `rocs lint --repo . [--fail-on-warn] [--ruleset dev|strict]`
+- `rocs lint --repo . --rules HOLLOW001,HOLLOW002,HOLLOW010,HOLLOW020` (the hollow-layer report, ADR-0008 §10: for the repo's own path layers it warns on whole-value `<...>` template placeholders in any YAML under the src root, `system4d.yaml` included; on YAML that does not parse; on a layer with no concepts, relations or bridge mappings; and on a `system4d.yaml` byte-identical to the project template. Warn-only under the default `dev` ruleset, failing only with `--ruleset strict` or `--fail-on-warn`. `validate`, `build` and their authority receipts do not read it; ref layers are reported by lint in their owner repo.)
 - `rocs check-inverses --repo . [--fix]`
 - `rocs graph --repo . [--relation is_a] [--format excalidraw|excalidraw-cli-json|dot] [--json] [--out <path>]`
 - `rocs cache dir|ls|prune|clear`

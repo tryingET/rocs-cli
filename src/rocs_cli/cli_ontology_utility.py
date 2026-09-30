@@ -19,6 +19,7 @@ from rocs_cli.cli_support import (
 )
 from rocs_cli.errors import RocsCliError
 from rocs_cli.graph import build_edges, collapse_nodes, compute_layout, write_graph
+from rocs_cli.hollow import hollow_layer_findings
 from rocs_cli.inverses import check_inverses
 from rocs_cli.layers import parse_ref_locator, repo_root as _repo_root, resolve_layers, resolve_ref_repo_root
 from rocs_cli.lint import lint_docs
@@ -126,6 +127,7 @@ def cmd_lint(args: argparse.Namespace) -> int:
     fail_on_warn = bool(args.fail_on_warn or ruleset_behavior.fail_on_warn)
 
     findings = lint_docs(view.concepts, view.relations, strict_placeholders=strict_placeholders)
+    findings.extend(hollow_layer_findings(view.layers, view.concepts, view.relations))
     rule_filter: set[str] | None = None
     if args.rules and args.rules != "all":
         rule_filter = {x.strip() for x in args.rules.split(",") if x.strip()}
