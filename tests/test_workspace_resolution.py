@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -371,6 +372,163 @@ class TestWorkspaceResolution(unittest.TestCase):
             dep_layer = self._strict_resolve(td_path, ws, "<repo:core/dep@v1>")
             self.assertEqual(dep_layer["source"], "workspace_ref_snapshot")
             self.assertEqual((Path(dep_layer["src_root"]) / "system4d.yaml").read_text("utf-8"), "system4d: {}\n")
+
+    def _resolve(self, td_path: Path, ws: Path, locator: str, mode: str, *extra: str) -> tuple[int, dict]:
+        repo = _mk_rocs_repo(td_path, locator=locator)
+        with _Env(ROCS_CACHE_DIR=str(td_path / "cache")):
+            code, out = _run_capture(["resolve", "--repo", str(repo), "--resolve-refs", "--workspace-root",
+                                      str(ws), "--workspace-ref-mode", mode, "--json", *extra])
+        return code, _parse_json(out)
+
+    def test_strict_fails_closed_on_an_ignored_nested_ontology_repo(self) -> None:
+        # holdingco's shape (AK 6329): the company repo tracks only ontology/.gitkeep, ignores
+        # ontology/, and a separate nested repo holds the content. `git status` shows nothing.
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            outer = ws / "holdingco"
+            outer.mkdir(parents=True)
+            _git(outer, ["init", "-q"])
+            _git(outer, ["config", "user.email", "test@example.invalid"])
+            _git(outer, ["config", "user.name", "test"])
+            _write(outer / ".gitignore", "ontology/\n")
+            _write(outer / "ontology" / ".gitkeep", "")
+            _git(outer, ["add", ".gitignore"])
+            _git(outer, ["add", "-f", "ontology/.gitkeep"])
+            _git(outer, ["commit", "-qm", "init"])
+            _git(outer, ["tag", "v1"])
+            _init_workspace_repo(outer / "ontology", project_path="holdingco/ontology", tag="v1",
+                                 make_mismatch=False, layout="root")
+            _write(outer / "ontology" / "src" / "system4d.yaml", "system4d: {uncommitted: true}\n")
+            self.assertEqual(_git_out(outer, ["status", "--porcelain", "--untracked-files=all", "--", "ontology"]), "")
+
+            code, payload = self._resolve(td_path, ws, "<repo:holdingco@v1>", "strict")
+            self.assertEqual(code, 1)
+            error = payload["error"]
+            self.assertEqual(error["kind"], "not_found")
+            self.assertIn("has no committed ontology/src", error["message"])
+            self.assertNotIn("fetch --tags", error["message"])
+            self.assertEqual(error["details"]["missing_tree"], "ontology/src")
+            self.assertFalse((td_path / "cache" / "workspace-ref-snapshots").exists())
+            # Loose mode stays explicitly best-effort and reads the working tree.
+            code, payload = self._resolve(td_path, ws, "<repo:holdingco@v1>", "loose")
+            self.assertEqual(code, 0)
+            dep_layer = next(layer for layer in payload["layers"] if layer["name"] == "dep")
+            self.assertEqual(dep_layer["source"], "workspace")
+
+    def test_strict_reads_a_snapshot_when_ignored_files_sit_in_the_layer(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            dep = ws / "core" / "dep"
+            _init_workspace_repo(dep, project_path="core/dep", tag="v1", make_mismatch=False)
+            _write(dep / ".git" / "info" / "exclude", "ontology/src/reference/\n")
+            _write(dep / "ontology" / "src" / "reference" / "concepts" / "core.Ghost.md", "---\nont: {}\n---\n")
+            self.assertEqual(_git_out(dep, ["status", "--porcelain", "--untracked-files=all"]), "")
+            dep_layer = self._strict_resolve(td_path, ws, "<repo:core/dep@v1>")
+            self.assertEqual(dep_layer["source"], "workspace_ref_snapshot")
+            self.assertFalse((Path(dep_layer["src_root"]) / "reference").exists())
+
+    def test_strict_reads_a_snapshot_when_a_nested_repo_sits_in_the_layer(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            dep = ws / "core" / "dep"
+            _init_workspace_repo(dep, project_path="core/dep", tag="v0", make_mismatch=False)
+            sub = dep / "ontology" / "src" / "sub"
+            sub.mkdir()
+            _git(sub, ["init", "-q"])
+            _git(sub, ["config", "user.email", "test@example.invalid"])
+            _git(sub, ["config", "user.name", "test"])
+            _write(sub / "core.Sub.md", "nested bytes\n")
+            _git(sub, ["add", "."])
+            _git(sub, ["commit", "-qm", "sub"])
+            # A clean gitlink: `git status` of the outer repo cannot see the nested files.
+            gitlink = f"160000,{_git_out(sub, ['rev-parse', 'HEAD'])},ontology/src/sub"
+            _git(dep, ["update-index", "--add", "--cacheinfo", gitlink])
+            _git(dep, ["commit", "-qm", "gitlink"])
+            _git(dep, ["tag", "v1"])
+            self.assertEqual(_git_out(dep, ["status", "--porcelain", "--untracked-files=all"]), "")
+            dep_layer = self._strict_resolve(td_path, ws, "<repo:core/dep@v1>")
+            self.assertEqual(dep_layer["source"], "workspace_ref_snapshot")
+            self.assertFalse((Path(dep_layer["src_root"]) / "sub" / "core.Sub.md").exists())
+
+    def test_strict_stays_in_place_when_ignored_files_sit_outside_the_layer(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            dep = ws / "core" / "dep"
+            _init_workspace_repo(dep, project_path="core/dep", tag="v1", make_mismatch=False, layout="root")
+            _write(dep / ".git" / "info" / "exclude", "dist/\n.venv/\n")
+            _write(dep / "dist" / "summary.json", "{}\n")
+            _write(dep / ".venv" / "pyvenv.cfg", "home = /usr\n")
+            dep_layer = self._strict_resolve(td_path, ws, "<repo:core/dep@v1>")
+            self.assertEqual(dep_layer["source"], "workspace")
+
+    def _submodule_workspace(self, ws: Path) -> tuple[Path, str]:
+        # softwareco's shape: the company repo pins its ontology as a submodule (a gitlink).
+        outer = ws / "softwareco"
+        outer.mkdir(parents=True)
+        _git(outer, ["init", "-q"])
+        _git(outer, ["config", "user.email", "test@example.invalid"])
+        _git(outer, ["config", "user.name", "test"])
+        _init_workspace_repo(outer / "ontology", project_path="softwareco/ontology", tag="v0",
+                             make_mismatch=False, layout="root")
+        pinned = _git_out(outer / "ontology", ["rev-parse", "HEAD"])
+        _git(outer, ["update-index", "--add", "--cacheinfo", f"160000,{pinned},ontology"])
+        _git(outer, ["commit", "-qm", "pin ontology"])
+        _git(outer, ["tag", "v1"])
+        return outer, pinned
+
+    def test_strict_follows_a_submodule_pin_in_place(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            outer, pinned = self._submodule_workspace(ws)
+            code, payload = self._resolve(td_path, ws, "<repo:softwareco@v1>", "strict", "--show-resolve-details")
+            self.assertEqual(code, 0, payload)
+            dep_layer = next(layer for layer in payload["layers"] if layer["name"] == "dep")
+            self.assertEqual(dep_layer["source"], "workspace")
+            self.assertEqual(Path(dep_layer["src_root"]), (outer / "ontology" / "src").resolve())
+            binding = dep_layer["details"]["workspace"]["binding"]
+            self.assertEqual(binding["submodule_commit"], pinned)
+            # The bound tree is the pinned commit's tree, never the gitlink's commit id.
+            self.assertEqual(binding["tree"], _git_out(outer / "ontology", ["rev-parse", f"{pinned}^{{tree}}"]))
+
+    def test_strict_reads_the_submodule_pin_when_the_nested_clone_moved(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            outer, _pinned = self._submodule_workspace(ws)
+            _write(outer / "ontology" / "src" / "system4d.yaml", "system4d: {moved: true}\n")
+            _git(outer / "ontology", ["commit", "-qam", "moved past the pin"])
+            dep_layer = self._strict_resolve(td_path, ws, "<repo:softwareco@v1>")
+            self.assertEqual(dep_layer["source"], "workspace_ref_snapshot")
+            self.assertEqual((Path(dep_layer["src_root"]) / "system4d.yaml").read_text("utf-8"), "system4d: {}\n")
+
+    def test_strict_fails_closed_when_the_submodule_clone_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            outer, pinned = self._submodule_workspace(ws)
+            shutil.rmtree(outer / "ontology" / ".git")
+            code, payload = self._resolve(td_path, ws, "<repo:softwareco@v1>", "strict")
+            self.assertEqual(code, 1)
+            self.assertIn(f"pins submodule 'ontology' at {pinned}", payload["error"]["message"])
+            self.assertEqual(payload["error"]["details"]["submodule_commit"], pinned)
+
+    def test_strict_without_a_clone_says_so(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            ws = td_path / "ws"
+            _write(ws / "holdingco" / "ontology" / "manifest.yaml", "rocs:\n  layer: dep\n")
+            code, payload = self._resolve(td_path, ws, "<repo:holdingco/ontology@main>", "strict")
+            self.assertEqual(code, 1)
+            message = payload["error"]["message"]
+            self.assertIn("checkout the dependency repo locally", message)
+            self.assertNotIn("mismatch", message)
+            self.assertNotIn("fetch", message)
+            self.assertNotIn("workspace_ref_mismatch", payload["error"].get("details", {}))
 
     def test_strict_missing_ref_fails_cleanly(self) -> None:
         project_path = "core/dep"

@@ -205,18 +205,71 @@ def _tree_spec(rev: str, subpath: str) -> str:
     return f"{rev}:{subpath}" if subpath else f"{rev}^{{tree}}"
 
 
-def workspace_ref_binding(repo_root: Path, commit: str, subpath: str) -> dict | None:
-    """Where the exact ontology tree of `commit` can be read, or None if the clone lacks it.
-
-    `in_place` is true when the checkout's committed ontology tree equals it and the ontology
-    path has no uncommitted changes, so the working files are exactly those bytes.
-    """
-    tree = _git(repo_root, ["rev-parse", "--verify", "-q", _tree_spec(commit, subpath)])
-    if not tree or not _HEX40.fullmatch(tree):
+def _tree_id(repo_root: Path, spec: str) -> str | None:
+    """The object id `spec` names when it is a tree in this clone (a gitlink names a commit)."""
+    oid = _git(repo_root, ["rev-parse", "--verify", "-q", spec])
+    if not oid or not _HEX40.fullmatch(oid):
         return None
-    head_tree = _git(repo_root, ["rev-parse", "--verify", "-q", _tree_spec("HEAD", subpath)])
+    return oid if _git(repo_root, ["cat-file", "-t", oid]) == "tree" else None
+
+
+def _layer_read_paths(subpath: str) -> list[str]:
+    """What rocs reads for a layer: its manifest (source contract selector) and its src tree."""
+    prefix = f"{subpath}/" if subpath else ""
+    return [f"{prefix}manifest.yaml", f"{prefix}manifest.yml", f"{prefix}src"]
+
+
+def _holds_nested_repo(repo_root: Path, subpath: str) -> bool:
+    """A nested clone or submodule owns its own files, which the outer tree does not contain."""
+    base = repo_root / subpath if subpath else repo_root
+    if subpath and (base / ".git").exists():
+        return True
+    for _dirpath, dirnames, filenames in os.walk(base / "src"):
+        if ".git" in dirnames or ".git" in filenames:
+            return True
+    return False
+
+
+def _reads_committed_bytes(repo_root: Path, subpath: str) -> bool:
+    """True when the working files rocs reads for the layer are exactly the checkout's committed ones.
+
+    `git status` cannot see ignored paths or into a nested repository, so a clean status alone
+    does not prove that the files read are the committed tree (AK 6329).
+    """
+    if _holds_nested_repo(repo_root, subpath):
+        return False
     status = _git(repo_root, ["status", "--porcelain", "--untracked-files=all", "--", subpath or "."])
-    return {"tree": tree, "head_tree": head_tree, "in_place": head_tree == tree and status == ""}
+    ignored = _git(
+        repo_root,
+        ["status", "--porcelain", "--untracked-files=all", "--ignored=matching", "--", *_layer_read_paths(subpath)],
+    )
+    return status == "" and ignored == ""
+
+
+def workspace_gitlink(repo_root: Path, commit: str, subpath: str) -> str | None:
+    """The submodule commit that `commit` pins at `subpath`, when that path is a gitlink."""
+    if not subpath:
+        return None
+    parts = (_git(repo_root, ["ls-tree", commit, "--", subpath]) or "").split()
+    if len(parts) >= 3 and parts[0] == "160000" and _HEX40.fullmatch(parts[2]):
+        return parts[2]
+    return None
+
+
+def workspace_ref_binding(repo_root: Path, commit: str, subpath: str) -> dict | None:
+    """Where the exact ontology tree of `commit` can be read, or None if `commit` has no layer to read.
+
+    None means the clone has no committed tree for the ontology or for its `src`, so strict mode has
+    no bytes to bind. `in_place` is true when the checkout's committed ontology tree equals it and
+    the files read for the layer are exactly those bytes; otherwise the tree is read from a snapshot.
+    """
+    tree = _tree_id(repo_root, _tree_spec(commit, subpath))
+    src = f"{subpath}/src" if subpath else "src"
+    if tree is None or _tree_id(repo_root, _tree_spec(commit, src)) is None:
+        return None
+    head_tree = _tree_id(repo_root, _tree_spec("HEAD", subpath))
+    in_place = head_tree == tree and _reads_committed_bytes(repo_root, subpath)
+    return {"tree": tree, "head_tree": head_tree, "in_place": in_place}
 
 
 def workspace_ref_snapshot(repo_root: Path, commit: str, subpath: str, tree: str) -> Path:

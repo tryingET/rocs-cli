@@ -16,6 +16,7 @@ from rocs_cli.workspace import (
     pick_workspace_repo_root,
     workspace_ref_mode_from_env,
     workspace_root_from_env,
+    workspace_gitlink,
     workspace_ref_binding,
     workspace_ref_snapshot,
 )
@@ -149,6 +150,51 @@ def _unsupported_gitlab_locator(locator: str, *, project_path: str, ref: str) ->
     )
 
 
+def _strict_workspace_binding(
+    ws_repo_root: Path, want: str, *, locator: str, ref: str, notes: dict, details: dict
+) -> tuple[Path, str]:
+    """Bind a strict ref layer to the exact ontology bytes of `ref` (the resolved commit `want`).
+
+    That is a tree property, not a checkout property. The checkout is used in place when its
+    ontology tree is that tree and the files read are exactly those bytes; otherwise the tree is
+    read from the clone's object store into an immutable snapshot. A submodule at the ontology
+    path pins its own commit, so the bytes are that commit's, read from the nested clone.
+    """
+    subpath = "" if ontology_root(ws_repo_root) == ws_repo_root else "ontology"
+    bind_root, bind_commit, bind_subpath = ws_repo_root, want, subpath
+    pinned = workspace_gitlink(ws_repo_root, want, subpath)
+    if pinned is not None:
+        bind_root, bind_commit = ws_repo_root / subpath, pinned
+        bind_subpath = "" if ontology_root(bind_root) == bind_root else "ontology"
+    has_clone = pinned is None or (bind_root / ".git").exists()
+    binding = workspace_ref_binding(bind_root, bind_commit, bind_subpath) if has_clone else None
+    if binding is None:
+        # An ignored or unpinned nested-repository ontology is not part of `ref`: fail closed
+        # rather than bind a tree that holds no layer (AK 6329).
+        src = f"{bind_subpath}/src" if bind_subpath else "src"
+        where = f"{ref!r} has no committed {src} in {bind_root}"
+        if pinned is not None:
+            where = f"{ref!r} pins submodule {subpath!r} at {pinned}, which has no {src} in a clone at {bind_root}"
+        raise RocsCliError(
+            kind="not_found",
+            message=(
+                f"local ref not available in workspace: {locator} (strict mode reads committed bytes only, "
+                f"and {where}; an ignored or unpinned nested-repository ontology is not part of the ref. "
+                "Commit or check it out there, or use --workspace-ref-mode loose)"
+            ),
+            details={**details, "missing_tree": src, **({"submodule_commit": pinned} if pinned else {})},
+        )
+    notes["workspace"]["binding"] = {"requested_ref": ref, "resolved_commit": want, **binding}
+    if pinned is not None:
+        notes["workspace"]["binding"]["submodule_commit"] = pinned
+    notes["workspace"]["used"] = True
+    if binding["in_place"]:
+        return bind_root, "workspace"
+    snapshot = workspace_ref_snapshot(bind_root, bind_commit, bind_subpath, binding["tree"])
+    notes["workspace"]["binding"]["snapshot"] = str(snapshot)
+    return snapshot, "workspace_ref_snapshot"
+
+
 def _repo_root_for_ref(
     locator: str,
     *,
@@ -174,16 +220,14 @@ def _repo_root_for_ref(
     notes: dict = {"scheme": scheme, "workspace": {"present": False, "used": False, "reason": None}}
     mismatch_details: dict | None = None
 
+    details: dict = {
+        "project_path": project_path,
+        "requested_ref": ref,
+    }
     if workspace_root is not None:
+        details["workspace_root"] = str(workspace_root)
         if workspace_repo_exists(workspace_root, project_path):
             notes["workspace"]["present"] = True
-            mismatch_details = {
-                "workspace_root": str(workspace_root),
-                "workspace_ref_mode": workspace_ref_mode,
-                "project_path": project_path,
-                "requested_ref": ref,
-                "require_origin_match": False,
-            }
         ws_repo_root = pick_workspace_repo_root(
             workspace_root,
             project_path,
@@ -194,42 +238,29 @@ def _repo_root_for_ref(
                 notes["workspace"]["used"] = True
                 return ws_repo_root, locator, "workspace", notes
 
-            head = git_head_sha(ws_repo_root)
             want = git_rev_sha(ws_repo_root, ref)
-            mismatch_details = dict(mismatch_details or {})
-            mismatch_details.update(
-                {
-                    "workspace_repo_root": str(ws_repo_root),
-                    "head_sha": head,
-                    "requested_sha": want,
-                }
-            )
+            # Only a clone can mismatch; with no clone the generic "check it out" message applies.
+            mismatch_details = {
+                "workspace_root": str(workspace_root),
+                "workspace_ref_mode": workspace_ref_mode,
+                "project_path": project_path,
+                "requested_ref": ref,
+                "require_origin_match": False,
+                "workspace_repo_root": str(ws_repo_root),
+                "head_sha": git_head_sha(ws_repo_root),
+                "requested_sha": want,
+            }
             if want is not None:
-                # Strict binds the layer to the exact ontology bytes of `ref`, which is a tree
-                # property, not a checkout property. Use the checkout in place when its ontology
-                # tree is that tree and clean; otherwise read the tree from the clone's object
-                # store into an immutable snapshot. Either way the bytes are exactly `ref`'s.
-                subpath = "" if ontology_root(ws_repo_root) == ws_repo_root else "ontology"
-                binding = workspace_ref_binding(ws_repo_root, want, subpath)
-                if binding is not None:
-                    notes["workspace"]["binding"] = {"requested_ref": ref, "resolved_commit": want, **binding}
-                    notes["workspace"]["used"] = True
-                    if binding["in_place"]:
-                        return ws_repo_root, locator, "workspace", notes
-                    snapshot = workspace_ref_snapshot(ws_repo_root, want, subpath, binding["tree"])
-                    notes["workspace"]["binding"]["snapshot"] = str(snapshot)
-                    return snapshot, locator, "workspace_ref_snapshot", notes
+                bound, source = _strict_workspace_binding(
+                    ws_repo_root, want, locator=locator, ref=ref, notes=notes,
+                    details={**details, "workspace_ref_mismatch": mismatch_details},
+                )
+                return bound, locator, source, notes
             if workspace_ref_mode == "strict":
                 notes["workspace"]["reason"] = "ref_mismatch"
         elif notes["workspace"]["present"]:
             notes["workspace"]["reason"] = "not_git_repo"
 
-    details: dict = {
-        "project_path": project_path,
-        "requested_ref": ref,
-    }
-    if workspace_root is not None:
-        details["workspace_root"] = str(workspace_root)
     message = (
         f"local ref not available in workspace: {locator} "
         "(set --workspace-root / ROCS_WORKSPACE_ROOT and checkout the dependency repo locally)"
@@ -279,6 +310,7 @@ def _strict_binding(notes: dict) -> tuple[tuple[str, str], ...] | None:
         ("ontology_tree", str(binding["tree"])),
         ("requested_ref", str(binding["requested_ref"])),
         ("resolved_commit", str(binding["resolved_commit"])),
+        *((("submodule_commit", str(binding["submodule_commit"])),) if "submodule_commit" in binding else ()),
     )
 
 
