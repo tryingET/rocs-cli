@@ -4,6 +4,7 @@ read_when:
   - "You continue rocs-cli work after the 2026-10-01/02 Claude session."
   - "You consider cutting rocs-cli 0.4.6 or touching strict workspace ref binding."
 type: "reference"
+task_id: 6454
 ---
 
 # rocs-cli session handoff (2026-10-02)
@@ -39,7 +40,7 @@ release.
   the 9 consumers of `<repo:softwareco@main>` keep resolving. Following the pin, instead of failing
   closed until decision 157's fold, was the session's call and has not been confirmed by the operator.
 
-## Waiting on the operator (ask; do not assume)
+## Waiting on the operator (AK 6454; ask, do not assume)
 
 1. **Cut 0.4.6?** It would ship both changes to pinned consumers. Use
    `uv run --frozen python -m rocs_cli release plan|apply --version 0.4.6`, then run the gate. Do not
