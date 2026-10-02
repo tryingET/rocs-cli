@@ -80,7 +80,7 @@ Layer refs (optional):
 - Workspace config:
   - `--workspace-root <path>` (or `ROCS_WORKSPACE_ROOT`): workspace root containing local clones (recommended: `~/ai-society`).
   - `--workspace-ref-mode strict|loose` (or `ROCS_WORKSPACE_REF_MODE`):
-    - `strict` (default): bind the layer to the exact ontology tree of the requested ref: the checkout is used in place when its committed ontology tree equals it and has no uncommitted changes, otherwise the tree is read from the clone's object store into an immutable tree-keyed snapshot (`source=workspace_ref_snapshot`, under `$ROCS_CACHE_DIR/workspace-ref-snapshots/`); a ref missing from the clone fails closed. Receipts record `requested_ref`, `resolved_commit` and `ontology_tree` per ref layer.
+    - `strict` (default): bind the layer to the exact ontology tree of the requested ref: the checkout is used in place when its committed ontology tree equals it and the layer's manifest and `src/` contain no uncommitted changes, ignored entries, or nested `.git`; otherwise the tree is read from the clone's object store into an immutable tree-keyed snapshot (`source=workspace_ref_snapshot`, under `$ROCS_CACHE_DIR/workspace-ref-snapshots/`). A missing ref or committed layer `src/` fails closed. An ontology-path submodule is followed at the exact committed gitlink pin, using that clone in place only when its selected tree is clean, otherwise a snapshot; receipts additionally record `submodule_commit`. Receipts record `requested_ref`, `resolved_commit` and `ontology_tree` per ref layer.
     - `loose`: use workspace checkout even if it doesn’t match the requested ref
   - `repo:` locators bind by workspace layout, not remote origin URL.
 - Diagnostics:

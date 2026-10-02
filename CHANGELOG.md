@@ -8,6 +8,8 @@ read_when:
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-10-02
+
 ### Fixed
 - Strict workspace ref binding no longer claims a tree it did not read (AK 6329, decision 168 review R3). It used the checkout in place whenever `git status` of the ontology path was empty, but `git status` lists nothing for ignored paths or inside a nested repository. For `<repo:holdingco@main>` it bound the `.gitkeep`-only tree `d564d0b` while reading the nested repo's working files, uncommitted edits included. Now the checkout is used in place only when the files read for the layer (its manifest and `src/`) hold no ignored entries and no nested `.git`; otherwise the exact tree is read from a snapshot.
 - A ref whose committed tree has no layer `src/` fails closed (`not_found`) in strict mode, naming the missing tree, instead of binding an empty tree. `<repo:holdingco@main>` fails this way until decision 168 folds the ontology into holdingco; loose mode still reads the working tree.
@@ -16,6 +18,11 @@ read_when:
 
 ### Added
 - `rocs lint` carries a warn-only hollow-layer report (ADR-0008 §10, AK 6134) over the repo's own path layers. `HOLLOW001` lists whole-value `<...>` template placeholders, with line numbers, in any YAML under the layer's src root, `system4d.yaml` included (harnessed LLMs read it as context; `PLACE010` still scans only markdown and only under strict). Prose tokens such as `--repo <repo>` and `<repo:...@...>` locators are not flagged. `HOLLOW002` reports YAML that does not parse instead of skipping it silently. `HOLLOW010` flags a layer that adds no concepts, relations or `bridge/mapping.yaml` entries. `HOLLOW020` flags a `system4d.yaml` byte-identical to the project template (one warning instead of its 33 placeholders). The findings are warnings under the default `dev` ruleset and fail only with `--ruleset strict` or `--fail-on-warn`. `validate`, `build` and their authority receipts are unchanged.
+
+### Compatibility and adoption
+- Corrected strict binding makes `<repo:holdingco@main>` fail closed until decision 168's ontology fold; this affects holdingco/contrib and holdingco/infra. Loose mode is not an authoritative workaround.
+- Exact committed ontology submodule pins remain supported, as confirmed by the operator in AK 6454. Pinned/bundled consumers must adopt 0.4.6 explicitly; this release does not update them automatically.
+- No ontology source migration is performed. Re-pinning 0.4.5 restores the previous runtime but also its known strict-binding defects.
 
 ## [0.4.5] - 2026-09-27
 

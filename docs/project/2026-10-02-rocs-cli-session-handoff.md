@@ -12,6 +12,14 @@ task_id: 6454
 Continue in `~/ai-society/core/rocs-cli`. Read `AGENTS.md` and `next_session_prompt.md` first. AK is the
 authority for tasks, decisions and evidence; this note only routes you to it.
 
+## Continuation routing (AK 6454)
+
+The sections below preserve the original session snapshot, not current status. The operator's
+continuation answers are recorded in AK evidence **12314**: authorize 0.4.6 subject to the full gate,
+keep exact submodule-pin binding, and reuse AK **6135** for its existing 43 template targets without
+lifting its execution hold. The separate softwareco/ontology company-placeholder follow-up is AK
+**6462**. Read AK 6454 for release execution evidence; authorization alone is not a release proof.
+
 ## Done (on origin/main, not released)
 
 Both changes sit under `## [Unreleased]` in `CHANGELOG.md`. Consumers that run this checkout through
