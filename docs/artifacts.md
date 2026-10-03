@@ -13,7 +13,7 @@ Artifacts written by rocs-cli are **offline-first** and should be:
 - additive where possible (consumers ignore unknown keys)
 
 Notes:
-- Candidate AK 5903 changes below are **unreleased**, not behavior of the immutable 0.4.6 tag. `resolve.json` v3, `summary.json` v2 and unchanged `id_index.json` v1 are input-derived tracked projections: the same selected ontology inputs/profile produce the same bytes across clone/cache/output locations and tool-version stamps. They do not certify semantics or uniquely identify every possible input corpus.
+- Since ROCS **0.4.7** (AK 5903), the default persisted schemas below replace those of the immutable 0.4.6 tag. This is an intentional pre-1.0 breaking simplification, not a compatibility/opt-in branch. `resolve.json` v3, `summary.json` v2 and unchanged `id_index.json` v1 are input-derived tracked projections: the same selected ontology inputs/profile produce the same bytes across clone/cache/output locations and tool-version stamps. They do not certify semantics or uniquely identify every possible input corpus.
 - Runtime environment/provenance (`version`, absolute `repo`/`src_root`, checkout versus snapshot `source`, strict bindings) belongs in command/aggregate authority receipts and ordinary CLI diagnostics, not these three tracked projections. Other artifacts such as `diff.json` still contain environment fields and are outside this change. Explicit authored locator strings remain inputs; this does not rewrite absolute paths authored into manifests.
 - Consumers must keep runtime authority receipts/locks untracked using their own ignore policy; the writer does not silently change Git tracking. `resolve --write-dist` still writes only its resolve artifact, not a new resolve authority receipt.
 - When `ROCS_OUTPUT_ROOT` is unset, managed files retain the existing `ontology/dist/` or root-layout `dist/` location. When set, its value is the direct output directory anchored to `--repo`; every managed writer and cleanup operation uses it, while ontology source remains unchanged. This routing choice does not alter the three tracked projections' bytes; receipt `output_root` intentionally reports the configured output location. The external directory carries a persistent `.rocs-output-root.json` (`rocs-managed-output-root/1`) and must be absent, empty, or already marked for the same repo-relative path. Cleanup retains that marker and `.authority-receipt.lock`; it deletes only exact ROCS receipts, resolve/summary/index/diff/graph artifacts, and exact orphan writer temporaries. Unknown, nested, non-regular, multiply linked, substituted, or racing entries fail closed. Legacy unmarked default `dist/` cleanup remains a separate compatibility path.
@@ -32,7 +32,7 @@ Notes:
 
 ## Files
 
-### `resolve.json` (`schema_version: 3`, candidate)
+### `resolve.json` (`schema_version: 3`)
 Written by `rocs resolve --write-dist` and `rocs build`.
 
 Notes:
@@ -49,7 +49,7 @@ Use `resolve --json` for runtime `repo`/`source`/`src_root`, and `version` or bu
 receipts for the tool version. Ordinary CLI JSON/text resolution diagnostics are unchanged. Consumers of persisted
 v2 files must handle the new schema deliberately; this is not an additive key-only migration.
 
-### `summary.json` (`schema_version: 2`, candidate)
+### `summary.json` (`schema_version: 2`)
 Written by `rocs build`.
 
 Top-level keys (v2):
@@ -110,7 +110,7 @@ Top-level keys (v3):
 - `ref_layers_present` (bool)
 - `ref_layer_count` (int)
 - `loose_workspace_ref_layers_used` (int)
-- `layer_sources` (list of `{name, kind, locator_kind, origin, source, source_contract, src_root}`; optional `binding` records strict ref identity). Candidate `src_root` is an additive absolute-path diagnostic; receipt schema remains 3.
+- `layer_sources` (list of `{name, kind, locator_kind, origin, source, source_contract, src_root}`; optional `binding` records strict ref identity). `src_root` is an additive absolute-path diagnostic from 0.4.7; receipt schema remains 3.
 - `locator_kinds_present` (sorted list)
 - `output_root` (string, optional; repo-relative managed output directory when `ROCS_OUTPUT_ROOT` is active)
 - `result` (object, optional; currently validation finding counts)
