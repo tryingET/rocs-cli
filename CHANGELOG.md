@@ -8,6 +8,9 @@ read_when:
 
 ## [Unreleased]
 
+### Changed
+- Candidate AK 5903 makes tracked `resolve.json`, `summary.json` and `id_index.json` independent of tool-version stamps and clone/cache/output locations. Persisted resolve moves to schema 3 (removing runtime `version`, `repo`, `source` and `src_root`); persisted summary moves to schema 2 (removing `version` and `repo`); index schema 1 is unchanged. Build/validate authority receipts retain runtime provenance and add absolute layer `src_root`. Ordinary CLI diagnostics and receipt authority rules are unchanged. Persisted-artifact readers must adopt the new schemas explicitly; this candidate is not in the immutable 0.4.6 release.
+
 ## [0.4.6] - 2026-10-02
 
 ### Fixed

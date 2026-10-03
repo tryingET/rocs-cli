@@ -178,6 +178,7 @@ def authority_receipt_payload(
             "locator_kind": locator_kind,
             "origin": layer_spec.origin,
             "source": layer_spec.source,
+            "src_root": str(layer_spec.src_root),
             "source_contract": layer_spec.source_contract or "legacy",
         }
         if layer_spec.binding:

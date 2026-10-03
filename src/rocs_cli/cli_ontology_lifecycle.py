@@ -4,7 +4,6 @@ import argparse
 import json
 from typing import cast
 
-from rocs_cli import __version__
 from rocs_cli.authority import effective_workspace_ref_mode
 from rocs_cli.cli_support import (
     _clear_build_artifacts,
@@ -280,9 +279,7 @@ def cmd_build(args: argparse.Namespace) -> int:
 
     resolve_out = _write_resolve_artifact(repo, layers=view.layers, profile=profile_name)
     payload = {
-        "schema_version": 1,
-        "version": __version__,
-        "repo": str(repo),
+        "schema_version": 2,
         "profile": profile_name,
         "layers": [{"name": layer_spec.name, "origin": layer_spec.origin} for layer_spec in view.layers],
         "counts": {"concepts": len(view.concepts), "relations": len(view.relations)},

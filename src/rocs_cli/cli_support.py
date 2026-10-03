@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 
-from rocs_cli import __version__
 from rocs_cli.authority import authority_receipt_payload, can_write_authority_receipt, write_authority_receipt
 from rocs_cli.errors import RocsCliError
 from rocs_cli.layers import dist_dir, repo_root as _repo_root
@@ -88,16 +87,12 @@ def _write_resolve_artifact(repo: Path, *, layers, profile: str | None) -> Path:
                 "name": layer_spec.name,
                 "kind": layer_spec.kind,
                 "origin": layer_spec.origin,
-                "source": layer_spec.source,
-                "src_root": str(layer_spec.src_root),
                 "source_contract": layer_spec.source_contract,
             }
         )
     entries.sort(key=lambda e: str(e.get("name") or ""))
     payload = {
-        "schema_version": 2,
-        "version": __version__,
-        "repo": str(repo),
+        "schema_version": 3,
         "profile": profile,
         "layers": entries,
     }
