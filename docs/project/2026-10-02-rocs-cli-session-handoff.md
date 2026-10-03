@@ -1,5 +1,5 @@
 ---
-summary: "Handoff of 2026-10-02: AK 6134 (hollow-layer report) and AK 6329 (strict ref binding) shipped to main, unreleased; open operator decisions and next candidates."
+summary: "Superseded session snapshot: AK 6454 records operator decisions and verified v0.4.6 publication; remaining fleet work belongs to AK 6135 and 6462."
 read_when:
   - "You continue rocs-cli work after the 2026-10-01/02 Claude session."
   - "You consider cutting rocs-cli 0.4.6 or touching strict workspace ref binding."
@@ -18,7 +18,8 @@ The sections below preserve the original session snapshot, not current status. T
 continuation answers are recorded in AK evidence **12314**: authorize 0.4.6 subject to the full gate,
 keep exact submodule-pin binding, and reuse AK **6135** for its existing 43 template targets without
 lifting its execution hold. The separate softwareco/ontology company-placeholder follow-up is AK
-**6462**. Read AK 6454 for release execution evidence; authorization alone is not a release proof.
+**6462**. AK 6454 is now done; release evidence **12328** records `v0.4.6` and origin/main
+at `bdb4ac4`. Read AK for current execution state; the historical sections below are superseded.
 
 ## Done (on origin/main, not released)
 

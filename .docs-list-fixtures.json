@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.AuthorityBoundary.md",
+      "sha256": "bf86da1193a1c9d0c3eabfeb9f0b82aba6b4328342927d6e8bb805a7f7bc63a0",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.CapabilityNegotiation.md",
+      "sha256": "8c54a23a8e65eb860d00bc700fabf3f3400ca08f671ba882d61a71addc90a929",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.ContextPacking.md",
+      "sha256": "bab8c0240f9b045c10d9f3047133049c875ea76bc4b34efcc1fffd59001eb64b",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.DecisionLifecycle.md",
+      "sha256": "4653acf0c79dbb4d5a1a305c98460f7d818d1ac91b6478c0a7cbee1e2c9de703",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.EvidenceScope.md",
+      "sha256": "dd11ed4b3f6d4604f5a9020e8cdcdc0e8682f313d96eef4a4b5aa9563b5fada5",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.OntologyValidation.md",
+      "sha256": "d36067dabcefcc0ecf2e811bb197b31b262384f51dd255a795f9e7ba24f50c52",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.PromptRetention.md",
+      "sha256": "80856fc04136a2fa46303d7ce82efbc69504cfbd079fb8a310840ed6490f3109",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.ProviderTransmission.md",
+      "sha256": "2b281c77612c617bb428a2e3c64d70ed10661023092f811b9123dc220eaf6d04",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.RuntimeRollback.md",
+      "sha256": "94c9e5dbe20d4b7d356a53cfbe88e3ccfc36d6ab9aad4d5b185b1961400fd7b2",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    },
+    {
+      "path": "tests/fixtures/decision98-b0/corpus/ontology/src/reference/concepts/core.SemanticDiscovery.md",
+      "sha256": "29d18c92500d1f303379d7409c6092fe881180da9fbb9ab8485460c413765478",
+      "reason": "Immutable Decision 98 B0 evaluation corpus; bytes bound by preregistration-lock.json and the recorded report, not operator documentation."
+    }
+  ]
+}
